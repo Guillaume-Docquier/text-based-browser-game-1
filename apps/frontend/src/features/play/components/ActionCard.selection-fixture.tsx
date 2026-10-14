@@ -426,7 +426,9 @@ export function toActionDto(action: Omit<Action, "canAfford" | "isInProgress">, 
 /** Parses the same frontend projection used by the public Action selector. */
 export function requireEligibilityProjection(view: PlayerView): Extract<ReturnType<typeof createEligibilityState>, { success: true }> {
   const projection = createEligibilityState(view)
-  if (!projection.success) throw new Error(projection.message)
+  if (!projection.success) {
+    throw new Error(projection.message)
+  }
   return projection
 }
 function requiredStoryValue<T>(value: T | undefined): T {

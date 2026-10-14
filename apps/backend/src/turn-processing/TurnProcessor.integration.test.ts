@@ -12,6 +12,16 @@ import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
+import { assertEmptyObserved3 } from "../tests/fleet-assertions/TurnProcessor-2.ts"
+import {
+  assertHomes,
+  assertOutcomeB,
+  assertEmptyObserved,
+  assertOwnerIndex,
+  assertOutcomeB2,
+  assertEmptyObserved2,
+  assertOutcomeB3,
+} from "../tests/fleet-assertions/TurnProcessor.ts"
 import {
   createThreeOwnerStationedAssaultFixture,
   processPublicTurn,
@@ -22,9 +32,7 @@ import {
   normalizedOutcomeSequence,
   outcomeForOwner,
   ownerFleetForces,
-  ownerPublicForces,
   getActionToSubmintegrationTest,
-  logWorkerObservation,
 } from "../tests/fleet-worker/TurnProcessor.scenarios.ts"
 import { AssaultWorkerRuleset } from "../tests/fleet-worker/TurnProcessor.ts"
 
@@ -64,78 +72,7 @@ describe("TurnProcessor", () => {
       Assert.isDefined(homeA)
       Assert.isDefined(homeB)
 
-      const verifyHomesPhase1 = async (): Promise<void> => {
-        const homes = [homeA, homeB] as const
-        const homeDistances = homes.map((home) => Math.hypot(home.x - target.x, home.y - target.y))
-        const assertScenarioState1 = (): void => {
-          expect({
-            target: { id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y },
-            homes: homes.map((home, index) => ({
-              playerId: playerIds[index],
-              id: home.id,
-              name: home.name,
-              coordinates: home.coordinates,
-              x: home.x,
-              y: home.y,
-              distance: homeDistances[index],
-            })),
-          }).toStrictEqual({
-            target: {
-              id: "57c1b320-c267-5c9b-a5a5-1b5a02823714",
-              name: "planet 552840",
-              coordinates: "45:83:40",
-              x: 53.24122006799319,
-              y: 48.68601626316641,
-            },
-            homes: [
-              {
-                playerId: "00000000-0000-4000-8000-000000000001",
-                id: "57c1b320-c267-5c9b-a5a5-1b5a02823714",
-                name: "planet 552840",
-                coordinates: "45:83:40",
-                x: 53.24122006799319,
-                y: 48.68601626316641,
-                distance: 0,
-              },
-              {
-                playerId: "00000000-0000-4000-8000-000000000002",
-                id: "ec56a9af-3995-521c-822d-84685a96fdc6",
-                name: "planet 819299",
-                coordinates: "44:98:05",
-                x: 48.987456457561635,
-                y: 49.880579392930315,
-                distance: 4.418312565270031,
-              },
-            ],
-          })
-        }
-        assertScenarioState1()
-
-        // Arrange: produce A30/B20 only through public Build submissions and actual worker turns.
-        for (let buildRound = 0; buildRound < 3; buildRound += 1) {
-          const views = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
-          for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-            const buildCount = ownerIndex === 0 ? 3 : 2
-            if (buildRound < buildCount) {
-              const client = clients[ownerIndex]
-              const view = views[ownerIndex]
-              const home = homes[ownerIndex]
-              Assert.isDefined(client)
-              Assert.isDefined(view)
-              Assert.isDefined(home)
-              await client.client.gameplay.updateActionSubmission.mutate({
-                gameId,
-                turn: view.turn,
-                submittedActionTargets: getActionToSubmintegrationTest(view, BuildFleetStandard.id, { planet: home.id }),
-              })
-            }
-          }
-          const view = views[0]
-          Assert.isDefined(view)
-          await processPublicTurn({ clients, gameId, turn: view.turn, turnProcessor })
-        }
-      }
-      await verifyHomesPhase1()
+      await assertHomes({ homeA, homeB, target, playerIds, clients, gameId, turnProcessor })
 
       const builtView = await alice.client.gameplay.getPlayerView.query({ gameId })
       const builtFleetA = builtView.fleets.find(
@@ -244,36 +181,20 @@ describe("TurnProcessor", () => {
       Assert.isDefined(outcomeA)
       Assert.isDefined(outcomeB)
 
-      const verifyOutcomeBPhase2Value1 = draw.value
-      const verifyOutcomeBPhase2Observed = observed
-      const verifyOutcomeBPhase2 = async (): Promise<void> => {
-        if (verifyOutcomeBPhase2Value1 < 0.5) {
-          expect(outcomeB).toStrictEqual({
-            type: "RESOLVED",
-            result: `Fleet "${stationed[1].name}" exchanged 20 Strength with 30 enemy Strength at Planet "${target.name}"`,
-          })
-          expect(outcomeA).toStrictEqual({
-            type: "RESOLVED",
-            result: `Fleet "${stationed[0].name}" found no enemy Fleets at Planet "${target.name}"`,
-          })
-        } else {
-          expect(outcomeA).toStrictEqual({
-            type: "RESOLVED",
-            result: `Fleet "${stationed[0].name}" exchanged 20 Strength with 20 enemy Strength at Planet "${target.name}"`,
-          })
-          expect(outcomeB).toStrictEqual({
-            type: "PREVENTED",
-            reason: `Attacking Fleet "${stationed[1].id}" was destroyed before its Assault`,
-          })
-        }
-        expect(forward.rngState).toStrictEqual({
-          generatorState: draw.nextGeneratorState,
-          spareNormal: verifyOutcomeBPhase2Observed.rngState.spareNormal,
-        })
-        // Assert: the actual worker independently reloads/saves the same tie and public views show its force result.
-        expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      }
-      await verifyOutcomeBPhase2()
+      const assertOutcomeBPhase2Value1 = draw.value
+      const assertOutcomeBPhase2Observed = observed
+
+      await assertOutcomeB({
+        assertOutcomeBPhase2Value1,
+        outcomeB,
+        stationed,
+        target,
+        outcomeA,
+        forward,
+        draw,
+        assertOutcomeBPhase2Observed,
+        turnProcessor,
+      })
 
       const afterCombatViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
       expect(
@@ -301,41 +222,26 @@ describe("TurnProcessor", () => {
       const emptyTurn = afterCombatViews[0]
       Assert.isDefined(emptyTurn)
 
-      const verifyEmptyObservedPhase3Value1 = draw.value
-      const verifyEmptyObservedPhase3Observed = observed
-      const verifyEmptyObservedPhase3 = async (): Promise<void> => {
-        await processPublicTurn({ clients, gameId, turn: emptyTurn.turn, turnProcessor, process: false })
-        const emptyObserved = await observeTurnAndRollback({ db, clock, turnsRepository, gameId, turn: emptyTurn.turn })
-        expect(emptyObserved.submittedActions).toStrictEqual([])
-        expect(emptyObserved.rngState).toStrictEqual(forward.rngState)
-        logWorkerObservation(
-          "[I2-06 natural two-owner worker observation]",
-          JSON.stringify({
-            initialRngState: verifyEmptyObservedPhase3Observed.rngState,
-            draws: [{ value: verifyEmptyObservedPhase3Value1, nextGeneratorState: draw.nextGeneratorState }],
-            names: [],
-            canonicalKeys: stationed.map((fleet, index) => playerIds[index] + "/" + actionIds[index] + "/" + fleet.id),
-            selectedTieOrder: verifyEmptyObservedPhase3Value1 < 0.5 ? [playerIds[1], playerIds[0]] : [playerIds[0], playerIds[1]],
-            replayNextState: forward.rngState,
-            workerNextState: emptyObserved.rngState,
-          }),
-        )
-        expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-        const afterEmptyViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
-        expect(
-          afterEmptyViews[0]?.fleets
-            .map(({ id, strength, originPlanetId }) => ({ id, strength, originPlanetId }))
-            .toSorted((a, b) => compareOrdinalStrings(a.id, b.id)),
-        ).toStrictEqual(
-          afterCombatViews[0]?.fleets
-            .map(({ id, strength, originPlanetId }) => ({ id, strength, originPlanetId }))
-            .toSorted((a, b) => compareOrdinalStrings(a.id, b.id)),
-        )
-        for (const view of afterEmptyViews) {
-          expect(view.actions.find(({ id }) => id === actionIds[0])).toMatchObject({ selectedTargets: null, isInProgress: false })
-        }
-      }
-      await verifyEmptyObservedPhase3()
+      const assertEmptyObservedPhase3Value1 = draw.value
+      const assertEmptyObservedPhase3Observed = observed
+
+      await assertEmptyObserved({
+        clients,
+        gameId,
+        emptyTurn,
+        turnProcessor,
+        db,
+        clock,
+        turnsRepository,
+        forward,
+        assertEmptyObservedPhase3Observed,
+        assertEmptyObservedPhase3Value1,
+        draw,
+        stationed,
+        playerIds,
+        actionIds,
+        afterCombatViews,
+      })
     },
   )
 
@@ -443,58 +349,7 @@ describe("TurnProcessor", () => {
       strength: number
     }> = []
 
-    const verifyOwnerIndexPhase4 = (): void => {
-      for (let ownerIndex = 0; ownerIndex < playerIds.length; ownerIndex += 1) {
-        const ownerPlayerId = playerIds[ownerIndex]
-        const home = homes[ownerIndex]
-        const expectedName = expectedBuildNames[ownerIndex]
-        Assert.isDefined(ownerPlayerId)
-        Assert.isDefined(home)
-        Assert.isDefined(expectedName)
-        const builtFleet = Object.values(forward.resolved.fleets).find(
-          ({ ownerPlayerId: fleetOwner, originPlanetId }) => fleetOwner === ownerPlayerId && originPlanetId === home.id,
-        )
-        Assert.isDefined(builtFleet)
-        expect(builtFleet).toMatchObject({
-          name: expectedName,
-          ownerPlayerId,
-          originPlanetId: home.id,
-          strength: 10,
-        })
-        replayBuilds.push({
-          id: builtFleet.id,
-          name: builtFleet.name,
-          ownerPlayerId,
-          originPlanetId: home.id,
-          strength: builtFleet.strength,
-        })
-      }
-      const assertScenarioState1 = (): void => {
-        expect(
-          Object.values(forward.resolved.fleets)
-            .map(({ id, name, ownerPlayerId, originPlanetId, strength }) => ({
-              id,
-              name,
-              ownerPlayerId,
-              originPlanetId,
-              strength,
-            }))
-            .toSorted((left, right) => compareOrdinalStrings(left.id, right.id)),
-        ).toStrictEqual(
-          Object.values(permuted.resolved.fleets)
-            .map(({ id, name, ownerPlayerId, originPlanetId, strength }) => ({
-              id,
-              name,
-              ownerPlayerId,
-              originPlanetId,
-              strength,
-            }))
-            .toSorted((left, right) => compareOrdinalStrings(left.id, right.id)),
-        )
-      }
-      assertScenarioState1()
-    }
-    verifyOwnerIndexPhase4()
+    assertOwnerIndex({ playerIds, homes, expectedBuildNames, forward, replayBuilds, permuted })
 
     const assaultActionIdA = assaultActionIds[0]
     const assaultActionIdB = assaultActionIds[1]
@@ -511,52 +366,26 @@ describe("TurnProcessor", () => {
     Assert.isDefined(fleetB)
     Assert.isDefined(fleetC)
 
-    const verifyOutcomeBPhase5Value1 = draw.value
-    const verifyOutcomeBPhase5Observed = observed
-    const verifyOutcomeBPhase5 = async (): Promise<void> => {
-      if (verifyOutcomeBPhase5Value1 < 0.5) {
-        expect(outcomeB).toStrictEqual({
-          type: "RESOLVED",
-          result: `Fleet "${fleetB.name}" exchanged 20 Strength with 40 enemy Strength at Planet "${target.name}"`,
-        })
-        expect(outcomeA).toStrictEqual({
-          type: "RESOLVED",
-          result: `Fleet "${fleetA.name}" exchanged 5 Strength with 5 enemy Strength at Planet "${target.name}"`,
-        })
-        expect(ownerFleetForces(forward.resolved, playerIds, target.id)).toStrictEqual({
-          [playerAId]: [10],
-          [playerBId]: [],
-          [playerCId]: [],
-        })
-        expect(forward.resolved.removedFleetIds.toSorted(compareOrdinalStrings)).toStrictEqual(
-          [fleetB.id, fleetC.id].toSorted(compareOrdinalStrings),
-        )
-      } else {
-        expect(outcomeA).toStrictEqual({
-          type: "RESOLVED",
-          result: `Fleet "${fleetA.name}" exchanged 30 Strength with 30 enemy Strength at Planet "${target.name}"`,
-        })
-        expect(outcomeB).toStrictEqual({
-          type: "PREVENTED",
-          reason: `Attacking Fleet "${fleetB.id}" was destroyed before its Assault`,
-        })
-        expect(ownerFleetForces(forward.resolved, playerIds, target.id)).toStrictEqual({
-          [playerAId]: [],
-          [playerBId]: [],
-          [playerCId]: [],
-        })
-        expect(forward.resolved.removedFleetIds.toSorted(compareOrdinalStrings)).toStrictEqual(
-          [fleetA.id, fleetB.id, fleetC.id].toSorted(compareOrdinalStrings),
-        )
-      }
-      expect(forward.rngState).toStrictEqual({
-        generatorState: draw.nextGeneratorState,
-        spareNormal: verifyOutcomeBPhase5Observed.rngState.spareNormal,
-      })
-      // Assert: the actual worker independently reloads/resolves/saves the tied orders; public forces prove the branch.
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-    }
-    await verifyOutcomeBPhase5()
+    const assertOutcomeBPhase5Value1 = draw.value
+    const assertOutcomeBPhase5Observed = observed
+
+    await assertOutcomeB2({
+      assertOutcomeBPhase5Value1,
+      outcomeB,
+      fleetB,
+      target,
+      outcomeA,
+      fleetA,
+      forward,
+      playerIds,
+      playerAId,
+      playerBId,
+      playerCId,
+      fleetC,
+      draw,
+      assertOutcomeBPhase5Observed,
+      turnProcessor,
+    })
 
     const afterCombatViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
     const actualForces = Object.fromEntries(
@@ -611,36 +440,32 @@ describe("TurnProcessor", () => {
     const emptyTurn = afterCombatViews[0]
     Assert.isDefined(emptyTurn)
 
-    const verifyEmptyObservedPhase6Value1 = draw.value
-    const verifyEmptyObservedPhase6Observed = observed
-    const verifyEmptyObservedPhase6 = async (): Promise<void> => {
-      await Promise.all(
-        clients.map(async ({ client }) => await client.gameplay.updateReadiness.mutate({ gameId, turn: emptyTurn.turn, isReady: true })),
-      )
-      const emptyObserved = await observeTurnAndRollback({ db, clock, turnsRepository, gameId, turn: emptyTurn.turn })
-      expect(emptyObserved.submittedActions).toStrictEqual([])
-      expect(emptyObserved.rngState).toStrictEqual(forward.rngState)
-      logWorkerObservation(
-        "[I2-14 natural three-owner Build plus Assault worker observation]",
-        JSON.stringify({
-          initialRngState: verifyEmptyObservedPhase6Observed.rngState,
-          draws: rngSequence.draws,
-          names: actualWorkerBuildNames,
-          derivedBuildNames: expectedBuildNames,
-          canonicalBuildKeys: playerIds.map((playerId, index) => playerId + "/" + buildActionIds[index] + "/" + homes[index]?.id),
-          canonicalAssaultKeys: stationed
-            .slice(0, 2)
-            .map((fleet, index) => playerIds[index] + "/" + assaultActionIds[index] + "/" + fleet.id),
-          selectedTieOrder: verifyEmptyObservedPhase6Value1 < 0.5 ? [playerIds[1], playerIds[0]] : [playerIds[0], playerIds[1]],
-          replayNextState: forward.rngState,
-          workerNextState: emptyObserved.rngState,
-        }),
-      )
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      const afterEmpty = await alice.client.gameplay.getPlayerView.query({ gameId })
-      expect(ownerPublicForces(afterEmpty.fleets, playerIds, target.id)).toStrictEqual(actualForces)
-    }
-    await verifyEmptyObservedPhase6()
+    const assertEmptyObservedPhase6Value1 = draw.value
+    const assertEmptyObservedPhase6Observed = observed
+
+    await assertEmptyObserved2({
+      clients,
+      gameId,
+      emptyTurn,
+      db,
+      clock,
+      turnsRepository,
+      forward,
+      assertEmptyObservedPhase6Observed,
+      rngSequence,
+      actualWorkerBuildNames,
+      expectedBuildNames,
+      playerIds,
+      buildActionIds,
+      homes,
+      stationed,
+      assaultActionIds,
+      assertEmptyObservedPhase6Value1,
+      turnProcessor,
+      alice,
+      target,
+      actualForces,
+    })
   })
 
   integrationTest("should persist the three-owner Assault-only tie through public arrivals and worker reloads", async ({ db }) => {
@@ -723,52 +548,26 @@ describe("TurnProcessor", () => {
     Assert.isDefined(fleetB)
     Assert.isDefined(fleetC)
 
-    const verifyOutcomeBPhase7Value1 = draw.value
-    const verifyOutcomeBPhase7Observed = observed
-    const verifyOutcomeBPhase7 = async (): Promise<void> => {
-      if (verifyOutcomeBPhase7Value1 < 0.5) {
-        expect(outcomeB).toStrictEqual({
-          type: "RESOLVED",
-          result: `Fleet "${fleetB.name}" exchanged 20 Strength with 40 enemy Strength at Planet "${target.name}"`,
-        })
-        expect(outcomeA).toStrictEqual({
-          type: "RESOLVED",
-          result: `Fleet "${fleetA.name}" exchanged 5 Strength with 5 enemy Strength at Planet "${target.name}"`,
-        })
-        expect(ownerFleetForces(forward.resolved, playerIds, target.id)).toStrictEqual({
-          [playerAId]: [10],
-          [playerBId]: [],
-          [playerCId]: [],
-        })
-        expect(forward.resolved.removedFleetIds.toSorted(compareOrdinalStrings)).toStrictEqual(
-          [fleetB.id, fleetC.id].toSorted(compareOrdinalStrings),
-        )
-      } else {
-        expect(outcomeA).toStrictEqual({
-          type: "RESOLVED",
-          result: `Fleet "${fleetA.name}" exchanged 30 Strength with 30 enemy Strength at Planet "${target.name}"`,
-        })
-        expect(outcomeB).toStrictEqual({
-          type: "PREVENTED",
-          reason: `Attacking Fleet "${fleetB.id}" was destroyed before its Assault`,
-        })
-        expect(ownerFleetForces(forward.resolved, playerIds, target.id)).toStrictEqual({
-          [playerAId]: [],
-          [playerBId]: [],
-          [playerCId]: [],
-        })
-        expect(forward.resolved.removedFleetIds.toSorted(compareOrdinalStrings)).toStrictEqual(
-          [fleetA.id, fleetB.id, fleetC.id].toSorted(compareOrdinalStrings),
-        )
-      }
-      expect(forward.rngState).toStrictEqual({
-        generatorState: draw.nextGeneratorState,
-        spareNormal: verifyOutcomeBPhase7Observed.rngState.spareNormal,
-      })
-      // Assert: the actual worker independently reloads/resolves/saves the tied orders; public forces prove the branch.
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-    }
-    await verifyOutcomeBPhase7()
+    const assertOutcomeBPhase7Value1 = draw.value
+    const assertOutcomeBPhase7Observed = observed
+
+    await assertOutcomeB3({
+      assertOutcomeBPhase7Value1,
+      outcomeB,
+      fleetB,
+      target,
+      outcomeA,
+      fleetA,
+      forward,
+      playerIds,
+      playerAId,
+      playerBId,
+      playerCId,
+      fleetC,
+      draw,
+      assertOutcomeBPhase7Observed,
+      turnProcessor,
+    })
 
     const afterCombatViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
     const actualForces = Object.fromEntries(
@@ -800,33 +599,27 @@ describe("TurnProcessor", () => {
     const emptyTurn = afterCombatViews[0]
     Assert.isDefined(emptyTurn)
 
-    const verifyEmptyObservedPhase8Value1 = draw.value
-    const verifyEmptyObservedPhase8Observed = observed
-    const verifyEmptyObservedPhase8 = async (): Promise<void> => {
-      await Promise.all(
-        clients.map(async ({ client }) => await client.gameplay.updateReadiness.mutate({ gameId, turn: emptyTurn.turn, isReady: true })),
-      )
-      const emptyObserved = await observeTurnAndRollback({ db, clock, turnsRepository, gameId, turn: emptyTurn.turn })
-      expect(emptyObserved.submittedActions).toStrictEqual([])
-      expect(emptyObserved.rngState).toStrictEqual(forward.rngState)
-      logWorkerObservation(
-        "[I2-06 natural three-owner Assault-only worker observation]",
-        JSON.stringify({
-          initialRngState: verifyEmptyObservedPhase8Observed.rngState,
-          draws: [{ value: verifyEmptyObservedPhase8Value1, nextGeneratorState: draw.nextGeneratorState }],
-          names: [],
-          canonicalAssaultKeys: stationed
-            .slice(0, 2)
-            .map((fleet, index) => playerIds[index] + "/" + assaultActionIds[index] + "/" + fleet.id),
-          selectedTieOrder: verifyEmptyObservedPhase8Value1 < 0.5 ? [playerIds[1], playerIds[0]] : [playerIds[0], playerIds[1]],
-          replayNextState: forward.rngState,
-          workerNextState: emptyObserved.rngState,
-        }),
-      )
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      const afterEmpty = await alice.client.gameplay.getPlayerView.query({ gameId })
-      expect(ownerPublicForces(afterEmpty.fleets, playerIds, target.id)).toStrictEqual(actualForces)
-    }
-    await verifyEmptyObservedPhase8()
+    const assertEmptyObservedPhase8Value1 = draw.value
+    const assertEmptyObservedPhase8Observed = observed
+
+    await assertEmptyObserved3({
+      clients,
+      gameId,
+      emptyTurn,
+      db,
+      clock,
+      turnsRepository,
+      forward,
+      assertEmptyObservedPhase8Observed,
+      assertEmptyObservedPhase8Value1,
+      draw,
+      stationed,
+      playerIds,
+      assaultActionIds,
+      turnProcessor,
+      alice,
+      target,
+      actualForces,
+    })
   })
 })

@@ -71,10 +71,14 @@ export function evaluateStrengthBudget({ state, proposals, authorizedActions, ru
   }
 }
 function reportStrengthBudget(fleet: Fleet | undefined, allocations: readonly StrengthAllocation[], evaluation: MutableEvaluation): void {
-  if (fleet === undefined) return
+  if (fleet === undefined) {
+    return
+  }
   const totalReserved = allocations.reduce((total, a) => total + a.strength, 0)
-  if (totalReserved <= fleet.strength) return
-  for (const allocation of allocations)
+  if (totalReserved <= fleet.strength) {
+    return
+  }
+  for (const allocation of allocations) {
     addIssue(evaluation, {
       code: "INSUFFICIENT_STRENGTH",
       actionId: allocation.actionId,
@@ -82,6 +86,7 @@ function reportStrengthBudget(fleet: Fleet | undefined, allocations: readonly St
       ...(allocation.inputTag === undefined ? {} : { inputTag: allocation.inputTag }),
       message: "The selected Fleet has " + fleet.strength + " Strength, but submitted Actions reserve " + totalReserved,
     })
+  }
 }
 
 export function addStrengthAllocation(
@@ -125,17 +130,32 @@ function effectStrengthAllocation({
   definition: ActionDefinition
   effect: EffectDefinition
 }): StrengthAllocation[] {
-  if (effect.type !== FleetMoveEffectDefinition.type && effect.type !== FleetColonizeEffectDefinition.type) return []
+  if (effect.type !== FleetMoveEffectDefinition.type && effect.type !== FleetColonizeEffectDefinition.type) {
+    return []
+  }
   const fleetId = getOwnRecordValue(proposal.selectedTargets, effect.targets.fleet.actionTargetTag)
-  if (fleetId === undefined || getOwnRecordValue(state.fleets, fleetId) === undefined) return []
+  if (fleetId === undefined || getOwnRecordValue(state.fleets, fleetId) === undefined) {
+    return []
+  }
   const common = { fleetId: branded<FleetId>(fleetId), actionId: proposal.actionId, targetTag: effect.targets.fleet.actionTargetTag }
   if (effect.type === FleetMoveEffectDefinition.type) {
-    const strength = getOwnRecordValue(proposal.selectedInputs, effect.inputs.strength.actionInputTag)
-    if (strength === undefined || !safeTypedParse(PositiveIntegerSchema, strength).success) return []
-    return [{ ...common, inputTag: effect.inputs.strength.actionInputTag, strength }]
+    return movementStrengthAllocation(effect, proposal, common)
   }
-  if (hasPairedMove(definition, effect)) return []
+  if (hasPairedMove(definition, effect)) {
+    return []
+  }
   return [{ ...common, strength: effect.parameters.strengthRequirement }]
+}
+function movementStrengthAllocation(
+  effect: FleetMoveEffectDefinition,
+  proposal: ProposedSelection,
+  common: Omit<StrengthAllocation, "inputTag" | "strength">,
+): StrengthAllocation[] {
+  const strength = getOwnRecordValue(proposal.selectedInputs, effect.inputs.strength.actionInputTag)
+  if (strength === undefined || !safeTypedParse(PositiveIntegerSchema, strength).success) {
+    return []
+  }
+  return [{ ...common, inputTag: effect.inputs.strength.actionInputTag, strength }]
 }
 /** Identifies a movement that carries this deferred arrival effect. */
 export function hasPairedMove(definition: ActionDefinition, effect: FleetColonizeEffectDefinition): boolean {

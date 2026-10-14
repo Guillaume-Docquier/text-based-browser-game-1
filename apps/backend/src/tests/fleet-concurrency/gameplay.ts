@@ -676,7 +676,9 @@ export function fundingTargetsFor(
   actionDefinitionId: ActionDefinitionId,
   homePlanetId: PlayerView["galaxy"]["systems"][number]["planets"][number]["id"],
 ): DeepUnbranded<SubmittedActionTargetsDto["selectedTargets"]> {
-  if (actionDefinitionId === WorkerBuildFleetForty.id) return { planet: homePlanetId }
+  if (actionDefinitionId === WorkerBuildFleetForty.id) {
+    return { planet: homePlanetId }
+  }
   return {}
 }
 

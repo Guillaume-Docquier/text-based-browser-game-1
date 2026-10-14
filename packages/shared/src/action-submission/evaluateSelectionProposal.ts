@@ -9,6 +9,7 @@ import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definit
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import type { Action } from "#shared/domain/turns/actions/Action.ts"
 import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
+import type { Fleet } from "#shared/domain/world/fleets/Fleet.ts"
 import { getFleetColonizationEligibility } from "#shared/domain/world/fleets/fleetColonizationEligibility.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
@@ -96,6 +97,12 @@ export function evaluateTargetFields({
   actionDefinition: ActionDefinition
   evaluation: MutableEvaluation
 }): void {
+  evaluateMissingTargets({ state, proposal, actionDefinition, evaluation })
+  for (const targetTag of Object.keys(proposal.selectedTargets)) {
+    evaluateSelectedTarget({ state, proposal, actionDefinition, evaluation }, targetTag)
+  }
+}
+function evaluateMissingTargets({ proposal, actionDefinition, evaluation }: ProposalContext): void {
   for (const targetTag of Object.keys(actionDefinition.targets)) {
     const brandedTargetTag = branded<TargetTag>(targetTag)
     if (getOwnRecordValue(proposal.selectedTargets, targetTag) === undefined) {
@@ -108,37 +115,37 @@ export function evaluateTargetFields({
       })
     }
   }
-
-  for (const targetTag of Object.keys(proposal.selectedTargets)) {
-    const brandedTargetTag = branded<TargetTag>(targetTag)
-    const targetId = getOwnRecordValue(proposal.selectedTargets, targetTag)
-    const targetDefinition = getOwnRecordValue(actionDefinition.targets, targetTag)
-    if (targetDefinition === undefined) {
-      addIssue(evaluation, {
-        code: "UNEXPECTED_TARGET",
-        actionId: proposal.actionId,
-        targetTag: brandedTargetTag,
-        message: `Target tag "${targetTag}" is not defined by this Action`,
-      })
-      continue
-    }
-    if (targetId === undefined) {
-      continue
-    }
-
-    evaluateTarget({
-      state,
+}
+function evaluateSelectedTarget({ state, proposal, actionDefinition, evaluation }: ProposalContext, targetTag: string): void {
+  const brandedTargetTag = branded<TargetTag>(targetTag)
+  const targetId = getOwnRecordValue(proposal.selectedTargets, targetTag)
+  const targetDefinition = getOwnRecordValue(actionDefinition.targets, targetTag)
+  if (targetDefinition === undefined) {
+    addIssue(evaluation, {
+      code: "UNEXPECTED_TARGET",
       actionId: proposal.actionId,
       targetTag: brandedTargetTag,
-      targetId,
-      targetDefinition,
-      selectedTargets: proposal.selectedTargets,
-      evaluation,
+      message: `Target tag "${targetTag}" is not defined by this Action`,
     })
+    return
   }
+  if (targetId === undefined) {
+    return
+  }
+
+  evaluateTarget({
+    state,
+    actionId: proposal.actionId,
+    targetTag: brandedTargetTag,
+    targetId,
+    targetDefinition,
+    selectedTargets: proposal.selectedTargets,
+    evaluation,
+  })
 }
 
 export function evaluateInputFields({
+  state,
   proposal,
   actionDefinition,
   evaluation,
@@ -148,6 +155,12 @@ export function evaluateInputFields({
   actionDefinition: ActionDefinition
   evaluation: MutableEvaluation
 }): void {
+  evaluateMissingInputs({ state, proposal, actionDefinition, evaluation })
+  for (const inputTag of Object.keys(proposal.selectedInputs)) {
+    evaluateSelectedInput({ state, proposal, actionDefinition, evaluation }, inputTag)
+  }
+}
+function evaluateMissingInputs({ proposal, actionDefinition, evaluation }: ProposalContext): void {
   for (const inputTag of Object.keys(actionDefinition.inputs)) {
     const brandedInputTag = branded<InputTag>(inputTag)
     if (getOwnRecordValue(proposal.selectedInputs, inputTag) === undefined) {
@@ -160,31 +173,30 @@ export function evaluateInputFields({
       })
     }
   }
-
-  for (const inputTag of Object.keys(proposal.selectedInputs)) {
-    const brandedInputTag = branded<InputTag>(inputTag)
-    const inputDefinition = getOwnRecordValue(actionDefinition.inputs, inputTag)
-    const value = getOwnRecordValue(proposal.selectedInputs, inputTag)
-    if (inputDefinition === undefined) {
-      addIssue(evaluation, {
-        code: "UNEXPECTED_INPUT",
-        actionId: proposal.actionId,
-        inputTag: brandedInputTag,
-        message: `Input tag "${inputTag}" is not defined by this Action`,
-      })
-      continue
-    }
-    if (value === undefined) {
-      continue
-    }
-    if (inputDefinition.type === "POSITIVE_INTEGER" && !safeTypedParse(PositiveIntegerSchema, value).success) {
-      addIssue(evaluation, {
-        code: "INVALID_INPUT",
-        actionId: proposal.actionId,
-        inputTag: brandedInputTag,
-        message: `Input "${inputTag}" must be a positive safe integer`,
-      })
-    }
+}
+function evaluateSelectedInput({ proposal, actionDefinition, evaluation }: ProposalContext, inputTag: string): void {
+  const brandedInputTag = branded<InputTag>(inputTag)
+  const inputDefinition = getOwnRecordValue(actionDefinition.inputs, inputTag)
+  const value = getOwnRecordValue(proposal.selectedInputs, inputTag)
+  if (inputDefinition === undefined) {
+    addIssue(evaluation, {
+      code: "UNEXPECTED_INPUT",
+      actionId: proposal.actionId,
+      inputTag: brandedInputTag,
+      message: `Input tag "${inputTag}" is not defined by this Action`,
+    })
+    return
+  }
+  if (value === undefined) {
+    return
+  }
+  if (inputDefinition.type === "POSITIVE_INTEGER" && !safeTypedParse(PositiveIntegerSchema, value).success) {
+    addIssue(evaluation, {
+      code: "INVALID_INPUT",
+      actionId: proposal.actionId,
+      inputTag: brandedInputTag,
+      message: `Input "${inputTag}" must be a positive safe integer`,
+    })
   }
 }
 
@@ -248,16 +260,7 @@ export function evaluateColonizationEffect({
     return
   }
 
-  const pairedMove = actionDefinition.effects.find(
-    (candidate) =>
-      candidate.type === FleetMoveEffectDefinition.type &&
-      candidate.targets.fleet.actionTargetTag === fleetTag &&
-      candidate.targets.planet.actionTargetTag === planetTag,
-  )
-  const selectedStrength =
-    pairedMove?.type === FleetMoveEffectDefinition.type
-      ? getOwnRecordValue(proposal.selectedInputs, pairedMove.inputs.strength.actionInputTag)
-      : fleet.strength
+  const selectedStrength = selectedColonizingStrength(actionDefinition, effectDefinition, proposal, fleet)
   const eligibility = getFleetColonizationEligibility({
     planetOwnerPlayerId: planet.ownerPlayerId,
     fleetOwnerPlayerId: fleet.ownerPlayerId,
@@ -273,4 +276,31 @@ export function evaluateColonizationEffect({
       message: eligibility.reason.message,
     })
   }
+}
+function selectedColonizingStrength(
+  actionDefinition: ActionDefinition,
+  effectDefinition: FleetColonizeEffectDefinition,
+  proposal: ProposedSelection,
+  fleet: Fleet,
+): number | undefined {
+  const fleetTag = effectDefinition.targets.fleet.actionTargetTag
+  const planetTag = effectDefinition.targets.planet.actionTargetTag
+  const pairedMove = actionDefinition.effects.find(
+    (candidate) =>
+      candidate.type === FleetMoveEffectDefinition.type &&
+      candidate.targets.fleet.actionTargetTag === fleetTag &&
+      candidate.targets.planet.actionTargetTag === planetTag,
+  )
+  const selectedStrength =
+    pairedMove?.type === FleetMoveEffectDefinition.type
+      ? getOwnRecordValue(proposal.selectedInputs, pairedMove.inputs.strength.actionInputTag)
+      : fleet.strength
+  return selectedStrength
+}
+
+type ProposalContext = {
+  state: EligibilityState
+  proposal: ProposedSelection
+  actionDefinition: ActionDefinition
+  evaluation: MutableEvaluation
 }

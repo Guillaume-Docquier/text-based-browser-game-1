@@ -2,11 +2,7 @@ import { Assert, indexBy, mulberry32Prng, Rng } from "@guillaume-docquier/tools-
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { describe, expect, it } from "vitest"
 import { computeAvailableActions } from "#shared/action-submission/computeAvailableActions.ts"
-import {
-  evaluateActionSelection,
-  evaluateSubmittedActions,
-  type EligibilityState,
-} from "#shared/action-submission/evaluateActionSelection.ts"
+import type { EligibilityState } from "#shared/action-submission/evaluateActionSelection.ts"
 import { GameIdSchema } from "#shared/domain/games/GameId.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { createResourcesStub } from "#shared/domain/resources/Resources.stub.ts"
@@ -34,15 +30,18 @@ import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnStat
 import { resolveTurn } from "#shared/turn-resolution/resolveTurn.ts"
 import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 import { createTurnStateStub } from "#shared/turn-resolution/TurnState.stub.ts"
+import { assertAAtP2, assertAAtP, assertDeparture } from "./fleet-colonization.assertions-2.test-support.ts"
+import {
+  assertColonizeEvaluation,
+  assertIncompleteForce,
+  assertScenarioState2,
+  assertTurnTwoJourneys,
+} from "./fleet-colonization.assertions.test-support.ts"
 import {
   PLAYER_A,
   PLAYER_B,
   PLAYER_C,
-  createFleetSelectionDraft,
-  replaceActionById,
   findJourneyForSubmission,
-  findResolvedContinuation,
-  outcomeText,
   createArrivalRace,
   createRuleset,
   resolve,
@@ -184,139 +183,37 @@ describe("Fleet Colonization", () => {
       }
     }
     const initialA = eligibilityState(PLAYER_A, 1, initialPlayers, planets, fleets)
-    const verifyColonizeEvaluationPhase1 = (): void => {
-      const colonizeEvaluation = evaluateActionSelection({
-        state: initialA,
-        ruleset,
-        draft: createFleetSelectionDraft(colonizeActionId, { fleet: aSource.id, planet: p.id }, { strength: 35 }),
-      })
-      expect(colonizeEvaluation.status).toBe("ELIGIBLE")
-      expect(colonizeEvaluation.strengthCommitments[aSource.id]).toBe(35)
-      expect(colonizeEvaluation.remainingStrength[aSource.id]).toBe(35)
-      expect(colonizeEvaluation.resourceCommitments).toStrictEqual({
-        [ResourceType.INFLUENCE]: 25,
-        [ResourceType.METAL]: 0,
-        [ResourceType.FUEL]: 0,
-        [ResourceType.ENERGY]: 0,
-        [ResourceType.COLONY]: 0,
-      })
 
-      const aWithColonize = {
-        ...initialA,
-        actions: replaceActionById(initialA.actions, aColonize),
-      }
-      const aMoveEvaluation = evaluateActionSelection({
-        state: aWithColonize,
-        ruleset,
-        draft: createFleetSelectionDraft(moveActionId, { fleet: aSource.id, planet: q.id }, { strength: 15 }),
-      })
-      expect(aMoveEvaluation.status).toBe("ELIGIBLE")
-      expect(aMoveEvaluation.strengthCommitments[aSource.id]).toBe(50)
-      expect(aMoveEvaluation.remainingStrength[aSource.id]).toBe(20)
-      expect(aMoveEvaluation.resourceCommitments).toStrictEqual({
-        [ResourceType.INFLUENCE]: 28,
-        [ResourceType.METAL]: 0,
-        [ResourceType.FUEL]: 1,
-        [ResourceType.ENERGY]: 0,
-        [ResourceType.COLONY]: 0,
-      })
-      const tooFarEvaluation = evaluateActionSelection({
-        state: aWithColonize,
-        ruleset,
-        draft: createFleetSelectionDraft(moveActionId, { fleet: aSource.id, planet: outsideRange.id }, { strength: 15 }),
-      })
-      expect(tooFarEvaluation.status).toBe("INELIGIBLE")
-      expect(tooFarEvaluation.issues.map(({ code }) => code)).toContain("OUT_OF_RANGE")
+    assertColonizeEvaluation({
+      initialA,
+      ruleset,
+      colonizeActionId,
+      aSource,
+      p,
+      aColonize,
+      moveActionId,
+      q,
+      outsideRange,
+      initialPlayers,
+      aMove,
+    })
 
-      const overallocatedEvaluation = evaluateActionSelection({
-        state: aWithColonize,
-        ruleset,
-        draft: createFleetSelectionDraft(moveActionId, { fleet: aSource.id, planet: q.id }, { strength: 36 }),
-      })
-      expect(overallocatedEvaluation.status).toBe("INELIGIBLE")
-      expect(overallocatedEvaluation.strengthCommitments[aSource.id]).toBe(71)
-      expect(overallocatedEvaluation.issues.map(({ code }) => code)).toContain("INSUFFICIENT_STRENGTH")
-      expect(aWithColonize.actions.find(({ id }) => id === colonizeActionId)).toStrictEqual(aColonize)
-      expect(initialPlayers[PLAYER_A]?.resources).toStrictEqual(
-        createResourcesStub({
-          [ResourceType.INFLUENCE]: 100,
-          [ResourceType.METAL]: 0,
-          [ResourceType.FUEL]: 10,
-          [ResourceType.ENERGY]: 0,
-          [ResourceType.COLONY]: 7,
-        }),
-      )
-
-      const aWithBoth = {
-        ...aWithColonize,
-        actions: replaceActionById(aWithColonize.actions, aMove),
-      }
-      const replacementEvaluation = evaluateActionSelection({
-        state: aWithBoth,
-        ruleset,
-        draft: createFleetSelectionDraft(moveActionId, { fleet: aSource.id, planet: q.id }, { strength: 14 }),
-      })
-      expect(replacementEvaluation.status).toBe("ELIGIBLE")
-      expect(replacementEvaluation.strengthCommitments[aSource.id]).toBe(49)
-      expect(replacementEvaluation.remainingStrength[aSource.id]).toBe(21)
-      const cancelMoveEvaluation = evaluateSubmittedActions({ state: aWithBoth, ruleset, submissions: [aColonize] })
-      expect(cancelMoveEvaluation.status).toBe("ELIGIBLE")
-      expect(cancelMoveEvaluation.strengthCommitments[aSource.id]).toBe(35)
-      expect(cancelMoveEvaluation.remainingStrength[aSource.id]).toBe(35)
-      expect(cancelMoveEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(25)
-      expect(cancelMoveEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(0)
-      const cancelColonizeEvaluation = evaluateSubmittedActions({ state: aWithBoth, ruleset, submissions: [aMove] })
-      expect(cancelColonizeEvaluation.status).toBe("ELIGIBLE")
-      expect(cancelColonizeEvaluation.strengthCommitments[aSource.id]).toBe(15)
-      expect(cancelColonizeEvaluation.remainingStrength[aSource.id]).toBe(55)
-      expect(cancelColonizeEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(3)
-      expect(cancelColonizeEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(1)
-    }
-    verifyColonizeEvaluationPhase1()
-
-    const verifyIncompleteForcePhase2 = (): void => {
-      const incompleteForce = evaluateActionSelection({
-        state: initialA,
-        ruleset,
-        draft: createFleetSelectionDraft(moveActionId, { planet: q.id }, { strength: 15 }),
-      })
-      expect(incompleteForce.status).toBe("INCOMPLETE")
-      expect(incompleteForce.missingTargets).toContain("fleet")
-      const incompleteApiSubmission = createSubmittedActionStub({
-        id: moveActionId,
-        playerId: PLAYER_A,
-        actionDefinitionId: ordinaryMove.id,
-        selectedTargets: { planet: q.id },
-        selectedInputs: { strength: 15 },
-      })
-      expect(evaluateSubmittedActions({ state: initialA, ruleset, submissions: [incompleteApiSubmission] }).status).not.toBe("ELIGIBLE")
-
-      const validA = evaluateSubmittedActions({ state: initialA, ruleset, submissions: [aColonize, aMove] })
-      const validB = evaluateSubmittedActions({
-        state: eligibilityState(PLAYER_B, 1, initialPlayers, planets, fleets),
-        ruleset,
-        submissions: [bColonize],
-      })
-      const validC = evaluateSubmittedActions({
-        state: eligibilityState(PLAYER_C, 1, initialPlayers, planets, fleets),
-        ruleset,
-        submissions: [cAttack],
-      })
-      expect(validA.status).toBe("ELIGIBLE")
-      expect(validA.strengthCommitments[aSource.id]).toBe(50)
-      expect(validA.remainingStrength[aSource.id]).toBe(20)
-      expect(validB.status).toBe("ELIGIBLE")
-      expect(validB.resourceCommitments[ResourceType.INFLUENCE]).toBe(25)
-      expect(validC.status).toBe("ELIGIBLE")
-      expect(validC.resourceCommitments).toStrictEqual({
-        [ResourceType.INFLUENCE]: 5,
-        [ResourceType.METAL]: 0,
-        [ResourceType.FUEL]: 1,
-        [ResourceType.ENERGY]: 0,
-        [ResourceType.COLONY]: 0,
-      })
-    }
-    verifyIncompleteForcePhase2()
+    assertIncompleteForce({
+      initialA,
+      ruleset,
+      moveActionId,
+      q,
+      ordinaryMove,
+      aColonize,
+      aMove,
+      eligibilityState,
+      initialPlayers,
+      planets,
+      fleets,
+      bColonize,
+      cAttack,
+      aSource,
+    })
 
     const firstRng = createSeededRng(1234)
     const firstResult = resolveTurn(
@@ -372,45 +269,18 @@ describe("Fleet Colonization", () => {
     const aMoveJourney = findJourneyForSubmission(departure, PLAYER_A, moveActionId)
     const bColonizeJourney = findJourneyForSubmission(departure, PLAYER_B, colonizeActionId)
     const cAttackJourney = findJourneyForSubmission(departure, PLAYER_C, attackActionId)
-    const verifyAssertScenarioState1Phase3 = (): void => {
-      const assertScenarioState1 = (): void => {
-        expect([aSource, bSource, cSource].map(({ id }) => departure.fleets[id])).toStrictEqual([
-          expect.objectContaining({ strength: 20 }),
-          undefined,
-          undefined,
-        ])
-        expect(
-          [aColonizeJourney, aMoveJourney, bColonizeJourney, cAttackJourney].map(({ strength, distanceToEnd, movement }) => ({
-            strength,
-            distanceToEnd,
-            speed: movement?.speed,
-          })),
-        ).toStrictEqual([
-          { strength: 35, distanceToEnd: 2.5, speed: 2 },
-          { strength: 15, distanceToEnd: 3, speed: 2 },
-          { strength: 35, distanceToEnd: 3, speed: 2 },
-          { strength: 16, distanceToEnd: 2.75, speed: 2 },
-        ])
-        expect(strengthTotal(departure)).toBe(121)
-        expect(departure.players[PLAYER_A]?.resources).toMatchObject({
-          [ResourceType.INFLUENCE]: 72,
-          [ResourceType.FUEL]: 9,
-          [ResourceType.COLONY]: 7,
-        })
-        expect(departure.players[PLAYER_B]?.resources).toMatchObject({
-          [ResourceType.INFLUENCE]: 75,
-          [ResourceType.FUEL]: 10,
-          [ResourceType.COLONY]: 7,
-        })
-        expect(departure.players[PLAYER_C]?.resources).toMatchObject({
-          [ResourceType.INFLUENCE]: 95,
-          [ResourceType.FUEL]: 9,
-          [ResourceType.COLONY]: 7,
-        })
-      }
-      assertScenarioState1()
-    }
-    verifyAssertScenarioState1Phase3()
+
+    assertScenarioState2({
+      aSource,
+      bSource,
+      cSource,
+      departure,
+      aColonizeJourney,
+      aMoveJourney,
+      bColonizeJourney,
+      cAttackJourney,
+      strengthTotal,
+    })
 
     const turnTwoJourneys = [
       findJourneyForSubmission(turnTwo, PLAYER_A, colonizeActionId),
@@ -455,93 +325,22 @@ describe("Fleet Colonization", () => {
       fleetIdRebindings: new Map(),
     }
     Assert.isSuccess(resolveFleetMovementPhase(preCombatContext))
-    const verifyAssertTurnTwoJourneysState2Phase4 = (): void => {
-      const assertTurnTwoJourneysState2 = (): void => {
-        expect(turnTwoJourneys.map(({ id }) => preCombatState.fleets[id]?.arrivedAtTick)).toStrictEqual([5, 10, 10, 8])
-        expect(preCombatState.fleets[cAttackJourney.id]).toMatchObject({
-          id: cAttackJourney.id,
-          ownerPlayerId: PLAYER_C,
-          originPlanetId: p.id,
-          strength: 16,
-          arrivedAtTick: 8,
-        })
-        expect(
-          preCombatContext.pendingArrivalAssaults.map(({ initiatingJourneyId, actualFleetId, planetId, tick }) => ({
-            initiatingJourneyId,
-            actualFleetId,
-            planetId,
-            tick,
-          })),
-        ).toStrictEqual([{ initiatingJourneyId: cAttackJourney.id, actualFleetId: cAttackJourney.id, planetId: p.id, tick: 8 }])
-        expect(findResolvedContinuation(preCombatContext, PLAYER_C, attackActionId).actionOutcomes.map(outcomeText)).toStrictEqual([
-          'Fleet "i4-c-source" moved 0.75 light years towards Planet "i4-destination-p"',
-          'Fleet "i4-c-source" arrived on Planet "i4-destination-p"',
-        ])
-        expect(strengthTotal(turnTwo)).toBe(121)
-        expect(turnTwo.players[PLAYER_A]?.resources).toStrictEqual(departure.players[PLAYER_A]?.resources)
-        expect(turnTwo.players[PLAYER_B]?.resources).toStrictEqual(departure.players[PLAYER_B]?.resources)
-        expect(turnTwo.players[PLAYER_C]?.resources).toStrictEqual(departure.players[PLAYER_C]?.resources)
-      }
-      assertTurnTwoJourneysState2()
 
-      for (const { playerId, actionId } of journeyActionBindings) {
-        const state = eligibilityState(playerId, 1, departure.players, Object.values(departure.planets), Object.values(departure.fleets))
-        const departureLock = evaluateActionSelection({ state, ruleset, draft: createFleetSelectionDraft(actionId, {}, {}) })
-        expect(departureLock.status).toBe("INELIGIBLE")
-        expect(departureLock.issues.map(({ code }) => code)).toContain("ACTION_ALREADY_IN_PROGRESS")
-      }
-      const freeAThirdInstance = evaluateActionSelection({
-        state: eligibilityState(PLAYER_A, 1, departure.players, Object.values(departure.planets), Object.values(departure.fleets)),
-        ruleset,
-        draft: createFleetSelectionDraft(attackActionId, { fleet: aSource.id, planet: p.id }, { strength: 20 }),
-      })
-      expect(freeAThirdInstance.status).toBe("ELIGIBLE")
-      expect(freeAThirdInstance.strengthCommitments[aSource.id]).toBe(20)
-      expect(freeAThirdInstance.remainingStrength[aSource.id]).toBe(0)
-      expect(freeAThirdInstance.resourceCommitments).toMatchObject({
-        [ResourceType.INFLUENCE]: 5,
-        [ResourceType.FUEL]: 1,
-      })
-      for (const { playerId, actionId } of journeyActionBindings) {
-        const currentFleets = Object.values(turnTwo.fleets)
-        const currentPlanets = Object.values(turnTwo.planets)
-        const state = eligibilityState(playerId, 2, turnTwo.players, currentPlanets, currentFleets)
-        const occupancy = evaluateActionSelection({ state, ruleset, draft: createFleetSelectionDraft(actionId, {}, {}) })
-        expect(occupancy.status).toBe("INELIGIBLE")
-        expect(occupancy.issues.map(({ code }) => code)).toContain("ACTION_ALREADY_IN_PROGRESS")
-        const journey = findJourneyForSubmission(turnTwo, playerId, actionId)
-        const destinationPlanetId = journey.destinationPlanetId
-        Assert.isDefined(destinationPlanetId)
-        const editOrReuse = evaluateActionSelection({
-          state,
-          ruleset,
-          draft: createFleetSelectionDraft(
-            actionId,
-            { fleet: journey.id, planet: destinationPlanetId },
-            { strength: Math.max(1, journey.strength - 1) },
-          ),
-        })
-        expect(editOrReuse.status).toBe("INELIGIBLE")
-        expect(editOrReuse.issues.map(({ code }) => code)).toContain("ACTION_ALREADY_IN_PROGRESS")
-      }
-      for (const { playerId, actionId, freeMoveActionId } of journeyActionBindings) {
-        const journey = findJourneyForSubmission(turnTwo, playerId, actionId)
-        const destinationPlanetId = journey.destinationPlanetId
-        Assert.isDefined(destinationPlanetId)
-        const attempt = evaluateActionSelection({
-          state: eligibilityState(playerId, 2, turnTwo.players, Object.values(turnTwo.planets), Object.values(turnTwo.fleets)),
-          ruleset,
-          draft: createFleetSelectionDraft(
-            freeMoveActionId,
-            { fleet: journey.id, planet: destinationPlanetId },
-            { strength: journey.strength },
-          ),
-        })
-        expect(attempt.status).toBe("INELIGIBLE")
-        expect(attempt.issues.map(({ code }) => code)).toContain("FLEET_NOT_STATIONARY")
-      }
-    }
-    verifyAssertTurnTwoJourneysState2Phase4()
+    assertTurnTwoJourneys({
+      turnTwoJourneys,
+      preCombatState,
+      cAttackJourney,
+      p,
+      preCombatContext,
+      attackActionId,
+      strengthTotal,
+      turnTwo,
+      departure,
+      journeyActionBindings,
+      eligibilityState,
+      ruleset,
+      aSource,
+    })
 
     const aAtP = fleetAtPlanetForOwner(afterArrival, p.id, PLAYER_A)
     const aAtQ = fleetAtPlanetForOwner(afterArrival, q.id, PLAYER_A)
@@ -549,140 +348,43 @@ describe("Fleet Colonization", () => {
     Assert.isDefined(aAtP)
     Assert.isDefined(aAtQ)
     Assert.isDefined(bAtP)
-    const verifyAssertAAtPState3Phase5 = (): void => {
-      const assertAAtPState3 = (): void => {
-        expect(aAtP).toMatchObject({ strength: 7, arrivedAtTick: 5 })
-        expect(aAtQ).toMatchObject({ strength: 15, arrivedAtTick: 10 })
-        expect(bAtP).toMatchObject({ strength: 27, arrivedAtTick: 10 })
-        expect(afterArrival.planets[p.id]?.ownerPlayerId).toBe(PLAYER_A)
-        expect(afterArrival.planets[q.id]?.ownerPlayerId).toBeNull()
-        expect(Object.values(afterArrival.fleets).some(({ ownerPlayerId }) => ownerPlayerId === PLAYER_C)).toBe(false)
-        expect(afterArrival.removedFleetIds).toContain(cAttackJourney.id)
-        expect(strengthTotal(afterArrival)).toBe(69)
-        expect(afterArrival.players[PLAYER_A]?.resources).toMatchObject({
-          [ResourceType.INFLUENCE]: 72,
-          [ResourceType.FUEL]: 9,
-          [ResourceType.COLONY]: 7,
-        })
-        expect(afterArrival.players[PLAYER_B]?.resources).toMatchObject({
-          [ResourceType.INFLUENCE]: 75,
-          [ResourceType.FUEL]: 10,
-          [ResourceType.COLONY]: 7,
-        })
-        expect(afterArrival.players[PLAYER_C]?.resources).toMatchObject({
-          [ResourceType.INFLUENCE]: 95,
-          [ResourceType.FUEL]: 9,
-          [ResourceType.COLONY]: 7,
-        })
-        expect(findResolvedContinuation(afterArrival, PLAYER_A, colonizeActionId).actionOutcomes.at(-1)).toMatchObject({
-          type: "RESOLVED",
-          result: expect.stringContaining("colonized Planet"),
-        })
-        expect(findResolvedContinuation(afterArrival, PLAYER_A, moveActionId).actionOutcomes.map(outcomeText).join(" ")).not.toContain(
-          "exchanged",
-        )
-        expect(findResolvedContinuation(afterArrival, PLAYER_B, colonizeActionId).actionOutcomes.at(-1)).toMatchObject({
-          type: "PREVENTED",
-        })
-        expect(findResolvedContinuation(afterArrival, PLAYER_C, attackActionId).actionOutcomes.at(-1)).toMatchObject({
-          type: "RESOLVED",
-          result: expect.stringContaining("exchanged 16 Strength with 70 enemy Strength"),
-        })
-        expect([aColonizeJourney.strength, bColonizeJourney.strength]).toStrictEqual([35, 35])
-        expect([aAtP.strength, bAtP.strength]).toStrictEqual([7, 27])
-        expect(aColonizeJourney.strength - aAtP.strength).toBe(28)
-        expect(bColonizeJourney.strength - bAtP.strength).toBe(8)
-      }
-      assertAAtPState3()
-    }
-    verifyAssertAAtPState3Phase5()
+
+    assertAAtP2({
+      aAtP,
+      aAtQ,
+      bAtP,
+      afterArrival,
+      p,
+      q,
+      cAttackJourney,
+      strengthTotal,
+      colonizeActionId,
+      moveActionId,
+      attackActionId,
+      aColonizeJourney,
+      bColonizeJourney,
+    })
     const aAtHome = afterArrival.fleets[aSource.id]
     Assert.isDefined(aAtHome)
-    const verifyAAtPPhase6 = (): void => {
-      expect(aAtP.strength + bAtP.strength + aAtQ.strength + aAtHome.strength).toBe(69)
 
-      const aTurnFour = eligibilityState(
-        PLAYER_A,
-        4,
-        afterArrival.players,
-        Object.values(afterArrival.planets),
-        Object.values(afterArrival.fleets),
-      )
-      for (const { playerId, actionId } of journeyActionBindings) {
-        const state = eligibilityState(
-          playerId,
-          4,
-          afterArrival.players,
-          Object.values(afterArrival.planets),
-          Object.values(afterArrival.fleets),
-        )
-        const released = evaluateActionSelection({ state, ruleset, draft: createFleetSelectionDraft(actionId, {}, {}) })
-        expect(released.status).toBe("INCOMPLETE")
-        expect(released.issues.map(({ code }) => code)).not.toContain("ACTION_ALREADY_IN_PROGRESS")
-      }
-      const reuseEvaluation = evaluateActionSelection({
-        state: aTurnFour,
-        ruleset,
-        draft: createFleetSelectionDraft(moveActionId, { fleet: aSource.id, planet: q.id }, { strength: 5 }),
-      })
-      expect(reuseEvaluation.status).toBe("ELIGIBLE")
-      expect(reuseEvaluation.strengthCommitments[aSource.id]).toBe(5)
-      expect(reuseEvaluation.remainingStrength[aSource.id]).toBe(15)
-      expect(reuseEvaluation.resourceCommitments).toStrictEqual({
-        [ResourceType.INFLUENCE]: 3,
-        [ResourceType.METAL]: 0,
-        [ResourceType.FUEL]: 1,
-        [ResourceType.ENERGY]: 0,
-        [ResourceType.COLONY]: 0,
-      })
-      const reuseSubmission = submit({
-        id: moveActionId,
-        playerId: PLAYER_A,
-        actionDefinitionId: ordinaryMove.id,
-        source: aSource,
-        target: q,
-        strength: 5,
-      })
-      const turnFourRng = Rng.fromState(turnThreeRng.getState(), mulberry32Prng)
-      const turnFour = reloadTurn(afterArrival, 4, [reuseSubmission], turnFourRng)
-      const reusedJourney = findJourneyForSubmission(turnFour, PLAYER_A, moveActionId)
-      expect(turnFour.fleets[aSource.id]?.strength).toBe(15)
-      expect(reusedJourney).toMatchObject({ strength: 5, distanceToEnd: 3, movement: { departureTurn: 4 } })
-      expect(turnFour.players[PLAYER_A]?.resources).toMatchObject({
-        [ResourceType.INFLUENCE]: 69,
-        [ResourceType.FUEL]: 8,
-        [ResourceType.COLONY]: 7,
-      })
-      expect(turnFour.planets[p.id]?.ownerPlayerId).toBe(PLAYER_A)
-      expect(turnFour.fleets[bAtP.id]?.strength).toBe(27)
-      expect(strengthTotal(turnFour)).toBe(69)
-
-      const turnFiveRng = Rng.fromState(turnFourRng.getState(), mulberry32Prng)
-      const turnFive = reloadTurn(turnFour, 5, [], turnFiveRng)
-      const assertFindJourneyForSubmissionState4 = (): void => {
-        expect(findJourneyForSubmission(turnFive, PLAYER_A, moveActionId)).toMatchObject({ strength: 5, distanceToEnd: 1 })
-        expect(turnFive.fleets[aSource.id]?.strength).toBe(15)
-        expect(turnFive.players[PLAYER_A]?.resources).toStrictEqual(turnFour.players[PLAYER_A]?.resources)
-        expect(turnFive.planets[p.id]?.ownerPlayerId).toBe(PLAYER_A)
-        expect(turnFive.fleets[bAtP.id]?.strength).toBe(27)
-        expect(strengthTotal(turnFive)).toBe(69)
-        expect(turnFive.resolvedActions).toStrictEqual([])
-        expect(
-          turnFive.resolvedContinuations
-            .flatMap(({ actionOutcomes }) => actionOutcomes)
-            .map(outcomeText)
-            .join(" "),
-        ).not.toContain("exchanged")
-        expect(
-          turnFive.resolvedContinuations
-            .flatMap(({ actionOutcomes }) => actionOutcomes)
-            .map(outcomeText)
-            .join(" "),
-        ).not.toContain("colonized Planet")
-      }
-      assertFindJourneyForSubmissionState4()
-    }
-    verifyAAtPPhase6()
+    assertAAtP({
+      aAtP,
+      bAtP,
+      aAtQ,
+      aAtHome,
+      eligibilityState,
+      afterArrival,
+      journeyActionBindings,
+      ruleset,
+      moveActionId,
+      aSource,
+      q,
+      ordinaryMove,
+      turnThreeRng,
+      reloadTurn,
+      p,
+      strengthTotal,
+    })
   })
 
   it("should persist a 35-Strength arrival through JSON reloads, consume20 once, and preserve the source remainder", () => {
@@ -760,74 +462,7 @@ describe("Fleet Colonization", () => {
     const journey = Object.values(departure.fleets).find(({ movement }) => movement !== undefined)
     Assert.isDefined(journey)
 
-    const verifyAssertDepartureState1Phase7 = (): void => {
-      const assertDepartureState1 = (): void => {
-        expect(departure.planets[target.id]?.ownerPlayerId).toBeNull()
-        expect(departure.fleets[source.id]?.strength).toBe(5)
-        expect(journey).toMatchObject({
-          strength: 45,
-          destinationPlanetId: target.id,
-          distanceToEnd: 0.5,
-          movement: {
-            speed: 2,
-            departureTurn: 1,
-            submission: {
-              actionDefinitionId: SeedOutpostTest.id,
-              selectedTargets: { force: source.id, site: target.id },
-              selectedInputs: { quota: 45 },
-            },
-          },
-        })
-        expect(journey.movement?.pendingArrivalEffects).toContainEqual(
-          expect.objectContaining({
-            effectDefinition: {
-              type: "FLEET_COLONIZE",
-              targets: {
-                fleet: { actionTargetTag: "force", targetType: "FLEET" },
-                planet: { actionTargetTag: "site", targetType: "PLANET" },
-              },
-              parameters: { strengthRequirement: 30 },
-            },
-          }),
-        )
-        expect(departure.players[PLAYER_A]?.resources).toMatchObject({
-          [ResourceType.INFLUENCE]: 43,
-          [ResourceType.FUEL]: 98,
-        })
-      }
-      assertDepartureState1()
-
-      const arrival = resolveContinuation(departure, 2, createSeededRng(1234), ruleset)
-      const assertArrivalState2 = (): void => {
-        expect(arrival.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
-        expect(arrival.fleets[journey.id]?.arrivedAtTick).toBe(5)
-        expect(arrival.fleets[journey.id]).toMatchObject({
-          originPlanetId: target.id,
-          strength: 15,
-          movement: undefined,
-          destinationPlanetId: undefined,
-          distanceToEnd: undefined,
-        })
-        expect(arrival.players[PLAYER_A]?.resources).toMatchObject({
-          [ResourceType.INFLUENCE]: 43,
-          [ResourceType.FUEL]: 98,
-        })
-        expect(arrival.resolvedContinuations[0]?.actionOutcomes.at(-1)).toMatchObject({
-          type: "RESOLVED",
-          result: expect.stringContaining("colonized Planet"),
-        })
-      }
-      assertArrivalState2()
-
-      const emptyTurn = resolveContinuation(arrival, 3, createSeededRng(1234), ruleset)
-      expect(emptyTurn.fleets[journey.id]?.strength).toBe(15)
-      expect(emptyTurn.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
-      expect(emptyTurn.players[PLAYER_A]?.resources).toMatchObject({
-        [ResourceType.INFLUENCE]: 43,
-        [ResourceType.FUEL]: 98,
-      })
-    }
-    verifyAssertDepartureState1Phase7()
+    assertDeparture({ departure, target, source, journey, ruleset })
 
     const edgeOrigin = planet("seed-outpost-edge-origin", PLAYER_A, 0)
     const edgeSite = planet("seed-outpost-range-edge", null, 3)

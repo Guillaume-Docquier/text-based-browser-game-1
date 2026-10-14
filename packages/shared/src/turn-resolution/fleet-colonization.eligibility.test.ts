@@ -1,11 +1,23 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
+import type { createActionDefinitionStub } from "#shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
+import type { ActionDefinitionId } from "#shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
+import type { InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
+import type { PositiveInteger } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
+import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
+import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import type { TargetId } from "#shared/domain/ruleset/target-definitions/TargetId.ts"
 import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
+import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
+import type { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
+import type { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 import { ColonizeHereTest, ColonizePlanetTest } from "#shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { TestRuleset } from "#shared/testing/test-ruleset/TestRuleset.ts"
+import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnState.ts"
 import { resolveTurn } from "#shared/turn-resolution/resolveTurn.ts"
 import { createTurnStateStub } from "#shared/turn-resolution/TurnState.stub.ts"
 import {
@@ -475,6 +487,7 @@ describe("Fleet Colonization", () => {
   })
 
   it("should keep earlier merged arrival provenance and consume only one merged Colonize reservation", () => {
+    expect.hasAssertions()
     const ordinary = createMovementAction({ id: "TEST_ORDINARY_SPEED_TEN", speed: 10 })
     const early = createColonizeMoveAction({ id: "TEST_COLONIZE_SPEED_FOUR", speed: 4 })
     const late = createColonizeMoveAction({ id: "TEST_COLONIZE_SPEED_TWO", speed: 2 })
@@ -500,128 +513,21 @@ describe("Fleet Colonization", () => {
       submit({ id: "EARLY_1", playerId: PLAYER_B, actionDefinitionId: early.id, source: earlySource, target, strength: 35 }),
     ]
 
-    const verifyResolvedPhase1 = (): void => {
-      const resolved = resolve({
-        planets: [target, originOrdinary, originLate, originEarly],
-        fleets: [survivor, ordinarySource, lateSource, earlySource],
-        submissions,
-        ruleset,
-      })
+    verify({
+      target,
+      originOrdinary,
+      originLate,
+      originEarly,
+      survivor,
+      ordinarySource,
+      lateSource,
+      earlySource,
+      submissions,
+      ruleset,
+      late,
+    })
 
-      const assertResolvedState1 = (): void => {
-        expect(resolved.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
-        expect(resolved.fleets[survivor.id]).toMatchObject({
-          id: survivor.id,
-          name: survivor.name,
-          strength: 40,
-          originPlanetId: target.id,
-          arrivedAtTick: 2,
-        })
-        expect(fleetAtPlanetForOwner(resolved, target.id, PLAYER_B)).toMatchObject({ strength: 15, arrivedAtTick: 6 })
-        expect(resolved.fleets[ordinarySource.id]?.strength).toBe(5)
-        expect(resolved.fleets[lateSource.id]?.strength).toBe(5)
-        expect(resolved.fleets[earlySource.id]?.strength).toBe(10)
-        expect(
-          Object.values(resolved.fleets)
-            .filter(({ ownerPlayerId }) => ownerPlayerId === PLAYER_B)
-            .map(({ strength }) => strength)
-            .toSorted((first, second) => first - second),
-        ).toStrictEqual([10, 15])
-        expect(resolved.removedFleetIds).toHaveLength(2)
-        expect(outcomeFor(resolved, PLAYER_B, "EARLY_1").type).toBe("RESOLVED")
-        expect(outcomeFor(resolved, PLAYER_A, "LATE_1").type).toBe("PREVENTED")
-      }
-      assertResolvedState1()
-
-      const lateTickTarget = planet("merge-late-tick-target", null, 1)
-      const lateTickOrigin = planet("merge-late-tick-origin", PLAYER_A, 0.2)
-      const lateTickSource = fleet("merge-late-tick-source", PLAYER_A, lateTickOrigin, 25)
-      const lateTickRuleset = createRuleset([late], [{ id: "LATE_TICK_ONLY_1", actionDefinitionId: late.id }])
-      const lateTickResolved = resolve({
-        planets: [lateTickOrigin, lateTickTarget],
-        fleets: [lateTickSource],
-        submissions: [
-          submit({
-            id: "LATE_TICK_ONLY_1",
-            playerId: PLAYER_A,
-            actionDefinitionId: late.id,
-            source: lateTickSource,
-            target: lateTickTarget,
-            strength: 25,
-          }),
-        ],
-        ruleset: lateTickRuleset,
-      })
-      expect(fleetAtPlanetForOwner(lateTickResolved, lateTickTarget.id, PLAYER_A)).toMatchObject({
-        strength: 5,
-        arrivedAtTick: 8,
-      })
-    }
-    verifyResolvedPhase1()
-
-    const verifyLaterEnemyPhase2 = (): void => {
-      const laterEnemy = createColonizeMoveAction({ id: "TEST_COLONIZE_SPEED_ONE_CONTROL", speed: 1 })
-      const laterRuleset = createRuleset(
-        [ordinary, late, laterEnemy],
-        [
-          { id: "ORDINARY_CONTROL_1", actionDefinitionId: ordinary.id },
-          { id: "LATE_FRIENDLY_1", actionDefinitionId: late.id },
-          { id: "LATER_ENEMY_1", actionDefinitionId: laterEnemy.id },
-        ],
-      )
-      const laterTarget = planet("merge-control-target", null, 1)
-      const laterOriginOrdinary = planet("merge-control-ordinary-origin", PLAYER_A, 0)
-      const laterOriginFriendly = planet("merge-control-friendly-origin", PLAYER_A, 0.2)
-      const laterOriginEnemy = planet("merge-control-enemy-origin", PLAYER_B, 0.5)
-      const laterSurvivor = fleet("merge-control-survivor", PLAYER_A, laterTarget, 10)
-      const laterOrdinarySource = fleet("merge-control-ordinary", PLAYER_A, laterOriginOrdinary, 15)
-      const laterFriendlySource = fleet("merge-control-friendly", PLAYER_A, laterOriginFriendly, 25)
-      const laterEnemySource = fleet("merge-control-enemy", PLAYER_B, laterOriginEnemy, 45)
-      const laterResolved = resolve({
-        planets: [laterTarget, laterOriginOrdinary, laterOriginFriendly, laterOriginEnemy],
-        fleets: [laterSurvivor, laterOrdinarySource, laterFriendlySource, laterEnemySource],
-        ruleset: laterRuleset,
-        submissions: [
-          submit({
-            id: "ORDINARY_CONTROL_1",
-            playerId: PLAYER_A,
-            actionDefinitionId: ordinary.id,
-            source: laterOrdinarySource,
-            target: laterTarget,
-            strength: 10,
-          }),
-          submit({
-            id: "LATE_FRIENDLY_1",
-            playerId: PLAYER_A,
-            actionDefinitionId: late.id,
-            source: laterFriendlySource,
-            target: laterTarget,
-            strength: 20,
-          }),
-          submit({
-            id: "LATER_ENEMY_1",
-            playerId: PLAYER_B,
-            actionDefinitionId: laterEnemy.id,
-            source: laterEnemySource,
-            target: laterTarget,
-            strength: 35,
-          }),
-        ],
-      })
-      expect(laterResolved.planets[laterTarget.id]?.ownerPlayerId).toBe(PLAYER_A)
-      expect(laterResolved.fleets[laterSurvivor.id]).toMatchObject({ strength: 20, arrivedAtTick: 2 })
-      expect(fleetAtPlanetForOwner(laterResolved, laterTarget.id, PLAYER_B)).toMatchObject({ strength: 35, arrivedAtTick: 10 })
-      expect(laterResolved.fleets[laterEnemySource.id]?.strength).toBe(10)
-      expect(
-        Object.values(laterResolved.fleets)
-          .filter(({ ownerPlayerId }) => ownerPlayerId === PLAYER_B)
-          .map(({ strength }) => strength)
-          .toSorted((first, second) => first - second),
-      ).toStrictEqual([10, 35])
-      expect(outcomeFor(laterResolved, PLAYER_A, "LATE_FRIENDLY_1").type).toBe("RESOLVED")
-      expect(outcomeFor(laterResolved, PLAYER_B, "LATER_ENEMY_1").type).toBe("PREVENTED")
-    }
-    verifyLaterEnemyPhase2()
+    assertLaterEnemy({ ordinary, late })
   })
 
   it("should merge both friendly Colonize arrivals before applying one shared survivor reservation", () => {
@@ -693,3 +599,173 @@ describe("Fleet Colonization", () => {
     })
   })
 })
+
+function verify({
+  target,
+  originOrdinary,
+  originLate,
+  originEarly,
+  survivor,
+  ordinarySource,
+  lateSource,
+  earlySource,
+  submissions,
+  ruleset,
+  late,
+}: VerifyInput): void {
+  const resolved = resolve({
+    planets: [target, originOrdinary, originLate, originEarly],
+    fleets: [survivor, ordinarySource, lateSource, earlySource],
+    submissions,
+    ruleset,
+  })
+
+  assert({ resolved, target, survivor, ordinarySource, lateSource, earlySource })
+
+  const lateTickTarget = planet("merge-late-tick-target", null, 1)
+  const lateTickOrigin = planet("merge-late-tick-origin", PLAYER_A, 0.2)
+  const lateTickSource = fleet("merge-late-tick-source", PLAYER_A, lateTickOrigin, 25)
+  const lateTickRuleset = createRuleset([late], [{ id: "LATE_TICK_ONLY_1", actionDefinitionId: late.id }])
+  const lateTickResolved = resolve({
+    planets: [lateTickOrigin, lateTickTarget],
+    fleets: [lateTickSource],
+    submissions: [
+      submit({
+        id: "LATE_TICK_ONLY_1",
+        playerId: PLAYER_A,
+        actionDefinitionId: late.id,
+        source: lateTickSource,
+        target: lateTickTarget,
+        strength: 25,
+      }),
+    ],
+    ruleset: lateTickRuleset,
+  })
+  expect(fleetAtPlanetForOwner(lateTickResolved, lateTickTarget.id, PLAYER_A)).toMatchObject({
+    strength: 5,
+    arrivedAtTick: 8,
+  })
+}
+
+function assert({ resolved, target, survivor, ordinarySource, lateSource, earlySource }: AssertInput): void {
+  expect(resolved.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
+  expect(resolved.fleets[survivor.id]).toMatchObject({
+    id: survivor.id,
+    name: survivor.name,
+    strength: 40,
+    originPlanetId: target.id,
+    arrivedAtTick: 2,
+  })
+  expect(fleetAtPlanetForOwner(resolved, target.id, PLAYER_B)).toMatchObject({ strength: 15, arrivedAtTick: 6 })
+  expect(resolved.fleets[ordinarySource.id]?.strength).toBe(5)
+  expect(resolved.fleets[lateSource.id]?.strength).toBe(5)
+  expect(resolved.fleets[earlySource.id]?.strength).toBe(10)
+  expect(
+    Object.values(resolved.fleets)
+      .filter(({ ownerPlayerId }) => ownerPlayerId === PLAYER_B)
+      .map(({ strength }) => strength)
+      .toSorted((first, second) => first - second),
+  ).toStrictEqual([10, 15])
+  expect(resolved.removedFleetIds).toHaveLength(2)
+  expect(outcomeFor(resolved, PLAYER_B, "EARLY_1").type).toBe("RESOLVED")
+  expect(outcomeFor(resolved, PLAYER_A, "LATE_1").type).toBe("PREVENTED")
+}
+
+function assertLaterEnemy({ ordinary, late }: AssertLaterEnemyInput): void {
+  const laterEnemy = createColonizeMoveAction({ id: "TEST_COLONIZE_SPEED_ONE_CONTROL", speed: 1 })
+  const laterRuleset = createRuleset(
+    [ordinary, late, laterEnemy],
+    [
+      { id: "ORDINARY_CONTROL_1", actionDefinitionId: ordinary.id },
+      { id: "LATE_FRIENDLY_1", actionDefinitionId: late.id },
+      { id: "LATER_ENEMY_1", actionDefinitionId: laterEnemy.id },
+    ],
+  )
+  const laterTarget = planet("merge-control-target", null, 1)
+  const laterOriginOrdinary = planet("merge-control-ordinary-origin", PLAYER_A, 0)
+  const laterOriginFriendly = planet("merge-control-friendly-origin", PLAYER_A, 0.2)
+  const laterOriginEnemy = planet("merge-control-enemy-origin", PLAYER_B, 0.5)
+  const laterSurvivor = fleet("merge-control-survivor", PLAYER_A, laterTarget, 10)
+  const laterOrdinarySource = fleet("merge-control-ordinary", PLAYER_A, laterOriginOrdinary, 15)
+  const laterFriendlySource = fleet("merge-control-friendly", PLAYER_A, laterOriginFriendly, 25)
+  const laterEnemySource = fleet("merge-control-enemy", PLAYER_B, laterOriginEnemy, 45)
+  const laterResolved = resolve({
+    planets: [laterTarget, laterOriginOrdinary, laterOriginFriendly, laterOriginEnemy],
+    fleets: [laterSurvivor, laterOrdinarySource, laterFriendlySource, laterEnemySource],
+    ruleset: laterRuleset,
+    submissions: [
+      submit({
+        id: "ORDINARY_CONTROL_1",
+        playerId: PLAYER_A,
+        actionDefinitionId: ordinary.id,
+        source: laterOrdinarySource,
+        target: laterTarget,
+        strength: 10,
+      }),
+      submit({
+        id: "LATE_FRIENDLY_1",
+        playerId: PLAYER_A,
+        actionDefinitionId: late.id,
+        source: laterFriendlySource,
+        target: laterTarget,
+        strength: 20,
+      }),
+      submit({
+        id: "LATER_ENEMY_1",
+        playerId: PLAYER_B,
+        actionDefinitionId: laterEnemy.id,
+        source: laterEnemySource,
+        target: laterTarget,
+        strength: 35,
+      }),
+    ],
+  })
+  expect(laterResolved.planets[laterTarget.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(laterResolved.fleets[laterSurvivor.id]).toMatchObject({ strength: 20, arrivedAtTick: 2 })
+  expect(fleetAtPlanetForOwner(laterResolved, laterTarget.id, PLAYER_B)).toMatchObject({ strength: 35, arrivedAtTick: 10 })
+  expect(laterResolved.fleets[laterEnemySource.id]?.strength).toBe(10)
+  expect(
+    Object.values(laterResolved.fleets)
+      .filter(({ ownerPlayerId }) => ownerPlayerId === PLAYER_B)
+      .map(({ strength }) => strength)
+      .toSorted((first, second) => first - second),
+  ).toStrictEqual([10, 35])
+  expect(outcomeFor(laterResolved, PLAYER_A, "LATE_FRIENDLY_1").type).toBe("RESOLVED")
+  expect(outcomeFor(laterResolved, PLAYER_B, "LATER_ENEMY_1").type).toBe("PREVENTED")
+}
+
+type VerifyInput = {
+  target: ReturnType<typeof createPlanetStub>
+  originOrdinary: ReturnType<typeof createPlanetStub>
+  originLate: ReturnType<typeof createPlanetStub>
+  originEarly: ReturnType<typeof createPlanetStub>
+  survivor: ReturnType<typeof createFleetStub>
+  ordinarySource: ReturnType<typeof createFleetStub>
+  lateSource: ReturnType<typeof createFleetStub>
+  earlySource: ReturnType<typeof createFleetStub>
+  submissions: Array<
+    Readonly<{
+      id: ActionId
+      playerId: PlayerId
+      actionDefinitionId: ActionDefinitionId
+      selectedTargets: Readonly<Record<TargetTag, TargetId>>
+      selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+    }>
+  >
+  ruleset: Ruleset
+  late: ReturnType<typeof createActionDefinitionStub>
+}
+
+type AssertInput = {
+  resolved: ResolvedTurnState
+  target: ReturnType<typeof createPlanetStub>
+  survivor: ReturnType<typeof createFleetStub>
+  ordinarySource: ReturnType<typeof createFleetStub>
+  lateSource: ReturnType<typeof createFleetStub>
+  earlySource: ReturnType<typeof createFleetStub>
+}
+
+type AssertLaterEnemyInput = {
+  ordinary: ReturnType<typeof createActionDefinitionStub>
+  late: ReturnType<typeof createActionDefinitionStub>
+}

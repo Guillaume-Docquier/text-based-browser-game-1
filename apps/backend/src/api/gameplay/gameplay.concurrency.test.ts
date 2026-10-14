@@ -18,10 +18,14 @@ import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import type { TurnToProcessModel } from "#turn-processing/turns.repository.ts"
 import {
-  workerTieFundingRounds,
-  markManualDeadlineDue,
-  processManualDeadlineTurn,
-} from "../../tests/fleet-concurrency/gameplay.scenarios.ts"
+  assertUntouchedTarget,
+  assertObservedPreResolutionRngState,
+  assertUntouchedAfter,
+  assertCapturedInput2,
+  assertPersistedAlice,
+  assertPersistedNextRngState,
+} from "../../tests/fleet-assertions/gameplay.ts"
+import { markManualDeadlineDue, processManualDeadlineTurn } from "../../tests/fleet-concurrency/gameplay.scenarios.ts"
 import {
   MANUAL_WORKER_TURN_INTERVAL,
   WorkerBuildFleetForty,
@@ -30,7 +34,6 @@ import {
   PostgresColonizeTickZeroPriorityRuleset,
   publicTickZeroPriorityScenarios,
   findStationaryFleetAt,
-  fundingTargetsFor,
   replayWorkerInput,
   reverseWorkerInputEnumeration,
   expectedTwoPlayerTieWinner,
@@ -117,55 +120,17 @@ describe("gameplay submission concurrency", () => {
     const untouchedTarget = untouchedInitialView.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === target.id)
     Assert.isDefined(untouchedTarget)
 
-    const verifyUntouchedTargetPhase1 = async (): Promise<void> => {
-      expect(untouchedTarget.ownerPlayerId).toBeNull()
-      expect(untouchedInitialView.fleets).toStrictEqual([])
-      expect(untouchedInitialView.turn).toBe(1)
-
-      // Public funding: ship40 costs2I/1M; the single GainMetal and GainFuel actions cover the supported movement costs.
-      for (const fundingRound of workerTieFundingRounds) {
-        const views = await readViews()
-        for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-          const client = clients[ownerIndex]
-          const view = views[ownerIndex]
-          const home = homes[ownerIndex]
-          Assert.isDefined(client)
-          Assert.isDefined(view)
-          Assert.isDefined(home)
-          for (const actionDefinitionId of fundingRound.actionDefinitionIds) {
-            await submit(client.client, view, actionDefinitionId, fundingTargetsFor(actionDefinitionId, home.id), {})
-          }
-        }
-        await processDeadlineTurn(views[0].turn)
-        const afterFundingTurn = await readViews()
-        expect(afterFundingTurn.map(({ resources }) => resources[ResourceType.INFLUENCE].total)).toStrictEqual([
-          fundingRound.expectedInfluence,
-          fundingRound.expectedInfluence,
-        ])
-      }
-
-      const fundedViews = await readViews()
-      for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-        const client = clients[ownerIndex]
-        const view = fundedViews[ownerIndex]
-        const home = homes[ownerIndex]
-        Assert.isDefined(client)
-        Assert.isDefined(view)
-        Assert.isDefined(home)
-        expect(view.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 53, uncommitted: 53 })
-        expect(view.resources[ResourceType.METAL]).toStrictEqual({ total: 4, uncommitted: 4 })
-        expect(view.resources[ResourceType.FUEL]).toStrictEqual({ total: 6, uncommitted: 6 })
-        const source = findStationaryFleetAt(view, view.player.id, home.id)
-        Assert.isDefined(source)
-        expect(source.strength).toBe(40)
-        await submit(client.client, view, MoveFleetExceptional.id, { fleet: source.id, planet: target.id }, { strength: 35 })
-        const selectedView = await client.client.gameplay.getPlayerView.query({ gameId })
-        expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 53, uncommitted: 50 })
-        expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 6, uncommitted: 1 })
-      }
-      await processDeadlineTurn(fundedViews[0].turn)
-    }
-    await verifyUntouchedTargetPhase1()
+    await assertUntouchedTarget({
+      untouchedTarget,
+      untouchedInitialView,
+      readViews,
+      clients,
+      homes,
+      submit,
+      processDeadlineTurn,
+      target,
+      gameId,
+    })
 
     const stationedViews = await readViews()
     const stationedFleets = clients.map(({ account }, index) => {
@@ -214,51 +179,18 @@ describe("gameplay submission concurrency", () => {
     Assert.isDefined(observed)
     const observedPreResolutionRngState = observed.rngState
 
-    const verifyObservedPreResolutionRngStatePhase2Observed = observed
-    const verifyObservedPreResolutionRngStatePhase2 = (): void => {
-      expect(observedPreResolutionRngState.spareNormal).toBeNull()
-      expect([alice.account.id, bob.account.id]).toStrictEqual([
-        "00000000-0000-4000-8000-000000000001",
-        "00000000-0000-4000-8000-000000000002",
-      ])
-      expect(verifyObservedPreResolutionRngStatePhase2Observed.ruleset.id).toBe(PostgresColonizeWorkerRuleset.id)
-      expect(verifyObservedPreResolutionRngStatePhase2Observed.submittedActions.map(({ id }) => id).toSorted()).toStrictEqual(
-        [...colonizeActionIds].toSorted(),
-      )
-      expect(verifyObservedPreResolutionRngStatePhase2Observed.planets[target.id]?.ownerPlayerId).toBeNull()
-      expect(
-        verifyObservedPreResolutionRngStatePhase2Observed.players[stationedViews[0].player.id]?.resources[ResourceType.INFLUENCE],
-      ).toBe(50)
-      expect(
-        verifyObservedPreResolutionRngStatePhase2Observed.players[stationedViews[1].player.id]?.resources[ResourceType.INFLUENCE],
-      ).toBe(50)
-      for (const fleet of stationedFleets) {
-        Assert.isDefined(fleet)
-        expect(verifyObservedPreResolutionRngStatePhase2Observed.fleets[fleet.id]?.strength).toBe(35)
-        expect(verifyObservedPreResolutionRngStatePhase2Observed.fleets[fleet.id]?.movement).toBeUndefined()
-      }
+    const assertObservedPreResolutionRngStatePhase2Observed = observed
 
-      const capturedInput = verifyObservedPreResolutionRngStatePhase2Observed
-      Logger.get().info("[C3-10 captured input before replay]", {
-        targetOwner: capturedInput.planets[target.id]?.ownerPlayerId,
-        submissions: capturedInput.submittedActions.map(({ id, playerId, selectedTargets, selectedInputs }) => ({
-          id,
-          playerId,
-          selectedTargets,
-          selectedInputs,
-        })),
-        contenders: stationedFleets.map((fleet) => {
-          Assert.isDefined(fleet)
-          return {
-            id: fleet.id,
-            ownerPlayerId: fleet.ownerPlayerId,
-            strength: capturedInput.fleets[fleet.id]?.strength,
-            ownerState: capturedInput.players[fleet.ownerPlayerId]?.resources[ResourceType.INFLUENCE],
-          }
-        }),
-      })
-    }
-    verifyObservedPreResolutionRngStatePhase2()
+    assertObservedPreResolutionRngState({
+      observedPreResolutionRngState,
+      alice,
+      bob,
+      assertObservedPreResolutionRngStatePhase2Observed,
+      colonizeActionIds,
+      target,
+      stationedViews,
+      stationedFleets,
+    })
 
     const forwardReplay = replayWorkerInput(observed)
     const reversedReplay = replayWorkerInput(reverseWorkerInputEnumeration(observed))
@@ -319,52 +251,31 @@ describe("gameplay submission concurrency", () => {
     const savedNextTurn = savedTurns.find(({ turn }) => turn === observationView.turn + 1)
     Assert.isDefined(savedNextTurn)
 
-    const verifyUntouchedAfterPhase3Observed = observed
-    const verifyUntouchedAfterPhase3 = async (): Promise<void> => {
-      expect({ generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }).toStrictEqual(
-        expectedNextRngState,
-      )
-      expect({ generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }).toStrictEqual(
-        forwardReplay.rngState,
-      )
+    const assertUntouchedAfterPhase3Observed = observed
 
-      const untouchedAfter = await alice.client.gameplay.getPlayerView.query({ gameId: untouchedGameId })
-      expect(untouchedAfter.turn).toBe(untouchedInitialView.turn)
-      expect(untouchedAfter.fleets).toStrictEqual([])
-      expect(untouchedAfter.resources).toStrictEqual(untouchedInitialView.resources)
-      expect(untouchedAfter.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
-
-      Logger.get().info("[C3-10 public worker receipt]", {
-        gameId,
-        untouchedGameId,
-        seed: 147,
-        target: { id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y },
-        homes: [homeA, homeB].map((home) => ({ id: home.id, name: home.name, coordinates: home.coordinates })),
-        distances,
-        observationTurn: observationView.turn,
-        loadedRngState: observedPreResolutionRngState,
-        loadedPlayers: Object.values(verifyUntouchedAfterPhase3Observed.players).map(({ id, resources }) => ({
-          id,
-          influence: resources[ResourceType.INFLUENCE],
-        })),
-        loadedTargetOwner: verifyUntouchedAfterPhase3Observed.planets[target.id]?.ownerPlayerId,
-        independentlyPinnedContenders: [alice.account.id, bob.account.id],
-        independentFirstTieDraw: firstTieShuffleDraw,
-        independentExpectedOwner: expectedOwner,
-        independentExpectedNextRngState: expectedNextRngState,
-        persistedOwner,
-        persistedTargetForces: finalStrengths,
-        persistedResources: [aliceAfter, bobAfter].map(({ player, resources }) => ({
-          playerId: player.id,
-          influence: resources[ResourceType.INFLUENCE].total,
-          metal: resources[ResourceType.METAL].total,
-          fuel: resources[ResourceType.FUEL].total,
-        })),
-        persistedNextRngState: { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal },
-        replayNextRngState: forwardReplay.rngState,
-      })
-    }
-    await verifyUntouchedAfterPhase3()
+    await assertUntouchedAfter({
+      savedNextTurn,
+      expectedNextRngState,
+      forwardReplay,
+      alice,
+      untouchedGameId,
+      untouchedInitialView,
+      target,
+      gameId,
+      homeA,
+      homeB,
+      distances,
+      observationView,
+      observedPreResolutionRngState,
+      assertUntouchedAfterPhase3Observed,
+      bob,
+      firstTieShuffleDraw,
+      expectedOwner,
+      persistedOwner,
+      finalStrengths,
+      aliceAfter,
+      bobAfter,
+    })
   })
 
   it.each(publicTickZeroPriorityScenarios)(
@@ -509,32 +420,20 @@ describe("gameplay submission concurrency", () => {
       Assert.isDefined(observed)
       const capturedInput = observed
 
-      const verifyAssertCapturedInputState1Phase4CapturedInput = capturedInput
-      const verifyAssertCapturedInputState1Phase4 = (): void => {
-        const assertCapturedInputState1 = (): void => {
-          expect(verifyAssertCapturedInputState1Phase4CapturedInput.ruleset.id).toBe(PostgresColonizeTickZeroPriorityRuleset.id)
-          expect(verifyAssertCapturedInputState1Phase4CapturedInput.planets[target.id]?.ownerPlayerId).toBeNull()
-          expect(verifyAssertCapturedInputState1Phase4CapturedInput.players[alicePlayerId]?.resources[ResourceType.INFLUENCE]).toBe(95)
-          expect(verifyAssertCapturedInputState1Phase4CapturedInput.players[bobPlayerId]?.resources[ResourceType.INFLUENCE]).toBe(98)
-          expect(verifyAssertCapturedInputState1Phase4CapturedInput.fleets[stagedAlice.id]).toMatchObject({
-            ownerPlayerId: alicePlayerId,
-            originPlanetId: target.id,
-            strength: 35,
-          })
-          expect(verifyAssertCapturedInputState1Phase4CapturedInput.fleets[stagedAlice.id]?.movement).toBeUndefined()
-          expect(verifyAssertCapturedInputState1Phase4CapturedInput.fleets[stagedBob.id]).toMatchObject({
-            ownerPlayerId: bobPlayerId,
-            originPlanetId: homeB.id,
-            strength: builtStrength,
-          })
-          expect(verifyAssertCapturedInputState1Phase4CapturedInput.fleets[stagedBob.id]?.movement).toBeUndefined()
-          expect(verifyAssertCapturedInputState1Phase4CapturedInput.submittedActions.map(({ id }) => id).toSorted()).toStrictEqual(
-            [aliceColonizeActionId, bobColonizeActionId].toSorted(),
-          )
-        }
-        assertCapturedInputState1()
-      }
-      verifyAssertCapturedInputState1Phase4()
+      const assertAssertCapturedInputState1Phase4CapturedInput = capturedInput
+
+      assertCapturedInput2({
+        assertAssertCapturedInputState1Phase4CapturedInput,
+        target,
+        alicePlayerId,
+        bobPlayerId,
+        stagedAlice,
+        stagedBob,
+        homeB,
+        builtStrength,
+        aliceColonizeActionId,
+        bobColonizeActionId,
+      })
 
       const replay = replayWorkerInput(capturedInput)
       expect(replay.resolved.planets[target.id]?.ownerPlayerId).toBe(alicePlayerId)
@@ -576,79 +475,45 @@ describe("gameplay submission concurrency", () => {
       Assert.isDefined(persistedAlice)
       Assert.isDefined(persistedBob)
 
-      const verifyPersistedAlicePhase5 = (): void => {
-        expect(persistedAlice).toMatchObject({ id: stagedAlice.id, strength: 15 })
-        expect(persistedBob).toMatchObject({ id: bobArrival.id, strength: movingStrength })
-        const bobHomeFleets = views[1].fleets.filter(({ originPlanetId }) => originPlanetId === homeB.id)
-        const assertScenarioState2 = (): void => {
-          expect(
-            bobHomeFleets
-              .map(({ ownerPlayerId, movement, strength }) => ({ ownerPlayerId, movement, strength }))
-              .toSorted((first, second) => first.strength - second.strength),
-          ).toStrictEqual(
-            bobHomeRemainderStrengths.map((strength) => ({
-              ownerPlayerId: bobPlayerId,
-              movement: undefined,
-              strength,
-            })),
-          )
-          expect(views[0].resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 70, uncommitted: 70 })
-          expect(views[1].resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 73, uncommitted: 73 })
-          expect(views[0].resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
-          expect(views[1].resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
-          expect(views[0].resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
-          expect(views[1].resources[ResourceType.FUEL]).toStrictEqual({ total: 100, uncommitted: 100 })
-          expect(views[0].actions.find(({ id }) => id === aliceColonizeActionId)).toMatchObject({
-            selectedTargets: null,
-            isInProgress: false,
-          })
-          expect(views[1].actions.find(({ id }) => id === bobColonizeActionId)).toMatchObject({
-            selectedTargets: null,
-            isInProgress: false,
-          })
-        }
-        assertScenarioState2()
-      }
-      verifyPersistedAlicePhase5()
+      assertPersistedAlice({
+        persistedAlice,
+        stagedAlice,
+        persistedBob,
+        bobArrival,
+        movingStrength,
+        views,
+        homeB,
+        bobHomeRemainderStrengths,
+        bobPlayerId,
+        aliceColonizeActionId,
+        bobColonizeActionId,
+      })
 
       const savedTurns = await server.database.select().from(turnsTable).where(eq(turnsTable.gameId, gameId))
       const savedNextTurn = savedTurns.find(({ turn }) => turn === priorityTurn + 1)
       Assert.isDefined(savedNextTurn)
 
-      const verifyPersistedNextRngStatePhase6CapturedInput = capturedInput
-      const verifyPersistedNextRngStatePhase6 = (): void => {
-        const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
-        expect(persistedNextRngState).toStrictEqual(verifyPersistedNextRngStatePhase6CapturedInput.rngState)
-        expect(persistedNextRngState).toStrictEqual(replay.rngState)
+      const assertPersistedNextRngStatePhase6CapturedInput = capturedInput
 
-        Logger.get().info("[C3-07 public tick-zero priority receipt]", {
-          gameId,
-          seed: 147,
-          movingStrength,
-          homes: [homeA, homeB].map(({ id, name, coordinates }) => ({ id, name, coordinates })),
-          target: { id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y },
-          routeDistances: { aliceStage: distances[0], bobColonize: distances[1] },
-          stagedForces: { aliceAtTarget: stagedAlice.strength, bobBeforeDeparture: stagedBob.strength },
-          attempts: {
-            alice: { actionId: aliceColonizeActionId, selectedStrength: 35, tick: 0 },
-            bob: { actionId: bobColonizeActionId, selectedStrength: movingStrength, speed: 5, tick: 10 },
-          },
-          replay: {
-            owner: replay.resolved.planets[target.id]?.ownerPlayerId,
-            outcomes: replay.actionOutcomes,
-            nextRngState: replay.rngState,
-          },
-          persisted: {
-            owner: findPlanetOwner(views[0], target.id),
-            aliceForce: persistedAlice.strength,
-            bobForce: persistedBob.strength,
-            influence: views.map(({ resources }) => resources[ResourceType.INFLUENCE].total),
-            colony: views.map(({ resources }) => resources[ResourceType.COLONY].total),
-            nextRngState: persistedNextRngState,
-          },
-        })
-      }
-      verifyPersistedNextRngStatePhase6()
+      assertPersistedNextRngState({
+        savedNextTurn,
+        assertPersistedNextRngStatePhase6CapturedInput,
+        replay,
+        gameId,
+        movingStrength,
+        homeA,
+        homeB,
+        target,
+        distances,
+        stagedAlice,
+        stagedBob,
+        aliceColonizeActionId,
+        bobColonizeActionId,
+        findPlanetOwner,
+        views,
+        persistedAlice,
+        persistedBob,
+      })
     },
   )
 })

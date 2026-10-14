@@ -1,15 +1,20 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { compareOrdinalStrings } from "shared/domain/compareOrdinalStrings.ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
+import type { GameId } from "shared/domain/games/GameId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { SeedOutpostTest } from "shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
+import type { Planet, PlayerView, Action, Fleet } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
+import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
+import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import {
   processNextRouterTurn,
   PublicSeedOutpostBuildSixty,
@@ -83,212 +88,374 @@ describe("Seed Outpost API boundary", () => {
     const outOfRangeSite = planets.find(({ coordinates }) => coordinates === "54:18:10")
     Assert.isDefined(outOfRangeSite)
 
-    const verifyOutOfRangePhase1 = async (): Promise<void> => {
-      const outOfRange = Math.hypot(home.x - outOfRangeSite.x, home.y - outOfRangeSite.y)
-      expect(outOfRange).toBeCloseTo(10.129282735155494, 12)
+    await assertOutOfRange({ home, outOfRangeSite, player, createdGameId, view, firstOutpost, source, firstSite, secondOutpost })
 
-      const beforeInvalidSelections = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const assertScenarioState1 = async (): Promise<void> => {
-        await expect(
-          player.client.gameplay.updateActionSubmission.mutate({
-            gameId: createdGameId,
-            turn: view.turn,
-            submittedActionTargets: createSubmittedActionTargetsDtoStub({
-              actionId: firstOutpost.id,
-              selectedTargets: { force: source.id, site: firstSite.site.id },
-              selectedInputs: { quota: 29 },
-            }),
-          }),
-        ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-        await expect(
-          player.client.gameplay.updateActionSubmission.mutate({
-            gameId: createdGameId,
-            turn: view.turn,
-            submittedActionTargets: createSubmittedActionTargetsDtoStub({
-              actionId: secondOutpost.id,
-              selectedTargets: { force: source.id, site: outOfRangeSite.id },
-              selectedInputs: { quota: 30 },
-            }),
-          }),
-        ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-        expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(beforeInvalidSelections)
-      }
-      await assertScenarioState1()
+    await assertCancelled({
+      player,
+      createdGameId,
+      firstOutpost,
+      source,
+      firstSite,
+      secondOutpost,
+      secondSite,
+      clock,
+      turnProcessor,
+      turnsRepository,
+    })
 
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: view.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
-          actionId: firstOutpost.id,
-          selectedTargets: { force: source.id, site: firstSite.site.id },
-          selectedInputs: { quota: 30 },
-        }),
-      })
-      const firstSelected = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(firstSelected.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({
-        selectedTargets: { force: source.id, site: firstSite.site.id },
-        selectedInputs: { quota: 30 },
-        isInProgress: false,
-      })
-      expect(firstSelected.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 43 })
-      expect(firstSelected.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 8 })
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: firstSelected.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
-          actionId: firstOutpost.id,
-          selectedTargets: { force: source.id, site: firstSite.site.id },
-          selectedInputs: { quota: 35 },
-        }),
-      })
-      const replaced = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(replaced.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({
-        selectedTargets: { force: source.id, site: firstSite.site.id },
-        selectedInputs: { quota: 35 },
-        isInProgress: false,
-      })
-      expect(replaced.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 43 })
-      expect(replaced.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 8 })
-      expect(replaced.actions.find(({ id }) => id === secondOutpost.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
-
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: replaced.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
-          actionId: firstOutpost.id,
-          selectedTargets: null,
-          selectedInputs: null,
-        }),
-      })
-    }
-    await verifyOutOfRangePhase1()
-
-    const verifyCancelledPhase2 = async (): Promise<void> => {
-      const cancelled = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(cancelled.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({
-        selectedTargets: null,
-        selectedInputs: null,
-        isInProgress: false,
-      })
-      expect(cancelled.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 50 })
-      expect(cancelled.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
-      expect(cancelled.fleets.find(({ id }) => id === source.id)).toMatchObject({ id: source.id, strength: 60 })
-
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: cancelled.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
-          actionId: firstOutpost.id,
-          selectedTargets: { force: source.id, site: firstSite.site.id },
-          selectedInputs: { quota: 30 },
-        }),
-      })
-      const firstReselected = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: firstReselected.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
-          actionId: secondOutpost.id,
-          selectedTargets: { force: source.id, site: secondSite.site.id },
-          selectedInputs: { quota: 30 },
-        }),
-      })
-      const selected = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const assertSelectedState2 = async (): Promise<void> => {
-        expect(selected.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({
-          selectedTargets: { force: source.id, site: firstSite.site.id },
-          selectedInputs: { quota: 30 },
-          isInProgress: false,
-        })
-        expect(selected.actions.find(({ id }) => id === secondOutpost.id)).toMatchObject({
-          selectedTargets: { force: source.id, site: secondSite.site.id },
-          selectedInputs: { quota: 30 },
-          isInProgress: false,
-        })
-        expect(selected.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 36 })
-        expect(selected.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 6 })
-        expect(selected.fleets.find(({ id }) => id === source.id)).toMatchObject({ id: source.id, strength: 60 })
-        await expect(
-          player.client.gameplay.updateActionSubmission.mutate({
-            gameId: createdGameId,
-            turn: selected.turn,
-            submittedActionTargets: createSubmittedActionTargetsDtoStub({
-              actionId: firstOutpost.id,
-              selectedTargets: { force: source.id, site: firstSite.site.id },
-              selectedInputs: { quota: 31 },
-            }),
-          }),
-        ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-        expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(selected)
-      }
-      await assertSelectedState2()
-
-      await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
-    }
-    await verifyCancelledPhase2()
-
-    const verifyDepartedPhase3 = async (): Promise<void> => {
-      const departed = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(departed.fleets.find(({ id }) => id === source.id)).toBeUndefined()
-      const departedJourneys = departed.fleets
-        .filter(({ destinationPlanetId }) => sites.some(({ site }) => site.id === destinationPlanetId))
-        .map(({ destinationPlanetId, strength, distanceToEnd, movement }) => ({
-          destinationPlanetId,
-          strength,
-          distanceToEnd,
-          speed: movement?.speed,
-        }))
-        .toSorted((first, second) => (first.distanceToEnd ?? 0) - (second.distanceToEnd ?? 0))
-      expect(departedJourneys).toStrictEqual([
-        { destinationPlanetId: firstSite.site.id, strength: 30, distanceToEnd: 0.30051203280434224, speed: 2 },
-        { destinationPlanetId: secondSite.site.id, strength: 30, distanceToEnd: 0.3005656772620622, speed: 2 },
-      ])
-      const departedJourneyIds = departedJourneys.map(
-        ({ destinationPlanetId }) => departed.fleets.find(({ destinationPlanetId: targetId }) => targetId === destinationPlanetId)?.id,
-      )
-      expect(departedJourneyIds).toStrictEqual([expect.any(String), expect.any(String)])
-      expect(
-        departed.galaxy.systems
-          .flatMap(({ planets: systemPlanets }) => systemPlanets)
-          .filter(({ id }) => sites.some((entry) => entry.site.id === id))
-          .map(({ ownerPlayerId }) => ownerPlayerId),
-      ).toStrictEqual([null, null])
-      expect(departed.actions.find(({ id }) => id === firstOutpost.id)?.isInProgress).toBe(true)
-      expect(departed.actions.find(({ id }) => id === secondOutpost.id)?.isInProgress).toBe(true)
-      expect(departed.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 36, uncommitted: 36 })
-      expect(departed.resources[ResourceType.FUEL]).toStrictEqual({ total: 6, uncommitted: 6 })
-      const beforeLockedEdit = departed
-      await expect(
-        player.client.gameplay.updateActionSubmission.mutate({
-          gameId: createdGameId,
-          turn: departed.turn,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({
-            actionId: firstOutpost.id,
-            selectedTargets: { force: source.id, site: firstSite.site.id },
-            selectedInputs: { quota: 30 },
-          }),
-        }),
-      ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(beforeLockedEdit)
-
-      await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
-      view = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      const persistedPlanets = view.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
-      for (const { site } of sites) {
-        expect(persistedPlanets.find(({ id }) => id === site.id)?.ownerPlayerId).toBe(view.player.id)
-        expect(
-          view.fleets.some(({ originPlanetId, destinationPlanetId }) => originPlanetId === site.id || destinationPlanetId === site.id),
-        ).toBe(false)
-      }
-      expect(view.fleets.some(({ id }) => departedJourneyIds.includes(id))).toBe(false)
-      expect(view.fleets.find(({ id }) => id === source.id)).toBeUndefined()
-      expect(view.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 36, uncommitted: 36 })
-      expect(view.resources[ResourceType.FUEL]).toStrictEqual({ total: 6, uncommitted: 6 })
-      expect(view.resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
-      expect(view.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
-      expect(view.actions.find(({ id }) => id === secondOutpost.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
-    }
-    await verifyDepartedPhase3()
+    const updatedVerifyDeparted = await assertDeparted({
+      player,
+      createdGameId,
+      source,
+      sites,
+      firstSite,
+      secondSite,
+      firstOutpost,
+      secondOutpost,
+      clock,
+      turnProcessor,
+      turnsRepository,
+      view,
+    })
+    view = updatedVerifyDeparted.view
   })
 })
+
+async function assertOutOfRange({
+  home,
+  outOfRangeSite,
+  player,
+  createdGameId,
+  view,
+  firstOutpost,
+  source,
+  firstSite,
+  secondOutpost,
+}: AssertOutOfRangeInput): Promise<void> {
+  const outOfRange = Math.hypot(home.x - outOfRangeSite.x, home.y - outOfRangeSite.y)
+  expect(outOfRange).toBeCloseTo(10.129282735155494, 12)
+
+  const beforeInvalidSelections = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+  await assertScenarioState({
+    player,
+    createdGameId,
+    view,
+    firstOutpost,
+    source,
+    firstSite,
+    secondOutpost,
+    outOfRangeSite,
+    beforeInvalidSelections,
+  })
+
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: view.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: firstOutpost.id,
+      selectedTargets: { force: source.id, site: firstSite.site.id },
+      selectedInputs: { quota: 30 },
+    }),
+  })
+  const firstSelected = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  expect(firstSelected.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({
+    selectedTargets: { force: source.id, site: firstSite.site.id },
+    selectedInputs: { quota: 30 },
+    isInProgress: false,
+  })
+  expect(firstSelected.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 43 })
+  expect(firstSelected.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 8 })
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: firstSelected.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: firstOutpost.id,
+      selectedTargets: { force: source.id, site: firstSite.site.id },
+      selectedInputs: { quota: 35 },
+    }),
+  })
+  const replaced = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  expect(replaced.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({
+    selectedTargets: { force: source.id, site: firstSite.site.id },
+    selectedInputs: { quota: 35 },
+    isInProgress: false,
+  })
+  expect(replaced.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 43 })
+  expect(replaced.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 8 })
+  expect(replaced.actions.find(({ id }) => id === secondOutpost.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
+
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: replaced.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: firstOutpost.id,
+      selectedTargets: null,
+      selectedInputs: null,
+    }),
+  })
+}
+
+async function assertScenarioState({
+  player,
+  createdGameId,
+  view,
+  firstOutpost,
+  source,
+  firstSite,
+  secondOutpost,
+  outOfRangeSite,
+  beforeInvalidSelections,
+}: AssertScenarioStateInput): Promise<void> {
+  await expect(
+    player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: view.turn,
+      submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        actionId: firstOutpost.id,
+        selectedTargets: { force: source.id, site: firstSite.site.id },
+        selectedInputs: { quota: 29 },
+      }),
+    }),
+  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  await expect(
+    player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: view.turn,
+      submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        actionId: secondOutpost.id,
+        selectedTargets: { force: source.id, site: outOfRangeSite.id },
+        selectedInputs: { quota: 30 },
+      }),
+    }),
+  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(beforeInvalidSelections)
+}
+
+async function assertCancelled({
+  player,
+  createdGameId,
+  firstOutpost,
+  source,
+  firstSite,
+  secondOutpost,
+  secondSite,
+  clock,
+  turnProcessor,
+  turnsRepository,
+}: AssertCancelledInput): Promise<void> {
+  const cancelled = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  expect(cancelled.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({
+    selectedTargets: null,
+    selectedInputs: null,
+    isInProgress: false,
+  })
+  expect(cancelled.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 50 })
+  expect(cancelled.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
+  expect(cancelled.fleets.find(({ id }) => id === source.id)).toMatchObject({ id: source.id, strength: 60 })
+
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: cancelled.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: firstOutpost.id,
+      selectedTargets: { force: source.id, site: firstSite.site.id },
+      selectedInputs: { quota: 30 },
+    }),
+  })
+  const firstReselected = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: firstReselected.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: secondOutpost.id,
+      selectedTargets: { force: source.id, site: secondSite.site.id },
+      selectedInputs: { quota: 30 },
+    }),
+  })
+  const selected = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+  await assertSelected({ selected, firstOutpost, source, firstSite, secondOutpost, secondSite, player, createdGameId })
+
+  await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
+}
+
+async function assertSelected({
+  selected,
+  firstOutpost,
+  source,
+  firstSite,
+  secondOutpost,
+  secondSite,
+  player,
+  createdGameId,
+}: AssertSelectedInput): Promise<void> {
+  expect(selected.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({
+    selectedTargets: { force: source.id, site: firstSite.site.id },
+    selectedInputs: { quota: 30 },
+    isInProgress: false,
+  })
+  expect(selected.actions.find(({ id }) => id === secondOutpost.id)).toMatchObject({
+    selectedTargets: { force: source.id, site: secondSite.site.id },
+    selectedInputs: { quota: 30 },
+    isInProgress: false,
+  })
+  expect(selected.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 36 })
+  expect(selected.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 6 })
+  expect(selected.fleets.find(({ id }) => id === source.id)).toMatchObject({ id: source.id, strength: 60 })
+  await expect(
+    player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: selected.turn,
+      submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        actionId: firstOutpost.id,
+        selectedTargets: { force: source.id, site: firstSite.site.id },
+        selectedInputs: { quota: 31 },
+      }),
+    }),
+  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(selected)
+}
+
+async function assertDeparted({
+  player,
+  createdGameId,
+  source,
+  sites,
+  firstSite,
+  secondSite,
+  firstOutpost,
+  secondOutpost,
+  clock,
+  turnProcessor,
+  turnsRepository,
+  view,
+}: AssertDepartedInput): Promise<AssertDepartedResult> {
+  const departed = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  expect(departed.fleets.find(({ id }) => id === source.id)).toBeUndefined()
+  const departedJourneys = departed.fleets
+    .filter(({ destinationPlanetId }) => sites.some(({ site }) => site.id === destinationPlanetId))
+    .map(({ destinationPlanetId, strength, distanceToEnd, movement }) => ({
+      destinationPlanetId,
+      strength,
+      distanceToEnd,
+      speed: movement?.speed,
+    }))
+    .toSorted((first, second) => (first.distanceToEnd ?? 0) - (second.distanceToEnd ?? 0))
+  expect(departedJourneys).toStrictEqual([
+    { destinationPlanetId: firstSite.site.id, strength: 30, distanceToEnd: 0.30051203280434224, speed: 2 },
+    { destinationPlanetId: secondSite.site.id, strength: 30, distanceToEnd: 0.3005656772620622, speed: 2 },
+  ])
+  const departedJourneyIds = departedJourneys.map(
+    ({ destinationPlanetId }) => departed.fleets.find(({ destinationPlanetId: targetId }) => targetId === destinationPlanetId)?.id,
+  )
+  expect(departedJourneyIds).toStrictEqual([expect.any(String), expect.any(String)])
+  expect(
+    departed.galaxy.systems
+      .flatMap(({ planets: systemPlanets }) => systemPlanets)
+      .filter(({ id }) => sites.some((entry) => entry.site.id === id))
+      .map(({ ownerPlayerId }) => ownerPlayerId),
+  ).toStrictEqual([null, null])
+  expect(departed.actions.find(({ id }) => id === firstOutpost.id)?.isInProgress).toBe(true)
+  expect(departed.actions.find(({ id }) => id === secondOutpost.id)?.isInProgress).toBe(true)
+  expect(departed.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 36, uncommitted: 36 })
+  expect(departed.resources[ResourceType.FUEL]).toStrictEqual({ total: 6, uncommitted: 6 })
+  const beforeLockedEdit = departed
+  await expect(
+    player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: departed.turn,
+      submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        actionId: firstOutpost.id,
+        selectedTargets: { force: source.id, site: firstSite.site.id },
+        selectedInputs: { quota: 30 },
+      }),
+    }),
+  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(beforeLockedEdit)
+
+  await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
+  view = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+  const persistedPlanets = view.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
+  for (const { site } of sites) {
+    expect(persistedPlanets.find(({ id }) => id === site.id)?.ownerPlayerId).toBe(view.player.id)
+    expect(
+      view.fleets.some(({ originPlanetId, destinationPlanetId }) => originPlanetId === site.id || destinationPlanetId === site.id),
+    ).toBe(false)
+  }
+  expect(view.fleets.some(({ id }) => departedJourneyIds.includes(id))).toBe(false)
+  expect(view.fleets.find(({ id }) => id === source.id)).toBeUndefined()
+  expect(view.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 36, uncommitted: 36 })
+  expect(view.resources[ResourceType.FUEL]).toStrictEqual({ total: 6, uncommitted: 6 })
+  expect(view.resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
+  expect(view.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
+  expect(view.actions.find(({ id }) => id === secondOutpost.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
+
+  return { view }
+}
+
+type AssertOutOfRangeInput = {
+  home: Planet
+  outOfRangeSite: Planet
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  view: PlayerView
+  firstOutpost: Action
+  source: Fleet
+  firstSite: { site: Planet; distance: number }
+  secondOutpost: Action
+}
+
+type AssertScenarioStateInput = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  view: PlayerView
+  firstOutpost: Action
+  source: Fleet
+  firstSite: { site: Planet; distance: number }
+  secondOutpost: Action
+  outOfRangeSite: Planet
+  beforeInvalidSelections: PlayerView
+}
+
+type AssertCancelledInput = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  firstOutpost: Action
+  source: Fleet
+  firstSite: { site: Planet; distance: number }
+  secondOutpost: Action
+  secondSite: { site: Planet; distance: number }
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+}
+
+type AssertSelectedInput = {
+  selected: PlayerView
+  firstOutpost: Action
+  source: Fleet
+  firstSite: { site: Planet; distance: number }
+  secondOutpost: Action
+  secondSite: { site: Planet; distance: number }
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+}
+
+type AssertDepartedInput = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  source: Fleet
+  sites: Array<{ site: Planet; distance: number }>
+  firstSite: { site: Planet; distance: number }
+  secondSite: { site: Planet; distance: number }
+  firstOutpost: Action
+  secondOutpost: Action
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+  view: PlayerView
+}
+
+type AssertDepartedResult = { view: PlayerView }

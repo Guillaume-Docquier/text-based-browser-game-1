@@ -32,6 +32,7 @@ import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { ColonizeHereTest, ColonizePlanetTest, SeedOutpostTest } from "#shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { MoveFleetExceptional, MoveFleetStandard } from "#shared/testing/test-ruleset/action-definitions/move-fleet.ts"
+import { assertEvaluate, assertEitherUpdateOrder } from "./evaluateActionSelection.reservations.assertions.test-support.ts"
 import {
   createFixture,
   createSubmission,
@@ -308,6 +309,7 @@ describe("evaluateActionSelection", () => {
   })
 
   it("should evaluate renamed Seed Outpost threshold and range from its configured tags and costs", () => {
+    expect.hasAssertions()
     const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000051")
     const actionId = branded<ActionId>("TEST_SEED_OUTPOST_1")
     const origin = createPlanetStub({
@@ -346,94 +348,12 @@ describe("evaluateActionSelection", () => {
       fleets: indexBy("id", [force]),
       actions: computeAvailableActions({ playerIds: [playerId], ruleset }),
     }
-    const verifyEvaluatePhase1 = (): void => {
-      const evaluate = (siteId: PlanetId, quota: number, resources = state.resources): ReturnType<typeof evaluateActionSelection> =>
-        evaluateActionSelection({
-          state: { ...state, resources },
-          ruleset,
-          draft: {
-            actionId,
-            selectedTargets: {
-              [branded<TargetTag>("force")]: force.id,
-              [branded<TargetTag>("site")]: siteId,
-            },
-            selectedInputs: { [branded<InputTag>("quota")]: quota },
-          },
-        })
 
-      const exactThresholdSubmission = createSubmittedActionStub({
-        id: actionId,
-        playerId,
-        actionDefinitionId: SeedOutpostTest.id,
-        selectedTargets: { force: force.id, site: site.id },
-        selectedInputs: { quota: 30 },
-      })
-      const evaluateSubmittedAtBudget = (resources: EligibilityState["resources"]): ReturnType<typeof evaluateSubmittedActions> =>
-        evaluateSubmittedActions({ state: { ...state, resources }, ruleset, submissions: [exactThresholdSubmission] })
-      const submittedAtInsufficientInfluence = evaluateSubmittedAtBudget(
-        createResourcesStub({ [ResourceType.INFLUENCE]: 6, [ResourceType.FUEL]: 2 }),
-      )
-      const submittedAtInsufficientFuel = evaluateSubmittedAtBudget(
-        createResourcesStub({ [ResourceType.INFLUENCE]: 7, [ResourceType.FUEL]: 1 }),
-      )
-      const submittedAtExactBudget = evaluateSubmittedAtBudget(createResourcesStub({ [ResourceType.INFLUENCE]: 7, [ResourceType.FUEL]: 2 }))
-      const insufficientInfluence = evaluate(site.id, 30, createResourcesStub({ [ResourceType.INFLUENCE]: 6, [ResourceType.FUEL]: 2 }))
-      const insufficientFuel = evaluate(site.id, 30, createResourcesStub({ [ResourceType.INFLUENCE]: 7, [ResourceType.FUEL]: 1 }))
-      const belowRequirement = evaluate(site.id, 29)
-      const exactRequirement = evaluate(site.id, 30)
-      const fullForce = evaluate(site.id, 45)
-      const beyondRangeSelection = evaluate(beyondRange.id, 30)
-
-      const assertSubmittedAtInsufficientInfluenceState1 = (): void => {
-        expect(submittedAtInsufficientInfluence.status).toBe("INELIGIBLE")
-        expect(submittedAtInsufficientInfluence.issues).toContainEqual(
-          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
-        )
-        expect(submittedAtInsufficientFuel.status).toBe("INELIGIBLE")
-        expect(submittedAtInsufficientFuel.issues).toContainEqual(
-          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
-        )
-        expect(submittedAtExactBudget.status).toBe("ELIGIBLE")
-        expect(submittedAtExactBudget.resourceCommitments[ResourceType.INFLUENCE]).toBe(7)
-        expect(submittedAtExactBudget.resourceCommitments[ResourceType.FUEL]).toBe(2)
-        expect(submittedAtExactBudget.strengthCommitments[force.id]).toBe(30)
-        expect(insufficientInfluence.status).toBe("INELIGIBLE")
-        expect(insufficientInfluence.issues).toContainEqual(
-          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
-        )
-        expect(insufficientFuel.status).toBe("INELIGIBLE")
-        expect(insufficientFuel.issues).toContainEqual(
-          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
-        )
-        expect(belowRequirement.status).toBe("INELIGIBLE")
-        expect(belowRequirement.issues).toContainEqual(
-          expect.objectContaining({ code: "INSUFFICIENT_STRENGTH", targetTag: branded<TargetTag>("site") }),
-        )
-        expect(exactRequirement.status).toBe("ELIGIBLE")
-        expect(exactRequirement.strengthCommitments[force.id]).toBe(30)
-        expect(exactRequirement.remainingStrength[force.id]).toBe(15)
-        expect(exactRequirement.resourceCommitments).toStrictEqual({
-          [ResourceType.INFLUENCE]: 7,
-          [ResourceType.METAL]: 0,
-          [ResourceType.FUEL]: 2,
-          [ResourceType.ENERGY]: 0,
-          [ResourceType.COLONY]: 0,
-        })
-        expect(fullForce.status).toBe("ELIGIBLE")
-        expect(fullForce.strengthCommitments[force.id]).toBe(45)
-        expect(fullForce.remainingStrength[force.id]).toBe(0)
-        expect(fullForce.resourceCommitments).toStrictEqual(exactRequirement.resourceCommitments)
-        expect(beyondRangeSelection.status).toBe("INELIGIBLE")
-        expect(beyondRangeSelection.issues).toContainEqual(
-          expect.objectContaining({ code: "OUT_OF_RANGE", targetTag: branded<TargetTag>("site") }),
-        )
-      }
-      assertSubmittedAtInsufficientInfluenceState1()
-    }
-    verifyEvaluatePhase1()
+    assertEvaluate({ state, ruleset, actionId, force, playerId, site, beyondRange })
   })
 
   it("should preserve exact aggregate Move and stationary Colonize budgets through replace, cancel, and source changes", () => {
+    expect.hasAssertions()
     const fixture = createColonizationBudgetFixture(35)
     const moveSubmission = (strength: number): ReturnType<typeof createSubmittedActionStub> =>
       createSubmittedActionStub({
@@ -462,95 +382,8 @@ describe("evaluateActionSelection", () => {
       },
       selectedInputs: { [branded<InputTag>("strength")]: strength },
     })
-    const verifyEitherUpdateOrderPhase2 = (): void => {
-      const eitherUpdateOrder = evaluateSubmittedActions({
-        state: fixture.state,
-        ruleset: fixture.ruleset,
-        submissions: [move15, colonize20],
-      })
-      const reversedUpdateOrder = evaluateSubmittedActions({
-        state: fixture.state,
-        ruleset: fixture.ruleset,
-        submissions: [colonize20, move15],
-      })
-      const overcommittedMove = evaluateSubmittedActions({
-        state: fixture.state,
-        ruleset: fixture.ruleset,
-        submissions: [moveSubmission(16), colonize20],
-      })
-      const moveReplacement = evaluateActionSelection({
-        state: occupied,
-        ruleset: fixture.ruleset,
-        draft: moveDraft(14),
-      })
-      const cancelMove = evaluateSubmittedActions({ state: occupied, ruleset: fixture.ruleset, submissions: [colonize20] })
-      const cancelColonize = evaluateSubmittedActions({ state: occupied, ruleset: fixture.ruleset, submissions: [move15] })
-      const replaceColonizeSource = evaluateActionSelection({
-        state: occupied,
-        ruleset: fixture.ruleset,
-        draft: {
-          actionId: fixture.colonizeActionId,
-          selectedTargets: {
-            [branded<TargetTag>("fleet")]: fixture.secondFleetId,
-            [branded<TargetTag>("planet")]: fixture.destinationId,
-          },
-          selectedInputs: {},
-        },
-      })
 
-      const assertMoveReplacementState1 = (): void => {
-        expect(moveReplacement.status).toBe("ELIGIBLE")
-        expect(moveReplacement.strengthCommitments[fixture.fleetId]).toBe(34)
-        expect(moveReplacement.remainingStrength[fixture.fleetId]).toBe(1)
-        expect(moveReplacement.resourceCommitments).toStrictEqual({
-          [ResourceType.INFLUENCE]: 28,
-          [ResourceType.METAL]: 0,
-          [ResourceType.FUEL]: 1,
-          [ResourceType.ENERGY]: 0,
-          [ResourceType.COLONY]: 0,
-        })
-        expect(eitherUpdateOrder.status).toBe("ELIGIBLE")
-        expect(reversedUpdateOrder.status).toBe("ELIGIBLE")
-        expect(eitherUpdateOrder.strengthCommitments[fixture.fleetId]).toBe(35)
-        expect(reversedUpdateOrder.strengthCommitments[fixture.fleetId]).toBe(35)
-        expect(eitherUpdateOrder.resourceCommitments).toStrictEqual(reversedUpdateOrder.resourceCommitments)
-        expect(overcommittedMove.status).toBe("INELIGIBLE")
-        expect(overcommittedMove.strengthCommitments[fixture.fleetId]).toBe(36)
-        expect(overcommittedMove.resourceCommitments[ResourceType.INFLUENCE]).toBe(28)
-        expect(overcommittedMove.resourceCommitments[ResourceType.FUEL]).toBe(1)
-        expect(cancelMove.strengthCommitments[fixture.fleetId]).toBe(20)
-        expect(cancelMove.remainingStrength[fixture.fleetId]).toBe(15)
-        expect(cancelMove.resourceCommitments).toStrictEqual({
-          [ResourceType.INFLUENCE]: 25,
-          [ResourceType.METAL]: 0,
-          [ResourceType.FUEL]: 0,
-          [ResourceType.ENERGY]: 0,
-          [ResourceType.COLONY]: 0,
-        })
-        expect(cancelColonize.strengthCommitments[fixture.fleetId]).toBe(15)
-        expect(cancelColonize.remainingStrength[fixture.fleetId]).toBe(20)
-        expect(cancelColonize.resourceCommitments).toStrictEqual({
-          [ResourceType.INFLUENCE]: 3,
-          [ResourceType.METAL]: 0,
-          [ResourceType.FUEL]: 1,
-          [ResourceType.ENERGY]: 0,
-          [ResourceType.COLONY]: 0,
-        })
-        expect(replaceColonizeSource.strengthCommitments[fixture.fleetId]).toBe(15)
-        expect(replaceColonizeSource.remainingStrength[fixture.fleetId]).toBe(20)
-        expect(replaceColonizeSource.strengthCommitments[fixture.secondFleetId]).toBe(20)
-        expect(replaceColonizeSource.remainingStrength[fixture.secondFleetId]).toBe(10)
-        expect(replaceColonizeSource.resourceCommitments).toStrictEqual({
-          [ResourceType.INFLUENCE]: 28,
-          [ResourceType.METAL]: 0,
-          [ResourceType.FUEL]: 1,
-          [ResourceType.ENERGY]: 0,
-          [ResourceType.COLONY]: 0,
-        })
-      }
-      assertMoveReplacementState1()
-    }
-    verifyEitherUpdateOrderPhase2()
+    assertEitherUpdateOrder({ fixture, move15, colonize20, moveSubmission, occupied, moveDraft })
   })
 
   it("should reserve Move+Colonize only once and reject a competing Move against its reserved remainder", () => {

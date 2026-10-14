@@ -16,6 +16,16 @@ export function effectDefinitionToRulesText(effectDefinition: EffectDefinition, 
     case "FLEET_MOVE":
       return movementRulesText(effectDefinition, actionDefinition)
     case "FLEET_ASSAULT":
+    case "FLEET_COLONIZE":
+      return arrivalRulesText(effectDefinition, actionDefinition)
+  }
+}
+function arrivalRulesText(
+  effectDefinition: Extract<EffectDefinition, { type: "FLEET_ASSAULT" | "FLEET_COLONIZE" }>,
+  actionDefinition: ActionDefinition,
+): string {
+  switch (effectDefinition.type) {
+    case "FLEET_ASSAULT":
       return actionDefinition.effects.some((effect) => effect.type === "FLEET_MOVE")
         ? "On arrival, join friendly fleets at the target, then attack all enemy fleets there in one simultaneous exchange"
         : "Attack all enemy fleets at the target planet in one simultaneous exchange"

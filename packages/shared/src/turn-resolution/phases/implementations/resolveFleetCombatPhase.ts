@@ -59,14 +59,11 @@ export function resolveFleetCombatPhase(context: TurnContext): Result<TurnContex
   }))
   const candidates = [...standaloneAssaults, ...arrivalAssaults].toSorted(compareScheduledAssaults)
 
-  for (let first = 0; first < candidates.length;) {
-    let end = first + 1
-    while (end < candidates.length && candidates[end]?.tick === candidates[first]?.tick) {
-      end += 1
+  for (const group of Map.groupBy(candidates, (candidate) => candidate.tick).values()) {
+    const result = resolveAssaultGroup(context, group)
+    if (Result.isFailure(result)) {
+      return result
     }
-    const result = resolveAssaultGroup(context, candidates.slice(first, end))
-    if (Result.isFailure(result)) return result
-    first = end
   }
 
   return Result.Success(context)

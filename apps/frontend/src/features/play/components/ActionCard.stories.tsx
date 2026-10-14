@@ -12,6 +12,7 @@ import { FleetActionSelectionParity } from "shared/testing/FleetActionSelectionP
 import { MoveFleetExceptional, MoveFleetStandard } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { expect, within } from "storybook/test"
+import { StatefulActionCard } from "./ActionCard.interaction-fixture.tsx"
 import {
   arbitraryTagActionDefinition,
   arbitraryTagAction,
@@ -68,20 +69,7 @@ type Story = StoryObj<typeof meta>
  * Replacing the source fleet clears a now-invalid destination and recalculates the partial allocation.
  */
 export const PartialMovementAllocation: Story = {
-  render: function Render(args): ReactElement {
-    const [action, setAction] = useState(args.action)
-    return (
-      <div className="w-80">
-        <ActionCard
-          {...args}
-          action={action}
-          onSelect={(selectedTargets, selectedInputs) => {
-            setAction({ ...action, selectedTargets, selectedInputs })
-          }}
-        />
-      </div>
-    )
-  },
+  render: (args): ReactElement => <StatefulActionCard {...args} action={args.action} />,
   play: async ({ canvas, canvasElement, userEvent }): Promise<void> => {
     const body = within(canvasElement.ownerDocument.body)
     const fleetPicker = canvas.getByRole("combobox", { name: "Fleet target" })
@@ -114,25 +102,17 @@ export const PartialMovementAllocation: Story = {
  * A Standard partial draft shares the API/resolution oracle with an existing Improved allocation.
  */
 export const MixedDefinitionParity: Story = {
-  render: function Render(args): ReactElement {
-    const [action, setAction] = useState(() => toActionDto(parityStandardAction, false))
-    return (
-      <div className="w-80">
-        <ActionCard
-          {...args}
-          actionDefinition={MoveFleetStandard}
-          action={action}
-          playerView={parityPlayerView}
-          ruleset={parityProjection.ruleset}
-          eligibilityState={parityProjection.eligibilityState}
-          disabled={false}
-          onSelect={(selectedTargets, selectedInputs) => {
-            setAction({ ...action, selectedTargets, selectedInputs })
-          }}
-        />
-      </div>
-    )
-  },
+  render: (args): ReactElement => (
+    <StatefulActionCard
+      {...args}
+      actionDefinition={MoveFleetStandard}
+      action={toActionDto(parityStandardAction, false)}
+      playerView={parityPlayerView}
+      ruleset={parityProjection.ruleset}
+      eligibilityState={parityProjection.eligibilityState}
+      disabled={false}
+    />
+  ),
   play: async ({ canvas, canvasElement, userEvent }): Promise<void> => {
     await expect(parityNormalizedInput).toEqual(FleetActionSelectionParity.normalizedInput)
     const body = within(canvasElement.ownerDocument.body)
@@ -585,20 +565,7 @@ export const OccupiedDuringMovement: Story = {
  * A missing declared source key stays incomplete instead of reading Object's inherited constructor value.
  */
 export const PrototypeSafeSelection: Story = {
-  render: function Render(args): ReactElement {
-    const [action, setAction] = useState(args.action)
-    return (
-      <div className="w-80">
-        <ActionCard
-          {...args}
-          action={action}
-          onSelect={(selectedTargets, selectedInputs) => {
-            setAction({ ...action, selectedTargets, selectedInputs })
-          }}
-        />
-      </div>
-    )
-  },
+  render: (args): ReactElement => <StatefulActionCard {...args} action={args.action} />,
   args: {
     actionDefinition: arbitraryTagActionDefinition,
     action: toActionDto(arbitraryTagAction, false),
@@ -640,20 +607,7 @@ export const PrototypeSafeSelection: Story = {
  * Exceptional movement admits the inclusive 25 light-year endpoint and excludes the next 0.001 light-year.
  */
 export const ExceptionalRangeBoundary: Story = {
-  render: function Render(args): ReactElement {
-    const [action, setAction] = useState(args.action)
-    return (
-      <div className="w-80">
-        <ActionCard
-          {...args}
-          action={action}
-          onSelect={(selectedTargets, selectedInputs) => {
-            setAction({ ...action, selectedTargets, selectedInputs })
-          }}
-        />
-      </div>
-    )
-  },
+  render: (args): ReactElement => <StatefulActionCard {...args} action={args.action} />,
   args: {
     actionDefinition: MoveFleetExceptional,
     action: toActionDto(exceptionalAction, false),

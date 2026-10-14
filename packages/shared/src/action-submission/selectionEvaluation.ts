@@ -115,12 +115,10 @@ export function isFleetMoveEffectDefinition(effectDefinition: EffectDefinition):
 }
 
 export function getOwnRecordValue<TKey extends string, TValue>(record: Readonly<Record<TKey, TValue>>, key: string): TValue | undefined {
-  if (!Object.hasOwn(record, key)) {
-    return undefined
-  }
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: The own-property check proves key is a key of record.
-  const ownKey = key as TKey
-  return record[ownKey]
+  return isOwnRecordKey(record, key) ? record[key] : undefined
+}
+function isOwnRecordKey<TKey extends string>(record: Readonly<Record<TKey, unknown>>, key: string): key is TKey {
+  return Object.hasOwn(record, key)
 }
 
 export function addIssue(evaluation: MutableEvaluation, issue: EligibilityIssue): void {
@@ -145,26 +143,25 @@ export function getStatus(issues: readonly EligibilityIssue[]): SelectionEvaluat
 }
 
 export function compareIssues(first: EligibilityIssue, second: EligibilityIssue): number {
+  return (
+    [
+      compareIssueIdentity(first, second),
+      compareIssueSlots(first, second),
+      resourceRank(first.resourceType) - resourceRank(second.resourceType),
+      compareOrdinalStrings(first.message, second.message),
+    ].find((comparison) => comparison !== 0) ?? 0
+  )
+}
+function compareIssueIdentity(first: EligibilityIssue, second: EligibilityIssue): number {
   const actionOrder = compareOrdinalStrings(first.actionId ?? "", second.actionId ?? "")
-  if (actionOrder !== 0) {
-    return actionOrder
-  }
-  const codeOrder = compareOrdinalStrings(first.code, second.code)
-  if (codeOrder !== 0) {
-    return codeOrder
-  }
-  const targetTagOrder = compareOrdinalStrings(first.targetTag ?? "", second.targetTag ?? "")
-  if (targetTagOrder !== 0) {
-    return targetTagOrder
-  }
-  const inputTagOrder = compareOrdinalStrings(first.inputTag ?? "", second.inputTag ?? "")
-  if (inputTagOrder !== 0) {
-    return inputTagOrder
-  }
-  const resourceOrder =
-    (first.resourceType === undefined ? -1 : Object.values(ResourceType).indexOf(first.resourceType)) -
-    (second.resourceType === undefined ? -1 : Object.values(ResourceType).indexOf(second.resourceType))
-  return resourceOrder !== 0 ? resourceOrder : compareOrdinalStrings(first.message, second.message)
+  return actionOrder !== 0 ? actionOrder : compareOrdinalStrings(first.code, second.code)
+}
+function compareIssueSlots(first: EligibilityIssue, second: EligibilityIssue): number {
+  const targetOrder = compareOrdinalStrings(first.targetTag ?? "", second.targetTag ?? "")
+  return targetOrder !== 0 ? targetOrder : compareOrdinalStrings(first.inputTag ?? "", second.inputTag ?? "")
+}
+function resourceRank(resource: ResourceType | undefined): number {
+  return resource === undefined ? -1 : Object.values(ResourceType).indexOf(resource)
 }
 
 export function uniqueSorted<T extends string>(values: readonly T[]): T[] {

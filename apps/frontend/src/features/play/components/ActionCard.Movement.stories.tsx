@@ -9,6 +9,7 @@ import { FleetMovementSchema } from "shared/domain/world/fleets/Fleet.ts"
 import { AttackMoveTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { MoveFleetStandard } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 import { expect, within } from "storybook/test"
+import { StatefulActionCard } from "./ActionCard.interaction-fixture.tsx"
 import {
   forwardConjoinedRangeFixture,
   reversedConjoinedRangeFixture,
@@ -61,23 +62,15 @@ type Story = StoryObj<typeof meta>
  * Attack Move uses the shared eligibility draft for force, source, destination, affordability and cancellation.
  */
 export const AttackMoveAssault: Story = {
-  render: function Render(args): ReactElement {
-    const [action, setAction] = useState(args.action)
-    return (
-      <div className="w-80">
-        <ActionCard
-          {...args}
-          action={action}
-          playerView={attackMovePlayerView}
-          ruleset={attackMoveProjection.ruleset}
-          eligibilityState={attackMoveProjection.eligibilityState}
-          onSelect={(selectedTargets, selectedInputs) => {
-            setAction({ ...action, selectedTargets, selectedInputs })
-          }}
-        />
-      </div>
-    )
-  },
+  render: (args): ReactElement => (
+    <StatefulActionCard
+      {...args}
+      action={args.action}
+      playerView={attackMovePlayerView}
+      ruleset={attackMoveProjection.ruleset}
+      eligibilityState={attackMoveProjection.eligibilityState}
+    />
+  ),
   args: {
     actionDefinition: AttackMoveTest,
     action: toActionDto(attackMoveAction, false),

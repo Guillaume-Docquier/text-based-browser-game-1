@@ -8,15 +8,20 @@ import {
   evaluateTargetCandidate,
   type EligibilityState,
 } from "#shared/action-submission/evaluateActionSelection.ts"
-import { GameIdSchema } from "#shared/domain/games/GameId.ts"
-import { PlayerIdSchema } from "#shared/domain/players/PlayerId.ts"
+import type { EligibilityIssueCode, TargetCandidateEvaluation } from "#shared/action-submission/selectionEvaluation.ts"
+import { type GameId, GameIdSchema } from "#shared/domain/games/GameId.ts"
+import { type PlayerId, PlayerIdSchema } from "#shared/domain/players/PlayerId.ts"
 import { createResourcesStub } from "#shared/domain/resources/Resources.stub.ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
 import type { InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import { createAvailableActionStub, createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
+import type { Action } from "#shared/domain/turns/actions/Action.ts"
+import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
 import { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
+import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
+import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { AttackMoveTest } from "#shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { GainInfluence } from "#shared/testing/test-ruleset/action-definitions/gain-influence.ts"
 import { MoveFleetStandard } from "#shared/testing/test-ruleset/action-definitions/move-fleet.ts"
@@ -24,6 +29,7 @@ import { TestRuleset } from "#shared/testing/test-ruleset/TestRuleset.ts"
 
 describe("Move and Assault action selection", () => {
   it("should share current resource and Strength commitments across Move, Attack Move, edit, cancel, and gain effects", () => {
+    expect.hasAssertions()
     // Arrange
     const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000021")
     const origin = createPlanetStub({ id: "reservation-origin", ownerPlayerId: playerId, x: 0, y: 0 })
@@ -138,101 +144,18 @@ describe("Move and Assault action selection", () => {
       },
     })
 
-    const verifyGainCannotFundPhase1 = (): void => {
-      const gainCannotFund = evaluateSubmittedActions({
-        state: underfundedState,
-        ruleset: TestRuleset,
-        submissions,
-      })
-
-      // Assert
-      const assertSubmittedState1 = (): void => {
-        expect(submitted.status).toBe("ELIGIBLE")
-        expect(submitted.strengthCommitments[fleet.id]).toBe(50)
-        expect(submitted.remainingStrength[fleet.id]).toBe(0)
-        expect(submitted.resourceCommitments).toStrictEqual({
-          [ResourceType.INFLUENCE]: 8,
-          [ResourceType.METAL]: 0,
-          [ResourceType.FUEL]: 2,
-          [ResourceType.ENERGY]: 0,
-          [ResourceType.COLONY]: 0,
-        })
-
-        expect(editedAttack.status).toBe("INELIGIBLE")
-        expect(editedAttack.strengthCommitments[fleet.id]).toBe(51)
-        expect(editedAttack.issues.map(({ code }) => code)).toContain("INSUFFICIENT_STRENGTH")
-
-        expect(editedMove.status).toBe("ELIGIBLE")
-        expect(editedMove.strengthCommitments[fleet.id]).toBe(49)
-        expect(editedMove.remainingStrength[fleet.id]).toBe(1)
-        expect(editedMove.resourceCommitments).toStrictEqual({
-          [ResourceType.INFLUENCE]: 8,
-          [ResourceType.METAL]: 0,
-          [ResourceType.FUEL]: 2,
-          [ResourceType.ENERGY]: 0,
-          [ResourceType.COLONY]: 0,
-        })
-
-        expect(canceledMove.status).toBe("ELIGIBLE")
-        expect(canceledMove.strengthCommitments[fleet.id]).toBe(30)
-        expect(canceledMove.remainingStrength[fleet.id]).toBe(20)
-        expect(canceledMove.resourceCommitments[ResourceType.INFLUENCE]).toBe(5)
-        expect(canceledMove.resourceCommitments[ResourceType.FUEL]).toBe(1)
-
-        expect({
-          status: exhaustedSourceCandidate.status,
-          candidateStatus: exhaustedSourceCandidate.candidateStatus,
-          candidateIssues: exhaustedSourceCandidate.candidateIssues.map(({ code }) => code),
-          missingTargets: exhaustedSourceCandidate.missingTargets,
-          missingInputs: exhaustedSourceCandidate.missingInputs,
-          strengthCommitment: exhaustedSourceCandidate.strengthCommitments[fleet.id],
-          remainingStrength: exhaustedSourceCandidate.remainingStrength[fleet.id],
-          resourceCommitments: exhaustedSourceCandidate.resourceCommitments,
-        }).toStrictEqual({
-          status: "INELIGIBLE",
-          candidateStatus: "INELIGIBLE",
-          candidateIssues: ["INSUFFICIENT_STRENGTH"],
-          missingTargets: [branded<TargetTag>("planet")],
-          missingInputs: [branded<InputTag>("strength")],
-          strengthCommitment: 50,
-          remainingStrength: 0,
-          resourceCommitments: {
-            [ResourceType.INFLUENCE]: 13,
-            [ResourceType.METAL]: 0,
-            [ResourceType.FUEL]: 3,
-            [ResourceType.ENERGY]: 0,
-            [ResourceType.COLONY]: 0,
-          },
-        })
-
-        expect(extraCostAttempt.status).toBe("INELIGIBLE")
-        expect(extraCostAttempt.issues).toContainEqual(
-          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
-        )
-      }
-      assertSubmittedState1()
-      const assertExtraCostAttemptState2 = (): void => {
-        expect(extraCostAttempt.issues).toContainEqual(
-          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
-        )
-        expect(extraCostAttempt.strengthCommitments[fleet.id]).toBe(50)
-        expect(extraCostAttempt.strengthCommitments[extraFleet.id]).toBe(1)
-        expect(extraCostAttempt.resourceCommitments[ResourceType.INFLUENCE]).toBe(13)
-        expect(extraCostAttempt.resourceCommitments[ResourceType.FUEL]).toBe(3)
-
-        expect(gainCannotFund.status).toBe("INELIGIBLE")
-        expect(gainCannotFund.resourceCommitments[ResourceType.INFLUENCE]).toBe(8)
-        expect(gainCannotFund.resourceCommitments[ResourceType.FUEL]).toBe(2)
-        expect(gainCannotFund.issues).toContainEqual(
-          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
-        )
-        expect(gainCannotFund.issues).not.toContainEqual(
-          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
-        )
-      }
-      assertExtraCostAttemptState2()
-    }
-    verifyGainCannotFundPhase1()
+    assertGainCannotFund({
+      underfundedState,
+      submissions,
+      submitted,
+      fleet,
+      editedAttack,
+      editedMove,
+      canceledMove,
+      exhaustedSourceCandidate,
+      extraCostAttempt,
+      extraFleet,
+    })
   })
 })
 
@@ -254,4 +177,365 @@ function withSubmissions(
           }
     }),
   }
+}
+
+function assertGainCannotFund({
+  underfundedState,
+  submissions,
+  submitted,
+  fleet,
+  editedAttack,
+  editedMove,
+  canceledMove,
+  exhaustedSourceCandidate,
+  extraCostAttempt,
+  extraFleet,
+}: AssertGainCannotFundInput): void {
+  const gainCannotFund = evaluateSubmittedActions({
+    state: underfundedState,
+    ruleset: TestRuleset,
+    submissions,
+  })
+
+  // Assert
+
+  assertSubmitted({ submitted, fleet, editedAttack, editedMove, canceledMove, exhaustedSourceCandidate, extraCostAttempt })
+
+  assertExtraCostAttempt({ extraCostAttempt, fleet, extraFleet, gainCannotFund })
+}
+
+function assertSubmitted({
+  submitted,
+  fleet,
+  editedAttack,
+  editedMove,
+  canceledMove,
+  exhaustedSourceCandidate,
+  extraCostAttempt,
+}: AssertSubmittedInput): void {
+  expect(submitted.status).toBe("ELIGIBLE")
+  expect(submitted.strengthCommitments[fleet.id]).toBe(50)
+  expect(submitted.remainingStrength[fleet.id]).toBe(0)
+  expect(submitted.resourceCommitments).toStrictEqual({
+    [ResourceType.INFLUENCE]: 8,
+    [ResourceType.METAL]: 0,
+    [ResourceType.FUEL]: 2,
+    [ResourceType.ENERGY]: 0,
+    [ResourceType.COLONY]: 0,
+  })
+
+  expect(editedAttack.status).toBe("INELIGIBLE")
+  expect(editedAttack.strengthCommitments[fleet.id]).toBe(51)
+  expect(editedAttack.issues.map(({ code }) => code)).toContain("INSUFFICIENT_STRENGTH")
+
+  expect(editedMove.status).toBe("ELIGIBLE")
+  expect(editedMove.strengthCommitments[fleet.id]).toBe(49)
+  expect(editedMove.remainingStrength[fleet.id]).toBe(1)
+  expect(editedMove.resourceCommitments).toStrictEqual({
+    [ResourceType.INFLUENCE]: 8,
+    [ResourceType.METAL]: 0,
+    [ResourceType.FUEL]: 2,
+    [ResourceType.ENERGY]: 0,
+    [ResourceType.COLONY]: 0,
+  })
+
+  expect(canceledMove.status).toBe("ELIGIBLE")
+  expect(canceledMove.strengthCommitments[fleet.id]).toBe(30)
+  expect(canceledMove.remainingStrength[fleet.id]).toBe(20)
+  expect(canceledMove.resourceCommitments[ResourceType.INFLUENCE]).toBe(5)
+  expect(canceledMove.resourceCommitments[ResourceType.FUEL]).toBe(1)
+
+  expect({
+    status: exhaustedSourceCandidate.status,
+    candidateStatus: exhaustedSourceCandidate.candidateStatus,
+    candidateIssues: exhaustedSourceCandidate.candidateIssues.map(({ code }) => code),
+    missingTargets: exhaustedSourceCandidate.missingTargets,
+    missingInputs: exhaustedSourceCandidate.missingInputs,
+    strengthCommitment: exhaustedSourceCandidate.strengthCommitments[fleet.id],
+    remainingStrength: exhaustedSourceCandidate.remainingStrength[fleet.id],
+    resourceCommitments: exhaustedSourceCandidate.resourceCommitments,
+  }).toStrictEqual({
+    status: "INELIGIBLE",
+    candidateStatus: "INELIGIBLE",
+    candidateIssues: ["INSUFFICIENT_STRENGTH"],
+    missingTargets: [branded<TargetTag>("planet")],
+    missingInputs: [branded<InputTag>("strength")],
+    strengthCommitment: 50,
+    remainingStrength: 0,
+    resourceCommitments: {
+      [ResourceType.INFLUENCE]: 13,
+      [ResourceType.METAL]: 0,
+      [ResourceType.FUEL]: 3,
+      [ResourceType.ENERGY]: 0,
+      [ResourceType.COLONY]: 0,
+    },
+  })
+
+  expect(extraCostAttempt.status).toBe("INELIGIBLE")
+  expect(extraCostAttempt.issues).toContainEqual(
+    expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
+  )
+}
+
+function assertExtraCostAttempt({ extraCostAttempt, fleet, extraFleet, gainCannotFund }: AssertExtraCostAttemptInput): void {
+  expect(extraCostAttempt.issues).toContainEqual(
+    expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
+  )
+  expect(extraCostAttempt.strengthCommitments[fleet.id]).toBe(50)
+  expect(extraCostAttempt.strengthCommitments[extraFleet.id]).toBe(1)
+  expect(extraCostAttempt.resourceCommitments[ResourceType.INFLUENCE]).toBe(13)
+  expect(extraCostAttempt.resourceCommitments[ResourceType.FUEL]).toBe(3)
+
+  expect(gainCannotFund.status).toBe("INELIGIBLE")
+  expect(gainCannotFund.resourceCommitments[ResourceType.INFLUENCE]).toBe(8)
+  expect(gainCannotFund.resourceCommitments[ResourceType.FUEL]).toBe(2)
+  expect(gainCannotFund.issues).toContainEqual(
+    expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
+  )
+  expect(gainCannotFund.issues).not.toContainEqual(
+    expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
+  )
+}
+
+type AssertGainCannotFundInput = {
+  underfundedState: Readonly<{
+    gameId: GameId
+    turn: number
+    submittingPlayerId: PlayerId
+    resources: Readonly<ReturnType<typeof createResourcesStub>>
+    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+    actions: readonly Action[]
+  }>
+  submissions: Array<ReturnType<typeof createSubmittedActionStub>>
+  submitted: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  fleet: ReturnType<typeof createFleetStub>
+  editedAttack: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  editedMove: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  canceledMove: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  exhaustedSourceCandidate: TargetCandidateEvaluation
+  extraCostAttempt: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  extraFleet: ReturnType<typeof createFleetStub>
+}
+
+type AssertSubmittedInput = {
+  submitted: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  fleet: ReturnType<typeof createFleetStub>
+  editedAttack: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  editedMove: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  canceledMove: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  exhaustedSourceCandidate: TargetCandidateEvaluation
+  extraCostAttempt: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+}
+
+type AssertExtraCostAttemptInput = {
+  extraCostAttempt: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  fleet: ReturnType<typeof createFleetStub>
+  extraFleet: ReturnType<typeof createFleetStub>
+  gainCannotFund: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
 }

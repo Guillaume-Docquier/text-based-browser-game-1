@@ -4,9 +4,8 @@ import { eq } from "drizzle-orm"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
-import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { ColonizeHereTest, ColonizePlanetTest } from "shared/testing/test-ruleset/action-definitions/colonize.ts"
-import { MoveFleetExceptional, MoveFleetStandard } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
+import { MoveFleetExceptional } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 import { describe, expect, it } from "vitest"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { turnsTable } from "#lib/db/schema.ts"
@@ -21,7 +20,6 @@ import {
   processTurn,
   processTurnWithReplay,
   captureWorkerInput,
-  canonicalizeResolvedTurn,
   replayWorkerInputWithState,
 } from "../../tests/colonization/gameplay.colonization.scenarios.ts"
 import {
@@ -35,20 +33,20 @@ import {
   ColonizeFleetSpeed4,
   DeadEarlierAttackColonize,
   PublicColonizationFixtureRuleset,
-  logReceipt,
   required,
   playerIdFor,
   matchesPublicFleet,
   findPublicFleet,
-  hasResolvedResult,
-  describeOutcome,
-  hasPreventedOrColonized,
-  isActionSelected,
-  startTogether,
   submitAction,
   readViews,
   createPublicTwoPlayerFixture,
 } from "../../tests/colonization/gameplay.colonization.ts"
+import {
+  assertFinalReplay,
+  assertPersistedNextRngState,
+  assertPersistedNextRngState2,
+  assertLaterReplay,
+} from "../../tests/fleet-assertions/gameplay.colonization.renamed-content.ts"
 
 describe("public Colonization worker companions", () => {
   it("should publicly prevent a dead earlier claimant and let the arriving Assault colonize", async () => {
@@ -203,32 +201,19 @@ describe("public Colonization worker companions", () => {
     )
     Assert.isDefined(bobContinuation)
 
-    const verifyFinalReplayPhase1 = async (): Promise<void> => {
-      expect(
-        bobContinuation.actionOutcomes.map((outcome) => ({
-          type: outcome.type,
-          text: describeOutcome(outcome),
-        })),
-      ).toStrictEqual([
-        expect.objectContaining({ type: "RESOLVED", text: expect.stringContaining("moved") }),
-        expect.objectContaining({ type: "RESOLVED", text: expect.stringContaining("arrived on Planet") }),
-        expect.objectContaining({ type: "RESOLVED", text: expect.stringContaining("exchanged 35 Strength with 35 enemy Strength") }),
-        expect.objectContaining({ type: "RESOLVED", text: expect.stringContaining("colonized Planet") }),
-      ])
-      expect(finalReplay.nextRngState).toStrictEqual(finalWorkerInput.rngState)
-
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      views = await readViews(clients, gameId)
-      expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(playerIdFor(bob))
-      expect(required(views[0]).fleets.some(({ id }) => id === stagedAlice.id)).toBe(false)
-      expect(getFleetAt(required(views[1]), playerIdFor(bob), target.id, 15)).toBeDefined()
-      expect(views.map(({ resources }) => resources[ResourceType.COLONY].total)).toStrictEqual([0, 0, 0])
-      expect(required(views[0]).resources[ResourceType.INFLUENCE].total).toBe(470)
-      expect(required(views[1]).resources[ResourceType.INFLUENCE].total).toBe(493)
-      expect(required(views[0]).resources[ResourceType.FUEL].total).toBe(95)
-      expect(required(views[1]).resources[ResourceType.FUEL].total).toBe(99)
-    }
-    await verifyFinalReplayPhase1()
+    const updatedVerifyFinalReplay = await assertFinalReplay({
+      bobContinuation,
+      finalReplay,
+      finalWorkerInput,
+      turnProcessor,
+      views,
+      clients,
+      gameId,
+      target,
+      bob,
+      stagedAlice,
+    })
+    views = updatedVerifyFinalReplay.views
 
     const savedTurns = await server.database
       .select()
@@ -237,34 +222,24 @@ describe("public Colonization worker companions", () => {
     const savedNextTurn = savedTurns.find(({ turn }) => turn === finalTurn.turn + 1)
     Assert.isDefined(savedNextTurn)
 
-    const verifyPersistedNextRngStatePhase2Value1 = finalReplay.resolved.value
-    const verifyPersistedNextRngStatePhase2 = (): void => {
-      const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
-      expect(persistedNextRngState).toStrictEqual(finalReplay.nextRngState)
+    const assertPersistedNextRngStatePhase2Value1 = finalReplay.resolved.value
 
-      logReceipt("[C3-08 public dead-earlier Assault receipt]", {
-        gameId,
-        seed: 1,
-        target: { id: target.id, name: target.name, coordinates: target.coordinates },
-        routes: { aliceDistance, bobDistance },
-        aliceTickZeroFleet: { id: stagedAlice.id, forceBeforeAssault: 35, removedAfterAssault: true },
-        bobJourney: { id: bobJourney.id, forceBeforeAssault: 70, actualArrivalTick: 3, finalClaimingForce: 15 },
-        assaultOutcome: bobContinuation.actionOutcomes.find((outcome) => hasResolvedResult(outcome, "exchanged 35 Strength")),
-        aliceColonizeOutcome: verifyPersistedNextRngStatePhase2Value1.resolvedActions.find(
-          ({ submittedAction }) => submittedAction.id === aliceColonizeActionId,
-        )?.actionOutcomes,
-        winner: playerIdFor(bob),
-        preResolutionRngState: finalWorkerInput.rngState,
-        persistedNextRngState,
-        persistedResources: views.map(({ player, resources }) => ({
-          playerId: player.id,
-          influence: resources[ResourceType.INFLUENCE].total,
-          fuel: resources[ResourceType.FUEL].total,
-          colony: resources[ResourceType.COLONY].total,
-        })),
-      })
-    }
-    verifyPersistedNextRngStatePhase2()
+    assertPersistedNextRngState({
+      savedNextTurn,
+      finalReplay,
+      gameId,
+      target,
+      aliceDistance,
+      bobDistance,
+      stagedAlice,
+      bobJourney,
+      bobContinuation,
+      assertPersistedNextRngStatePhase2Value1,
+      aliceColonizeActionId,
+      bob,
+      finalWorkerInput,
+      views,
+    })
   })
 
   it("should preserve arrival provenance while public ordinary and colonization arrivals merge", async () => {
@@ -464,46 +439,19 @@ describe("public Colonization worker companions", () => {
     const savedNextTurn = savedTurns.find(({ turn }) => turn === required(selectedViews[0]).turn + 1)
     Assert.isDefined(savedNextTurn)
 
-    const verifyPersistedNextRngStatePhase3 = (): void => {
-      const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
-      expect(persistedNextRngState).toStrictEqual(finalTurnInput.rngState)
-      logReceipt("[C3-12 public provenance receipt]", {
-        gameId,
-        seed: 1,
-        players: [required(views[0]).player.id, required(views[1]).player.id],
-        source: { id: homeA.id, name: homeA.name, coordinates: homeA.coordinates },
-        target: { id: target.id, name: target.name, coordinates: target.coordinates },
-        sourceToTargetDistance: 1.2645395167985714,
-        bobHomeToSourceDistance: 20.111265402761585,
-        staging: {
-          ordinaryFriendly: { strength: 10, speed: 5, arrivalTick: 6, fleetId: stagedFriendly.id, fleetName: stagedFriendly.name },
-          bobToSource: {
-            strength: 35,
-            speed: 5,
-            remainingDistances: [15.111265402761585, 10.111265402761585, 5.111265402761585, 0.111265402761585],
-            arrivalTick: 1,
-          },
-        },
-        observation: {
-          ordinaryFriendly: { strength: 10, speed: 10, tick: 3 },
-          bobColonize: { strength: 35, speed: 4, tick: 7 },
-          aliceColonize: { strength: 20, speed: 2, tick: 13 },
-          aliceSourceRemainder: 20,
-        },
-        persistedOwner: getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId,
-        persistedFriendly: persistedFriendlyFleets,
-        persistedEnemy: required(views[1]).fleets.find((fleet) =>
-          matchesPublicFleet(fleet, { ownerPlayerId: required(views[1]).player.id, originPlanetId: target.id }),
-        ),
-        loadedRngState: finalTurnInput.rngState,
-        replayNextRngState: finalReplay.nextRngState,
-        persistedNextRngState,
-        actualWorkerLoadedTurn: finalTurnInput.turn,
-        stagedBobSubmissionId: bobStageActionId,
-        stagedAliceSubmissionId: aliceStageActionId,
-      })
-    }
-    verifyPersistedNextRngStatePhase3()
+    assertPersistedNextRngState2({
+      savedNextTurn,
+      finalTurnInput,
+      gameId,
+      views,
+      homeA,
+      target,
+      stagedFriendly,
+      persistedFriendlyFleets,
+      finalReplay,
+      bobStageActionId,
+      aliceStageActionId,
+    })
   })
 
   it("should let the earlier speed-2 claimant beat a later speed-1 arrival on the next Turn", async () => {
@@ -595,428 +543,22 @@ describe("public Colonization worker companions", () => {
     const laterReplay = replayWorkerInputWithState(laterTurnInput)
     Assert.isSuccess(laterReplay.resolved)
 
-    const verifyLaterReplayPhase4Value1 = laterReplay.resolved.value
-    const verifyLaterReplayPhase4 = async (): Promise<void> => {
-      expect(verifyLaterReplayPhase4Value1.planets[target.id]?.ownerPlayerId).toBe(required(views[0]).player.id)
-      expect(verifyLaterReplayPhase4Value1.fleets[bobJourneyId]).toMatchObject({
-        id: bobJourneyId,
-        ownerPlayerId: required(views[1]).player.id,
-        originPlanetId: target.id,
-        strength: 35,
-        arrivedAtTick: 6,
-      })
-      expect(
-        verifyLaterReplayPhase4Value1.resolvedContinuations.find(
-          ({ originatingSubmission }) => originatingSubmission.id === bobColonizeActionId,
-        )?.actionOutcomes,
-      ).toContainEqual(expect.objectContaining({ type: "PREVENTED" }))
-      expect(laterReplay.nextRngState).toStrictEqual(laterTurnInput.rngState)
+    const assertLaterReplayPhase4Value1 = laterReplay.resolved.value
 
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      views = await readViews(clients, gameId)
-      const assertGetPlanetsState1 = (): void => {
-        expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(required(views[0]).player.id)
-        expect(getFleetAt(required(views[0]), required(views[0]).player.id, target.id, 20)).toMatchObject({
-          id: stagedFriendly.id,
-          name: stagedFriendly.name,
-        })
-        expect(getFleetAt(required(views[1]), required(views[1]).player.id, target.id, 35)).toBeDefined()
-        expect(required(views[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 465, uncommitted: 465 })
-        expect(required(views[1]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 470, uncommitted: 470 })
-        expect(required(views[0]).actions.find(({ id }) => id === ordinaryActionId)).toMatchObject({
-          selectedTargets: null,
-          isInProgress: false,
-        })
-        expect(required(views[1]).actions.find(({ id }) => id === bobColonizeActionId)).toMatchObject({
-          selectedTargets: null,
-          isInProgress: false,
-        })
-      }
-      assertGetPlanetsState1()
-    }
-    await verifyLaterReplayPhase4()
-  })
-
-  it("should resolve duplicate public colonization arrivals once after merging and preserve order invariance", async () => {
-    await using server = await ConcurrencyTestApiServer.create()
-    const fixture = await createPublicTwoPlayerFixture(server)
-    const { alice, clients, gameId, clock, turnProcessor, turnsRepository, homeA, target } = fixture
-    const staged = await stagePublicMergeScenario(server, fixture)
-    let views = staged.views
-    const { stagedFriendly, aliceSource } = staged
-
-    const speed4ActionId = await submitAction({
-      client: alice.client,
-      gameId,
-      view: required(views[0]),
-      actionDefinitionId: ColonizeFleetSpeed4.id,
-      selectedTargets: { fleet: aliceSource.id, planet: target.id },
-      selectedInputs: { strength: 20 },
-    })
-    const speed2ActionId = await submitAction({
-      client: alice.client,
-      gameId,
-      view: required(views[0]),
-      actionDefinitionId: ColonizeFleetSpeed2.id,
-      selectedTargets: { fleet: aliceSource.id, planet: target.id },
-      selectedInputs: { strength: 20 },
-    })
-    const selectedViews = await readViews(clients, gameId)
-    expect(required(selectedViews[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 493, uncommitted: 443 })
-    expect(required(selectedViews[0]).resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
-    expect(getFleetAt(required(selectedViews[0]), required(selectedViews[0]).player.id, homeA.id, 50).id).toBe(aliceSource.id)
-
-    const finalTurnInput = await captureWorkerInput({
-      server,
-      clock,
-      turnsRepository,
-      gameId,
-      turn: required(selectedViews[0]).turn,
-    })
-    const finalReplay = replayWorkerInputWithState(finalTurnInput)
-    const reversedReplay = replayWorkerInputWithState(finalTurnInput, true)
-    Assert.isSuccess(finalReplay.resolved)
-    Assert.isSuccess(reversedReplay.resolved)
-    expect(canonicalizeResolvedTurn(reversedReplay.resolved.value)).toStrictEqual(canonicalizeResolvedTurn(finalReplay.resolved.value))
-    expect(reversedReplay.nextRngState).toStrictEqual(finalReplay.nextRngState)
-    expect(finalReplay.nextRngState).toStrictEqual(finalTurnInput.rngState)
-    const publicReplay = finalReplay.resolved.value
-    const firstOutcome = required(publicReplay.resolvedActions.find(({ submittedAction }) => submittedAction.id === speed4ActionId))
-    const secondOutcome = required(publicReplay.resolvedActions.find(({ submittedAction }) => submittedAction.id === speed2ActionId))
-    expect(firstOutcome?.actionOutcomes.at(-1)).toMatchObject({
-      type: "RESOLVED",
-      result: expect.stringContaining(' colonized Planet "planet 649967" with 20 Strength'),
-    })
-    expect(secondOutcome.actionOutcomes.at(-1)).toMatchObject({ type: "PREVENTED", reason: "Planet is already claimed" })
-    for (const actionOutcomes of [firstOutcome.actionOutcomes, secondOutcome.actionOutcomes]) {
-      expect(actionOutcomes.filter((outcome) => hasPreventedOrColonized(outcome))).toHaveLength(1)
-    }
-    const mergedFriendly = publicReplay.fleets[stagedFriendly.id]
-    Assert.isDefined(mergedFriendly)
-
-    const verifyMergedFriendlyPhase5 = async (): Promise<void> => {
-      expect(mergedFriendly).toMatchObject({
-        id: stagedFriendly.id,
-        name: stagedFriendly.name,
-        ownerPlayerId: required(selectedViews[0]).player.id,
-        originPlanetId: target.id,
-        strength: 30,
-      })
-      expect(publicReplay.fleets[aliceSource.id]).toMatchObject({
-        id: aliceSource.id,
-        originPlanetId: homeA.id,
-        strength: 10,
-      })
-      expect(publicReplay.planets[target.id]?.ownerPlayerId).toBe(required(selectedViews[0]).player.id)
-
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      views = await readViews(clients, gameId)
-      expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(required(views[0]).player.id)
-      expect(getFleetAt(required(views[0]), required(views[0]).player.id, target.id, 30)).toMatchObject({
-        id: stagedFriendly.id,
-        name: stagedFriendly.name,
-      })
-      expect(getFleetAt(required(views[0]), required(views[0]).player.id, homeA.id, 10)).toMatchObject({ id: aliceSource.id, strength: 10 })
-      expect(required(views[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 443, uncommitted: 443 })
-      expect(required(views[0]).resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
-      expect(views.map(({ resources }) => resources[ResourceType.COLONY].total)).toStrictEqual([0, 0])
-      for (const actionId of [speed4ActionId, speed2ActionId]) {
-        expect(required(views[0]).actions.find(({ id }) => id === actionId)).toMatchObject({ selectedTargets: null, isInProgress: false })
-      }
-    }
-    await verifyMergedFriendlyPhase5()
-
-    const savedTurns = await server.database
-      .select()
-      .from(turnsTable)
-      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
-    const savedNextTurn = savedTurns.find(({ turn }) => turn === required(selectedViews[0]).turn + 1)
-    Assert.isDefined(savedNextTurn)
-
-    const verifyPersistedNextRngStatePhase6 = (): void => {
-      const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
-      expect(persistedNextRngState).toStrictEqual(finalTurnInput.rngState)
-      logReceipt("[C3-13 public duplicate receipt]", {
-        gameId,
-        seed: 1,
-        players: [required(views[0]).player.id, required(views[1]).player.id],
-        source: { id: homeA.id, name: homeA.name, coordinates: homeA.coordinates },
-        target: { id: target.id, name: target.name, coordinates: target.coordinates },
-        routeDistance: 1.2645395167985714,
-        sourceRemainder: 10,
-        stagedFleet: { id: stagedFriendly.id, name: stagedFriendly.name, strength: 10, arrivalTick: 6 },
-        arrivals: [
-          { actionId: speed4ActionId, strength: 20, speed: 4, arrivalTick: 7, outcome: "RESOLVED" },
-          { actionId: speed2ActionId, strength: 20, speed: 2, arrivalTick: 13, outcome: "PREVENTED" },
-        ],
-        finalFleet: mergedFriendly,
-        influence: { before: 493, committed: 50, after: 443 },
-        loadedRngState: finalTurnInput.rngState,
-        replayNextRngState: finalReplay.nextRngState,
-        reversedReplayNextRngState: reversedReplay.nextRngState,
-        persistedNextRngState,
-        actualWorkerLoadedTurn: finalTurnInput.turn,
-      })
-    }
-    verifyPersistedNextRngStatePhase6()
-  })
-
-  it("should serialize aggregate Move and stationary Colonize reservations against PostgreSQL and Turn closure", async () => {
-    await using server = await ConcurrencyTestApiServer.create()
-    const fixture = await createPublicTwoPlayerFixture(server)
-    const { alice, bob, gameId, clock, turnProcessor, turnsRepository, homeA, target } = fixture
-    const buildView = required(fixture.views[0])
-    await submitAction({
-      client: alice.client,
-      gameId,
-      view: buildView,
-      actionDefinitionId: BuildFleet35.id,
-      selectedTargets: { planet: homeA.id },
-      selectedInputs: {},
-    })
-    const builtView = await processTurn({
-      clock,
-      turnsRepository,
+    const updatedVerifyLaterReplay = await assertLaterReplay({
+      assertLaterReplayPhase4Value1,
+      target,
+      views,
+      bobJourneyId,
+      bobColonizeActionId,
+      laterReplay,
+      laterTurnInput,
       turnProcessor,
-      client: alice.client,
+      clients,
       gameId,
-      turn: buildView.turn,
+      stagedFriendly,
+      ordinaryActionId,
     })
-    const homeFleet = getFleetAt(builtView, builtView.player.id, homeA.id, 35)
-    const moveToTargetId = await submitAction({
-      client: alice.client,
-      gameId,
-      view: builtView,
-      actionDefinitionId: MoveFleetExceptional.id,
-      selectedTargets: { fleet: homeFleet.id, planet: target.id },
-      selectedInputs: { strength: 35 },
-    })
-    const arrivedView = await processTurn({
-      clock,
-      turnsRepository,
-      turnProcessor,
-      client: alice.client,
-      gameId,
-      turn: builtView.turn,
-    })
-    const stationary = getFleetAt(arrivedView, arrivedView.player.id, target.id, 35)
-    expect(getPlanets(arrivedView).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
-    expect(arrivedView.actions.find(({ id }) => id === moveToTargetId)).toMatchObject({ selectedTargets: null, isInProgress: false })
-    const moveAction = arrivedView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetStandard.id)
-    const colonizeAction = arrivedView.actions.find(({ actionDefinitionId }) => actionDefinitionId === ColonizeHereTest.id)
-    Assert.isDefined(moveAction)
-    Assert.isDefined(colonizeAction)
-
-    const raceGate = startTogether(2)
-    const race = await Promise.allSettled([
-      (async (): Promise<void> => {
-        await raceGate()
-        await alice.client.gameplay.updateActionSubmission.mutate({
-          gameId,
-          turn: arrivedView.turn,
-          submittedActionTargets: {
-            actionId: moveAction.id,
-            selectedTargets: { fleet: stationary.id, planet: homeA.id },
-            selectedInputs: { strength: 16 },
-          },
-        })
-      })(),
-      (async (): Promise<void> => {
-        await raceGate()
-        await alice.client.gameplay.updateActionSubmission.mutate({
-          gameId,
-          turn: arrivedView.turn,
-          submittedActionTargets: {
-            actionId: colonizeAction.id,
-            selectedTargets: { fleet: stationary.id, planet: target.id },
-            selectedInputs: {},
-          },
-        })
-      })(),
-    ])
-    expect(race.filter(({ status }) => status === "fulfilled")).toHaveLength(1)
-    expect(race.filter(({ status }) => status === "rejected")).toHaveLength(1)
-
-    let selectedView = await alice.client.gameplay.getPlayerView.query({ gameId })
-    const selectedMove = selectedView.actions.find(({ id }) => id === moveAction.id)
-    const selectedColonize = selectedView.actions.find(({ id }) => id === colonizeAction.id)
-    Assert.isDefined(selectedMove)
-    Assert.isDefined(selectedColonize)
-    const winningAction = required(selectedView.actions.find(isActionSelected))
-    const beforeClosure = {
-      influence: selectedView.resources[ResourceType.INFLUENCE],
-      fuel: selectedView.resources[ResourceType.FUEL],
-    }
-
-    const verifyRaceObservationPhase7 = async (): Promise<void> => {
-      const raceObservation = {
-        move: { selectedTargets: selectedMove.selectedTargets, selectedInputs: selectedMove.selectedInputs },
-        colonize: { selectedTargets: selectedColonize.selectedTargets, selectedInputs: selectedColonize.selectedInputs },
-        influenceUncommitted: beforeClosure.influence.uncommitted,
-        fuelUncommitted: beforeClosure.fuel.uncommitted,
-        winningActionId: winningAction.id,
-      }
-      const assertScenarioState1 = (): void => {
-        expect([
-          {
-            move: { selectedTargets: { fleet: stationary.id, planet: homeA.id }, selectedInputs: { strength: 16 } },
-            colonize: { selectedTargets: null, selectedInputs: null },
-            influenceUncommitted: arrivedView.resources[ResourceType.INFLUENCE].total - 3,
-            fuelUncommitted: arrivedView.resources[ResourceType.FUEL].total - 1,
-            winningActionId: moveAction.id,
-          },
-          {
-            move: { selectedTargets: null, selectedInputs: null },
-            colonize: { selectedTargets: { fleet: stationary.id, planet: target.id }, selectedInputs: {} },
-            influenceUncommitted: arrivedView.resources[ResourceType.INFLUENCE].total - 25,
-            fuelUncommitted: arrivedView.resources[ResourceType.FUEL].total,
-            winningActionId: colonizeAction.id,
-          },
-        ]).toContainEqual(raceObservation)
-      }
-      assertScenarioState1()
-      await alice.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: arrivedView.turn,
-        submittedActionTargets: { actionId: winningAction.id, selectedTargets: null, selectedInputs: null },
-      })
-      const clearedViews = await readViews([alice, bob], gameId)
-      selectedView = required(clearedViews[0])
-    }
-    await verifyRaceObservationPhase7()
-
-    const closureColonize = selectedView.actions.find(({ id }) => id === colonizeAction.id)
-    Assert.isDefined(closureColonize)
-    expect(selectedView.resources[ResourceType.INFLUENCE].uncommitted).toBe(selectedView.resources[ResourceType.INFLUENCE].total)
-    expect(selectedView.resources[ResourceType.FUEL].uncommitted).toBe(selectedView.resources[ResourceType.FUEL].total)
-
-    const closureGate = startTogether(3)
-    const closureRace = await Promise.allSettled([
-      (async (): Promise<void> => {
-        await closureGate()
-        await alice.client.gameplay.updateActionSubmission.mutate({
-          gameId,
-          turn: selectedView.turn,
-          submittedActionTargets: {
-            actionId: closureColonize.id,
-            selectedTargets: { fleet: stationary.id, planet: target.id },
-            selectedInputs: {},
-          },
-        })
-      })(),
-      (async (): Promise<void> => {
-        await closureGate()
-        await alice.client.gameplay.updateReadiness.mutate({ gameId, turn: selectedView.turn, isReady: true })
-      })(),
-      (async (): Promise<void> => {
-        await closureGate()
-        await bob.client.gameplay.updateReadiness.mutate({ gameId, turn: selectedView.turn, isReady: true })
-      })(),
-    ])
-    expect(closureRace[1]?.status).toBe("fulfilled")
-    expect(closureRace[2]?.status).toBe("fulfilled")
-    const closureSubmissionStatus = required(closureRace[0]).status
-
-    const verifyLockedViewPhase8 = async (): Promise<void> => {
-      const lockedView = await alice.client.gameplay.getPlayerView.query({ gameId })
-      const lockedColonize = required(lockedView.actions.find(({ id }) => id === closureColonize.id))
-      const lockedObservation = {
-        turn: lockedView.turn,
-        turnStatus: lockedView.turnStatus,
-        isReady: lockedView.player.isReady,
-        closureSubmissionStatus,
-        selectedTargets: lockedColonize.selectedTargets,
-        selectedInputs: lockedColonize.selectedInputs,
-      }
-      const inFlightTurnObservations = [TurnStatus.AWAITING_PROCESSING, TurnStatus.PROCESSING].flatMap((turnStatus) => [
-        {
-          turn: selectedView.turn,
-          turnStatus,
-          isReady: true,
-          closureSubmissionStatus: "fulfilled",
-          selectedTargets: { fleet: stationary.id, planet: target.id },
-          selectedInputs: {},
-        },
-        {
-          turn: selectedView.turn,
-          turnStatus,
-          isReady: true,
-          closureSubmissionStatus: "rejected",
-          selectedTargets: null,
-          selectedInputs: null,
-        },
-      ])
-      const completedTurnObservations = [TurnStatus.AWAITING_PROCESSING, TurnStatus.PROCESSING].map((turnStatus) => ({
-        turn: selectedView.turn + 1,
-        turnStatus,
-        isReady: false,
-        closureSubmissionStatus,
-        selectedTargets: null,
-        selectedInputs: null,
-      }))
-      expect([...inFlightTurnObservations, ...completedTurnObservations]).toContainEqual(lockedObservation)
-
-      const processingOutcome = await turnProcessor.processNextDueTurn()
-      expect(["processed", "idle"]).toContain(processingOutcome)
-    }
-    await verifyLockedViewPhase8()
-
-    let completedView = await alice.client.gameplay.getPlayerView.query({ gameId })
-    await expect
-      .poll(async () => (await alice.client.gameplay.getPlayerView.query({ gameId })).turn, { timeout: 20_000, interval: 25 })
-      .toBe(selectedView.turn + 1)
-    completedView = await alice.client.gameplay.getPlayerView.query({ gameId })
-    const claimedPlanet = getPlanets(completedView).find(({ id }) => id === target.id)
-    Assert.isDefined(claimedPlanet)
-
-    const verifyRemainingAtTargetPhase9 = (): void => {
-      const remainingAtTarget = findPublicFleet(completedView.fleets, {
-        ownerPlayerId: completedView.player.id,
-        originPlanetId: target.id,
-        stationary: true,
-      })
-      const completedObservation = {
-        closureSubmissionStatus,
-        ownerPlayerId: claimedPlanet.ownerPlayerId,
-        remainingStrength: remainingAtTarget?.strength,
-        influence: completedView.resources[ResourceType.INFLUENCE].total,
-      }
-      const assertScenarioState2 = (): void => {
-        expect([
-          {
-            closureSubmissionStatus: "fulfilled",
-            ownerPlayerId: completedView.player.id,
-            remainingStrength: 15,
-            influence: selectedView.resources[ResourceType.INFLUENCE].total - 25,
-          },
-          {
-            closureSubmissionStatus: "rejected",
-            ownerPlayerId: null,
-            remainingStrength: 35,
-            influence: selectedView.resources[ResourceType.INFLUENCE].total,
-          },
-        ]).toContainEqual(completedObservation)
-        expect(completedView.resources[ResourceType.COLONY].total).toBe(0)
-        expect(completedView.actions.find(({ id }) => id === closureColonize.id)).toMatchObject({
-          selectedTargets: null,
-          isInProgress: false,
-        })
-        expect(completedView.turn).toBe(selectedView.turn + 1)
-      }
-      assertScenarioState2()
-      logReceipt("[C3-18 PostgreSQL reservation and closure receipt]", {
-        gameId,
-        seed: 1,
-        source: { id: stationary.id, strength: 35, planet: target.id },
-        concurrentReservations: { move16: race[0]?.status, stationaryColonize20: race[1]?.status },
-        lockedResources: beforeClosure,
-        closureSubmission: closureRace[0]?.status,
-        readiness: closureRace.slice(1).map(({ status }) => status),
-        persistedOwner: claimedPlanet.ownerPlayerId,
-        persistedFleetStrength: remainingAtTarget?.strength,
-        influence: completedView.resources[ResourceType.INFLUENCE].total,
-      })
-    }
-    verifyRemainingAtTargetPhase9()
+    views = updatedVerifyLaterReplay.views
   })
 })

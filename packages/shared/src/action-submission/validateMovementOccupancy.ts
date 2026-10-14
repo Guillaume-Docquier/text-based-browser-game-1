@@ -33,17 +33,22 @@ export function validateMovementOccupancy({
   const occupancy = new Map<ActionId, Fleet[]>()
   for (const fleet of Object.values(state.fleets).toSorted((a, b) => compareOrdinalStrings(a.id, b.id))) {
     const issue = journeyIssue(fleet, state, ruleset)
-    if (issue !== undefined) addIssue(evaluation, issue)
-    if (!hasCompleteJourney(fleet) || fleet.ownerPlayerId !== state.submittingPlayerId) continue
+    if (issue !== undefined) {
+      addIssue(evaluation, issue)
+    }
+    if (!hasCompleteJourney(fleet) || fleet.ownerPlayerId !== state.submittingPlayerId) {
+      continue
+    }
     occupancy.set(fleet.movement.submission.id, [...(occupancy.get(fleet.movement.submission.id) ?? []), fleet])
   }
   for (const [actionId, fleets] of occupancy) {
-    if (fleets.length > 1)
+    if (fleets.length > 1) {
       addIssue(evaluation, {
         code: "DUPLICATE_ACTION_OCCUPANCY",
         actionId,
         message: `More than one in-transit Fleet occupies Action instance "${actionId}"`,
       })
+    }
   }
 }
 function hasCompleteJourney(
@@ -52,14 +57,19 @@ function hasCompleteJourney(
   return fleet.destinationPlanetId !== undefined && fleet.distanceToEnd !== undefined && fleet.movement !== undefined
 }
 function journeyIssue(fleet: Fleet, state: EligibilityState, ruleset: Ruleset): EligibilityIssue | undefined {
-  if (fleet.destinationPlanetId === undefined && fleet.distanceToEnd === undefined && fleet.movement === undefined) return undefined
-  if (!hasCompleteJourney(fleet))
+  if (fleet.destinationPlanetId === undefined && fleet.distanceToEnd === undefined && fleet.movement === undefined) {
+    return undefined
+  }
+  if (!hasCompleteJourney(fleet)) {
     return {
       code: "INVALID_MOVEMENT_BINDING",
       ...(fleet.movement === undefined ? {} : { actionId: fleet.movement.submission.id }),
       message: `Fleet "${fleet.id}" has incomplete in-progress movement data`,
     }
-  if (isValidBinding(fleet, state, ruleset)) return undefined
+  }
+  if (isValidBinding(fleet, state, ruleset)) {
+    return undefined
+  }
   return {
     code: "INVALID_MOVEMENT_BINDING",
     actionId: fleet.movement.submission.id,
@@ -72,18 +82,35 @@ function isValidBinding(
   ruleset: Ruleset,
 ): boolean {
   const movement = fleet.movement
-  const poolEntry = ruleset.actionPool.find(({ id }) => id === movement.submission.id)
-  if (poolEntry === undefined || poolEntry.actionDefinitionId !== movement.submission.actionDefinitionId) return false
-  const definition = getOwnRecordValue(ruleset.actionDefinitions, poolEntry.actionDefinitionId)
-  const moves = definition?.effects.filter(isFleetMoveEffectDefinition) ?? []
-  const move = moves.length === 1 ? moves[0] : undefined
-  if (definition === undefined || move === undefined) return false
-  if (fleet.ownerPlayerId !== movement.submission.playerId || movement.departureTurn > state.turn) return false
+  const bound = boundMovementDefinition(movement, ruleset)
+  if (bound === undefined) {
+    return false
+  }
+  const { definition, move } = bound
+  if (fleet.ownerPlayerId !== movement.submission.playerId || movement.departureTurn > state.turn) {
+    return false
+  }
   return (
     selectionsMatchDefinition(definition, movement) &&
     matchesMovementTargets(fleet, state, definition, move) &&
     matchesArrivalEffects(definition, move, movement)
   )
+}
+function boundMovementDefinition(
+  movement: FleetMovement,
+  ruleset: Ruleset,
+): { definition: ActionDefinition; move: FleetMoveEffectDefinition } | undefined {
+  const poolEntry = ruleset.actionPool.find(({ id }) => id === movement.submission.id)
+  if (poolEntry === undefined || poolEntry.actionDefinitionId !== movement.submission.actionDefinitionId) {
+    return undefined
+  }
+  const definition = getOwnRecordValue(ruleset.actionDefinitions, poolEntry.actionDefinitionId)
+  const moves = definition?.effects.filter(isFleetMoveEffectDefinition) ?? []
+  const move = moves.length === 1 ? moves[0] : undefined
+  if (definition === undefined || move === undefined) {
+    return undefined
+  }
+  return { definition, move }
 }
 function selectionsMatchDefinition(definition: ActionDefinition, movement: FleetMovement): boolean {
   return (
@@ -107,9 +134,9 @@ function matchesMovementTargets(
   const fleetTag = move.targets.fleet.actionTargetTag,
     planetTag = move.targets.planet.actionTargetTag,
     strengthTag = move.inputs.strength.actionInputTag
-  if (getOwnRecordValue(definition.targets, fleetTag)?.targetType !== TargetType.FLEET) return false
-  if (getOwnRecordValue(definition.targets, planetTag)?.targetType !== TargetType.PLANET) return false
-  if (getOwnRecordValue(definition.inputs, strengthTag)?.type !== "POSITIVE_INTEGER") return false
+  if (!hasMovementSlots(definition, move)) {
+    return false
+  }
   const selectedFleet = getOwnRecordValue(fleet.movement.submission.selectedTargets, fleetTag)
   const selectedPlanet = getOwnRecordValue(fleet.movement.submission.selectedTargets, planetTag)
   const selectedStrength = getOwnRecordValue(fleet.movement.submission.selectedInputs, strengthTag)
@@ -118,6 +145,21 @@ function matchesMovementTargets(
     validDestination(selectedPlanet, fleet.destinationPlanetId, state) &&
     validStrength(selectedStrength, fleet.strength)
   )
+}
+function hasMovementSlots(definition: ActionDefinition, move: FleetMoveEffectDefinition): boolean {
+  const fleetTag = move.targets.fleet.actionTargetTag,
+    planetTag = move.targets.planet.actionTargetTag,
+    strengthTag = move.inputs.strength.actionInputTag
+  if (getOwnRecordValue(definition.targets, fleetTag)?.targetType !== TargetType.FLEET) {
+    return false
+  }
+  if (getOwnRecordValue(definition.targets, planetTag)?.targetType !== TargetType.PLANET) {
+    return false
+  }
+  if (getOwnRecordValue(definition.inputs, strengthTag)?.type !== "POSITIVE_INTEGER") {
+    return false
+  }
+  return true
 }
 function validSelectedFleet(value: unknown): boolean {
   return value !== undefined && FleetIdSchema.safeParse(value).success
@@ -140,7 +182,9 @@ function matchesArrivalEffects(definition: ActionDefinition, move: FleetMoveEffe
   )
 }
 function isMappedArrival(effect: EffectDefinition, move: FleetMoveEffectDefinition): effect is PendingArrivalEffect["effectDefinition"] {
-  if (effect.type !== FleetAssaultEffectDefinition.type && effect.type !== FleetColonizeEffectDefinition.type) return false
+  if (effect.type !== FleetAssaultEffectDefinition.type && effect.type !== FleetColonizeEffectDefinition.type) {
+    return false
+  }
   return (
     effect.targets.fleet.actionTargetTag === move.targets.fleet.actionTargetTag &&
     effect.targets.planet.actionTargetTag === move.targets.planet.actionTargetTag
@@ -152,8 +196,12 @@ function matchesArrival(
   movement: FleetMovement,
   move: FleetMoveEffectDefinition,
 ): boolean {
-  if (expected === undefined || pending.definitionOrdinal !== expected.definitionOrdinal) return false
-  if (!sameArrivalDefinition(pending.effectDefinition, expected.effectDefinition)) return false
+  if (expected === undefined || pending.definitionOrdinal !== expected.definitionOrdinal) {
+    return false
+  }
+  if (!sameArrivalDefinition(pending.effectDefinition, expected.effectDefinition)) {
+    return false
+  }
   return (
     getOwnRecordValue(movement.submission.selectedTargets, move.targets.fleet.actionTargetTag) ===
       getOwnRecordValue(movement.submission.selectedTargets, pending.effectDefinition.targets.fleet.actionTargetTag) &&
@@ -165,13 +213,18 @@ function sameArrivalDefinition(
   actual: PendingArrivalEffect["effectDefinition"],
   expected: PendingArrivalEffect["effectDefinition"],
 ): boolean {
-  if (actual.type !== expected.type) return false
+  if (actual.type !== expected.type) {
+    return false
+  }
   if (
     actual.targets.fleet.actionTargetTag !== expected.targets.fleet.actionTargetTag ||
     actual.targets.planet.actionTargetTag !== expected.targets.planet.actionTargetTag
-  )
+  ) {
     return false
-  if (actual.type !== FleetColonizeEffectDefinition.type) return true
+  }
+  if (actual.type !== FleetColonizeEffectDefinition.type) {
+    return true
+  }
   return (
     expected.type === FleetColonizeEffectDefinition.type &&
     actual.parameters.strengthRequirement === expected.parameters.strengthRequirement

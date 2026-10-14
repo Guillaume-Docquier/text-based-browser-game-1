@@ -55,6 +55,18 @@ export function evaluateTarget({
     return
   }
 
+  evaluateTargetConstraints({ state, actionId, targetTag, targetId, targetDefinition, selectedTargets, evaluation, target })
+}
+function evaluateTargetConstraints({
+  state,
+  actionId,
+  targetTag,
+  targetId,
+  targetDefinition,
+  selectedTargets,
+  evaluation,
+  target,
+}: TargetEvaluationInput & { target: NonNullable<ReturnType<typeof getTargetEntity>> }): void {
   for (const constraint of targetDefinition.constraints) {
     switch (constraint.type) {
       case OwnedBySubmittingPlayerConstraint.type:

@@ -50,7 +50,9 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
 
   // Create effects
   const effects = createTurnEffects(submittedActions, ruleset)
-  if (Result.isFailure(effects)) return effects
+  if (Result.isFailure(effects)) {
+    return effects
+  }
   context.effectPool.addMany(effects.value)
 
   // Resolve effects
@@ -64,7 +66,10 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
     return Result.Failure(ResolveTurnError.UnresolvedEffects({ effects: context.effectPool.getAll().map((effect) => effect.toJson()) }))
   }
 
-  return Result.Success({
+  return Result.Success(resolvedState(context))
+}
+function resolvedState(context: TurnContext): ResolvedTurnState {
+  return {
     gameId: context.turnState.gameId,
     turn: context.turnState.turn,
     resolvedActions: context.turnState.submittedActions.map((submittedAction) => ({
@@ -83,7 +88,7 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
         const planet = context.turnState.planets[planetId]
         return planet?.ownerPlayerId === null || planet === undefined ? [] : [{ planetId, ownerPlayerId: planet.ownerPlayerId }]
       }),
-  })
+  }
 }
 function createTurnEffects(submittedActions: TurnState["submittedActions"], ruleset: Ruleset): Result<Effect[], ResolveTurnError> {
   const monotonicIdFactory = MonotonicIdFactory.create()

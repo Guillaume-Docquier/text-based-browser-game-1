@@ -1,6 +1,7 @@
 import { branded } from "@guillaume-docquier/tools-ts"
 import { compareOrdinalStrings } from "#shared/domain/compareOrdinalStrings.ts"
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
+import type { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import type { TargetId } from "#shared/domain/ruleset/target-definitions/TargetId.ts"
 import type { Action, SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
@@ -9,6 +10,7 @@ import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import { evaluateProposal } from "./evaluateSelectionProposal.ts"
 import { evaluateResourceBudget, evaluateStrengthBudget } from "./selectionBudgets.ts"
 import {
+  type EligibilityIssue,
   type ActionSelectionDraft,
   type EligibilityState,
   type SelectionEvaluation,
@@ -77,26 +79,45 @@ export function evaluateTargetCandidate({
   const action = state.actions.find(({ id }) => id === draft.actionId)
   const actionDefinition = action === undefined ? undefined : getOwnRecordValue(ruleset.actionDefinitions, action.actionDefinitionId)
   const movementEffect = actionDefinition?.effects.find(isFleetMoveEffectDefinition)
-  const needsSourceStrength = movementEffect !== undefined && targetTag === movementEffect.targets.fleet.actionTargetTag
-  const hasBlankStrength =
-    movementEffect !== undefined && getOwnRecordValue(draft.selectedInputs, movementEffect.inputs.strength.actionInputTag) === undefined
-  if (
-    needsSourceStrength &&
-    hasBlankStrength &&
-    evaluation.remainingStrength[branded<FleetId>(targetId)] === 0 &&
-    getStatus(candidateIssues) !== "INELIGIBLE"
-  ) {
-    candidateIssues.push({
-      code: "INSUFFICIENT_STRENGTH",
-      actionId: draft.actionId,
-      targetTag,
-      inputTag: movementEffect.inputs.strength.actionInputTag,
-      message: "No uncommitted Strength remains on the selected Fleet",
-    })
+  const strengthIssue = sourceCandidateStrengthIssue({ movementEffect, draft, targetTag, targetId, evaluation, candidateIssues })
+  if (strengthIssue !== undefined) {
+    candidateIssues.push(strengthIssue)
   }
   const candidateStatus = getStatus(candidateIssues)
 
   return { ...evaluation, candidateStatus, candidateIssues }
+}
+function sourceCandidateStrengthIssue({
+  movementEffect,
+  draft,
+  targetTag,
+  targetId,
+  evaluation,
+  candidateIssues,
+}: {
+  movementEffect: FleetMoveEffectDefinition | undefined
+  draft: ActionSelectionDraft
+  targetTag: TargetTag
+  targetId: TargetId
+  evaluation: SelectionEvaluation
+  candidateIssues: readonly EligibilityIssue[]
+}): EligibilityIssue | undefined {
+  if (movementEffect === undefined || targetTag !== movementEffect.targets.fleet.actionTargetTag) {
+    return undefined
+  }
+  if (getOwnRecordValue(draft.selectedInputs, movementEffect.inputs.strength.actionInputTag) !== undefined) {
+    return undefined
+  }
+  if (evaluation.remainingStrength[branded<FleetId>(targetId)] !== 0 || getStatus(candidateIssues) === "INELIGIBLE") {
+    return undefined
+  }
+  return {
+    code: "INSUFFICIENT_STRENGTH",
+    actionId: draft.actionId,
+    targetTag,
+    inputTag: movementEffect.inputs.strength.actionInputTag,
+    message: "No uncommitted Strength remains on the selected Fleet",
+  }
 }
 
 /**

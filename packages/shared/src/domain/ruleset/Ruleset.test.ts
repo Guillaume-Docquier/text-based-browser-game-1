@@ -631,7 +631,9 @@ describe("Ruleset.safeCreate", () => {
 function expectActionIssue(actionDefinition: unknown, path: Array<string | number>, message?: string): void {
   const result = ActionDefinitionSchema.safeParse(actionDefinition)
   expect(result.success).toBe(false)
-  if (result.success) return
+  if (result.success) {
+    return
+  }
 
   const issue = result.error.issues.find(
     ({ path: actualPath }) => actualPath.length === path.length && actualPath.every((part, index) => part === path[index]),

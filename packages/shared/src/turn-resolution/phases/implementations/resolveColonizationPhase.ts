@@ -69,19 +69,11 @@ export function resolveColonizationPhase(context: TurnContext): Result<TurnConte
   }))
   const candidates = [...standalone, ...arrivals].toSorted(compareScheduledColonization)
 
-  for (let first = 0; first < candidates.length;) {
-    let end = first + 1
-    while (
-      end < candidates.length &&
-      candidates[end]?.tick === candidates[first]?.tick &&
-      candidates[end]?.planetId === candidates[first]?.planetId
-    ) {
-      end += 1
-    }
-    const group = candidates.slice(first, end)
+  for (const group of Map.groupBy(candidates, (candidate) => JSON.stringify([candidate.tick, candidate.planetId])).values()) {
     const result = resolveColonizationGroup(context, group)
-    if (Result.isFailure(result)) return result
-    first = end
+    if (Result.isFailure(result)) {
+      return result
+    }
   }
 
   return Result.Success(context)
@@ -90,7 +82,9 @@ function resolveColonizationGroup(context: TurnContext, group: readonly Schedule
   const eligible: ScheduledColonization[] = []
   for (const candidate of group) {
     const result = prepareColonizationCandidate(context, candidate, eligible)
-    if (Result.isFailure(result)) return result
+    if (Result.isFailure(result)) {
+      return result
+    }
   }
   const canonicalEligible = eligible.toSorted(compareArrivalProvenance)
   const orderedEligible = canonicalEligible.length > 1 ? context.rng.shuffle(canonicalEligible) : canonicalEligible
@@ -109,7 +103,9 @@ function prepareColonizationCandidate(
   eligible: ScheduledColonization[],
 ): Result<void, ResolvePhaseError> {
   const result = getCandidateEligibility(context, candidate)
-  if (Result.isFailure(result)) return Result.Failure(ResolvePhaseError.FailedEffect({ error: result.error }))
+  if (Result.isFailure(result)) {
+    return Result.Failure(ResolvePhaseError.FailedEffect({ error: result.error }))
+  }
   if (result.value) {
     eligible.push(candidate)
     return Result.Success(undefined)

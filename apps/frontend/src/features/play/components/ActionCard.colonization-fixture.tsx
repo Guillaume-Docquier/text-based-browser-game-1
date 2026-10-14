@@ -23,6 +23,7 @@ import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
 import { ColonizeHereTest, ColonizePlanetTest } from "shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { MoveFleetStandard } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
+import { ProjectedActionCard } from "./ActionCard.interaction-fixture.tsx"
 import { requireEligibilityProjection, toActionDto, player, home, waypoint, playerView, players } from "./ActionCard.selection-fixture.tsx"
 import { ActionCard } from "./ActionCard.tsx"
 
@@ -68,28 +69,14 @@ export const colonizeThresholdPlayerView = {
 export const colonizeThresholdProjection = requireEligibilityProjection(colonizeThresholdPlayerView)
 
 export function ColonizeThresholdCard(): ReactElement {
-  const [action, setAction] = useState(() => toActionDto(colonizeThresholdAction, false))
-  const currentPlayerView = { ...colonizeThresholdPlayerView, actions: [action] }
-  const projection = requireEligibilityProjection(currentPlayerView)
-
   return (
-    <div className="w-80">
-      <output data-testid="colonize-threshold-selection" className="sr-only">
-        {JSON.stringify({ selectedTargets: action.selectedTargets, selectedInputs: action.selectedInputs })}
-      </output>
-      <ActionCard
-        actionDefinition={ColonizePlanetTest}
-        action={action}
-        playerView={currentPlayerView}
-        players={players}
-        ruleset={projection.ruleset}
-        eligibilityState={projection.eligibilityState}
-        disabled={false}
-        onSelect={(selectedTargets, selectedInputs) => {
-          setAction({ ...action, selectedTargets, selectedInputs })
-        }}
-      />
-    </div>
+    <ProjectedActionCard
+      initialAction={toActionDto(colonizeThresholdAction, false)}
+      playerView={colonizeThresholdPlayerView}
+      definition={ColonizePlanetTest}
+      players={players}
+      outputLabel="colonize-threshold-selection"
+    />
   )
 }
 
@@ -297,27 +284,13 @@ export const seedOutpostPlayerView = {
 export const seedOutpostProjection = requireEligibilityProjection(seedOutpostPlayerView)
 
 export function SeedOutpostCard(): ReactElement {
-  const [action, setAction] = useState(toActionDto(seedOutpostAction, false))
-  const currentPlayerView = { ...seedOutpostPlayerView, actions: [action] }
-  const projection = requireEligibilityProjection(currentPlayerView)
-
   return (
-    <div className="w-80">
-      <output data-testid="seed-outpost-selection" className="sr-only">
-        {JSON.stringify({ selectedTargets: action.selectedTargets, selectedInputs: action.selectedInputs })}
-      </output>
-      <ActionCard
-        actionDefinition={SeedOutpostDefinition}
-        action={action}
-        playerView={currentPlayerView}
-        players={players}
-        ruleset={projection.ruleset}
-        eligibilityState={projection.eligibilityState}
-        disabled={false}
-        onSelect={(selectedTargets, selectedInputs) => {
-          setAction({ ...action, selectedTargets, selectedInputs })
-        }}
-      />
-    </div>
+    <ProjectedActionCard
+      initialAction={toActionDto(seedOutpostAction, false)}
+      playerView={seedOutpostPlayerView}
+      definition={SeedOutpostDefinition}
+      players={players}
+      outputLabel="seed-outpost-selection"
+    />
   )
 }

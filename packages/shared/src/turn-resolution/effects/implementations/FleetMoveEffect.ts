@@ -56,24 +56,14 @@ export class FleetMoveEffect extends Effect {
       return Result.Failure(EffectError.Failed({ error: `Destination Planet "${this.targetPlanetId}" could not be found` }))
     }
 
-    const selectedStrengthInput = this.submittedAction.selectedInputs[this.effectDefinition.inputs.strength.actionInputTag]
-    if (selectedStrengthInput === undefined) {
-      return Result.Failure(EffectError.Failed({ error: `Fleet "${fleet.id}" cannot supply the selected movement Strength` }))
+    const strengthResult = this.selectedStrength(fleet)
+    if (Result.isFailure(strengthResult)) {
+      return strengthResult
     }
-    const selectedStrength = safeTypedParse(PositiveIntegerSchema, selectedStrengthInput)
-    if (!selectedStrength.success || selectedStrength.data > Number(fleet.strength)) {
-      return Result.Failure(EffectError.Failed({ error: `Fleet "${fleet.id}" cannot supply the selected movement Strength` }))
-    }
-    const strength = typedParse(NonNegativeSafeIntegerSchema, selectedStrength.data)
-    if (
-      fleet.ownerPlayerId !== this.submittedAction.playerId ||
-      fleet.movement !== undefined ||
-      fleet.destinationPlanetId !== undefined ||
-      fleet.distanceToEnd !== undefined
-    ) {
+    const strength = strengthResult.value
+    if (!this.isOwnedStationarySource(fleet)) {
       return Result.Failure(EffectError.Failed({ error: `Fleet "${fleet.id}" is not an owned stationary source` }))
     }
-
     const departureId = typedParse(
       FleetIdSchema,
       v5(
@@ -143,5 +133,25 @@ export class FleetMoveEffect extends Effect {
     }
     context.turnState.fleets[departureId] = departureFleet
     context.newDepartureFleetIds.add(departureId)
+  }
+  private selectedStrength(fleet: ResolutionFleet): Result<NonNegativeSafeInteger, EffectError> {
+    const selectedStrengthInput = this.submittedAction.selectedInputs[this.effectDefinition.inputs.strength.actionInputTag]
+    if (selectedStrengthInput === undefined) {
+      return Result.Failure(EffectError.Failed({ error: `Fleet "${fleet.id}" cannot supply the selected movement Strength` }))
+    }
+    const selectedStrength = safeTypedParse(PositiveIntegerSchema, selectedStrengthInput)
+    if (!selectedStrength.success || selectedStrength.data > Number(fleet.strength)) {
+      return Result.Failure(EffectError.Failed({ error: `Fleet "${fleet.id}" cannot supply the selected movement Strength` }))
+    }
+    const strength = typedParse(NonNegativeSafeIntegerSchema, selectedStrength.data)
+    return Result.Success(strength)
+  }
+  private isOwnedStationarySource(fleet: ResolutionFleet): boolean {
+    return (
+      fleet.ownerPlayerId === this.submittedAction.playerId &&
+      fleet.movement === undefined &&
+      fleet.destinationPlanetId === undefined &&
+      fleet.distanceToEnd === undefined
+    )
   }
 }

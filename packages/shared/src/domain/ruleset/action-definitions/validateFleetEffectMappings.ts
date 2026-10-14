@@ -1,6 +1,8 @@
 import { branded } from "@guillaume-docquier/tools-ts"
 import type { z } from "zod"
 import type { InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
+import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
+import type { EffectDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinition.ts"
 import { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
 import { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
@@ -12,42 +14,28 @@ import { UnclaimedPlanetConstraint } from "#shared/domain/ruleset/target-definit
 import type { ActionDefinition } from "./ActionDefinition.ts"
 
 export function validateFleetEffectMappings(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
-  const movementEffects = actionDefinition.effects.flatMap((effect, effectIndex) =>
-    effect.type === FleetMoveEffectDefinition.type ? [{ effect, effectIndex }] : [],
-  )
-  const assaultEffects = actionDefinition.effects.flatMap((effect, effectIndex) =>
-    effect.type === FleetAssaultEffectDefinition.type ? [{ effect, effectIndex }] : [],
-  )
-  const colonizeEffects = actionDefinition.effects.flatMap((effect, effectIndex) =>
-    effect.type === FleetColonizeEffectDefinition.type ? [{ effect, effectIndex }] : [],
-  )
-  if (movementEffects.length > 1) {
-    context.addIssue({ code: "custom", message: `Action Definition "${actionDefinition.name}" may contain only one FLEET_MOVE effect` })
-  }
-  if (assaultEffects.length > 1) {
-    context.addIssue({ code: "custom", message: `Action Definition "${actionDefinition.name}" may contain only one FLEET_ASSAULT effect` })
-  }
-  if (colonizeEffects.length > 1) {
-    context.addIssue({
-      code: "custom",
-      path: ["effects"],
-      message: `Action Definition "${actionDefinition.name}" may contain only one FLEET_COLONIZE effect`,
-    })
-  }
-
+  const movementEffects = fleetEffects(actionDefinition, FleetMoveEffectDefinition.type)
+  const assaultEffects = fleetEffects(actionDefinition, FleetAssaultEffectDefinition.type)
+  const colonizeEffects = fleetEffects(actionDefinition, FleetColonizeEffectDefinition.type)
+  validateMultiplicity(actionDefinition, context, movementEffects.length, FleetMoveEffectDefinition.type)
+  validateMultiplicity(actionDefinition, context, assaultEffects.length, FleetAssaultEffectDefinition.type)
+  validateMultiplicity(actionDefinition, context, colonizeEffects.length, FleetColonizeEffectDefinition.type)
   const referencedInputTags = new Set<InputTag>()
 
   validateTargetConstraintSources({ actionDefinition, context })
 
-  for (const { effect, effectIndex } of movementEffects)
+  for (const { effect, effectIndex } of movementEffects) {
     validateMovementMapping({ actionDefinition, context, effect, effectIndex, referencedInputTags })
+  }
 
   const movementEffect = movementEffects[0]?.effect
-  for (const { effect, effectIndex } of assaultEffects)
+  for (const { effect, effectIndex } of assaultEffects) {
     validateAssaultMapping({ actionDefinition, context, effect, effectIndex, movementEffect })
+  }
 
-  for (const { effect, effectIndex } of colonizeEffects)
+  for (const { effect, effectIndex } of colonizeEffects) {
     validateColonizationMapping({ actionDefinition, context, effect, effectIndex, movementEffect })
+  }
 
   validateReferencedInputs({ actionDefinition, context, referencedInputTags })
 }
@@ -102,27 +90,12 @@ export function validateMovementMapping({
   referencedInputTags: Set<InputTag>
 }): void {
   const fleetTag = effect.targets.fleet.actionTargetTag
+  validateFleetSource({ actionDefinition, context, effectIndex, fleetTag, label: "Fleet" })
   const planetTag = effect.targets.planet.actionTargetTag
-  const fleetDefinition = actionDefinition.targets[fleetTag]
   const planetDefinition = actionDefinition.targets[planetTag]
-  const fleetConstraints = fleetDefinition?.constraints ?? []
   const planetConstraints = planetDefinition?.constraints ?? []
   const strengthInputTag = effect.inputs.strength.actionInputTag
 
-  if (!fleetConstraints.some((constraint) => constraint.type === OwnedBySubmittingPlayerConstraint.type)) {
-    context.addIssue({
-      code: "custom",
-      path: ["effects", effectIndex, "targets", "fleet"],
-      message: `Action Definition "${actionDefinition.name}" Fleet source slot "${fleetTag}" must require ownership by the submitting player`,
-    })
-  }
-  if (!fleetConstraints.some((constraint) => constraint.type === StationaryFleetConstraint.type)) {
-    context.addIssue({
-      code: "custom",
-      path: ["effects", effectIndex, "targets", "fleet"],
-      message: `Action Definition "${actionDefinition.name}" Fleet source slot "${fleetTag}" must require a stationary Fleet`,
-    })
-  }
   if (
     !planetConstraints.some((constraint) => constraint.type === "WITHIN_FLEET_RANGE" && constraint.references.sourceFleetTag === fleetTag)
   ) {
@@ -175,26 +148,10 @@ export function validateAssaultMapping({
   movementEffect: FleetMoveEffectDefinition | undefined
 }): void {
   const fleetTag = effect.targets.fleet.actionTargetTag
+  validateFleetSource({ actionDefinition, context, effectIndex, fleetTag, label: "Assault" })
   const planetTag = effect.targets.planet.actionTargetTag
-  const fleetDefinition = actionDefinition.targets[fleetTag]
   const planetDefinition = actionDefinition.targets[planetTag]
-  const fleetConstraints = fleetDefinition?.constraints ?? []
   const planetConstraints = planetDefinition?.constraints ?? []
-
-  if (!fleetConstraints.some((constraint) => constraint.type === OwnedBySubmittingPlayerConstraint.type)) {
-    context.addIssue({
-      code: "custom",
-      path: ["effects", effectIndex, "targets", "fleet"],
-      message: `Action Definition "${actionDefinition.name}" Assault source slot "${fleetTag}" must require ownership by the submitting player`,
-    })
-  }
-  if (!fleetConstraints.some((constraint) => constraint.type === StationaryFleetConstraint.type)) {
-    context.addIssue({
-      code: "custom",
-      path: ["effects", effectIndex, "targets", "fleet"],
-      message: `Action Definition "${actionDefinition.name}" Assault source slot "${fleetTag}" must require a stationary Fleet`,
-    })
-  }
 
   if (movementEffect !== undefined) {
     if (movementEffect.targets.fleet.actionTargetTag !== fleetTag || movementEffect.targets.planet.actionTargetTag !== planetTag) {
@@ -231,26 +188,11 @@ export function validateColonizationMapping({
   movementEffect: FleetMoveEffectDefinition | undefined
 }): void {
   const fleetTag = effect.targets.fleet.actionTargetTag
+  validateFleetSource({ actionDefinition, context, effectIndex, fleetTag, label: "Colonize" })
   const planetTag = effect.targets.planet.actionTargetTag
-  const fleetDefinition = actionDefinition.targets[fleetTag]
   const planetDefinition = actionDefinition.targets[planetTag]
-  const fleetConstraints = fleetDefinition?.constraints ?? []
   const planetConstraints = planetDefinition?.constraints ?? []
 
-  if (!fleetConstraints.some((constraint) => constraint.type === OwnedBySubmittingPlayerConstraint.type)) {
-    context.addIssue({
-      code: "custom",
-      path: ["effects", effectIndex, "targets", "fleet"],
-      message: `Action Definition "${actionDefinition.name}" Colonize source slot "${fleetTag}" must require ownership by the submitting player`,
-    })
-  }
-  if (!fleetConstraints.some((constraint) => constraint.type === StationaryFleetConstraint.type)) {
-    context.addIssue({
-      code: "custom",
-      path: ["effects", effectIndex, "targets", "fleet"],
-      message: `Action Definition "${actionDefinition.name}" Colonize source slot "${fleetTag}" must require a stationary Fleet`,
-    })
-  }
   if (!planetConstraints.some((constraint) => constraint.type === UnclaimedPlanetConstraint.type)) {
     context.addIssue({
       code: "custom",
@@ -296,6 +238,58 @@ export function validateReferencedInputs({
         code: "custom",
         path: ["inputs", inputTag],
         message: `Action Definition "${actionDefinition.name}" input slot "${inputTag}" is not used by an Effect Definition`,
+      })
+    }
+  }
+}
+
+function fleetEffects<T extends EffectDefinition["type"]>(
+  actionDefinition: ActionDefinition,
+  type: T,
+): Array<{ effect: Extract<EffectDefinition, { type: T }>; effectIndex: number }> {
+  return actionDefinition.effects
+    .map((effect, effectIndex) => ({ effect, effectIndex }))
+    .filter((entry): entry is { effect: Extract<EffectDefinition, { type: T }>; effectIndex: number } => entry.effect.type === type)
+}
+function validateMultiplicity(
+  actionDefinition: ActionDefinition,
+  context: z.RefinementCtx,
+  count: number,
+  type: EffectDefinition["type"],
+): void {
+  if (count <= 1) {
+    return
+  }
+  context.addIssue({
+    code: "custom",
+    ...(type === FleetColonizeEffectDefinition.type ? { path: ["effects"] } : {}),
+    message: `Action Definition "${actionDefinition.name}" may contain only one ${type} effect`,
+  })
+}
+function validateFleetSource({
+  actionDefinition,
+  context,
+  effectIndex,
+  fleetTag,
+  label,
+}: {
+  actionDefinition: ActionDefinition
+  context: z.RefinementCtx
+  effectIndex: number
+  fleetTag: TargetTag
+  label: "Fleet" | "Assault" | "Colonize"
+}): void {
+  const constraints = actionDefinition.targets[fleetTag]?.constraints ?? []
+  const requirements = [
+    { type: OwnedBySubmittingPlayerConstraint.type, description: "ownership by the submitting player" },
+    { type: StationaryFleetConstraint.type, description: "a stationary Fleet" },
+  ]
+  for (const requirement of requirements) {
+    if (!constraints.some((constraint) => constraint.type === requirement.type)) {
+      context.addIssue({
+        code: "custom",
+        path: ["effects", effectIndex, "targets", "fleet"],
+        message: `Action Definition "${actionDefinition.name}" ${label} source slot "${fleetTag}" must require ${requirement.description}`,
       })
     }
   }

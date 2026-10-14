@@ -7,7 +7,7 @@ import { BuildFleetStandard } from "shared/testing/test-ruleset/action-definitio
 import { MoveFleetImproved, MoveFleetStandard } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 import { afterEach, describe, expect, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import type { PlayerView } from "#api/types.ts"
+import type { Fleet, Planet, Action, PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
@@ -230,25 +230,19 @@ describe("TurnProcessor", () => {
     Assert.isDefined(firstJourney)
     Assert.isDefined(firstJourney.movement)
     Assert.isDefined(firstRemainder)
-    const assertFirstJourneyState1 = (): void => {
-      expect(firstJourney).toMatchObject({ strength: 30, distanceToEnd: 2.418312565270031, destinationPlanetId: bobHome.id })
-      expect(firstJourney.movement).toMatchObject({
-        speed: 2,
-        departureTurn: readyForAttack.turn,
-        submission: {
-          id: assaultAction.id,
-          playerId: alicePlayerId,
-          actionDefinitionId: FlexibleAssaultTest.id,
-          selectedTargets: { source: aliceSource.id, destination: bobHome.id },
-          selectedInputs: { force: 30 },
-        },
-        pendingArrivalEffects: [{ definitionOrdinal: 3, effectDefinition: { type: "FLEET_ASSAULT" } }],
-      })
-      expect(firstRemainder).toMatchObject({ strength: 20, originPlanetId: aliceHome.id })
-      expect(firstSavedView.actions.find(({ id }) => id === assaultAction.id)?.isInProgress).toBe(true)
-      expect(firstSavedView.fleets.find(({ id }) => id === bobDefender.id)?.strength).toBe(20)
-    }
-    assertFirstJourneyState1()
+
+    assertFirstJourney({
+      firstJourney,
+      bobHome,
+      readyForAttack,
+      assaultAction,
+      alicePlayerId,
+      aliceSource,
+      firstRemainder,
+      aliceHome,
+      firstSavedView,
+      bobDefender,
+    })
 
     await processReadyTurn(firstSavedView.turn)
     const secondSavedView = await alice.client.gameplay.getPlayerView.query({ gameId })
@@ -568,3 +562,46 @@ describe("TurnProcessor", () => {
     })
   })
 })
+
+function assertFirstJourney({
+  firstJourney,
+  bobHome,
+  readyForAttack,
+  assaultAction,
+  alicePlayerId,
+  aliceSource,
+  firstRemainder,
+  aliceHome,
+  firstSavedView,
+  bobDefender,
+}: AssertFirstJourneyInput): void {
+  expect(firstJourney).toMatchObject({ strength: 30, distanceToEnd: 2.418312565270031, destinationPlanetId: bobHome.id })
+  expect(firstJourney.movement).toMatchObject({
+    speed: 2,
+    departureTurn: readyForAttack.turn,
+    submission: {
+      id: assaultAction.id,
+      playerId: alicePlayerId,
+      actionDefinitionId: FlexibleAssaultTest.id,
+      selectedTargets: { source: aliceSource.id, destination: bobHome.id },
+      selectedInputs: { force: 30 },
+    },
+    pendingArrivalEffects: [{ definitionOrdinal: 3, effectDefinition: { type: "FLEET_ASSAULT" } }],
+  })
+  expect(firstRemainder).toMatchObject({ strength: 20, originPlanetId: aliceHome.id })
+  expect(firstSavedView.actions.find(({ id }) => id === assaultAction.id)?.isInProgress).toBe(true)
+  expect(firstSavedView.fleets.find(({ id }) => id === bobDefender.id)?.strength).toBe(20)
+}
+
+type AssertFirstJourneyInput = {
+  firstJourney: Fleet
+  bobHome: Planet
+  readyForAttack: PlayerView
+  assaultAction: Action
+  alicePlayerId: PlayerId
+  aliceSource: Fleet
+  firstRemainder: Fleet
+  aliceHome: Planet
+  firstSavedView: PlayerView
+  bobDefender: Fleet
+}

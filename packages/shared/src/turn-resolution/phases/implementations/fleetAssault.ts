@@ -40,6 +40,65 @@ export function resolveFleetAssaultAttempt({
     return Result.Failure(EffectError.Failed({ error: `Assault target Planet "${planetId}" does not exist` }))
   }
 
+  const attackerResult = assaultingFleet(context, submittingPlayerId, attackingFleetId, planetId)
+  if (Result.isFailure(attackerResult)) {
+    return attackerResult
+  }
+  if ("type" in attackerResult.value) {
+    return Result.Success(attackerResult.value)
+  }
+  const attacker = attackerResult.value
+  const stationaryResult = stationaryCombatFleets(context, planetId)
+  if (Result.isFailure(stationaryResult)) {
+    return stationaryResult
+  }
+  const stationaryFleets = stationaryResult.value
+  const defenders = stationaryFleets
+    .filter((fleet) => fleet.ownerPlayerId !== submittingPlayerId && isFleetPresentAtPlanet(fleet, planetId))
+    .toSorted((first, second) => compareOrdinalStrings(first.id, second.id))
+  if (defenders.length === 0) {
+    return Result.Success(EffectOutcome.Resolved({ result: `Fleet "${attacker.name}" found no enemy Fleets at Planet "${planet.name}"` }))
+  }
+
+  const prepared = prepareAssaultLosses(defenders, attacker.strength, planetId)
+  if (Result.isFailure(prepared)) {
+    return prepared
+  }
+  const { allocations, exchangedStrength, defenderTotal } = prepared.value
+  const applied = applyAssaultLosses(context, attacker, exchangedStrength, allocations)
+  if (Result.isFailure(applied)) {
+    return applied
+  }
+  return Result.Success(
+    EffectOutcome.Resolved({
+      result: `Fleet "${attacker.name}" exchanged ${exchangedStrength} Strength with ${defenderTotal} enemy Strength at Planet "${planet.name}"`,
+    }),
+  )
+}
+function prepareAssaultLosses(
+  defenders: readonly ResolutionFleet[],
+  attackingStrength: number,
+  planetId: PlanetId,
+): Result<{ allocations: DefenderAllocation[]; exchangedStrength: number; defenderTotal: number }, EffectError> {
+  const defenderTotalBigInt = defenders.reduce((total, fleet) => total + BigInt(fleet.strength), 0n)
+  if (defenderTotalBigInt > BigInt(Number.MAX_SAFE_INTEGER)) {
+    return Result.Failure(EffectError.Failed({ error: `Enemy Strength at Planet "${planetId}" exceeds the safe integer range` }))
+  }
+  const defenderTotal = Number(defenderTotalBigInt)
+  const exchangedStrength = Math.min(attackingStrength, defenderTotal)
+  const allocationResult = allocateDefenderLosses(defenders, exchangedStrength, defenderTotalBigInt, planetId)
+  if (Result.isFailure(allocationResult)) {
+    return allocationResult
+  }
+  const allocations = allocationResult.value
+  return Result.Success({ allocations, exchangedStrength, defenderTotal })
+}
+function assaultingFleet(
+  context: TurnContext,
+  submittingPlayerId: PlayerId,
+  attackingFleetId: FleetId,
+  planetId: PlanetId,
+): Result<ResolutionFleet | EffectOutcome, EffectError> {
   const attacker = TurnState.getFleet(context.turnState, attackingFleetId)
   if (attacker === undefined) {
     return Result.Success(EffectOutcome.Prevented({ reason: `Attacking Fleet "${attackingFleetId}" was destroyed before its Assault` }))
@@ -58,32 +117,7 @@ export function resolveFleetAssaultAttempt({
     )
   }
 
-  const stationaryResult = stationaryCombatFleets(context, planetId)
-  if (Result.isFailure(stationaryResult)) return stationaryResult
-  const stationaryFleets = stationaryResult.value
-  const defenders = stationaryFleets
-    .filter((fleet) => fleet.ownerPlayerId !== submittingPlayerId && isFleetPresentAtPlanet(fleet, planetId))
-    .toSorted((first, second) => compareOrdinalStrings(first.id, second.id))
-  if (defenders.length === 0) {
-    return Result.Success(EffectOutcome.Resolved({ result: `Fleet "${attacker.name}" found no enemy Fleets at Planet "${planet.name}"` }))
-  }
-
-  const defenderTotalBigInt = defenders.reduce((total, fleet) => total + BigInt(fleet.strength), 0n)
-  if (defenderTotalBigInt > BigInt(Number.MAX_SAFE_INTEGER)) {
-    return Result.Failure(EffectError.Failed({ error: `Enemy Strength at Planet "${planetId}" exceeds the safe integer range` }))
-  }
-  const defenderTotal = Number(defenderTotalBigInt)
-  const exchangedStrength = Math.min(attacker.strength, defenderTotal)
-  const allocationResult = allocateDefenderLosses(defenders, exchangedStrength, defenderTotalBigInt, planetId)
-  if (Result.isFailure(allocationResult)) return allocationResult
-  const allocations = allocationResult.value
-  const applied = applyAssaultLosses(context, attacker, exchangedStrength, allocations)
-  if (Result.isFailure(applied)) return applied
-  return Result.Success(
-    EffectOutcome.Resolved({
-      result: `Fleet "${attacker.name}" exchanged ${exchangedStrength} Strength with ${defenderTotal} enemy Strength at Planet "${planet.name}"`,
-    }),
-  )
+  return Result.Success(attacker)
 }
 function applyAssaultLosses(
   context: TurnContext,

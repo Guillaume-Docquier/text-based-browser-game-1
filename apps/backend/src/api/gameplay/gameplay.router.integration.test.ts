@@ -1,7 +1,9 @@
 import { Assert, branded, Datetime, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
+import type { GameId } from "shared/domain/games/GameId.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import { AttackMoveTest, FlexibleAssaultTest, StationaryAssaultTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { ColonizeHereTest, ColonizePlanetTest } from "shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
@@ -9,6 +11,7 @@ import { afterEach, describe, expect, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
+import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
@@ -17,6 +20,7 @@ import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-in
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
 import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "#lib/rulesets/standard/action-definitions/move-fleet.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
+import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { withDefaultActionViewFields } from "../../tests/fleet-gameplay/gameplay.router.ts"
@@ -170,35 +174,16 @@ describe("gameplay.router", () => {
           canAfford: false,
         },
       ]
-      const verifyAssertGetPlayerViewResultState1Phase1 = (): void => {
-        const assertGetPlayerViewResultState1 = (): void => {
-          expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
-            gameId: createdGameId,
-            player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, isReady: false },
-            opponents: {},
-            galaxy: expect.any(Object), // Verified by the snapshot test
-            fleets: [],
-            turn: 1,
-            turnStatus: "COLLECTING_ACTIONS",
-            turnEndsAt: Datetime.increment({
-              date: clock.now(),
-              time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
-            }).toISOString(),
-            resources: createResourcesDtoStub({
-              [ResourceType.INFLUENCE]: { uncommitted: 3, total: 3 },
-              [ResourceType.METAL]: { uncommitted: 2, total: 2 },
-              [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
-            }),
-            ruleset: TestRuleset,
-            actions: expect.any(Array),
-          })
-          expect(getPlayerViewResult.actions).toStrictEqual(expect.arrayContaining(expectedActions.map(withDefaultActionViewFields)))
-          expect(getPlayerViewResult.actions).toHaveLength(expectedActions.length)
-          expect(repeatedGetPlayerViewResult.actions).toStrictEqual(getPlayerViewResult.actions)
-        }
-        assertGetPlayerViewResultState1()
-      }
-      verifyAssertGetPlayerViewResultState1Phase1()
+
+      assertGetPlayerViewResult2({
+        getPlayerViewResult,
+        createdGameId,
+        player,
+        clock,
+        gameConfiguration,
+        expectedActions,
+        repeatedGetPlayerViewResult,
+      })
     })
 
     integrationTest("should expose uncommitted resources and use them to determine Action affordability", async ({ db }) => {
@@ -289,3 +274,47 @@ describe("gameplay.router", () => {
     })
   })
 })
+
+function assertGetPlayerViewResult2({
+  getPlayerViewResult,
+  createdGameId,
+  player,
+  clock,
+  gameConfiguration,
+  expectedActions,
+  repeatedGetPlayerViewResult,
+}: AssertGetPlayerViewResult2Input): void {
+  expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
+    gameId: createdGameId,
+    player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, isReady: false },
+    opponents: {},
+    galaxy: expect.any(Object), // Verified by the snapshot test
+    fleets: [],
+    turn: 1,
+    turnStatus: "COLLECTING_ACTIONS",
+    turnEndsAt: Datetime.increment({
+      date: clock.now(),
+      time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
+    }).toISOString(),
+    resources: createResourcesDtoStub({
+      [ResourceType.INFLUENCE]: { uncommitted: 3, total: 3 },
+      [ResourceType.METAL]: { uncommitted: 2, total: 2 },
+      [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
+    }),
+    ruleset: TestRuleset,
+    actions: expect.any(Array),
+  })
+  expect(getPlayerViewResult.actions).toStrictEqual(expect.arrayContaining(expectedActions.map(withDefaultActionViewFields)))
+  expect(getPlayerViewResult.actions).toHaveLength(expectedActions.length)
+  expect(repeatedGetPlayerViewResult.actions).toStrictEqual(getPlayerViewResult.actions)
+}
+
+type AssertGetPlayerViewResult2Input = {
+  getPlayerViewResult: PlayerView
+  createdGameId: GameId
+  player: AuthenticatedApiClient
+  clock: ControlledClock
+  gameConfiguration: ReturnType<typeof createGameConfigurationStub>
+  expectedActions: Array<{ id: unknown; actionDefinitionId: ActionDefinitionId; selectedTargets: null; canAfford: false | true }>
+  repeatedGetPlayerViewResult: PlayerView
+}

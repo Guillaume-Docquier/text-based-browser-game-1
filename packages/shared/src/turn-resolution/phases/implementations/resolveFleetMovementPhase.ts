@@ -7,6 +7,7 @@ import { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
 import type { FleetMovement } from "#shared/domain/world/fleets/Fleet.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import { isFleetPresentAtPlanet } from "#shared/domain/world/fleets/isFleetPresentAtPlanet.ts"
+import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { resolveFleetRebinding } from "#shared/turn-resolution/arrivalProvenance.ts"
 import type { Effect } from "#shared/turn-resolution/effects/Effect.ts"
 import { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
@@ -47,9 +48,13 @@ export function resolveFleetMovementPhase(context: TurnContext): Result<TurnCont
 
   for (const fleetId of journeyIds) {
     const result = advanceJourney(context, fleetId, previousJourneys.has(fleetId))
-    if (Result.isFailure(result)) return result
+    if (Result.isFailure(result)) {
+      return result
+    }
     advances.push(result.value)
-    if (result.value.fleet.distanceToEnd === 0) arrivals.push(result.value)
+    if (result.value.fleet.distanceToEnd === 0) {
+      arrivals.push(result.value)
+    }
   }
   arrivals.sort((first, second) => {
     const tickOrder = (first.fleet.arrivedAtTick ?? 0) - (second.fleet.arrivedAtTick ?? 0)
@@ -58,6 +63,34 @@ export function resolveFleetMovementPhase(context: TurnContext): Result<TurnCont
     }
     return compareOrdinalStrings(first.fleet.id, second.fleet.id)
   })
+  const arrivalsResult = resolveArrivals(context, arrivals)
+  if (Result.isFailure(arrivalsResult)) {
+    return arrivalsResult
+  }
+
+  for (const advance of advances) {
+    recordAdvance(context, advance, advance.movement)
+  }
+
+  context.resolvedContinuations.sort(compareContinuations)
+
+  return Result.Success(context)
+}
+function compareContinuations(
+  first: TurnContext["resolvedContinuations"][number],
+  second: TurnContext["resolvedContinuations"][number],
+): number {
+  const playerOrder = compareOrdinalStrings(first.originatingSubmission.playerId, second.originatingSubmission.playerId)
+  if (playerOrder !== 0) {
+    return playerOrder
+  }
+  const actionOrder = compareOrdinalStrings(first.originatingSubmission.id, second.originatingSubmission.id)
+  if (actionOrder !== 0) {
+    return actionOrder
+  }
+  return first.departureTurn - second.departureTurn
+}
+function resolveArrivals(context: TurnContext, arrivals: readonly JourneyAdvance[]): Result<void, ResolvePhaseError> {
   for (const arrival of arrivals) {
     const settleResult = settleArrival(context, arrival)
     if (Result.isFailure(settleResult)) {
@@ -69,23 +102,7 @@ export function resolveFleetMovementPhase(context: TurnContext): Result<TurnCont
       return Result.Failure(ResolvePhaseError.FailedEffect({ error: queueResult.error }))
     }
   }
-
-  for (const advance of advances) {
-    recordAdvance(context, advance, advance.movement)
-  }
-
-  context.resolvedContinuations.sort((first, second) => {
-    const playerOrder = compareOrdinalStrings(first.originatingSubmission.playerId, second.originatingSubmission.playerId)
-    if (playerOrder !== 0) {
-      return playerOrder
-    }
-    const actionOrder = compareOrdinalStrings(first.originatingSubmission.id, second.originatingSubmission.id)
-    if (actionOrder !== 0) {
-      return actionOrder
-    }
-    return first.departureTurn - second.departureTurn
-  })
-  return Result.Success(context)
+  return Result.Success(undefined)
 }
 function advanceJourney(context: TurnContext, fleetId: FleetId, wasContinuation: boolean): Result<JourneyAdvance, ResolvePhaseError> {
   const fleet = context.turnState.fleets[fleetId]
@@ -102,18 +119,7 @@ function advanceJourney(context: TurnContext, fleetId: FleetId, wasContinuation:
   }
 
   const distanceBeforeMovement = fleet.distanceToEnd
-  const distanceMoved = Math.min(movement.speed, distanceBeforeMovement)
-  const remainingAfterMovement = distanceBeforeMovement - distanceMoved
-  const advancesSinceDeparture = context.turnState.turn - movement.departureTurn + 1
-  const maximumEarlierDistance = distanceBeforeMovement + movement.speed * advancesSinceDeparture
-  const roundingEnvelope = (Number.EPSILON / 2) * advancesSinceDeparture * maximumEarlierDistance
-  const finiteRoundingEnvelope =
-    Number.isFinite(maximumEarlierDistance) && Number.isFinite(roundingEnvelope) ? Math.min(roundingEnvelope, movement.speed / 2) : 0
-  // Absorb only cumulative binary64 subtraction noise; persisted distance and captured speed remain authoritative.
-  fleet.distanceToEnd = typedParse(
-    NonNegativeNumberSchema,
-    remainingAfterMovement > 0 && remainingAfterMovement <= finiteRoundingEnvelope ? 0 : remainingAfterMovement,
-  )
+  const distanceMoved = advanceJourneyDistance(fleet, movement, context.turnState.turn, distanceBeforeMovement)
   const outcomes = [
     EffectOutcome.Resolved({
       result: `Fleet "${fleet.name}" moved ${distanceMoved} light years towards Planet "${destinationPlanet.name}"`,
@@ -127,6 +133,21 @@ function advanceJourney(context: TurnContext, fleetId: FleetId, wasContinuation:
     )
   }
   return Result.Success(advance)
+}
+function advanceJourneyDistance(fleet: ResolutionFleet, movement: FleetMovement, turn: number, distanceBeforeMovement: number): number {
+  const distanceMoved = Math.min(movement.speed, distanceBeforeMovement)
+  const remainingAfterMovement = distanceBeforeMovement - distanceMoved
+  const advancesSinceDeparture = turn - movement.departureTurn + 1
+  const maximumEarlierDistance = distanceBeforeMovement + movement.speed * advancesSinceDeparture
+  const roundingEnvelope = (Number.EPSILON / 2) * advancesSinceDeparture * maximumEarlierDistance
+  const finiteRoundingEnvelope =
+    Number.isFinite(maximumEarlierDistance) && Number.isFinite(roundingEnvelope) ? Math.min(roundingEnvelope, movement.speed / 2) : 0
+  // Absorb only cumulative binary64 subtraction noise; persisted distance and captured speed remain authoritative.
+  fleet.distanceToEnd = typedParse(
+    NonNegativeNumberSchema,
+    remainingAfterMovement > 0 && remainingAfterMovement <= finiteRoundingEnvelope ? 0 : remainingAfterMovement,
+  )
+  return distanceMoved
 }
 
 function settleArrival(context: TurnContext, arrival: JourneyAdvance): Result<EffectOutcome, ReturnType<typeof EffectError.Failed>> {
@@ -161,6 +182,23 @@ function settleArrival(context: TurnContext, arrival: JourneyAdvance): Result<Ef
     return Result.Success(EffectOutcome.Resolved({ result: `Fleet "${fleet.name}" arrived on Planet "${destinationPlanet.name}"` }))
   }
 
+  const merged = mergeArrivalStrength(context, fleet, targetFleet, destinationPlanetId)
+  if (Result.isFailure(merged)) {
+    return merged
+  }
+  const mergedStrength = merged.value
+  return Result.Success(
+    EffectOutcome.Resolved({
+      result: `Fleet "${fleet.name}" arrived on Planet "${destinationPlanet.name}" and merged ${mergedStrength} Strength into Fleet "${targetFleet.name}"`,
+    }),
+  )
+}
+function mergeArrivalStrength(
+  context: TurnContext,
+  fleet: ResolutionFleet,
+  targetFleet: ResolutionFleet,
+  destinationPlanetId: PlanetId,
+): Result<number, ReturnType<typeof EffectError.Failed>> {
   if (!isSafeStrength(fleet.strength) || !isSafeStrength(targetFleet.strength)) {
     return Result.Failure(EffectError.Failed({ error: `Fleet merge at Planet "${destinationPlanetId}" has an unsafe Strength value` }))
   }
@@ -177,11 +215,7 @@ function settleArrival(context: TurnContext, arrival: JourneyAdvance): Result<Ef
     )
   }
   rebindMergedFleet(context, fleet, targetFleet)
-  return Result.Success(
-    EffectOutcome.Resolved({
-      result: `Fleet "${fleet.name}" arrived on Planet "${destinationPlanet.name}" and merged ${mergedStrength} Strength into Fleet "${targetFleet.name}"`,
-    }),
-  )
+  return Result.Success(mergedStrength)
 }
 function rebindMergedFleet(context: TurnContext, fleet: ResolutionFleet, targetFleet: ResolutionFleet): void {
   TurnState.removeFleet(context.turnState, fleet.id)
@@ -192,12 +226,16 @@ function rebindMergedFleet(context: TurnContext, fleet: ResolutionFleet, targetF
 }
 function rebindSurvivingFleet(context: TurnContext, removed: FleetId, survivor: FleetId): void {
   for (const [id, bound] of context.fleetIdRebindings) {
-    if (bound === removed) context.fleetIdRebindings.set(id, survivor)
+    if (bound === removed) {
+      context.fleetIdRebindings.set(id, survivor)
+    }
   }
 }
 function rebindArrivalIntents(context: TurnContext, removed: FleetId, survivor: FleetId): void {
   for (const intent of [...context.pendingArrivalAssaults, ...context.pendingArrivalColonizations]) {
-    if (intent.actualFleetId === removed) intent.actualFleetId = survivor
+    if (intent.actualFleetId === removed) {
+      intent.actualFleetId = survivor
+    }
   }
 }
 function isSafeStrength(strength: number): boolean {

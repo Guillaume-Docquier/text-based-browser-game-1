@@ -82,23 +82,8 @@ export function ActionCard({
 }: ActionCardProps): ReactElement {
   const tierStyle = ACTION_TIER_STYLES[actionDefinition.tier]
   const ActionIcon = ACTION_TYPE_ICONS[actionDefinition.type]
-  const {
-    targetSlots,
-    inputSlots,
-    selectedTargets,
-    selectedInputs,
-    evaluation,
-    canAfford,
-    isSelected,
-    sourceFleet,
-    fleetStrengthEffect,
-    remainingSourceStrength,
-    inProgressSummary,
-    actionIssues,
-    submitSelection,
-    setDraftTargets,
-    setDraftInputs,
-  } = useActionCardSelection({ actionDefinition, action, playerView, players, ruleset, eligibilityState, disabled, onSelect })
+  const selection = useActionCardSelection({ actionDefinition, action, playerView, players, ruleset, eligibilityState, disabled, onSelect })
+  const { canAfford } = selection
 
   return (
     <Card
@@ -128,66 +113,17 @@ export function ActionCard({
           )}
         </div>
       </CardHeader>
-      <CardContent className="relative z-10 flex min-h-36 flex-1 flex-col gap-4 border-t border-border/70 px-5 py-5">
-        <p className={cn("leading-relaxed", canAfford ? "text-card-foreground" : "text-zinc-500")}>
-          {effectDefinitionsToRulesText(actionDefinition)}
-        </p>
-        {action.isInProgress ? (
-          <p
-            role="status"
-            aria-label="Fleet journey"
-            className="rounded-lg border border-sky-400/30 bg-sky-400/10 px-3 py-2 text-sm text-sky-100"
-          >
-            {inProgressSummary}
-          </p>
-        ) : null}
-        <ActionSelectionFields
-          actionDefinition={actionDefinition}
-          action={action}
-          playerView={playerView}
-          players={players}
-          ruleset={ruleset}
-          eligibilityState={eligibilityState}
-          disabled={disabled}
-          onSelect={onSelect}
-          targetSlots={targetSlots}
-          inputSlots={inputSlots}
-          selectedTargets={selectedTargets}
-          selectedInputs={selectedInputs}
-          actionIssues={actionIssues}
-          setDraftTargets={setDraftTargets}
-          setDraftInputs={setDraftInputs}
-        />
-        {sourceFleet !== undefined && fleetStrengthEffect !== undefined ? (
-          <p className="text-xs text-muted-foreground">
-            {remainingSourceStrength?.toLocaleString()} of {sourceFleet.strength.toLocaleString()} strength available after this allocation
-          </p>
-        ) : null}
-        {actionIssues.length === 0 ? null : (
-          <ul aria-live="polite" className="space-y-1 text-xs text-destructive">
-            {actionIssues.map((issue) => (
-              <li
-                key={`${issue.actionId ?? "global"}-${issue.code}-${issue.targetTag ?? issue.inputTag ?? ""}-${issue.resourceType ?? ""}-${issue.message}`}
-              >
-                {issue.message}
-              </li>
-            ))}
-          </ul>
-        )}
-        {action.isInProgress ? null : (
-          <ActionSelectionButton
-            isSelected={isSelected}
-            disabled={disabled}
-            isEligible={evaluation?.status === "ELIGIBLE"}
-            onSelect={submitSelection}
-            onClear={() => {
-              setDraftTargets({})
-              setDraftInputs({})
-              onSelect(null, null)
-            }}
-          />
-        )}
-      </CardContent>
+      <ActionCardContent
+        actionDefinition={actionDefinition}
+        action={action}
+        playerView={playerView}
+        players={players}
+        ruleset={ruleset}
+        eligibilityState={eligibilityState}
+        disabled={disabled}
+        onSelect={onSelect}
+        selection={selection}
+      />
     </Card>
   )
 }
@@ -303,32 +239,43 @@ function applySingleChoiceDefaults(
   }: Pick<ActionCardProps, "action" | "actionDefinition" | "playerView" | "players" | "ruleset" | "eligibilityState">,
   selectionDraft: ActionSelectionDraft,
 ): void {
-  const selectedTargets: Record<TargetTag, TargetId | undefined> = selectionDraft.selectedTargets
   const targetDefinitions = Object.entries(actionDefinition.targets).map(([tag, targetDefinition]) => ({
     tag: branded<TargetTag>(tag),
     targetDefinition,
   }))
-  // Apply single-choice defaults to the same draft used for evaluation and submission.
-  for (let pass = 0; !action.isInProgress && pass < targetDefinitions.length; pass += 1) {
-    for (const { tag, targetDefinition } of targetDefinitions) {
-      if (getOwnRecordValue(selectedTargets, tag) !== undefined) {
-        continue
-      }
-      const options = getTargetOptions({
-        targetTag: tag,
-        targetDefinition,
-        playerView,
-        players,
-        state: eligibilityState,
-        ruleset,
-        draft: selectionDraft,
-      })
-      if (options.length === 1) {
-        const onlyOption = options[0]
-        if (onlyOption !== undefined) {
-          selectedTargets[tag] = onlyOption.id
-        }
-      }
+  if (action.isInProgress) {
+    return
+  }
+  for (let pass = 0; pass < targetDefinitions.length; pass += 1) {
+    for (const slot of targetDefinitions) {
+      defaultSingleChoiceTarget({ action, actionDefinition, playerView, players, ruleset, eligibilityState }, slot, selectionDraft)
+    }
+  }
+}
+function defaultSingleChoiceTarget(
+  props: Pick<ActionCardProps, "action" | "actionDefinition" | "playerView" | "players" | "ruleset" | "eligibilityState">,
+  slot: Pick<TargetSlot, "tag" | "targetDefinition">,
+  selectionDraft: ActionSelectionDraft,
+): void {
+  const { playerView, players, ruleset, eligibilityState } = props
+  const { tag, targetDefinition } = slot
+  const selectedTargets: Record<TargetTag, TargetId | undefined> = selectionDraft.selectedTargets
+  if (getOwnRecordValue(selectedTargets, tag) !== undefined) {
+    return
+  }
+  const options = getTargetOptions({
+    targetTag: tag,
+    targetDefinition,
+    playerView,
+    players,
+    state: eligibilityState,
+    ruleset,
+    draft: selectionDraft,
+  })
+  if (options.length === 1) {
+    const onlyOption = options[0]
+    if (onlyOption !== undefined) {
+      selectedTargets[tag] = onlyOption.id
     }
   }
 }
@@ -385,11 +332,11 @@ function replaceTarget(
     ruleset,
     action,
   }: Pick<ActionCardProps, "actionDefinition" | "eligibilityState" | "ruleset" | "action">,
-  selectedTargets: Record<TargetTag, TargetId | undefined>,
-  selectedInputs: Record<InputTag, number | undefined>,
-  tag: TargetTag,
-  targetId: TargetId | undefined,
+  draft: ActionSelectionDraft,
+  { tag, targetId }: { tag: TargetTag; targetId: TargetId | undefined },
 ): Record<TargetTag, TargetId | undefined> {
+  const selectedTargets = draft.selectedTargets,
+    selectedInputs = draft.selectedInputs
   const nextTargets: Record<TargetTag, TargetId | undefined> = { ...selectedTargets, [tag]: targetId }
   for (const otherTag of Object.keys(actionDefinition.targets).map((value) => branded<TargetTag>(value))) {
     if (otherTag === tag) {
@@ -414,27 +361,18 @@ function replaceTarget(
 }
 
 function ActionSelectionFields({
-  actionDefinition,
-  action,
-  ruleset,
-  eligibilityState,
   disabled,
   targetSlots,
   inputSlots,
   selectedTargets,
   selectedInputs,
   actionIssues,
-  setDraftTargets,
+  changeTarget,
   setDraftInputs,
-}: ActionCardProps & {
-  targetSlots: TargetSlot[]
-  inputSlots: InputSlot[]
-  selectedTargets: Record<TargetTag, TargetId | undefined>
-  selectedInputs: Record<InputTag, number | undefined>
-  actionIssues: readonly EligibilityIssue[]
-  setDraftTargets: (targets: Record<TargetTag, TargetId | undefined>) => void
-  setDraftInputs: (inputs: Record<InputTag, number | undefined>) => void
-}): ReactElement {
+}: Pick<
+  ActionCardSelection,
+  "targetSlots" | "inputSlots" | "selectedTargets" | "selectedInputs" | "actionIssues" | "setDraftInputs" | "changeTarget"
+> & { disabled: boolean }): ReactElement {
   return (
     <>
       {targetSlots.map(({ tag, targetDefinition, options }) => {
@@ -449,14 +387,7 @@ function ActionSelectionFields({
             disabled={disabled}
             issue={issue?.message}
             onChange={(targetId) => {
-              const nextTargets = replaceTarget(
-                { actionDefinition, eligibilityState, ruleset, action },
-                selectedTargets,
-                selectedInputs,
-                tag,
-                targetId,
-              )
-              setDraftTargets(nextTargets)
+              changeTarget(tag, targetId)
             }}
           />
         )
@@ -488,44 +419,18 @@ function useActionCardSelection({
   const selectedTargets: Record<TargetTag, TargetId | undefined> = action.isInProgress ? {} : { ...action.selectedTargets, ...draftTargets }
   const selectedInputs: Record<InputTag, number | undefined> = action.isInProgress ? {} : { ...action.selectedInputs, ...draftInputs }
   const selectionDraft: ActionSelectionDraft = { actionId: action.id, selectedTargets, selectedInputs }
-  const targetDefinitions = Object.entries(actionDefinition.targets).map(([tag, targetDefinition]) => ({
-    tag: branded<TargetTag>(tag),
-    targetDefinition,
-  }))
-
   applySingleChoiceDefaults({ action, actionDefinition, playerView, players, ruleset, eligibilityState }, selectionDraft)
-  const evaluation = action.isInProgress ? undefined : evaluateActionSelection({ state: eligibilityState, ruleset, draft: selectionDraft })
-  const canAfford = evaluation === undefined || !evaluation.issues.some(({ code }) => code === "INSUFFICIENT_RESOURCES")
-  const isSelected = !action.isInProgress && action.selectedTargets !== null
-  const targetSlots = action.isInProgress
-    ? []
-    : targetDefinitions.map(({ tag, targetDefinition }) => ({
-        tag,
-        targetDefinition,
-        options: getTargetOptions({
-          targetTag: tag,
-          targetDefinition,
-          playerView,
-          players,
-          state: eligibilityState,
-          ruleset,
-          draft: selectionDraft,
-        }),
-      }))
-  const inputSlots = action.isInProgress
-    ? []
-    : Object.entries(actionDefinition.inputs).map(([tag, inputDefinition]) => ({
-        tag: branded<InputTag>(tag),
-        inputDefinition,
-      }))
-
+  const { evaluation, canAfford, isSelected, actionIssues } = evaluateCardDraft(action, eligibilityState, ruleset, selectionDraft)
+  const { targetSlots, inputSlots } = cardSelectionSlots(
+    { actionDefinition, action, playerView, players, ruleset, eligibilityState },
+    selectionDraft,
+  )
   const { sourceFleet, fleetStrengthEffect, remainingSourceStrength } = getSourceStrength(
     actionDefinition,
     selectedTargets,
     eligibilityState,
     evaluation,
   )
-  const actionIssues = evaluation?.issues.filter((issue) => issue.actionId === action.id || issue.actionId === undefined) ?? []
   const inProgressSummary = getJourneySummary(action, eligibilityState, playerView)
 
   function submitSelection(): void {
@@ -553,8 +458,61 @@ function useActionCardSelection({
     actionIssues,
     submitSelection,
     setDraftTargets,
+    changeTarget: (tag, targetId) => {
+      setDraftTargets(replaceTarget({ actionDefinition, eligibilityState, ruleset, action }, selectionDraft, { tag, targetId }))
+    },
     setDraftInputs,
   }
+}
+function evaluateCardDraft(
+  action: Action,
+  state: EligibilityState,
+  ruleset: SharedRuleset,
+  draft: ActionSelectionDraft,
+): Pick<ActionCardSelection, "evaluation" | "canAfford" | "isSelected" | "actionIssues"> {
+  if (action.isInProgress) {
+    return { evaluation: undefined, canAfford: true, isSelected: false, actionIssues: [] }
+  }
+  const evaluation = evaluateActionSelection({ state, ruleset, draft })
+  return {
+    evaluation,
+    canAfford: !evaluation.issues.some(({ code }) => code === "INSUFFICIENT_RESOURCES"),
+    isSelected: action.selectedTargets !== null,
+    actionIssues: evaluation.issues.filter((issue) => issue.actionId === action.id || issue.actionId === undefined),
+  }
+}
+function cardSelectionSlots(
+  {
+    actionDefinition,
+    action,
+    playerView,
+    players,
+    ruleset,
+    eligibilityState,
+  }: Pick<ActionCardProps, "actionDefinition" | "action" | "playerView" | "players" | "ruleset" | "eligibilityState">,
+  selectionDraft: ActionSelectionDraft,
+): Pick<ActionCardSelection, "targetSlots" | "inputSlots"> {
+  if (action.isInProgress) {
+    return { targetSlots: [], inputSlots: [] }
+  }
+  const targetSlots = Object.entries(actionDefinition.targets).map(([tag, targetDefinition]) => ({
+    tag: branded<TargetTag>(tag),
+    targetDefinition,
+    options: getTargetOptions({
+      targetTag: branded<TargetTag>(tag),
+      targetDefinition,
+      playerView,
+      players,
+      state: eligibilityState,
+      ruleset,
+      draft: selectionDraft,
+    }),
+  }))
+  const inputSlots = Object.entries(actionDefinition.inputs).map(([tag, inputDefinition]) => ({
+    tag: branded<InputTag>(tag),
+    inputDefinition,
+  }))
+  return { targetSlots, inputSlots }
 }
 
 type ActionCardSelection = {
@@ -573,6 +531,8 @@ type ActionCardSelection = {
   submitSelection: () => void
   setDraftTargets: React.Dispatch<React.SetStateAction<Record<TargetTag, TargetId | undefined>>>
   setDraftInputs: React.Dispatch<React.SetStateAction<Record<InputTag, number | undefined>>>
+
+  changeTarget: (tag: TargetTag, targetId: TargetId | undefined) => void
 }
 
 function ActionInputFields({
@@ -615,6 +575,96 @@ function ActionInputFields({
           </label>
         )
       })}
+    </>
+  )
+}
+
+function ActionCardContent({
+  actionDefinition,
+  action,
+  disabled,
+  onSelect,
+  selection,
+}: ActionCardProps & { selection: ActionCardSelection }): ReactElement {
+  const {
+    targetSlots,
+    inputSlots,
+    selectedTargets,
+    selectedInputs,
+    evaluation,
+    canAfford,
+    isSelected,
+    sourceFleet,
+    fleetStrengthEffect,
+    remainingSourceStrength,
+    inProgressSummary,
+    actionIssues,
+    submitSelection,
+    setDraftTargets,
+    setDraftInputs,
+  } = selection
+  return (
+    <CardContent className="relative z-10 flex min-h-36 flex-1 flex-col gap-4 border-t border-border/70 px-5 py-5">
+      <p className={cn("leading-relaxed", canAfford ? "text-card-foreground" : "text-zinc-500")}>
+        {effectDefinitionsToRulesText(actionDefinition)}
+      </p>
+      {action.isInProgress ? (
+        <p
+          role="status"
+          aria-label="Fleet journey"
+          className="rounded-lg border border-sky-400/30 bg-sky-400/10 px-3 py-2 text-sm text-sky-100"
+        >
+          {inProgressSummary}
+        </p>
+      ) : null}
+      <ActionSelectionFields
+        disabled={disabled}
+        targetSlots={targetSlots}
+        inputSlots={inputSlots}
+        selectedTargets={selectedTargets}
+        selectedInputs={selectedInputs}
+        actionIssues={actionIssues}
+        changeTarget={selection.changeTarget}
+        setDraftInputs={setDraftInputs}
+      />
+      {sourceFleet !== undefined && fleetStrengthEffect !== undefined ? (
+        <p className="text-xs text-muted-foreground">
+          {remainingSourceStrength?.toLocaleString()} of {sourceFleet.strength.toLocaleString()} strength available after this allocation
+        </p>
+      ) : null}
+      <ActionIssues issues={actionIssues} />
+      {action.isInProgress ? null : (
+        <ActionSelectionButton
+          isSelected={isSelected}
+          disabled={disabled}
+          isEligible={evaluation?.status === "ELIGIBLE"}
+          onSelect={submitSelection}
+          onClear={() => {
+            setDraftTargets({})
+            setDraftInputs({})
+            onSelect(null, null)
+          }}
+        />
+      )}
+    </CardContent>
+  )
+}
+
+function ActionIssues({ issues: actionIssues }: { issues: readonly EligibilityIssue[] }): ReactElement {
+  return (
+    <>
+      {" "}
+      {actionIssues.length === 0 ? null : (
+        <ul aria-live="polite" className="space-y-1 text-xs text-destructive">
+          {actionIssues.map((issue) => (
+            <li
+              key={`${issue.actionId ?? "global"}-${issue.code}-${issue.targetTag ?? issue.inputTag ?? ""}-${issue.resourceType ?? ""}-${issue.message}`}
+            >
+              {issue.message}
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   )
 }

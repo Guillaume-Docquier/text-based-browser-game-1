@@ -43,20 +43,37 @@ function validateEnemyStrengths(
     if (attackingOwners === undefined) {
       continue
     }
-    for (const attackingOwnerId of [...attackingOwners].toSorted(compareOrdinalStrings)) {
-      const enemyStrength = stationaryFleets
-        .filter((fleet) => fleet.ownerPlayerId !== attackingOwnerId)
-        .reduce((total, fleet) => total + BigInt(fleet.strength), 0n)
-      if (enemyStrength > BigInt(Number.MAX_SAFE_INTEGER)) {
-        return (
-          'Enemy Strength at Planet "' + planetId + '" exceeds the safe integer range for Assaults by Player "' + attackingOwnerId + '"'
-        )
-      }
+    const error = enemyStrengthError(stationaryFleets, planetId, attackingOwners)
+    if (error !== undefined) {
+      return error
+    }
+  }
+  return undefined
+}
+function enemyStrengthError(
+  stationaryFleets: readonly ResolutionFleet[],
+  planetId: PlanetId,
+  attackingOwners: ReadonlySet<PlayerId>,
+): string | undefined {
+  for (const attackingOwnerId of [...attackingOwners].toSorted(compareOrdinalStrings)) {
+    const enemyStrength = stationaryFleets
+      .filter((fleet) => fleet.ownerPlayerId !== attackingOwnerId)
+      .reduce((total, fleet) => total + BigInt(fleet.strength), 0n)
+    if (enemyStrength > BigInt(Number.MAX_SAFE_INTEGER)) {
+      return 'Enemy Strength at Planet "' + planetId + '" exceeds the safe integer range for Assaults by Player "' + attackingOwnerId + '"'
     }
   }
   return undefined
 }
 function collectAssaultOwners(
+  turnState: TurnState,
+  ruleset: Ruleset,
+  addAssaultTarget: (playerId: PlayerId, planetId: unknown) => void,
+): void {
+  collectSubmittedAssaultOwners(turnState, ruleset, addAssaultTarget)
+  collectJourneyAssaultOwners(turnState, addAssaultTarget)
+}
+function collectSubmittedAssaultOwners(
   turnState: TurnState,
   ruleset: Ruleset,
   addAssaultTarget: (playerId: PlayerId, planetId: unknown) => void,
@@ -75,7 +92,8 @@ function collectAssaultOwners(
       }
     }
   }
-
+}
+function collectJourneyAssaultOwners(turnState: TurnState, addAssaultTarget: (playerId: PlayerId, planetId: unknown) => void): void {
   for (const fleet of Object.values(turnState.fleets)) {
     const movement = fleet.movement
     if (movement === undefined) {

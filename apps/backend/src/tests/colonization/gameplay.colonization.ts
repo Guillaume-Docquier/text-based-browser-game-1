@@ -484,7 +484,9 @@ export function startTogether(parties: number): () => Promise<void> {
   let arrivals = 0
   return async (): Promise<void> => {
     arrivals += 1
-    if (arrivals === parties) release()
+    if (arrivals === parties) {
+      release()
+    }
     await released
   }
 }

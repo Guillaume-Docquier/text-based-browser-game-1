@@ -14,6 +14,16 @@ import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import {
+  assertIndex2,
+  assertSurvivor,
+  assertEmptyObserved2,
+  assertOutcomeForOwner,
+  assertSelectedView,
+  assertPermuted,
+  assertOwnerIndex,
+} from "../tests/fleet-assertions/TurnProcessor.assault-arithmetic-2.ts"
+import { assertIndex, assertOwnerPublicForces, assertEmptyObserved } from "../tests/fleet-assertions/TurnProcessor.assault-arithmetic.ts"
+import {
   processPublicTurn,
   observeTurnAndRollback,
   replayObservedTurn,
@@ -293,34 +303,7 @@ describe("TurnProcessor", () => {
       const forces = [30, 20] as const
       const actionIds: string[] = []
 
-      const verifyIndexPhase1 = async (): Promise<void> => {
-        for (let index = 0; index < 2; index += 1) {
-          const client = fixture.clients[index]
-          const view = beforeViews[index]
-          const fleet = fixture.stationed[index]
-          const definition = definitions[index]
-          const force = forces[index]
-          Assert.isDefined(client)
-          Assert.isDefined(view)
-          Assert.isDefined(fleet)
-          Assert.isDefined(definition)
-          Assert.isDefined(force)
-          const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === definition.id)
-          Assert.isDefined(action)
-          actionIds.push(action.id)
-          await client.client.gameplay.updateActionSubmission.mutate({
-            gameId: fixture.gameId,
-            turn: view.turn,
-            submittedActionTargets: getActionToSubmintegrationTest(
-              view,
-              definition.id,
-              { fleet: fleet.id, planet: target.id },
-              { strength: force },
-            ),
-          })
-        }
-      }
-      await verifyIndexPhase1()
+      await assertIndex({ fixture, beforeViews, definitions, forces, actionIds, target })
 
       const currentTurn = beforeViews[0]
       Assert.isDefined(currentTurn)
@@ -377,63 +360,26 @@ describe("TurnProcessor", () => {
 
       // Assert: persisted A10, paid costs, released pooled instances, and unchanged natural RNG survive the next empty turn.
 
-      const verifyOwnerPublicForcesPhase2 = (): void => {
-        expect(ownerPublicForces(afterViews[0]?.fleets ?? [], fixture.playerIds, target.id)).toStrictEqual(expectedForces)
-        expect(afterViews[0]?.fleets.find(({ id }) => id === firstFleet.id)).toBeUndefined()
-        expect(afterViews[0]?.fleets.find(({ id }) => id === firstJourneyId)).toMatchObject({
-          id: firstJourneyId,
-          name: firstFleet.name,
-          ownerPlayerId: playerAId,
-          strength: 10,
-          originPlanetId: target.id,
-        })
-        expect(afterViews[0]?.fleets.find(({ id }) => id === laterFleet.id)).toBeUndefined()
-        expect(afterViews[0]?.fleets.find(({ id }) => id === laterJourneyId)).toBeUndefined()
-        for (let index = 0; index < 2; index += 1) {
-          const before = beforeViews[index]
-          const after = afterViews[index]
-          const actionId = actionIds[index]
-          Assert.isDefined(before)
-          Assert.isDefined(after)
-          Assert.isDefined(actionId)
-          expect(after.actions.find(({ id }) => id === actionId)).toMatchObject({ selectedTargets: null, isInProgress: false })
-          expect(after.resources[ResourceType.INFLUENCE].total).toBe(before.resources[ResourceType.INFLUENCE].total - 5)
-          expect(after.resources[ResourceType.FUEL].total).toBe(before.resources[ResourceType.FUEL].total - 1)
-        }
-      }
-      verifyOwnerPublicForcesPhase2()
+      assertOwnerPublicForces({
+        afterViews,
+        fixture,
+        target,
+        expectedForces,
+        firstFleet,
+        firstJourneyId,
+        playerAId,
+        laterFleet,
+        laterJourneyId,
+        beforeViews,
+        actionIds,
+      })
 
       const emptyTurn = afterViews[0]
       Assert.isDefined(emptyTurn)
 
-      const verifyEmptyObservedPhase3Observed = observed
-      const verifyEmptyObservedPhase3 = async (): Promise<void> => {
-        await Promise.all(
-          fixture.clients.map(
-            async ({ client }) =>
-              await client.gameplay.updateReadiness.mutate({
-                gameId: fixture.gameId,
-                turn: emptyTurn.turn,
-                isReady: true,
-              }),
-          ),
-        )
-        const emptyObserved = await observeTurnAndRollback({ db, clock, turnsRepository, gameId: fixture.gameId, turn: emptyTurn.turn })
-        expect(emptyObserved.submittedActions).toStrictEqual([])
-        expect(emptyObserved.rngState).toStrictEqual(verifyEmptyObservedPhase3Observed.rngState)
-        logWorkerObservation(
-          "[I2-04 public worker]",
-          JSON.stringify({
-            generatorState: verifyEmptyObservedPhase3Observed.rngState.generatorState,
-            draws: [],
-            ticks: [5, 15],
-            order: [fixture.playerIds[0], fixture.playerIds[1]],
-            nextState: emptyObserved.rngState,
-          }),
-        )
-        expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      }
-      await verifyEmptyObservedPhase3()
+      const assertEmptyObservedPhase3Observed = observed
+
+      await assertEmptyObserved({ fixture, emptyTurn, db, clock, turnsRepository, assertEmptyObservedPhase3Observed, turnProcessor })
     },
   )
 
@@ -476,34 +422,7 @@ describe("TurnProcessor", () => {
       const forces = [10, 30, 20] as const
       const actionIds: string[] = []
 
-      const verifyIndexPhase4 = async (): Promise<void> => {
-        for (let index = 0; index < 3; index += 1) {
-          const client = fixture.clients[index]
-          const view = beforeViews[index]
-          const fleet = fixture.stationed[index]
-          const definition = definitions[index]
-          const force = forces[index]
-          Assert.isDefined(client)
-          Assert.isDefined(view)
-          Assert.isDefined(fleet)
-          Assert.isDefined(definition)
-          Assert.isDefined(force)
-          const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === definition.id)
-          Assert.isDefined(action)
-          actionIds.push(action.id)
-          await client.client.gameplay.updateActionSubmission.mutate({
-            gameId: fixture.gameId,
-            turn: view.turn,
-            submittedActionTargets: getActionToSubmintegrationTest(
-              view,
-              definition.id,
-              { fleet: fleet.id, planet: target.id },
-              { strength: force },
-            ),
-          })
-        }
-      }
-      await verifyIndexPhase4()
+      await assertIndex2({ fixture, beforeViews, definitions, forces, actionIds, target })
 
       const currentTurn = beforeViews[0]
       Assert.isDefined(currentTurn)
@@ -576,72 +495,14 @@ describe("TurnProcessor", () => {
       )
       Assert.isDefined(survivor)
 
-      const verifyAssertSurvivorState1Phase5 = (): void => {
-        const assertSurvivorState1 = (): void => {
-          expect(survivor).toMatchObject({
-            id: secondJourneyId,
-            name: fleetB.name,
-            ownerPlayerId: fixture.playerIds[1],
-            strength: 8,
-            originPlanetId: target.id,
-          })
-          expect(afterViews[0]?.fleets.find(({ id }) => id === fleetB.id)).toBeUndefined()
-          expect(afterViews[0]?.fleets.find(({ id }) => id === survivor.id)).toMatchObject({
-            id: secondJourneyId,
-            name: fleetB.name,
-            ownerPlayerId: fixture.playerIds[1],
-            strength: 8,
-            originPlanetId: target.id,
-          })
-          expect(afterViews[0]?.fleets.find(({ id }) => id === fleetC.id)).toBeUndefined()
-          expect(afterViews[0]?.fleets.find(({ id }) => id === thirdJourneyId)).toBeUndefined()
-        }
-        assertSurvivorState1()
-        for (let index = 0; index < 3; index += 1) {
-          const before = beforeViews[index]
-          const after = afterViews[index]
-          const actionId = actionIds[index]
-          Assert.isDefined(before)
-          Assert.isDefined(after)
-          Assert.isDefined(actionId)
-          expect(after.actions.find(({ id }) => id === actionId)).toMatchObject({ selectedTargets: null, isInProgress: false })
-          expect(after.resources[ResourceType.INFLUENCE].total).toBe(before.resources[ResourceType.INFLUENCE].total - 5)
-          expect(after.resources[ResourceType.FUEL].total).toBe(before.resources[ResourceType.FUEL].total - 1)
-        }
-      }
-      verifyAssertSurvivorState1Phase5()
+      assertSurvivor({ survivor, secondJourneyId, fleetB, fixture, target, afterViews, fleetC, thirdJourneyId, beforeViews, actionIds })
 
       const emptyTurn = afterViews[0]
       Assert.isDefined(emptyTurn)
 
-      const verifyEmptyObservedPhase6Observed = observed
-      const verifyEmptyObservedPhase6 = async (): Promise<void> => {
-        await Promise.all(
-          fixture.clients.map(
-            async ({ client }) =>
-              await client.gameplay.updateReadiness.mutate({
-                gameId: fixture.gameId,
-                turn: emptyTurn.turn,
-                isReady: true,
-              }),
-          ),
-        )
-        const emptyObserved = await observeTurnAndRollback({ db, clock, turnsRepository, gameId: fixture.gameId, turn: emptyTurn.turn })
-        expect(emptyObserved.submittedActions).toStrictEqual([])
-        expect(emptyObserved.rngState).toStrictEqual(verifyEmptyObservedPhase6Observed.rngState)
-        logWorkerObservation(
-          "[I2-05 public worker]",
-          JSON.stringify({
-            generatorState: verifyEmptyObservedPhase6Observed.rngState.generatorState,
-            draws: [],
-            ticks: [5, 10, 15],
-            outcomes: [10, 16, "Prevented"],
-            nextState: emptyObserved.rngState,
-          }),
-        )
-        expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      }
-      await verifyEmptyObservedPhase6()
+      const assertEmptyObservedPhase6Observed = observed
+
+      await assertEmptyObserved2({ fixture, emptyTurn, db, clock, turnsRepository, assertEmptyObservedPhase6Observed, turnProcessor })
     },
   )
 
@@ -719,65 +580,23 @@ describe("TurnProcessor", () => {
     Assert.isDefined(playerAId)
     Assert.isDefined(playerBId)
 
-    const verifyAssertOutcomeForOwnerState1Phase7Observed = observed
-    const verifyAssertOutcomeForOwnerState1Phase7 = async (): Promise<void> => {
-      const assertOutcomeForOwnerState1 = async (): Promise<void> => {
-        expect(outcomeForOwner(forward.resolved, playerAId, assaultAction.id)).toStrictEqual({
-          type: "RESOLVED",
-          result: 'Fleet "' + attacker.name + '" found no enemy Fleets at Planet "' + fixture.stagingPlanet.name + '"',
-        })
-        expect(normalizedOutcomeSequence(forward.resolved)).toStrictEqual(normalizedOutcomeSequence(permuted.resolved))
-        expect(
-          Object.fromEntries(
-            fixture.playerIds.map((playerId) => [
-              playerId,
-              Object.values(forward.resolved.fleets)
-                .filter(
-                  ({ ownerPlayerId, originPlanetId, movement }) =>
-                    ownerPlayerId === playerId && originPlanetId === fixture.stagingPlanet.id && movement === undefined,
-                )
-                .map(({ strength }) => strength),
-            ]),
-          ),
-        ).toStrictEqual({
-          [playerAId]: [30],
-          [playerBId]: [],
-        })
-        expect(forward.rngState).toStrictEqual(verifyAssertOutcomeForOwnerState1Phase7Observed.rngState)
-        expect(permuted.rngState).toStrictEqual(verifyAssertOutcomeForOwnerState1Phase7Observed.rngState)
+    const assertAssertOutcomeForOwnerState1Phase7Observed = observed
 
-        // Act: the actual worker reloads, applies the departure/no-op, and saves both public rows.
-        expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      }
-      await assertOutcomeForOwnerState1()
-      const afterViews = await Promise.all(
-        fixture.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: fixture.gameId })),
-      )
-
-      // Assert: the attacker remains30 and the departing enemy retains20 from this origin at literal remainder4.318.
-      expect(afterViews[0]?.fleets.find(({ id }) => id === attacker.id)).toMatchObject({
-        id: attacker.id,
-        strength: 30,
-        originPlanetId: fixture.stagingPlanet.id,
-      })
-      const expectedEnemyDepartureId = v5(
-        JSON.stringify([fixture.gameId, playerBId, moveView.turn, moveAction.id, enemy.id]),
-        "3ac0b19b-e901-4bbf-a1dd-4ed71f73c136",
-      )
-      expect(afterViews[0]?.fleets.find(({ id }) => id === enemy.id)).toBeUndefined()
-      expect(afterViews[0]?.fleets.find(({ id }) => id === expectedEnemyDepartureId)).toMatchObject({
-        id: expectedEnemyDepartureId,
-        name: enemy.name,
-        strength: 20,
-        originPlanetId: fixture.stagingPlanet.id,
-        destinationPlanetId: enemyHome.id,
-        distanceToEnd: 4.318312565270031,
-        movement: { speed: 0.1 },
-      })
-      expect(afterViews[0]?.actions.find(({ id }) => id === assaultAction.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
-      expect(afterViews[1]?.actions.find(({ id }) => id === moveAction.id)?.isInProgress).toBe(true)
-    }
-    await verifyAssertOutcomeForOwnerState1Phase7()
+    await assertOutcomeForOwner({
+      forward,
+      playerAId,
+      assaultAction,
+      attacker,
+      fixture,
+      permuted,
+      playerBId,
+      assertAssertOutcomeForOwnerState1Phase7Observed,
+      turnProcessor,
+      moveView,
+      moveAction,
+      enemy,
+      enemyHome,
+    })
   })
 
   integrationTest(
@@ -820,38 +639,7 @@ describe("TurnProcessor", () => {
       Assert.isDefined(attackAction)
       Assert.isDefined(ordinaryAction)
 
-      const verifySelectedViewPhase8 = async (): Promise<void> => {
-        await alice.client.gameplay.updateActionSubmission.mutate({
-          gameId: fixture.gameId,
-          turn: departureView.turn,
-          submittedActionTargets: getActionToSubmintegrationTest(
-            departureView,
-            AttackMoveTest.id,
-            { fleet: attackerSource.id, planet: fixture.aliceHome.id },
-            { strength: 20 },
-          ),
-        })
-        await alice.client.gameplay.updateActionSubmission.mutate({
-          gameId: fixture.gameId,
-          turn: departureView.turn,
-          submittedActionTargets: getActionToSubmintegrationTest(
-            departureView,
-            MoveFleetImproved.id,
-            { fleet: attackerSource.id, planet: fixture.aliceHome.id },
-            { strength: 5 },
-          ),
-        })
-        const selectedView = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
-        expect(selectedView.resources[ResourceType.INFLUENCE].uncommitted).toBe(selectedView.resources[ResourceType.INFLUENCE].total - 8)
-        expect(selectedView.resources[ResourceType.FUEL].uncommitted).toBe(selectedView.resources[ResourceType.FUEL].total - 4)
-        await processPublicTurn({
-          clients: fixture.clients,
-          gameId: fixture.gameId,
-          turn: departureView.turn,
-          turnProcessor: fixture.turnProcessor,
-        })
-      }
-      await verifySelectedViewPhase8()
+      await assertSelectedView({ alice, fixture, departureView, attackerSource })
 
       let movingView = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
       let attackJourney = movingView.fleets.find(({ movement }) => movement?.submission.id === attackAction.id)
@@ -909,33 +697,9 @@ describe("TurnProcessor", () => {
       })
       const forward = replayObservedTurn(observed, false)
 
-      const verifyPermutedPhase9Observed = observed
-      const verifyPermutedPhase9 = (): void => {
-        const permuted = replayObservedTurn(verifyPermutedPhase9Observed, true)
-        const expectedTargetForces = { [playerAId]: [22], [playerBId]: [] }
-        const assertOwnerFleetForcesState1 = (): void => {
-          expect(ownerFleetForces(forward.resolved, fixture.playerIds, fixture.aliceHome.id)).toStrictEqual(expectedTargetForces)
-          expect(ownerFleetForces(permuted.resolved, fixture.playerIds, fixture.aliceHome.id)).toStrictEqual(expectedTargetForces)
-          expect(ownerFleetForces(forward.resolved, fixture.playerIds, fixture.bobHome.id)).toStrictEqual({
-            [playerAId]: [8],
-            [playerBId]: [],
-          })
-          expect(normalizedOutcomeSequence(forward.resolved)).toStrictEqual(normalizedOutcomeSequence(permuted.resolved))
-          expect(forward.rngState).toStrictEqual(permuted.rngState)
-          expect(
-            Object.values(forward.resolved.fleets)
-              .map(({ id, name, ownerPlayerId, originPlanetId, strength }) => ({ id, name, ownerPlayerId, originPlanetId, strength }))
-              .toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
-          ).toStrictEqual(
-            Object.values(permuted.resolved.fleets)
-              .map(({ id, name, ownerPlayerId, originPlanetId, strength }) => ({ id, name, ownerPlayerId, originPlanetId, strength }))
-              .toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
-          )
-          expect(forward.resolved.removedFleetIds).toStrictEqual(expect.arrayContaining([attackJourney.id, ordinaryJourney.id, enemy.id]))
-        }
-        assertOwnerFleetForcesState1()
-      }
-      verifyPermutedPhase9()
+      const assertPermutedPhase9Observed = observed
+
+      assertPermuted({ assertPermutedPhase9Observed, playerAId, playerBId, forward, fixture, attackJourney, ordinaryJourney, enemy })
 
       const attackContinuations = forward.resolved.resolvedContinuations.filter(
         ({ originatingSubmission }) => originatingSubmission.playerId === playerAId && originatingSubmission.id === attackAction.id,
@@ -976,38 +740,20 @@ describe("TurnProcessor", () => {
         fixture.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: fixture.gameId })),
       )
 
-      const verifyOwnerIndexPhase10 = (): void => {
-        for (let ownerIndex = 0; ownerIndex < afterCombat.length; ownerIndex += 1) {
-          const view = afterCombat[ownerIndex]
-          const before = beforeCombatViews[ownerIndex]
-          const ownerPlayerId = fixture.playerIds[ownerIndex]
-          Assert.isDefined(view)
-          Assert.isDefined(before)
-          Assert.isDefined(ownerPlayerId)
-          expect(view.fleets.find(({ id }) => id === initialFriendly.id)).toMatchObject({
-            id: initialFriendly.id,
-            name: initialFriendly.name,
-            ownerPlayerId: playerAId,
-            originPlanetId: fixture.aliceHome.id,
-            strength: 22,
-          })
-          expect(view.fleets.find(({ id }) => id === enemy.id)).toBeUndefined()
-          expect(view.fleets.find(({ id }) => id === attackJourney.id)).toBeUndefined()
-          expect(view.fleets.find(({ id }) => id === ordinaryJourney.id)).toBeUndefined()
-          expect(view.fleets.find(({ id }) => id === attackerSource.id)).toMatchObject({ id: attackerSource.id, strength: 8 })
-          expect(view.actions.find(({ id }) => id === attackAction.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
-          expect(view.actions.find(({ id }) => id === ordinaryAction.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
-          expect(view.actions.find(({ id }) => id === buildAction.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
-          const aliceBuildInfluenceCost = ownerPlayerId === playerAId ? 2 : 0
-          const aliceBuildMetalCost = ownerPlayerId === playerAId ? 1 : 0
-          expect(view.resources[ResourceType.INFLUENCE].total).toBe(
-            before.resources[ResourceType.INFLUENCE].total - aliceBuildInfluenceCost,
-          )
-          expect(view.resources[ResourceType.METAL].total).toBe(before.resources[ResourceType.METAL].total - aliceBuildMetalCost)
-          expect(view.resources[ResourceType.FUEL].total).toBe(before.resources[ResourceType.FUEL].total)
-        }
-      }
-      verifyOwnerIndexPhase10()
+      assertOwnerIndex({
+        afterCombat,
+        beforeCombatViews,
+        fixture,
+        initialFriendly,
+        playerAId,
+        enemy,
+        attackJourney,
+        ordinaryJourney,
+        attackerSource,
+        attackAction,
+        ordinaryAction,
+        buildAction,
+      })
 
       const nextTurn = afterCombat[0]
       Assert.isDefined(nextTurn)
