@@ -305,76 +305,11 @@ export async function assertOutOfRangeDistance({
   sourceFleet,
   target,
 }: AssertOutOfRangeDistanceInput): Promise<void> {
-  expect({
-    id: outOfRangeTarget.id,
-    name: outOfRangeTarget.name,
-    coordinates: outOfRangeTarget.coordinates,
-    x: outOfRangeTarget.x,
-    y: outOfRangeTarget.y,
-  }).toStrictEqual({
-    id: "72f899ea-98e3-5c0e-b896-f41c0b3bf6c5",
-    name: "planet 596186",
-    coordinates: "54:18:10",
-    x: 48.592171610357454,
-    y: 51.996922937376276,
-  })
-  const outOfRangeDistance = Math.hypot(home.x - outOfRangeTarget.x, home.y - outOfRangeTarget.y)
-  expect(outOfRangeDistance).toBeCloseTo(10.129282735155494, 12)
-  expect(outOfRangeTarget.ownerPlayerId).toBeNull()
-  const beforeOutOfRangeAttempt = await player.client.gameplay.getPlayerView.query({ gameId })
-  await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: builtView.turn,
-      submittedActionTargets: {
-        actionId: seedOutpostAction.id,
-        selectedTargets: { force: sourceFleet.id, site: outOfRangeTarget.id },
-        selectedInputs: { quota: 30 },
-      },
-    }),
-  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(beforeOutOfRangeAttempt)
-  const unchangedAfterQuotaFailure = await player.client.gameplay.getPlayerView.query({ gameId })
-  await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: builtView.turn,
-      submittedActionTargets: {
-        actionId: seedOutpostAction.id,
-        selectedTargets: { force: sourceFleet.id, site: target.id },
-        selectedInputs: { quota: 29 },
-      },
-    }),
-  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(unchangedAfterQuotaFailure)
+  verifyOutOfRangeDistance({ outOfRangeTarget, home })
 
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: builtView.turn,
-    submittedActionTargets: {
-      actionId: seedOutpostAction.id,
-      selectedTargets: { force: sourceFleet.id, site: target.id },
-      selectedInputs: { quota: 30 },
-    },
-  })
-  const quotaThirtyView = await player.client.gameplay.getPlayerView.query({ gameId })
-  expect(quotaThirtyView.actions.find(({ id }) => id === seedOutpostAction.id)).toMatchObject({
-    actionDefinitionId: SeedOutpost.id,
-    selectedTargets: { force: sourceFleet.id, site: target.id },
-    selectedInputs: { quota: 30 },
-  })
-  expect(quotaThirtyView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 43 })
-  expect(quotaThirtyView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 8 })
+  await verifyBeforeOutOfRangeAttempt({ player, gameId, builtView, seedOutpostAction, sourceFleet, outOfRangeTarget, target })
 
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: quotaThirtyView.turn,
-    submittedActionTargets: {
-      actionId: seedOutpostAction.id,
-      selectedTargets: { force: sourceFleet.id, site: target.id },
-      selectedInputs: { quota: 45 },
-    },
-  })
+  await verifyQuotaThirtyView({ player, gameId, builtView, seedOutpostAction, sourceFleet, target })
 }
 
 export type AssertOutOfRangeDistanceInput = {
@@ -574,4 +509,118 @@ export type AssertFindPlayerAction2Input = {
   assertFindPlayerActionState1Resolved: ResolvedTurnState
   replay: ReturnType<typeof CapturedreplayWorkerInputWithState>
   turnProcessor: TurnProcessor
+}
+
+function verifyOutOfRangeDistance({ outOfRangeTarget, home }: VerifyOutOfRangeDistanceInput): void {
+  expect({
+    id: outOfRangeTarget.id,
+    name: outOfRangeTarget.name,
+    coordinates: outOfRangeTarget.coordinates,
+    x: outOfRangeTarget.x,
+    y: outOfRangeTarget.y,
+  }).toStrictEqual({
+    id: "72f899ea-98e3-5c0e-b896-f41c0b3bf6c5",
+    name: "planet 596186",
+    coordinates: "54:18:10",
+    x: 48.592171610357454,
+    y: 51.996922937376276,
+  })
+  const outOfRangeDistance = Math.hypot(home.x - outOfRangeTarget.x, home.y - outOfRangeTarget.y)
+  expect(outOfRangeDistance).toBeCloseTo(10.129282735155494, 12)
+  expect(outOfRangeTarget.ownerPlayerId).toBeNull()
+}
+
+async function verifyBeforeOutOfRangeAttempt({
+  player,
+  gameId,
+  builtView,
+  seedOutpostAction,
+  sourceFleet,
+  outOfRangeTarget,
+  target,
+}: VerifyBeforeOutOfRangeAttemptInput): Promise<void> {
+  const beforeOutOfRangeAttempt = await player.client.gameplay.getPlayerView.query({ gameId })
+  await expect(
+    player.client.gameplay.updateActionSubmission.mutate({
+      gameId,
+      turn: builtView.turn,
+      submittedActionTargets: {
+        actionId: seedOutpostAction.id,
+        selectedTargets: { force: sourceFleet.id, site: outOfRangeTarget.id },
+        selectedInputs: { quota: 30 },
+      },
+    }),
+  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(beforeOutOfRangeAttempt)
+  const unchangedAfterQuotaFailure = await player.client.gameplay.getPlayerView.query({ gameId })
+  await expect(
+    player.client.gameplay.updateActionSubmission.mutate({
+      gameId,
+      turn: builtView.turn,
+      submittedActionTargets: {
+        actionId: seedOutpostAction.id,
+        selectedTargets: { force: sourceFleet.id, site: target.id },
+        selectedInputs: { quota: 29 },
+      },
+    }),
+  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(unchangedAfterQuotaFailure)
+}
+
+async function verifyQuotaThirtyView({
+  player,
+  gameId,
+  builtView,
+  seedOutpostAction,
+  sourceFleet,
+  target,
+}: VerifyQuotaThirtyViewInput): Promise<void> {
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: builtView.turn,
+    submittedActionTargets: {
+      actionId: seedOutpostAction.id,
+      selectedTargets: { force: sourceFleet.id, site: target.id },
+      selectedInputs: { quota: 30 },
+    },
+  })
+  const quotaThirtyView = await player.client.gameplay.getPlayerView.query({ gameId })
+  expect(quotaThirtyView.actions.find(({ id }) => id === seedOutpostAction.id)).toMatchObject({
+    actionDefinitionId: SeedOutpost.id,
+    selectedTargets: { force: sourceFleet.id, site: target.id },
+    selectedInputs: { quota: 30 },
+  })
+  expect(quotaThirtyView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 43 })
+  expect(quotaThirtyView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 8 })
+
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: quotaThirtyView.turn,
+    submittedActionTargets: {
+      actionId: seedOutpostAction.id,
+      selectedTargets: { force: sourceFleet.id, site: target.id },
+      selectedInputs: { quota: 45 },
+    },
+  })
+}
+
+type VerifyOutOfRangeDistanceInput = { outOfRangeTarget: Planet; home: Planet }
+
+type VerifyBeforeOutOfRangeAttemptInput = {
+  player: AuthenticatedApiClient
+  gameId: number
+  builtView: PlayerView
+  seedOutpostAction: Action
+  sourceFleet: Fleet
+  outOfRangeTarget: Planet
+  target: Planet
+}
+
+type VerifyQuotaThirtyViewInput = {
+  player: AuthenticatedApiClient
+  gameId: number
+  builtView: PlayerView
+  seedOutpostAction: Action
+  sourceFleet: Fleet
+  target: Planet
 }

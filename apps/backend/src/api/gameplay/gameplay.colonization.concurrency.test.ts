@@ -5,7 +5,14 @@ import { type GameId, GameIdSchema } from "shared/domain/games/GameId.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
+import type { ActionTier } from "shared/domain/ruleset/action-definitions/ActionTier.ts"
+import type { ActionType } from "shared/domain/ruleset/action-definitions/ActionType.ts"
+import type { InputTag } from "shared/domain/ruleset/action-definitions/InputTag.ts"
 import type { PositiveInteger } from "shared/domain/ruleset/action-definitions/PositiveInteger.ts"
+import type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
+import type { EffectDefinitionTargetDefinition } from "shared/domain/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
+import type { ResourceLossEffectDefinition } from "shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
+import type { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
 import type { createSubmittedActionStub } from "shared/domain/turns/actions/Action.stub.ts"
 import type { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import type { PendingArrivalEffect } from "shared/domain/world/fleets/Fleet.ts"
@@ -102,25 +109,22 @@ describe("public Colonization worker companions", () => {
       selectedTargets: { fleet: attacker.id, planet: target.id },
       selectedInputs: { strength: 50 },
     })
-    const selectedViews = await readViews(clients, gameId)
-    expect(required(selectedViews[0]).actions.find(({ id }) => id === composedActionId)).toMatchObject({
-      actionDefinitionId: ComposedSuccessAttackColonize.id,
-      selectedTargets: { fleet: attacker.id, planet: target.id },
-      selectedInputs: { strength: 50 },
-    })
-    expect(required(selectedViews[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 498, uncommitted: 473 })
-    expect(required(selectedViews[0]).resources[ResourceType.FUEL]).toStrictEqual({ total: 100, uncommitted: 100 })
 
-    stage = await processTurnWithReplay({
+    const updatedVerifySelectedViews = await verifySelectedViews({
+      clients,
+      gameId,
+      composedActionId,
+      attacker,
+      target,
+      stage,
       server,
       clock,
       turnsRepository,
       turnProcessor,
-      clients,
-      gameId,
-      turn: required(selectedViews[0]).turn,
+      views,
     })
-    views = stage.views
+    stage = updatedVerifySelectedViews.stage
+    views = updatedVerifySelectedViews.views
 
     const createAttackerJourneySetupPhase2Result = await createAttackerJourneySetup({
       ...createViewsSetupPhase1Result,
@@ -147,26 +151,22 @@ describe("public Colonization worker companions", () => {
       .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
     const savedNextTurn = savedTurns.find(({ turn }) => turn === arrivalTurn + 1)
     Assert.isDefined(savedNextTurn)
-    const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
-    expect(persistedNextRngState).toStrictEqual(arrivalReplay.nextRngState)
 
-    logReceipt("[C3-15 public composed success receipt]", {
+    verifyPersistedNextRngState({
+      savedNextTurn,
+      arrivalReplay,
       gameId,
-      seed: 1,
-      homes: [
-        { id: homeA.id, coordinates: homeA.coordinates, x: homeA.x, y: homeA.y },
-        { id: homeB.id, coordinates: homeB.coordinates, x: homeB.x, y: homeB.y },
-      ],
-      target: { id: target.id, coordinates: target.coordinates, x: target.x, y: target.y },
-      distances: { attacker: attackerDistance, defender: defenderDistance },
-      defender: { journeyId: defenderJourney.id, strength: 10, actualArrivalTick: 18, atTargetBeforeAttack: true },
-      attacker: { journeyId: attackerJourney.id, strengthBeforeCombat: 50, actualArrivalTick: 6 },
-      capturedEffectTypes: loadedDefinition.effects.map(({ type }) => type),
-      capturedMappings: loadedDefinition.effects.map((effect) => ({ type: effect.type, targets: effect.targets })),
-      outcomes: continuation.actionOutcomes,
-      result: { owner: required(views[0]).player.id, strength: 20, defenderFleetRemoved: true },
-      influence: { paidOnce: 25, remaining: required(views[0]).resources[ResourceType.INFLUENCE].total },
-      rng: { preResolution: arrivalInput.rngState, replayNext: arrivalReplay.nextRngState, persistedNext: persistedNextRngState },
+      homeA,
+      homeB,
+      target,
+      attackerDistance,
+      defenderDistance,
+      defenderJourney,
+      attackerJourney,
+      loadedDefinition,
+      continuation,
+      views,
+      arrivalInput,
     })
   })
 
@@ -288,11 +288,9 @@ describe("public Colonization worker companions", () => {
         expectedAttackerFleetCount,
         expectedAttackerAtTargetCount,
       })
-      const { persistedAttacker, persistedFleetRows, savedNextTurn, assertPersistedNextRngStatePhase4Value1 } =
-        createPersistedAttackerSetupPhase5Result
 
-      assertPersistedNextRngState({
-        savedNextTurn,
+      verifyPersistedAttacker({
+        createPersistedAttackerSetupPhase5Result,
         replay,
         gameId,
         target,
@@ -302,13 +300,10 @@ describe("public Colonization worker companions", () => {
         expectedSurvivingAttackerStrength,
         composedActionId,
         replayedTarget,
-        assertPersistedNextRngStatePhase4Value1,
         loadedAttacker,
         loadedDefender,
         continuation,
         views,
-        persistedAttacker,
-        persistedFleetRows,
       })
     },
   )
@@ -782,4 +777,231 @@ type CreatePersistedAttackerSetupResult = {
     rngSpareNormal: null | number
   }
   assertPersistedNextRngStatePhase4Value1: ResolvedTurnState
+}
+
+async function verifySelectedViews({
+  clients,
+  gameId,
+  composedActionId,
+  attacker,
+  target,
+  stage,
+  server,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  views,
+}: VerifySelectedViewsInput): Promise<VerifySelectedViewsResult> {
+  const selectedViews = await readViews(clients, gameId)
+  expect(required(selectedViews[0]).actions.find(({ id }) => id === composedActionId)).toMatchObject({
+    actionDefinitionId: ComposedSuccessAttackColonize.id,
+    selectedTargets: { fleet: attacker.id, planet: target.id },
+    selectedInputs: { strength: 50 },
+  })
+  expect(required(selectedViews[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 498, uncommitted: 473 })
+  expect(required(selectedViews[0]).resources[ResourceType.FUEL]).toStrictEqual({ total: 100, uncommitted: 100 })
+
+  stage = await processTurnWithReplay({
+    server,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+    gameId,
+    turn: required(selectedViews[0]).turn,
+  })
+  views = stage.views
+
+  return { stage, views }
+}
+
+function verifyPersistedNextRngState({
+  savedNextTurn,
+  arrivalReplay,
+  gameId,
+  homeA,
+  homeB,
+  target,
+  attackerDistance,
+  defenderDistance,
+  defenderJourney,
+  attackerJourney,
+  loadedDefinition,
+  continuation,
+  views,
+  arrivalInput,
+}: VerifyPersistedNextRngStateInput): void {
+  const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
+  expect(persistedNextRngState).toStrictEqual(arrivalReplay.nextRngState)
+
+  logReceipt("[C3-15 public composed success receipt]", {
+    gameId,
+    seed: 1,
+    homes: [
+      { id: homeA.id, coordinates: homeA.coordinates, x: homeA.x, y: homeA.y },
+      { id: homeB.id, coordinates: homeB.coordinates, x: homeB.x, y: homeB.y },
+    ],
+    target: { id: target.id, coordinates: target.coordinates, x: target.x, y: target.y },
+    distances: { attacker: attackerDistance, defender: defenderDistance },
+    defender: { journeyId: defenderJourney.id, strength: 10, actualArrivalTick: 18, atTargetBeforeAttack: true },
+    attacker: { journeyId: attackerJourney.id, strengthBeforeCombat: 50, actualArrivalTick: 6 },
+    capturedEffectTypes: loadedDefinition.effects.map(({ type }) => type),
+    capturedMappings: loadedDefinition.effects.map((effect) => ({ type: effect.type, targets: effect.targets })),
+    outcomes: continuation.actionOutcomes,
+    result: { owner: required(views[0]).player.id, strength: 20, defenderFleetRemoved: true },
+    influence: { paidOnce: 25, remaining: required(views[0]).resources[ResourceType.INFLUENCE].total },
+    rng: { preResolution: arrivalInput.rngState, replayNext: arrivalReplay.nextRngState, persistedNext: persistedNextRngState },
+  })
+}
+
+function verifyPersistedAttacker({
+  createPersistedAttackerSetupPhase5Result,
+  replay,
+  gameId,
+  target,
+  defenderDistance,
+  attackerStrength,
+  defenderStrength,
+  expectedSurvivingAttackerStrength,
+  composedActionId,
+  replayedTarget,
+  loadedAttacker,
+  loadedDefender,
+  continuation,
+  views,
+}: VerifyPersistedAttackerInput): void {
+  const { persistedAttacker, persistedFleetRows, savedNextTurn, assertPersistedNextRngStatePhase4Value1 } =
+    createPersistedAttackerSetupPhase5Result
+
+  assertPersistedNextRngState({
+    savedNextTurn,
+    replay,
+    gameId,
+    target,
+    defenderDistance,
+    attackerStrength,
+    defenderStrength,
+    expectedSurvivingAttackerStrength,
+    composedActionId,
+    replayedTarget,
+    assertPersistedNextRngStatePhase4Value1,
+    loadedAttacker,
+    loadedDefender,
+    continuation,
+    views,
+    persistedAttacker,
+    persistedFleetRows,
+  })
+}
+
+type VerifySelectedViewsInput = {
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: number
+  composedActionId: string
+  attacker: Fleet
+  target: Planet
+  stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  views: PlayerView[]
+}
+
+type VerifySelectedViewsResult = { stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>; views: PlayerView[] }
+
+type VerifyPersistedNextRngStateInput = {
+  savedNextTurn: {
+    gameId: GameId
+    turn: number
+    status: "COLLECTING_ACTIONS" | "AWAITING_PROCESSING" | "PROCESSING" | "COMPLETED"
+    startedAt: ReturnType<typeof normalizeApiDate>
+    endsAt: ReturnType<typeof normalizeApiDate>
+    closedAt: null | ReturnType<typeof normalizeApiDate>
+    rngGeneratorState: number
+    rngSpareNormal: null | number
+  }
+  arrivalReplay: ReturnType<typeof CapturedreplayWorkerInputWithState>
+  gameId: number
+  homeA: Planet
+  homeB: Planet
+  target: Planet
+  attackerDistance: number
+  defenderDistance: number
+  defenderJourney: Fleet
+  attackerJourney: Fleet
+  loadedDefinition: Readonly<{
+    id: ActionDefinitionId
+    name: string
+    type: ActionType
+    tier: ActionTier
+    inputs: Readonly<Record<InputTag, Readonly<{ type: "POSITIVE_INTEGER"; label: string }>>>
+    targets: Readonly<
+      Record<
+        TargetTag,
+        Readonly<{
+          targetType: TargetType
+          constraints: ReadonlyArray<
+            | { type: "OWNED_BY_SUBMITTING_PLAYER"; references: Record<string, never>; parameters: Record<string, never> }
+            | { type: "STATIONARY_FLEET"; references: Record<string, never>; parameters: Record<string, never> }
+            | { type: "WITHIN_FLEET_RANGE"; references: { sourceFleetTag: TargetTag }; parameters: { maxDistance: PositiveNumber } }
+            | { type: "DIFFERENT_FROM_FLEET_ORIGIN"; references: { sourceFleetTag: TargetTag }; parameters: Record<string, never> }
+            | { type: "AT_FLEET_PLANET"; references: { sourceFleetTag: TargetTag }; parameters: Record<string, never> }
+            | { type: "UNCLAIMED_PLANET"; references: Record<string, never>; parameters: Record<string, never> }
+          >
+        }>
+      >
+    >
+    costs: ResourceLossEffectDefinition[]
+    effects: Array<
+      | {
+          type: "FLEET_ASSAULT"
+          targets: { fleet: EffectDefinitionTargetDefinition<"FLEET">; planet: EffectDefinitionTargetDefinition<"PLANET"> }
+          parameters: Record<string, never>
+        }
+      | {
+          type: "FLEET_COLONIZE"
+          targets: { fleet: EffectDefinitionTargetDefinition<"FLEET">; planet: EffectDefinitionTargetDefinition<"PLANET"> }
+          parameters: { strengthRequirement: PositiveInteger }
+        }
+      | {
+          type: "RESOURCE_LOSS"
+          targets: Record<string, never>
+          parameters: Readonly<{ quantity: PositiveNumber; resourceType: "INFLUENCE" | "METAL" | "FUEL" | "ENERGY" | "COLONY" }>
+        }
+      | {
+          type: "RESOURCE_GAIN"
+          targets: Record<string, never>
+          parameters: Readonly<{ quantity: PositiveNumber; resourceType: "INFLUENCE" | "METAL" | "FUEL" | "ENERGY" | "COLONY" }>
+        }
+      | { type: "VICTORY"; targets: Record<string, never>; parameters: Record<string, never> }
+      | { type: "FLEET_BUILD"; targets: { planet: EffectDefinitionTargetDefinition<"PLANET"> }; parameters: { strength: PositiveInteger } }
+      | {
+          type: "FLEET_MOVE"
+          targets: { fleet: EffectDefinitionTargetDefinition<"FLEET">; planet: EffectDefinitionTargetDefinition<"PLANET"> }
+          inputs: { strength: { actionInputTag: InputTag; inputType: "POSITIVE_INTEGER" } }
+          parameters: { speed: PositiveNumber }
+        }
+    >
+  }>
+  continuation: ResolvedTurnState["resolvedContinuations"][number]
+  views: PlayerView[]
+  arrivalInput: ReturnType<typeof reverseWorkerInputEnumeration>
+}
+
+type VerifyPersistedAttackerInput = {
+  createPersistedAttackerSetupPhase5Result: CreatePersistedAttackerSetupResult
+  replay: ReturnType<typeof CapturedreplayWorkerInputWithState>
+  gameId: number
+  target: Planet
+  defenderDistance: number
+  attackerStrength: number
+  defenderStrength: number
+  expectedSurvivingAttackerStrength: undefined | number
+  composedActionId: string
+  replayedTarget: undefined | ResolutionPlanet
+  loadedAttacker: ReturnType<typeof createFleetStub>
+  loadedDefender: ReturnType<typeof createFleetStub>
+  continuation: ResolvedTurnState["resolvedContinuations"][number]
+  views: PlayerView[]
 }

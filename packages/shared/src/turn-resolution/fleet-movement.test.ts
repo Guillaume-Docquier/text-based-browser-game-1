@@ -3,6 +3,7 @@ import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { describe, expect, it } from "vitest"
 import { computeAvailableActions } from "#shared/action-submission/computeAvailableActions.ts"
 import { evaluateActionSelection, type EligibilityState } from "#shared/action-submission/evaluateActionSelection.ts"
+import type { EligibilityIssueCode } from "#shared/action-submission/selectionEvaluation.ts"
 import { compareOrdinalStrings } from "#shared/domain/compareOrdinalStrings.ts"
 import { GameIdSchema } from "#shared/domain/games/GameId.ts"
 import { PlayerIdSchema, type PlayerId } from "#shared/domain/players/PlayerId.ts"
@@ -194,49 +195,20 @@ describe("fleet movement turn resolution", () => {
     })
 
     // Assert
-    expect(departureResources).toStrictEqual(
-      createResourcesStub({
-        [ResourceType.INFLUENCE]: 17,
-        [ResourceType.FUEL]: 19,
-      }),
-    )
-    expect(occupiedJourney.distanceToEnd).toBe(0.9)
-    expect(occupiedEvaluation.status).toBe("INELIGIBLE")
-    expect(occupiedEvaluation.issues).toContainEqual({
-      code: "ACTION_ALREADY_IN_PROGRESS",
-      actionId: branded<ActionId>("MOVE_1"),
-      message: 'Action instance "MOVE_1" is still in progress with Fleet "' + occupiedJourney.id + '"',
+
+    verifyDepartureResources({
+      departureResources,
+      occupiedJourney,
+      occupiedEvaluation,
+      stillTravelingDistances,
+      continuationResources,
+      resolved,
+      arrivedFleet,
+      fixture,
+      departureSubmission,
     })
-    expect(stillTravelingDistances).toHaveLength(8)
-    expect(Math.min(...stillTravelingDistances)).toBeGreaterThan(0)
-    expect(continuationResources).toStrictEqual(Array.from({ length: 9 }, () => departureResources))
-    expect(resolved.turn).toBe(10)
-    expect(arrivedFleet).toMatchObject({
-      originPlanetId: fixture.destinationId,
-      strength: 20,
-      arrivedAtTick: 20,
-    })
-    expect(arrivedFleet.movement).toBeUndefined()
-    expect(arrivedFleet.destinationPlanetId).toBeUndefined()
-    expect(arrivedFleet.distanceToEnd).toBeUndefined()
-    expect(resolved.resolvedContinuations).toHaveLength(1)
-    expect(resolved.resolvedContinuations[0]?.originatingSubmission).toStrictEqual(departureSubmission)
-    expect(resolved.resolvedContinuations[0]?.actionOutcomes).toStrictEqual([
-      EffectOutcome.Resolved({ result: 'Fleet "Source Fleet" moved 0.1 light years towards Planet "Destination"' }),
-      EffectOutcome.Resolved({ result: 'Fleet "Source Fleet" arrived on Planet "Destination"' }),
-    ])
-    expect(releasedEvaluation).toMatchObject({
-      status: "ELIGIBLE",
-      issues: [],
-      strengthCommitments: { [fixture.sourceFleetId]: 1 },
-      resourceCommitments: {
-        [ResourceType.INFLUENCE]: 3,
-        [ResourceType.METAL]: 0,
-        [ResourceType.FUEL]: 1,
-        [ResourceType.ENERGY]: 0,
-        [ResourceType.COLONY]: 0,
-      },
-    })
+
+    verify({ resolved, releasedEvaluation, fixture })
   })
 
   it.each([
@@ -744,7 +716,7 @@ type FleetMovementFixture = {
   state: ReturnType<typeof createTurnStateStub>
 }
 
-function createFixture({ distance = 5, speed = 2 }: { distance?: number; speed?: number } = {}): FleetMovementFixture {
+function createFixture({ distance = 5, speed = 2 }: CreateFixtureInput = {}): FleetMovementFixture {
   const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000021")
   const originId = branded<PlanetId>("planet-origin")
   const destinationId = branded<PlanetId>("planet-destination")
@@ -879,15 +851,7 @@ function createEligibilityState(fixture: FleetMovementFixture, resolved: Resolve
   }
 }
 
-function toFleetProjection(fleet: ResolutionFleet): {
-  id: FleetId
-  ownerPlayerId: ResolutionFleet["ownerPlayerId"]
-  strength: number
-  originPlanetId: PlanetId
-  destinationPlanetId: PlanetId | undefined
-  distanceToEnd: number | undefined
-  movement: { submissionId: string; departureTurn: number } | undefined
-} {
+function toFleetProjection(fleet: ResolutionFleet): ToFleetProjectionResult {
   return {
     id: fleet.id,
     ownerPlayerId: fleet.ownerPlayerId,
@@ -900,4 +864,127 @@ function toFleetProjection(fleet: ResolutionFleet): {
         ? undefined
         : { submissionId: fleet.movement.submission.id, departureTurn: fleet.movement.departureTurn },
   }
+}
+
+function verifyDepartureResources({
+  departureResources,
+  occupiedJourney,
+  occupiedEvaluation,
+  stillTravelingDistances,
+  continuationResources,
+  resolved,
+  arrivedFleet,
+  fixture,
+  departureSubmission,
+}: VerifyDepartureResourcesInput): void {
+  expect(departureResources).toStrictEqual(
+    createResourcesStub({
+      [ResourceType.INFLUENCE]: 17,
+      [ResourceType.FUEL]: 19,
+    }),
+  )
+  expect(occupiedJourney.distanceToEnd).toBe(0.9)
+  expect(occupiedEvaluation.status).toBe("INELIGIBLE")
+  expect(occupiedEvaluation.issues).toContainEqual({
+    code: "ACTION_ALREADY_IN_PROGRESS",
+    actionId: branded<ActionId>("MOVE_1"),
+    message: 'Action instance "MOVE_1" is still in progress with Fleet "' + occupiedJourney.id + '"',
+  })
+  expect(stillTravelingDistances).toHaveLength(8)
+  expect(Math.min(...stillTravelingDistances)).toBeGreaterThan(0)
+  expect(continuationResources).toStrictEqual(Array.from({ length: 9 }, () => departureResources))
+  expect(resolved.turn).toBe(10)
+  expect(arrivedFleet).toMatchObject({
+    originPlanetId: fixture.destinationId,
+    strength: 20,
+    arrivedAtTick: 20,
+  })
+  expect(arrivedFleet.movement).toBeUndefined()
+  expect(arrivedFleet.destinationPlanetId).toBeUndefined()
+  expect(arrivedFleet.distanceToEnd).toBeUndefined()
+  expect(resolved.resolvedContinuations).toHaveLength(1)
+  expect(resolved.resolvedContinuations[0]?.originatingSubmission).toStrictEqual(departureSubmission)
+}
+
+function verify({ resolved, releasedEvaluation, fixture }: VerifyInput): void {
+  expect(resolved.resolvedContinuations[0]?.actionOutcomes).toStrictEqual([
+    EffectOutcome.Resolved({ result: 'Fleet "Source Fleet" moved 0.1 light years towards Planet "Destination"' }),
+    EffectOutcome.Resolved({ result: 'Fleet "Source Fleet" arrived on Planet "Destination"' }),
+  ])
+  expect(releasedEvaluation).toMatchObject({
+    status: "ELIGIBLE",
+    issues: [],
+    strengthCommitments: { [fixture.sourceFleetId]: 1 },
+    resourceCommitments: {
+      [ResourceType.INFLUENCE]: 3,
+      [ResourceType.METAL]: 0,
+      [ResourceType.FUEL]: 1,
+      [ResourceType.ENERGY]: 0,
+      [ResourceType.COLONY]: 0,
+    },
+  })
+}
+
+type CreateFixtureInput = { distance?: number; speed?: number }
+
+type ToFleetProjectionResult = {
+  id: FleetId
+  ownerPlayerId: ResolutionFleet["ownerPlayerId"]
+  strength: number
+  originPlanetId: PlanetId
+  destinationPlanetId: PlanetId | undefined
+  distanceToEnd: number | undefined
+  movement: { submissionId: string; departureTurn: number } | undefined
+}
+
+type VerifyDepartureResourcesInput = {
+  departureResources: undefined | ReturnType<typeof createResourcesStub>
+  occupiedJourney: ResolutionFleet
+  occupiedEvaluation: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  stillTravelingDistances: number[]
+  continuationResources: Array<ReturnType<typeof createResourcesStub> | undefined>
+  resolved: ResolvedTurnState
+  arrivedFleet: ResolutionFleet
+  fixture: FleetMovementFixture
+  departureSubmission: ReturnType<typeof createSubmittedActionStub>
+}
+
+type VerifyInput = {
+  resolved: ResolvedTurnState
+  releasedEvaluation: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  fixture: FleetMovementFixture
 }

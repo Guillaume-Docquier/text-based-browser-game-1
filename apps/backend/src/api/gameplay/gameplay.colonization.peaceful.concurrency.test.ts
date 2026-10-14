@@ -1,5 +1,8 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
+import type { NonNegativeNumber } from "@guillaume-docquier/tools-ts/schemas"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import type { ResolvedTurnState } from "shared/turn-resolution/ResolvedTurnState.ts"
+import type { ResolutionFleet } from "shared/turn-resolution/state/ResolutionFleet.ts"
 import { describe, expect, it } from "vitest"
 import type { PlayerView, Fleet, Planet } from "#api/types.ts"
 import type { ControlledClock } from "#lib/ControlledClock.ts"
@@ -101,7 +104,7 @@ describe("public Colonization worker companions", () => {
     })
     Assert.isDefined(replayMoveFleet)
 
-    assertReplayMoveFleet({
+    verifyPublicState({
       replayMoveFleet,
       views,
       target,
@@ -158,47 +161,36 @@ describe("public Colonization worker companions", () => {
     const bobJourney = required(views[1]).fleets.find(({ movement }) => movement?.submission.id === enemyMoveId)
     Assert.isDefined(aliceJourney)
     Assert.isDefined(bobJourney)
-    expect(aliceJourney.strength).toBe(35)
-    expect(aliceJourney.distanceToEnd).toBeCloseTo(Number("1.1645395167985714"), 12)
-    expect(bobJourney.strength).toBe(10)
-    expect(bobJourney.distanceToEnd).toBeCloseTo(8.852953053708077, 12)
-    expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
 
-    const enemyArrival = await processTurnWithReplay({
+    const updatedVerifyAliceJourney = await verifyAliceJourney({
+      aliceJourney,
+      bobJourney,
+      views,
+      target,
       server,
       clock,
       turnsRepository,
       turnProcessor,
       clients,
       gameId,
-      turn: required(views[0]).turn,
     })
-    views = enemyArrival.views
-    expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
-    expect(getFleetAt(required(views[1]), required(views[1]).player.id, target.id, 10)).toMatchObject({
-      ownerPlayerId: required(views[1]).player.id,
-      strength: 10,
-    })
+    views = updatedVerifyAliceJourney.views
     const stillMovingColonizer = required(views[0]).fleets.find(({ movement }) => movement?.submission.id === slowColonizeId)
     Assert.isDefined(stillMovingColonizer)
-    expect(stillMovingColonizer.distanceToEnd).toBeCloseTo(1.0645395167985714, 12)
-    expect(required(views[0]).actions.find(({ id }) => id === slowColonizeId)?.isInProgress).toBe(true)
 
-    for (let turn = 0; turn < 10; turn += 1) {
-      const continued = await processTurnWithReplay({
-        server,
-        clock,
-        turnsRepository,
-        turnProcessor,
-        clients,
-        gameId,
-        turn: required(views[0]).turn,
-      })
-      views = continued.views
-      expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
-      expect(getFleetAt(required(views[1]), required(views[1]).player.id, target.id, 10).strength).toBe(10)
-      expect(required(views[0]).actions.find(({ id }) => id === slowColonizeId)?.isInProgress).toBe(true)
-    }
+    const updatedVerifyStillMovingColonizer = await verifyStillMovingColonizer({
+      stillMovingColonizer,
+      views,
+      slowColonizeId,
+      server,
+      clock,
+      turnsRepository,
+      turnProcessor,
+      clients,
+      gameId,
+      target,
+    })
+    views = updatedVerifyStillMovingColonizer.views
     const beforeFinalArrival = required(views[0]).fleets.find(({ movement }) => movement?.submission.id === slowColonizeId)
     Assert.isDefined(beforeFinalArrival)
     expect(beforeFinalArrival.distanceToEnd).toBeCloseTo(0.0645395167985714, 12)
@@ -229,23 +221,8 @@ describe("public Colonization worker companions", () => {
       ({ originatingSubmission }) => originatingSubmission.id === slowColonizeId,
     )
     Assert.isDefined(colonizeContinuation)
-    expect(colonizeContinuation.actionOutcomes).toContainEqual(
-      expect.objectContaining({ type: "RESOLVED", result: expect.stringContaining(' colonized Planet "planet 649967" with 20 Strength') }),
-    )
-    logReceipt("[C3-11 public enemy-presence receipt]", {
-      seed: 1,
-      target: { id: target.id, name: target.name, coordinates: target.coordinates },
-      arrivalDistance: {
-        alice: Math.hypot(homeA.x - target.x, homeA.y - target.y),
-        bob: Math.hypot(homeB.x - target.x, homeB.y - target.y),
-      },
-      enemyArrivalBeforeClaim: { owner: required(views[1]).player.id, strength: 10 },
-      finalOwner: claimed.ownerPlayerId,
-      colonizerSurvivor: 15,
-      enemySurvivor: 10,
-      colonizerInfluence: required(views[0]).resources[ResourceType.INFLUENCE].total,
-      enemyInfluence: required(views[1]).resources[ResourceType.INFLUENCE].total,
-    })
+
+    verifyColonizeContinuation({ colonizeContinuation, target, homeA, homeB, views, claimed })
   })
 })
 
@@ -426,3 +403,190 @@ type CreateViewsSetup2Input = {
 }
 
 type CreateViewsSetup2Result = { views: PlayerView[]; slowColonizeId: string; enemyMoveId: string }
+
+function verifyPublicState({
+  replayMoveFleet,
+  views,
+  target,
+  bobJourney,
+  aliceMoveId,
+  ordinaryArrival,
+  gameId,
+  alice,
+  homeA,
+  bob,
+  homeB,
+  bobBuildId,
+  bobMoveId,
+  aliceBuildId,
+  bobReplayArrivalTick,
+  persistedEnemy,
+}: VerifyPublicStateInput): void {
+  assertReplayMoveFleet({
+    replayMoveFleet,
+    views,
+    target,
+    bobJourney,
+    aliceMoveId,
+    ordinaryArrival,
+    gameId,
+    alice,
+    homeA,
+    bob,
+    homeB,
+    bobBuildId,
+    bobMoveId,
+    aliceBuildId,
+    bobReplayArrivalTick,
+    persistedEnemy,
+  })
+}
+
+async function verifyAliceJourney({
+  aliceJourney,
+  bobJourney,
+  views,
+  target,
+  server,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  clients,
+  gameId,
+}: VerifyAliceJourneyInput): Promise<VerifyAliceJourneyResult> {
+  expect(aliceJourney.strength).toBe(35)
+  expect(aliceJourney.distanceToEnd).toBeCloseTo(Number("1.1645395167985714"), 12)
+  expect(bobJourney.strength).toBe(10)
+  expect(bobJourney.distanceToEnd).toBeCloseTo(8.852953053708077, 12)
+  expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+
+  const enemyArrival = await processTurnWithReplay({
+    server,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+    gameId,
+    turn: required(views[0]).turn,
+  })
+  views = enemyArrival.views
+  expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+  expect(getFleetAt(required(views[1]), required(views[1]).player.id, target.id, 10)).toMatchObject({
+    ownerPlayerId: required(views[1]).player.id,
+    strength: 10,
+  })
+
+  return { views }
+}
+
+async function verifyStillMovingColonizer({
+  stillMovingColonizer,
+  views,
+  slowColonizeId,
+  server,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  clients,
+  gameId,
+  target,
+}: VerifyStillMovingColonizerInput): Promise<VerifyStillMovingColonizerResult> {
+  expect(stillMovingColonizer.distanceToEnd).toBeCloseTo(1.0645395167985714, 12)
+  expect(required(views[0]).actions.find(({ id }) => id === slowColonizeId)?.isInProgress).toBe(true)
+
+  for (let turn = 0; turn < 10; turn += 1) {
+    const continued = await processTurnWithReplay({
+      server,
+      clock,
+      turnsRepository,
+      turnProcessor,
+      clients,
+      gameId,
+      turn: required(views[0]).turn,
+    })
+    views = continued.views
+    expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+    expect(getFleetAt(required(views[1]), required(views[1]).player.id, target.id, 10).strength).toBe(10)
+    expect(required(views[0]).actions.find(({ id }) => id === slowColonizeId)?.isInProgress).toBe(true)
+  }
+
+  return { views }
+}
+
+function verifyColonizeContinuation({ colonizeContinuation, target, homeA, homeB, views, claimed }: VerifyColonizeContinuationInput): void {
+  expect(colonizeContinuation.actionOutcomes).toContainEqual(
+    expect.objectContaining({ type: "RESOLVED", result: expect.stringContaining(' colonized Planet "planet 649967" with 20 Strength') }),
+  )
+  logReceipt("[C3-11 public enemy-presence receipt]", {
+    seed: 1,
+    target: { id: target.id, name: target.name, coordinates: target.coordinates },
+    arrivalDistance: {
+      alice: Math.hypot(homeA.x - target.x, homeA.y - target.y),
+      bob: Math.hypot(homeB.x - target.x, homeB.y - target.y),
+    },
+    enemyArrivalBeforeClaim: { owner: required(views[1]).player.id, strength: 10 },
+    finalOwner: claimed.ownerPlayerId,
+    colonizerSurvivor: 15,
+    enemySurvivor: 10,
+    colonizerInfluence: required(views[0]).resources[ResourceType.INFLUENCE].total,
+    enemyInfluence: required(views[1]).resources[ResourceType.INFLUENCE].total,
+  })
+}
+
+type VerifyPublicStateInput = {
+  replayMoveFleet: ResolutionFleet
+  views: PlayerView[]
+  target: Planet
+  bobJourney: Fleet
+  aliceMoveId: string
+  ordinaryArrival: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+  gameId: number
+  alice: AuthenticatedApiClient
+  homeA: Planet
+  bob: AuthenticatedApiClient
+  homeB: Planet
+  bobBuildId: string
+  bobMoveId: string
+  aliceBuildId: string
+  bobReplayArrivalTick: undefined | NonNegativeNumber
+  persistedEnemy: Fleet
+}
+
+type VerifyAliceJourneyInput = {
+  aliceJourney: Fleet
+  bobJourney: Fleet
+  views: PlayerView[]
+  target: Planet
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: number
+}
+
+type VerifyAliceJourneyResult = { views: PlayerView[] }
+
+type VerifyStillMovingColonizerInput = {
+  stillMovingColonizer: Fleet
+  views: PlayerView[]
+  slowColonizeId: string
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: number
+  target: Planet
+}
+
+type VerifyStillMovingColonizerResult = { views: PlayerView[] }
+
+type VerifyColonizeContinuationInput = {
+  colonizeContinuation: ResolvedTurnState["resolvedContinuations"][number]
+  target: Planet
+  homeA: Planet
+  homeB: Planet
+  views: PlayerView[]
+  claimed: Planet
+}

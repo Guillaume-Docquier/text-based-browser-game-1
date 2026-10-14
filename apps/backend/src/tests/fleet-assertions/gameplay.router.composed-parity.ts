@@ -31,82 +31,14 @@ export async function assertOutOfRangeSubmission({
   outsideStandardRange,
   destination,
 }: AssertOutOfRangeSubmissionInput): Promise<void> {
-  const outOfRangeSubmission = player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
-    submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: standardAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: outsideStandardRange.id },
-      selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
-    }),
-  })
-  await expect(outOfRangeSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  const missingForceSubmission = player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
-    submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: standardAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-      selectedInputs: {},
-    }),
-  })
-  await expect(missingForceSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  const overStrengthSubmission = player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
-    submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: standardAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-      selectedInputs: { strength: 51 },
-    }),
-  })
-  await expect(overStrengthSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  await verifyOutOfRangeSubmission({ player, createdGameId, playerView, standardAction, sourceFleet, outsideStandardRange, destination })
 
-  // The public DTO accepts only matched target/input objects or a matched null cancellation.
-  await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: playerView.turn,
-      submittedActionTargets: { actionId: standardAction.id, selectedTargets: null, selectedInputs: {} },
-    }),
-  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: playerView.turn,
-      submittedActionTargets: { actionId: standardAction.id, selectedTargets: {}, selectedInputs: null },
-    }),
-  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  await verifyOverStrengthSubmission({ player, createdGameId, playerView, standardAction, sourceFleet, destination })
 
   // Exercise positive-safe-integer validation at the HTTP boundary, including JSON's null encoding
   // for non-finite JavaScript numbers.
-  for (const invalidStrength of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1]) {
-    await expect(
-      player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: playerView.turn,
-        submittedActionTargets: {
-          actionId: standardAction.id,
-          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-          selectedInputs: { strength: invalidStrength },
-        },
-      }),
-    ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  }
 
-  const afterRejectedDrafts = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  expect(afterRejectedDrafts).toStrictEqual(playerView)
-
-  // The API accepts a full unreserved force of 50 and releases its costs when the draft is cancelled.
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
-    submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: standardAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-      selectedInputs: { strength: 50 },
-    }),
-  })
+  await verifyAfterRejectedDrafts({ player, createdGameId, playerView, standardAction, sourceFleet, destination })
   const fullForceView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
   expect(fullForceView.actions.find(({ id }) => id === standardAction.id)).toMatchObject({
     selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
@@ -136,52 +68,9 @@ export async function assertAfterFullForceCancel({
   destination,
   secondStandardAction,
 }: AssertAfterFullForceCancelInput): Promise<void> {
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
-    submittedActionTargets: { actionId: standardAction.id, selectedTargets: null, selectedInputs: null },
-  })
-  const afterFullForceCancel = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  expect(afterFullForceCancel.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 6 })
-  expect(afterFullForceCancel.resources[ResourceType.FUEL]).toStrictEqual({ total: 4, uncommitted: 4 })
+  await verifyAfterFullForceCancel({ player, createdGameId, playerView, standardAction, improvedAction, sourceFleet, destination })
 
-  // Exhaust the action costs while leaving one unallocated Strength; the third draft must fail atomically.
-  for (const [action, strength] of [
-    [standardAction, 20],
-    [improvedAction, 29],
-  ] as const) {
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: playerView.turn,
-      submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: action.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-        selectedInputs: { strength },
-      }),
-    })
-  }
-  const beforeThirdCostAttempt = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  expect(beforeThirdCostAttempt.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 0 })
-  expect(beforeThirdCostAttempt.resources[ResourceType.FUEL]).toStrictEqual({ total: 4, uncommitted: 0 })
-  expect(beforeThirdCostAttempt.fleets.find(({ id }) => id === sourceFleet.id)?.strength).toBe(50)
-  await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: playerView.turn,
-      submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: secondStandardAction.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-        selectedInputs: { strength: 1 },
-      }),
-    }),
-  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  const afterThirdCostAttempt = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  expect(afterThirdCostAttempt).toStrictEqual(beforeThirdCostAttempt)
-  expect(afterThirdCostAttempt.actions.find(({ id }) => id === secondStandardAction.id)).toMatchObject({
-    selectedTargets: null,
-    selectedInputs: null,
-    isInProgress: false,
-  })
+  await verifyBeforeThirdCostAttempt({ player, createdGameId, sourceFleet, playerView, secondStandardAction, destination })
 
   for (const action of [standardAction, improvedAction]) {
     await player.client.gameplay.updateActionSubmission.mutate({
@@ -540,4 +429,222 @@ export function assertScenarioState2({ partialCandidate, sourceFleet }: AssertSc
       [ResourceType.COLONY]: 0,
     },
   })
+}
+
+async function verifyOutOfRangeSubmission({
+  player,
+  createdGameId,
+  playerView,
+  standardAction,
+  sourceFleet,
+  outsideStandardRange,
+  destination,
+}: VerifyOutOfRangeSubmissionInput): Promise<void> {
+  const outOfRangeSubmission = player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: playerView.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: standardAction.id,
+      selectedTargets: { fleet: sourceFleet.id, planet: outsideStandardRange.id },
+      selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
+    }),
+  })
+  await expect(outOfRangeSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  const missingForceSubmission = player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: playerView.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: standardAction.id,
+      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      selectedInputs: {},
+    }),
+  })
+  await expect(missingForceSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+}
+
+async function verifyOverStrengthSubmission({
+  player,
+  createdGameId,
+  playerView,
+  standardAction,
+  sourceFleet,
+  destination,
+}: VerifyOverStrengthSubmissionInput): Promise<void> {
+  const overStrengthSubmission = player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: playerView.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: standardAction.id,
+      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      selectedInputs: { strength: 51 },
+    }),
+  })
+  await expect(overStrengthSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+
+  // The public DTO accepts only matched target/input objects or a matched null cancellation.
+  await expect(
+    player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: playerView.turn,
+      submittedActionTargets: { actionId: standardAction.id, selectedTargets: null, selectedInputs: {} },
+    }),
+  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  await expect(
+    player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: playerView.turn,
+      submittedActionTargets: { actionId: standardAction.id, selectedTargets: {}, selectedInputs: null },
+    }),
+  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+}
+
+async function verifyAfterRejectedDrafts({
+  player,
+  createdGameId,
+  playerView,
+  standardAction,
+  sourceFleet,
+  destination,
+}: VerifyAfterRejectedDraftsInput): Promise<void> {
+  for (const invalidStrength of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1]) {
+    await expect(
+      player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: playerView.turn,
+        submittedActionTargets: {
+          actionId: standardAction.id,
+          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          selectedInputs: { strength: invalidStrength },
+        },
+      }),
+    ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  }
+
+  const afterRejectedDrafts = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  expect(afterRejectedDrafts).toStrictEqual(playerView)
+
+  // The API accepts a full unreserved force of 50 and releases its costs when the draft is cancelled.
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: playerView.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: standardAction.id,
+      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      selectedInputs: { strength: 50 },
+    }),
+  })
+}
+
+async function verifyAfterFullForceCancel({
+  player,
+  createdGameId,
+  playerView,
+  standardAction,
+  improvedAction,
+  sourceFleet,
+  destination,
+}: VerifyAfterFullForceCancelInput): Promise<void> {
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: playerView.turn,
+    submittedActionTargets: { actionId: standardAction.id, selectedTargets: null, selectedInputs: null },
+  })
+  const afterFullForceCancel = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  expect(afterFullForceCancel.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 6 })
+  expect(afterFullForceCancel.resources[ResourceType.FUEL]).toStrictEqual({ total: 4, uncommitted: 4 })
+
+  // Exhaust the action costs while leaving one unallocated Strength; the third draft must fail atomically.
+  for (const [action, strength] of [
+    [standardAction, 20],
+    [improvedAction, 29],
+  ] as const) {
+    await player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: playerView.turn,
+      submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        actionId: action.id,
+        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        selectedInputs: { strength },
+      }),
+    })
+  }
+}
+
+async function verifyBeforeThirdCostAttempt({
+  player,
+  createdGameId,
+  sourceFleet,
+  playerView,
+  secondStandardAction,
+  destination,
+}: VerifyBeforeThirdCostAttemptInput): Promise<void> {
+  const beforeThirdCostAttempt = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  expect(beforeThirdCostAttempt.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 0 })
+  expect(beforeThirdCostAttempt.resources[ResourceType.FUEL]).toStrictEqual({ total: 4, uncommitted: 0 })
+  expect(beforeThirdCostAttempt.fleets.find(({ id }) => id === sourceFleet.id)?.strength).toBe(50)
+  await expect(
+    player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: playerView.turn,
+      submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        actionId: secondStandardAction.id,
+        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        selectedInputs: { strength: 1 },
+      }),
+    }),
+  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  const afterThirdCostAttempt = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  expect(afterThirdCostAttempt).toStrictEqual(beforeThirdCostAttempt)
+  expect(afterThirdCostAttempt.actions.find(({ id }) => id === secondStandardAction.id)).toMatchObject({
+    selectedTargets: null,
+    selectedInputs: null,
+    isInProgress: false,
+  })
+}
+
+type VerifyOutOfRangeSubmissionInput = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  playerView: PlayerView
+  standardAction: Action
+  sourceFleet: Fleet
+  outsideStandardRange: Planet
+  destination: Planet
+}
+
+type VerifyOverStrengthSubmissionInput = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  playerView: PlayerView
+  standardAction: Action
+  sourceFleet: Fleet
+  destination: Planet
+}
+
+type VerifyAfterRejectedDraftsInput = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  playerView: PlayerView
+  standardAction: Action
+  sourceFleet: Fleet
+  destination: Planet
+}
+
+type VerifyAfterFullForceCancelInput = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  playerView: PlayerView
+  standardAction: Action
+  improvedAction: Action
+  sourceFleet: Fleet
+  destination: Planet
+}
+
+type VerifyBeforeThirdCostAttemptInput = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  sourceFleet: Fleet
+  playerView: PlayerView
+  secondStandardAction: Action
+  destination: Planet
 }

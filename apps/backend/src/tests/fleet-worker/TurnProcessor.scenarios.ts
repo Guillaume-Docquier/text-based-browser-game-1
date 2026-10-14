@@ -13,6 +13,7 @@ import {
 } from "@guillaume-docquier/tools-ts"
 import { compareOrdinalStrings } from "shared/domain/compareOrdinalStrings.ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
+import type { GameId } from "shared/domain/games/GameId.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import type { EffectOutcome } from "shared/domain/turns/actions/EffectOutcome.ts"
@@ -22,13 +23,14 @@ import type { ResolvedTurnState } from "shared/turn-resolution/ResolvedTurnState
 import { resolveTurn } from "shared/turn-resolution/resolveTurn.ts"
 import { expect } from "vitest"
 import type { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
-import type { PlayerView } from "#api/types.ts"
+import type { Planet, Fleet, PlayerView } from "#api/types.ts"
 import type { ControlledClock } from "#lib/ControlledClock.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import type { ApiServer } from "#tests/ApiServer.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import { type ProcessedTurnModel, type TurnToProcessModel, TurnsRepository } from "#turn-processing/turns.repository.ts"
 import { AssaultWorkerRuleset, type ThreeOwnerStationedAssaultFixture } from "./TurnProcessor.ts"
 
@@ -36,11 +38,7 @@ export async function createThreeOwnerStationedAssaultFixture({
   db,
   clock,
   apiServer,
-}: {
-  db: Database
-  clock: ControlledClock
-  apiServer: ApiServer
-}): Promise<ThreeOwnerStationedAssaultFixture> {
+}: CreateThreeOwnerStationedAssaultFixtureInput): Promise<ThreeOwnerStationedAssaultFixture> {
   const alice = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000001" })
   const bob = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000002" })
   const carol = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000003" })
@@ -125,28 +123,8 @@ export async function createThreeOwnerStationedAssaultFixture({
   })
 
   // Arrange: build literal A30/B20/C10 through public Build submissions and completed actual-worker turns.
-  for (let buildRound = 0; buildRound < 3; buildRound += 1) {
-    const views = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
-    for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-      const buildCount = ownerIndex === 0 ? 3 : ownerIndex === 1 ? 2 : 1
-      const client = clients[ownerIndex]
-      const view = views[ownerIndex]
-      const home = homes[ownerIndex]
-      Assert.isDefined(client)
-      Assert.isDefined(view)
-      Assert.isDefined(home)
-      if (buildRound < buildCount) {
-        await client.client.gameplay.updateActionSubmission.mutate({
-          gameId,
-          turn: view.turn,
-          submittedActionTargets: getActionToSubmintegrationTest(view, BuildFleetStandard.id, { planet: home.id }),
-        })
-      }
-    }
-    const view = views[0]
-    Assert.isDefined(view)
-    await processPublicTurn({ clients, gameId, turn: view.turn, turnProcessor })
-  }
+
+  await verifyBuildRound({ clients, gameId, homes, turnProcessor })
 
   // Assert: public worker builds have independently established force inputs before staging.
   const builtView = await alice.client.gameplay.getPlayerView.query({ gameId })
@@ -163,29 +141,8 @@ export async function createThreeOwnerStationedAssaultFixture({
   Assert.isDefined(builtFleetA)
   Assert.isDefined(builtFleetB)
   Assert.isDefined(builtFleetC)
-  expect([builtFleetA.strength, builtFleetB.strength, builtFleetC.strength]).toStrictEqual([30, 20, 10])
 
-  // Act: send each complete force through the public Move action to the fixed common planet.
-  for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-    const client = clients[ownerIndex]
-    Assert.isDefined(client)
-    const view = await client.client.gameplay.getPlayerView.query({ gameId })
-    const fleet = builtFleets[ownerIndex]
-    Assert.isDefined(view)
-    Assert.isDefined(fleet)
-    await client.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: view.turn,
-      submittedActionTargets: getActionToSubmintegrationTest(
-        view,
-        MoveFleetExceptional.id,
-        { fleet: fleet.id, planet: target.id },
-        { strength: fleet.strength },
-      ),
-    })
-  }
-  const departureView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  await processPublicTurn({ clients, gameId, turn: departureView.turn, turnProcessor })
+  await verifyActionSelections({ builtFleetA, builtFleetB, builtFleetC, clients, gameId, builtFleets, target, alice, turnProcessor })
   const firstTransitView = await alice.client.gameplay.getPlayerView.query({ gameId })
   const firstTransit = homes.map((home, index) => {
     const playerId = playerIds[index]
@@ -252,19 +209,7 @@ export async function createThreeOwnerStationedAssaultFixture({
   }
 }
 
-export async function processPublicTurn({
-  clients,
-  gameId,
-  turn,
-  turnProcessor,
-  process = true,
-}: {
-  clients: readonly AuthenticatedApiClient[]
-  gameId: number
-  turn: number
-  turnProcessor: { processNextDueTurn: () => Promise<"processed" | "idle" | "failed"> }
-  process?: boolean
-}): Promise<void> {
+export async function processPublicTurn({ clients, gameId, turn, turnProcessor, process = true }: ProcessPublicTurnInput): Promise<void> {
   await Promise.all(clients.map(async ({ client }) => await client.gameplay.updateReadiness.mutate({ gameId, turn, isReady: true })))
   if (process) {
     expect(await turnProcessor.processNextDueTurn()).toBe("processed")
@@ -277,13 +222,7 @@ export async function observeTurnAndRollback({
   turnsRepository,
   gameId,
   turn,
-}: {
-  db: Database
-  clock: ControlledClock
-  turnsRepository: TurnsRepository
-  gameId: number
-  turn: number
-}): Promise<TurnToProcessModel> {
+}: ObserveTurnAndRollbackInput): Promise<TurnToProcessModel> {
   // Arrange: the public readiness route has closed the requested turn before acquiring the production repository lock.
   let observed: TurnToProcessModel | undefined
   const message = `Intentional I2-06 observation rollback for game ${gameId} turn ${turn}`
@@ -332,10 +271,7 @@ export function reverseObjectPropertyOrder<Value>(value: Value): Value {
   return value
 }
 
-export function replayObservedTurn(
-  observed: TurnToProcessModel,
-  reverseRows: boolean,
-): { resolved: ResolvedTurnState; rngState: RngState<number> } {
+export function replayObservedTurn(observed: TurnToProcessModel, reverseRows: boolean): ReplayObservedTurnResult {
   // Arrange: each replay permutes only copied record keys and row order; semantic arrays retain their ordinals.
   const copiedObserved = structuredClone(observed)
   const input = reverseRows ? reverseObjectPropertyOrder(copiedObserved) : copiedObserved
@@ -365,7 +301,7 @@ export function replayObservedTurn(
   return { resolved: resolved.value, rngState: rng.getState() }
 }
 
-export function mulberry32DrawAt(generatorState: number): { value: number; nextGeneratorState: number } {
+export function mulberry32DrawAt(generatorState: number): Mulberry32DrawAtResult {
   // Arrange: derive a draw independently from the installed tools-ts generator.
   const nextGeneratorState = (generatorState + 0x6d2b79f5) >>> 0
   let value = nextGeneratorState
@@ -375,7 +311,7 @@ export function mulberry32DrawAt(generatorState: number): { value: number; nextG
   return { value: draw, nextGeneratorState }
 }
 
-export function mulberry32FirstDraw(generatorState: number): { value: number; nextGeneratorState: number } {
+export function mulberry32FirstDraw(generatorState: number): Mulberry32FirstDrawResult {
   // Assert: the independent implementation matches tools-ts at the observed state and the fixed seed-1234 oracle.
   const draw = mulberry32DrawAt(generatorState)
   const toolsOracle = Rng.create(mulberry32Prng(generatorState))
@@ -385,10 +321,7 @@ export function mulberry32FirstDraw(generatorState: number): { value: number; ne
   return draw
 }
 
-export function mulberry32DrawSequence(
-  generatorState: number,
-  count: number,
-): { draws: Array<{ value: number; nextGeneratorState: number }>; finalGeneratorState: number } {
+export function mulberry32DrawSequence(generatorState: number, count: number): Mulberry32DrawSequenceResult {
   const draws: Array<{ value: number; nextGeneratorState: number }> = []
   let nextGeneratorState = generatorState
   const toolsOracle = Rng.create(mulberry32Prng(generatorState))
@@ -506,4 +439,114 @@ export class FailingTurnsRepository extends TurnsRepository {
 
 export function logWorkerObservation(label: string, serializedObservation: string): void {
   Logger.get().info(`${label} ${serializedObservation}`)
+}
+
+async function verifyBuildRound({ clients, gameId, homes, turnProcessor }: VerifyBuildRoundInput): Promise<void> {
+  for (let buildRound = 0; buildRound < 3; buildRound += 1) {
+    const views = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
+    for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
+      const buildCount = ownerIndex === 0 ? 3 : ownerIndex === 1 ? 2 : 1
+      const client = clients[ownerIndex]
+      const view = views[ownerIndex]
+      const home = homes[ownerIndex]
+      Assert.isDefined(client)
+      Assert.isDefined(view)
+      Assert.isDefined(home)
+      if (buildRound < buildCount) {
+        await client.client.gameplay.updateActionSubmission.mutate({
+          gameId,
+          turn: view.turn,
+          submittedActionTargets: getActionToSubmintegrationTest(view, BuildFleetStandard.id, { planet: home.id }),
+        })
+      }
+    }
+    const view = views[0]
+    Assert.isDefined(view)
+    await processPublicTurn({ clients, gameId, turn: view.turn, turnProcessor })
+  }
+}
+
+async function verifyActionSelections({
+  builtFleetA,
+  builtFleetB,
+  builtFleetC,
+  clients,
+  gameId,
+  builtFleets,
+  target,
+  alice,
+  turnProcessor,
+}: VerifyActionSelectionsInput): Promise<void> {
+  expect([builtFleetA.strength, builtFleetB.strength, builtFleetC.strength]).toStrictEqual([30, 20, 10])
+
+  // Act: send each complete force through the public Move action to the fixed common planet.
+  for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
+    const client = clients[ownerIndex]
+    Assert.isDefined(client)
+    const view = await client.client.gameplay.getPlayerView.query({ gameId })
+    const fleet = builtFleets[ownerIndex]
+    Assert.isDefined(view)
+    Assert.isDefined(fleet)
+    await client.client.gameplay.updateActionSubmission.mutate({
+      gameId,
+      turn: view.turn,
+      submittedActionTargets: getActionToSubmintegrationTest(
+        view,
+        MoveFleetExceptional.id,
+        { fleet: fleet.id, planet: target.id },
+        { strength: fleet.strength },
+      ),
+    })
+  }
+  const departureView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  await processPublicTurn({ clients, gameId, turn: departureView.turn, turnProcessor })
+}
+
+type CreateThreeOwnerStationedAssaultFixtureInput = {
+  db: Database
+  clock: ControlledClock
+  apiServer: ApiServer
+}
+
+type ProcessPublicTurnInput = {
+  clients: readonly AuthenticatedApiClient[]
+  gameId: number
+  turn: number
+  turnProcessor: { processNextDueTurn: () => Promise<"processed" | "idle" | "failed"> }
+  process?: boolean
+}
+
+type ObserveTurnAndRollbackInput = {
+  db: Database
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  gameId: number
+  turn: number
+}
+
+type ReplayObservedTurnResult = { resolved: ResolvedTurnState; rngState: RngState<number> }
+
+type Mulberry32DrawAtResult = { value: number; nextGeneratorState: number }
+
+type Mulberry32FirstDrawResult = { value: number; nextGeneratorState: number }
+
+type Mulberry32DrawSequenceResult = { draws: Array<{ value: number; nextGeneratorState: number }>; finalGeneratorState: number }
+
+type VerifyBuildRoundInput = {
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: GameId
+  homes: readonly [Planet, Planet, Planet]
+  turnProcessor: TurnProcessor
+}
+
+type VerifyActionSelectionsInput = {
+  builtFleetA: Fleet
+  builtFleetB: Fleet
+  builtFleetC: Fleet
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: GameId
+  builtFleets: Array<undefined | Fleet>
+  target: Planet
+  alice: AuthenticatedApiClient
+  turnProcessor: TurnProcessor
 }

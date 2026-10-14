@@ -175,59 +175,10 @@ export function assertAAtP({
     Object.values(afterArrival.planets),
     Object.values(afterArrival.fleets),
   )
-  for (const { playerId, actionId } of journeyActionBindings) {
-    const state = eligibilityState(
-      playerId,
-      4,
-      afterArrival.players,
-      Object.values(afterArrival.planets),
-      Object.values(afterArrival.fleets),
-    )
-    const released = evaluateActionSelection({ state, ruleset, draft: createFleetSelectionDraft(actionId, {}, {}) })
-    expect(released.status).toBe("INCOMPLETE")
-    expect(released.issues.map(({ code }) => code)).not.toContain("ACTION_ALREADY_IN_PROGRESS")
-  }
-  const reuseEvaluation = evaluateActionSelection({
-    state: aTurnFour,
-    ruleset,
-    draft: createFleetSelectionDraft(moveActionId, { fleet: aSource.id, planet: q.id }, { strength: 5 }),
-  })
-  expect(reuseEvaluation.status).toBe("ELIGIBLE")
-  expect(reuseEvaluation.strengthCommitments[aSource.id]).toBe(5)
-  expect(reuseEvaluation.remainingStrength[aSource.id]).toBe(15)
-  expect(reuseEvaluation.resourceCommitments).toStrictEqual({
-    [ResourceType.INFLUENCE]: 3,
-    [ResourceType.METAL]: 0,
-    [ResourceType.FUEL]: 1,
-    [ResourceType.ENERGY]: 0,
-    [ResourceType.COLONY]: 0,
-  })
-  const reuseSubmission = submit({
-    id: moveActionId,
-    playerId: PLAYER_A,
-    actionDefinitionId: ordinaryMove.id,
-    source: aSource,
-    target: q,
-    strength: 5,
-  })
-  const turnFourRng = Rng.fromState(turnThreeRng.getState(), mulberry32Prng)
-  const turnFour = reloadTurn(afterArrival, 4, [reuseSubmission], turnFourRng)
-  const reusedJourney = findJourneyForSubmission(turnFour, PLAYER_A, moveActionId)
-  expect(turnFour.fleets[aSource.id]?.strength).toBe(15)
-  expect(reusedJourney).toMatchObject({ strength: 5, distanceToEnd: 3, movement: { departureTurn: 4 } })
-  expect(turnFour.players[PLAYER_A]?.resources).toMatchObject({
-    [ResourceType.INFLUENCE]: 69,
-    [ResourceType.FUEL]: 8,
-    [ResourceType.COLONY]: 7,
-  })
-  expect(turnFour.planets[p.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(turnFour.fleets[bAtP.id]?.strength).toBe(27)
-  expect(strengthTotal(turnFour)).toBe(69)
 
-  const turnFiveRng = Rng.fromState(turnFourRng.getState(), mulberry32Prng)
-  const turnFive = reloadTurn(turnFour, 5, [], turnFiveRng)
+  verifyReleased({ journeyActionBindings, eligibilityState, afterArrival, ruleset, aTurnFour, moveActionId, aSource, q })
 
-  assertFindJourneyForSubmission({ turnFive, moveActionId, aSource, turnFour, p, bAtP, strengthTotal })
+  verifyReuseSubmission({ moveActionId, ordinaryMove, aSource, q, turnThreeRng, reloadTurn, afterArrival, p, bAtP, strengthTotal })
 }
 
 export type AssertAAtPInput = {
@@ -462,4 +413,199 @@ export type AssertArrivalInput = {
   arrival: ResolvedTurnState
   target: ReturnType<typeof createPlanetStub>
   journey: ResolutionFleet
+}
+
+function verifyReleased({
+  journeyActionBindings,
+  eligibilityState,
+  afterArrival,
+  ruleset,
+  aTurnFour,
+  moveActionId,
+  aSource,
+  q,
+}: VerifyReleasedInput): void {
+  for (const { playerId, actionId } of journeyActionBindings) {
+    const state = eligibilityState(
+      playerId,
+      4,
+      afterArrival.players,
+      Object.values(afterArrival.planets),
+      Object.values(afterArrival.fleets),
+    )
+    const released = evaluateActionSelection({ state, ruleset, draft: createFleetSelectionDraft(actionId, {}, {}) })
+    expect(released.status).toBe("INCOMPLETE")
+    expect(released.issues.map(({ code }) => code)).not.toContain("ACTION_ALREADY_IN_PROGRESS")
+  }
+  const reuseEvaluation = evaluateActionSelection({
+    state: aTurnFour,
+    ruleset,
+    draft: createFleetSelectionDraft(moveActionId, { fleet: aSource.id, planet: q.id }, { strength: 5 }),
+  })
+  expect(reuseEvaluation.status).toBe("ELIGIBLE")
+  expect(reuseEvaluation.strengthCommitments[aSource.id]).toBe(5)
+  expect(reuseEvaluation.remainingStrength[aSource.id]).toBe(15)
+  expect(reuseEvaluation.resourceCommitments).toStrictEqual({
+    [ResourceType.INFLUENCE]: 3,
+    [ResourceType.METAL]: 0,
+    [ResourceType.FUEL]: 1,
+    [ResourceType.ENERGY]: 0,
+    [ResourceType.COLONY]: 0,
+  })
+}
+
+function verifyReuseSubmission({
+  moveActionId,
+  ordinaryMove,
+  aSource,
+  q,
+  turnThreeRng,
+  reloadTurn,
+  afterArrival,
+  p,
+  bAtP,
+  strengthTotal,
+}: VerifyReuseSubmissionInput): void {
+  const reuseSubmission = submit({
+    id: moveActionId,
+    playerId: PLAYER_A,
+    actionDefinitionId: ordinaryMove.id,
+    source: aSource,
+    target: q,
+    strength: 5,
+  })
+  const turnFourRng = Rng.fromState(turnThreeRng.getState(), mulberry32Prng)
+  const turnFour = reloadTurn(afterArrival, 4, [reuseSubmission], turnFourRng)
+  const reusedJourney = findJourneyForSubmission(turnFour, PLAYER_A, moveActionId)
+  expect(turnFour.fleets[aSource.id]?.strength).toBe(15)
+  expect(reusedJourney).toMatchObject({ strength: 5, distanceToEnd: 3, movement: { departureTurn: 4 } })
+  expect(turnFour.players[PLAYER_A]?.resources).toMatchObject({
+    [ResourceType.INFLUENCE]: 69,
+    [ResourceType.FUEL]: 8,
+    [ResourceType.COLONY]: 7,
+  })
+  expect(turnFour.planets[p.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(turnFour.fleets[bAtP.id]?.strength).toBe(27)
+  expect(strengthTotal(turnFour)).toBe(69)
+
+  const turnFiveRng = Rng.fromState(turnFourRng.getState(), mulberry32Prng)
+  const turnFive = reloadTurn(turnFour, 5, [], turnFiveRng)
+
+  assertFindJourneyForSubmission({ turnFive, moveActionId, aSource, turnFour, p, bAtP, strengthTotal })
+}
+
+type VerifyReleasedInput = {
+  journeyActionBindings: Array<{ playerId: PlayerId; actionId: ActionId; freeMoveActionId: ActionId }>
+  eligibilityState: (
+    playerId: PlayerId,
+    turn: number,
+    players: Readonly<Record<PlayerId, ResolutionPlayer>>,
+    currentPlanets: ReadonlyArray<Pick<ReturnType<typeof createPlanetStub>, "id" | "ownerPlayerId" | "x" | "y">>,
+    currentFleets: ReadonlyArray<ReturnType<typeof createFleetStub>>,
+  ) => Readonly<{
+    gameId: GameId
+    turn: number
+    submittingPlayerId: PlayerId
+    resources: Readonly<ReturnType<typeof createResourcesStub>>
+    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+    actions: readonly Action[]
+  }>
+  afterArrival: ResolvedTurnState
+  ruleset: Ruleset
+  aTurnFour: Readonly<{
+    gameId: GameId
+    turn: number
+    submittingPlayerId: PlayerId
+    resources: Readonly<ReturnType<typeof createResourcesStub>>
+    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+    actions: readonly Action[]
+  }>
+  moveActionId: ActionId
+  aSource: ReturnType<typeof createFleetStub>
+  q: ReturnType<typeof createPlanetStub>
+}
+
+type VerifyReuseSubmissionInput = {
+  moveActionId: ActionId
+  ordinaryMove: {
+    id: ActionDefinitionId
+    name: string
+    type: "AGENDA" | "DIRECTIVE" | "PROGRAM"
+    tier: "BASIC" | "STANDARD" | "IMPROVED" | "ADVANCED" | "EXCEPTIONAL"
+    inputs: Record<InputTag, { type: "POSITIVE_INTEGER"; label: string }>
+    targets: Record<
+      TargetTag,
+      {
+        targetType: "FLEET" | "PLANET" | "PLAYER"
+        constraints: ReadonlyArray<
+          | { type: "OWNED_BY_SUBMITTING_PLAYER"; references: Record<string, never>; parameters: Record<string, never> }
+          | { type: "STATIONARY_FLEET"; references: Record<string, never>; parameters: Record<string, never> }
+          | { type: "WITHIN_FLEET_RANGE"; references: { sourceFleetTag: TargetTag }; parameters: { maxDistance: PositiveNumber } }
+          | { type: "DIFFERENT_FROM_FLEET_ORIGIN"; references: { sourceFleetTag: TargetTag }; parameters: Record<string, never> }
+          | { type: "AT_FLEET_PLANET"; references: { sourceFleetTag: TargetTag }; parameters: Record<string, never> }
+          | { type: "UNCLAIMED_PLANET"; references: Record<string, never>; parameters: Record<string, never> }
+        >
+      }
+    >
+    costs: Array<{
+      type: "RESOURCE_LOSS"
+      targets: Record<string, never>
+      parameters: Readonly<{ quantity: PositiveNumber; resourceType: "INFLUENCE" | "METAL" | "FUEL" | "ENERGY" | "COLONY" }>
+    }>
+    effects: Array<
+      | {
+          type: "RESOURCE_LOSS"
+          targets: Record<string, never>
+          parameters: Readonly<{ quantity: PositiveNumber; resourceType: "INFLUENCE" | "METAL" | "FUEL" | "ENERGY" | "COLONY" }>
+        }
+      | {
+          type: "RESOURCE_GAIN"
+          targets: Record<string, never>
+          parameters: Readonly<{ quantity: PositiveNumber; resourceType: "INFLUENCE" | "METAL" | "FUEL" | "ENERGY" | "COLONY" }>
+        }
+      | { type: "VICTORY"; targets: Record<string, never>; parameters: Record<string, never> }
+      | { type: "FLEET_BUILD"; targets: { planet: EffectDefinitionTargetDefinition<"PLANET"> }; parameters: { strength: PositiveInteger } }
+      | {
+          type: "FLEET_MOVE"
+          targets: { fleet: EffectDefinitionTargetDefinition<"FLEET">; planet: EffectDefinitionTargetDefinition<"PLANET"> }
+          inputs: { strength: { actionInputTag: InputTag; inputType: "POSITIVE_INTEGER" } }
+          parameters: { speed: PositiveNumber }
+        }
+      | {
+          type: "FLEET_ASSAULT"
+          targets: { fleet: EffectDefinitionTargetDefinition<"FLEET">; planet: EffectDefinitionTargetDefinition<"PLANET"> }
+          parameters: Record<string, never>
+        }
+      | {
+          type: "FLEET_COLONIZE"
+          targets: { fleet: EffectDefinitionTargetDefinition<"FLEET">; planet: EffectDefinitionTargetDefinition<"PLANET"> }
+          parameters: { strengthRequirement: PositiveInteger }
+        }
+    >
+  }
+  aSource: ReturnType<typeof createFleetStub>
+  q: ReturnType<typeof createPlanetStub>
+  turnThreeRng: Rng<number>
+  reloadTurn: (
+    previous: ResolvedTurnState,
+    turn: number,
+    submissions: Array<
+      Readonly<{
+        id: ActionId
+        playerId: PlayerId
+        actionDefinitionId: ActionDefinitionId
+        selectedTargets: Readonly<Record<TargetTag, TargetId>>
+        selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+      }>
+    >,
+    rng: ReturnType<typeof createSeededRng>,
+  ) => ResolvedTurnState
+  afterArrival: ResolvedTurnState
+  p: ReturnType<typeof createPlanetStub>
+  bAtP: ReturnType<typeof createFleetStub>
+  strengthTotal: (state: ResolvedTurnState) => number
 }

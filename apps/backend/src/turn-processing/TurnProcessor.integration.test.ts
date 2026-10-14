@@ -1,12 +1,21 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
+import type { GameId } from "shared/domain/games/GameId.ts"
+import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { StationaryAssaultTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { BuildFleetStandard } from "shared/testing/test-ruleset/action-definitions/build-fleet.ts"
 import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
+import type { PlayerView, Fleet, Planet } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
+import type { Database } from "#lib/db/createDb.ts"
+import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
+import type { reverseWorkerInputEnumeration } from "#tests/fleet-concurrency/gameplay.ts"
+import type { mulberry32FirstDraw, replayObservedTurn, mulberry32DrawSequence } from "#tests/fleet-worker/TurnProcessor.scenarios.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
+import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import { assertEmptyObserved3 } from "../tests/fleet-assertions/TurnProcessor-2.ts"
 import {
   createClientsSetup,
@@ -39,25 +48,8 @@ describe("TurnProcessor", () => {
 
       const createStationedSetupPhase2Result = await createStationedSetup({ ...createClientsSetupPhase1Result, alice })
       const { stationed, preAssaultViews, actionIds } = createStationedSetupPhase2Result
-      for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-        const client = clients[ownerIndex]
-        const view = preAssaultViews[ownerIndex]
-        const fleet = stationed[ownerIndex]
-        Assert.isDefined(client)
-        Assert.isDefined(view)
-        Assert.isDefined(fleet)
-        const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
-        Assert.isDefined(action)
-        actionIds.push(action.id)
-        await client.client.gameplay.updateActionSubmission.mutate({
-          gameId,
-          turn: view.turn,
-          submittedActionTargets: getActionToSubmintegrationTest(view, StationaryAssaultTest.id, {
-            station: fleet.id,
-            battlePlanet: target.id,
-          }),
-        })
-      }
+
+      await verifyOwnerIndex({ clients, preAssaultViews, stationed, actionIds, gameId, target })
 
       const createObservedSetupPhase3Result = await createObservedSetup({
         ...createClientsSetupPhase1Result,
@@ -81,35 +73,16 @@ describe("TurnProcessor", () => {
       })
 
       const afterCombatViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
-      expect(
-        afterCombatViews[0]?.fleets.find(
-          ({ ownerPlayerId, originPlanetId, movement }) =>
-            ownerPlayerId === playerIds[0] && originPlanetId === target.id && movement === undefined,
-        )?.strength,
-      ).toBe(10)
-      expect(afterCombatViews[0]?.fleets.some(({ ownerPlayerId }) => ownerPlayerId === playerIds[1])).toBe(false)
-      for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-        const before = preAssaultViews[ownerIndex]
-        const after = afterCombatViews[ownerIndex]
-        Assert.isDefined(before)
-        Assert.isDefined(after)
-        expect(
-          after.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === target.id)?.ownerPlayerId,
-        ).toBe(target.ownerPlayerId)
-        for (const resourceType of Object.values(ResourceType)) {
-          expect(after.resources[resourceType].total).toBe(before.resources[resourceType].total)
-        }
-        expect(after.actions.find(({ id }) => id === actionIds[ownerIndex])).toMatchObject({ selectedTargets: null, isInProgress: false })
-      }
+
+      verifyAfterCombatViews({ afterCombatViews, playerIds, target, clients, preAssaultViews, actionIds })
 
       // Assert: the next publicly closed empty turn observes the saved one-draw RNG and an empty action list.
       const emptyTurn = afterCombatViews[0]
       Assert.isDefined(emptyTurn)
 
-      const assertEmptyObservedPhase3Value1 = draw.value
-      const assertEmptyObservedPhase3Observed = observed
-
-      await assertEmptyObserved({
+      await assertEmptyObservedValue1({
+        draw,
+        observed,
         clients,
         gameId,
         emptyTurn,
@@ -118,9 +91,6 @@ describe("TurnProcessor", () => {
         clock,
         turnsRepository,
         forward,
-        assertEmptyObservedPhase3Observed,
-        assertEmptyObservedPhase3Value1,
-        draw,
         stationed,
         playerIds,
         actionIds,
@@ -144,43 +114,11 @@ describe("TurnProcessor", () => {
 
     const preAssaultViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
     const buildActionIds: string[] = []
-    for (const ownerIndex of [2, 1, 0]) {
-      const client = clients[ownerIndex]
-      const view = preAssaultViews[ownerIndex]
-      const home = homes[ownerIndex]
-      Assert.isDefined(client)
-      Assert.isDefined(view)
-      Assert.isDefined(home)
-      const buildAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
-      Assert.isDefined(buildAction)
-      buildActionIds.push(buildAction.id)
-      await client.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: view.turn,
-        submittedActionTargets: getActionToSubmintegrationTest(view, BuildFleetStandard.id, { planet: home.id }),
-      })
-    }
-    expect(buildActionIds).toStrictEqual(["BUILD_FLEET_STANDARD_1", "BUILD_FLEET_STANDARD_1", "BUILD_FLEET_STANDARD_1"])
+
+    await verifyBuildActionIds({ clients, preAssaultViews, homes, buildActionIds, gameId })
     const assaultActionIds: string[] = []
-    for (const ownerIndex of [0, 1]) {
-      const client = clients[ownerIndex]
-      const view = preAssaultViews[ownerIndex]
-      const fleet = stationed[ownerIndex]
-      Assert.isDefined(client)
-      Assert.isDefined(view)
-      Assert.isDefined(fleet)
-      const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
-      Assert.isDefined(action)
-      assaultActionIds.push(action.id)
-      await client.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: view.turn,
-        submittedActionTargets: getActionToSubmintegrationTest(view, StationaryAssaultTest.id, {
-          station: fleet.id,
-          battlePlanet: target.id,
-        }),
-      })
-    }
+
+    await verifyActionSelections({ clients, preAssaultViews, stationed, assaultActionIds, gameId, target })
 
     const createObservedSetupPhase4Result = await createObservedSetup2({
       assaultActionIds,
@@ -209,52 +147,19 @@ describe("TurnProcessor", () => {
       gameId,
     })
     const { afterCombatViews, actualForces } = createAfterCombatViewsSetupPhase5Result
-    for (const originalFleet of stationed) {
-      const expectedFleet = Object.values(forward.resolved.fleets).find(({ id }) => id === originalFleet.id)
-      const actualFleet = afterCombatViews[0]?.fleets.find(({ id }) => id === originalFleet.id)
-      if (expectedFleet === undefined) {
-        expect(actualFleet).toBeUndefined()
-      } else {
-        expect(actualFleet).toMatchObject({
-          id: originalFleet.id,
-          name: originalFleet.name,
-          ownerPlayerId: originalFleet.ownerPlayerId,
-          strength: expectedFleet.strength,
-          originPlanetId: target.id,
-        })
-      }
-    }
+
+    verifyActualFleet({ stationed, forward, afterCombatViews, target })
     const actualWorkerBuildNames: string[] = []
-    for (const replayBuild of replayBuilds) {
-      const actualBuild = afterCombatViews[0]?.fleets.find(({ id }) => id === replayBuild.id)
-      Assert.isDefined(actualBuild)
-      expect(actualBuild).toMatchObject(replayBuild)
-      actualWorkerBuildNames.push(actualBuild.name)
-    }
-    for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-      const before = preAssaultViews[ownerIndex]
-      const after = afterCombatViews[ownerIndex]
-      Assert.isDefined(before)
-      Assert.isDefined(after)
-      expect(
-        after.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === target.id)?.ownerPlayerId,
-      ).toBe(target.ownerPlayerId)
-      expect(after.actions.find(({ id }) => id === assaultActionIds[0])).toMatchObject({ selectedTargets: null, isInProgress: false })
-      expect(after.actions.find(({ id }) => id === assaultActionIds[1])).toMatchObject({ selectedTargets: null, isInProgress: false })
-      for (const resourceType of Object.values(ResourceType)) {
-        const spent = resourceType === ResourceType.INFLUENCE ? 2 : resourceType === ResourceType.METAL ? 1 : 0
-        expect(after.resources[resourceType].total).toBe(before.resources[resourceType].total - spent)
-      }
-    }
+
+    verifyActualBuild({ replayBuilds, afterCombatViews, actualWorkerBuildNames, clients, preAssaultViews, target, assaultActionIds })
 
     // Assert: capture the next empty public turn and verify the naturally persisted one-draw RNG before the real worker.
     const emptyTurn = afterCombatViews[0]
     Assert.isDefined(emptyTurn)
 
-    const assertEmptyObservedPhase6Value1 = draw.value
-    const assertEmptyObservedPhase6Observed = observed
-
-    await assertEmptyObserved2({
+    await assertEmptyObservedValue12({
+      draw,
+      observed,
       clients,
       gameId,
       emptyTurn,
@@ -262,7 +167,6 @@ describe("TurnProcessor", () => {
       clock,
       turnsRepository,
       forward,
-      assertEmptyObservedPhase6Observed,
       rngSequence,
       actualWorkerBuildNames,
       expectedBuildNames,
@@ -271,7 +175,6 @@ describe("TurnProcessor", () => {
       homes,
       stationed,
       assaultActionIds,
-      assertEmptyObservedPhase6Value1,
       turnProcessor,
       alice,
       target,
@@ -295,25 +198,8 @@ describe("TurnProcessor", () => {
 
     const preAssaultViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
     const assaultActionIds: string[] = []
-    for (const ownerIndex of [0, 1]) {
-      const client = clients[ownerIndex]
-      const view = preAssaultViews[ownerIndex]
-      const fleet = stationed[ownerIndex]
-      Assert.isDefined(client)
-      Assert.isDefined(view)
-      Assert.isDefined(fleet)
-      const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
-      Assert.isDefined(action)
-      assaultActionIds.push(action.id)
-      await client.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: view.turn,
-        submittedActionTargets: getActionToSubmintegrationTest(view, StationaryAssaultTest.id, {
-          station: fleet.id,
-          battlePlanet: target.id,
-        }),
-      })
-    }
+
+    await verifyActionSelections2({ clients, preAssaultViews, stationed, assaultActionIds, gameId, target })
 
     const createObservedSetupPhase6Result = await createObservedSetup3({
       assaultActionIds,
@@ -359,10 +245,9 @@ describe("TurnProcessor", () => {
     const emptyTurn = afterCombatViews[0]
     Assert.isDefined(emptyTurn)
 
-    const assertEmptyObservedPhase8Value1 = draw.value
-    const assertEmptyObservedPhase8Observed = observed
-
-    await assertEmptyObserved3({
+    await assertEmptyObservedValue13({
+      draw,
+      observed,
       clients,
       gameId,
       emptyTurn,
@@ -370,9 +255,6 @@ describe("TurnProcessor", () => {
       clock,
       turnsRepository,
       forward,
-      assertEmptyObservedPhase8Observed,
-      assertEmptyObservedPhase8Value1,
-      draw,
       stationed,
       playerIds,
       assaultActionIds,
@@ -383,3 +265,435 @@ describe("TurnProcessor", () => {
     })
   })
 })
+
+async function verifyOwnerIndex({ clients, preAssaultViews, stationed, actionIds, gameId, target }: VerifyOwnerIndexInput): Promise<void> {
+  for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
+    const client = clients[ownerIndex]
+    const view = preAssaultViews[ownerIndex]
+    const fleet = stationed[ownerIndex]
+    Assert.isDefined(client)
+    Assert.isDefined(view)
+    Assert.isDefined(fleet)
+    const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
+    Assert.isDefined(action)
+    actionIds.push(action.id)
+    await client.client.gameplay.updateActionSubmission.mutate({
+      gameId,
+      turn: view.turn,
+      submittedActionTargets: getActionToSubmintegrationTest(view, StationaryAssaultTest.id, {
+        station: fleet.id,
+        battlePlanet: target.id,
+      }),
+    })
+  }
+}
+
+function verifyAfterCombatViews({
+  afterCombatViews,
+  playerIds,
+  target,
+  clients,
+  preAssaultViews,
+  actionIds,
+}: VerifyAfterCombatViewsInput): void {
+  expect(
+    afterCombatViews[0]?.fleets.find(
+      ({ ownerPlayerId, originPlanetId, movement }) =>
+        ownerPlayerId === playerIds[0] && originPlanetId === target.id && movement === undefined,
+    )?.strength,
+  ).toBe(10)
+  expect(afterCombatViews[0]?.fleets.some(({ ownerPlayerId }) => ownerPlayerId === playerIds[1])).toBe(false)
+  for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
+    const before = preAssaultViews[ownerIndex]
+    const after = afterCombatViews[ownerIndex]
+    Assert.isDefined(before)
+    Assert.isDefined(after)
+    expect(
+      after.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === target.id)?.ownerPlayerId,
+    ).toBe(target.ownerPlayerId)
+    for (const resourceType of Object.values(ResourceType)) {
+      expect(after.resources[resourceType].total).toBe(before.resources[resourceType].total)
+    }
+    expect(after.actions.find(({ id }) => id === actionIds[ownerIndex])).toMatchObject({ selectedTargets: null, isInProgress: false })
+  }
+}
+
+async function assertEmptyObservedValue1({
+  draw,
+  observed,
+  clients,
+  gameId,
+  emptyTurn,
+  turnProcessor,
+  db,
+  clock,
+  turnsRepository,
+  forward,
+  stationed,
+  playerIds,
+  actionIds,
+  afterCombatViews,
+}: AssertEmptyObservedValue1Input): Promise<void> {
+  const assertEmptyObservedPhase3Value1 = draw.value
+  const assertEmptyObservedPhase3Observed = observed
+
+  await assertEmptyObserved({
+    clients,
+    gameId,
+    emptyTurn,
+    turnProcessor,
+    db,
+    clock,
+    turnsRepository,
+    forward,
+    assertEmptyObservedPhase3Observed,
+    assertEmptyObservedPhase3Value1,
+    draw,
+    stationed,
+    playerIds,
+    actionIds,
+    afterCombatViews,
+  })
+}
+
+async function verifyBuildActionIds({ clients, preAssaultViews, homes, buildActionIds, gameId }: VerifyBuildActionIdsInput): Promise<void> {
+  for (const ownerIndex of [2, 1, 0]) {
+    const client = clients[ownerIndex]
+    const view = preAssaultViews[ownerIndex]
+    const home = homes[ownerIndex]
+    Assert.isDefined(client)
+    Assert.isDefined(view)
+    Assert.isDefined(home)
+    const buildAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+    Assert.isDefined(buildAction)
+    buildActionIds.push(buildAction.id)
+    await client.client.gameplay.updateActionSubmission.mutate({
+      gameId,
+      turn: view.turn,
+      submittedActionTargets: getActionToSubmintegrationTest(view, BuildFleetStandard.id, { planet: home.id }),
+    })
+  }
+  expect(buildActionIds).toStrictEqual(["BUILD_FLEET_STANDARD_1", "BUILD_FLEET_STANDARD_1", "BUILD_FLEET_STANDARD_1"])
+}
+
+async function verifyActionSelections({
+  clients,
+  preAssaultViews,
+  stationed,
+  assaultActionIds,
+  gameId,
+  target,
+}: VerifyActionSelectionsInput): Promise<void> {
+  for (const ownerIndex of [0, 1]) {
+    const client = clients[ownerIndex]
+    const view = preAssaultViews[ownerIndex]
+    const fleet = stationed[ownerIndex]
+    Assert.isDefined(client)
+    Assert.isDefined(view)
+    Assert.isDefined(fleet)
+    const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
+    Assert.isDefined(action)
+    assaultActionIds.push(action.id)
+    await client.client.gameplay.updateActionSubmission.mutate({
+      gameId,
+      turn: view.turn,
+      submittedActionTargets: getActionToSubmintegrationTest(view, StationaryAssaultTest.id, {
+        station: fleet.id,
+        battlePlanet: target.id,
+      }),
+    })
+  }
+}
+
+function verifyActualFleet({ stationed, forward, afterCombatViews, target }: VerifyActualFleetInput): void {
+  for (const originalFleet of stationed) {
+    const expectedFleet = Object.values(forward.resolved.fleets).find(({ id }) => id === originalFleet.id)
+    const actualFleet = afterCombatViews[0]?.fleets.find(({ id }) => id === originalFleet.id)
+    if (expectedFleet === undefined) {
+      expect(actualFleet).toBeUndefined()
+    } else {
+      expect(actualFleet).toMatchObject({
+        id: originalFleet.id,
+        name: originalFleet.name,
+        ownerPlayerId: originalFleet.ownerPlayerId,
+        strength: expectedFleet.strength,
+        originPlanetId: target.id,
+      })
+    }
+  }
+}
+
+function verifyActualBuild({
+  replayBuilds,
+  afterCombatViews,
+  actualWorkerBuildNames,
+  clients,
+  preAssaultViews,
+  target,
+  assaultActionIds,
+}: VerifyActualBuildInput): void {
+  for (const replayBuild of replayBuilds) {
+    const actualBuild = afterCombatViews[0]?.fleets.find(({ id }) => id === replayBuild.id)
+    Assert.isDefined(actualBuild)
+    expect(actualBuild).toMatchObject(replayBuild)
+    actualWorkerBuildNames.push(actualBuild.name)
+  }
+  for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
+    const before = preAssaultViews[ownerIndex]
+    const after = afterCombatViews[ownerIndex]
+    Assert.isDefined(before)
+    Assert.isDefined(after)
+    expect(
+      after.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === target.id)?.ownerPlayerId,
+    ).toBe(target.ownerPlayerId)
+    expect(after.actions.find(({ id }) => id === assaultActionIds[0])).toMatchObject({ selectedTargets: null, isInProgress: false })
+    expect(after.actions.find(({ id }) => id === assaultActionIds[1])).toMatchObject({ selectedTargets: null, isInProgress: false })
+    for (const resourceType of Object.values(ResourceType)) {
+      const spent = resourceType === ResourceType.INFLUENCE ? 2 : resourceType === ResourceType.METAL ? 1 : 0
+      expect(after.resources[resourceType].total).toBe(before.resources[resourceType].total - spent)
+    }
+  }
+}
+
+async function assertEmptyObservedValue12({
+  draw,
+  observed,
+  clients,
+  gameId,
+  emptyTurn,
+  db,
+  clock,
+  turnsRepository,
+  forward,
+  rngSequence,
+  actualWorkerBuildNames,
+  expectedBuildNames,
+  playerIds,
+  buildActionIds,
+  homes,
+  stationed,
+  assaultActionIds,
+  turnProcessor,
+  alice,
+  target,
+  actualForces,
+}: AssertEmptyObservedValue12Input): Promise<void> {
+  const assertEmptyObservedPhase6Value1 = draw.value
+  const assertEmptyObservedPhase6Observed = observed
+
+  await assertEmptyObserved2({
+    clients,
+    gameId,
+    emptyTurn,
+    db,
+    clock,
+    turnsRepository,
+    forward,
+    assertEmptyObservedPhase6Observed,
+    rngSequence,
+    actualWorkerBuildNames,
+    expectedBuildNames,
+    playerIds,
+    buildActionIds,
+    homes,
+    stationed,
+    assaultActionIds,
+    assertEmptyObservedPhase6Value1,
+    turnProcessor,
+    alice,
+    target,
+    actualForces,
+  })
+}
+
+async function verifyActionSelections2({
+  clients,
+  preAssaultViews,
+  stationed,
+  assaultActionIds,
+  gameId,
+  target,
+}: VerifyActionSelections2Input): Promise<void> {
+  for (const ownerIndex of [0, 1]) {
+    const client = clients[ownerIndex]
+    const view = preAssaultViews[ownerIndex]
+    const fleet = stationed[ownerIndex]
+    Assert.isDefined(client)
+    Assert.isDefined(view)
+    Assert.isDefined(fleet)
+    const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
+    Assert.isDefined(action)
+    assaultActionIds.push(action.id)
+    await client.client.gameplay.updateActionSubmission.mutate({
+      gameId,
+      turn: view.turn,
+      submittedActionTargets: getActionToSubmintegrationTest(view, StationaryAssaultTest.id, {
+        station: fleet.id,
+        battlePlanet: target.id,
+      }),
+    })
+  }
+}
+
+async function assertEmptyObservedValue13({
+  draw,
+  observed,
+  clients,
+  gameId,
+  emptyTurn,
+  db,
+  clock,
+  turnsRepository,
+  forward,
+  stationed,
+  playerIds,
+  assaultActionIds,
+  turnProcessor,
+  alice,
+  target,
+  actualForces,
+}: AssertEmptyObservedValue13Input): Promise<void> {
+  const assertEmptyObservedPhase8Value1 = draw.value
+  const assertEmptyObservedPhase8Observed = observed
+
+  await assertEmptyObserved3({
+    clients,
+    gameId,
+    emptyTurn,
+    db,
+    clock,
+    turnsRepository,
+    forward,
+    assertEmptyObservedPhase8Observed,
+    assertEmptyObservedPhase8Value1,
+    draw,
+    stationed,
+    playerIds,
+    assaultActionIds,
+    turnProcessor,
+    alice,
+    target,
+    actualForces,
+  })
+}
+
+type VerifyOwnerIndexInput = {
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  preAssaultViews: PlayerView[]
+  stationed: readonly [Fleet, Fleet]
+  actionIds: string[]
+  gameId: GameId
+  target: Planet
+}
+
+type VerifyAfterCombatViewsInput = {
+  afterCombatViews: PlayerView[]
+  playerIds: readonly [PlayerId, PlayerId]
+  target: Planet
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  preAssaultViews: PlayerView[]
+  actionIds: string[]
+}
+
+type AssertEmptyObservedValue1Input = {
+  draw: ReturnType<typeof mulberry32FirstDraw>
+  observed: ReturnType<typeof reverseWorkerInputEnumeration>
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: GameId
+  emptyTurn: PlayerView
+  turnProcessor: TurnProcessor
+  db: Database
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  forward: ReturnType<typeof replayObservedTurn>
+  stationed: readonly [Fleet, Fleet]
+  playerIds: readonly [PlayerId, PlayerId]
+  actionIds: string[]
+  afterCombatViews: PlayerView[]
+}
+
+type VerifyBuildActionIdsInput = {
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  preAssaultViews: PlayerView[]
+  homes: readonly [Planet, Planet, Planet]
+  buildActionIds: string[]
+  gameId: number
+}
+
+type VerifyActionSelectionsInput = {
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  preAssaultViews: PlayerView[]
+  stationed: readonly [Fleet, Fleet, Fleet]
+  assaultActionIds: string[]
+  gameId: number
+  target: Planet
+}
+
+type VerifyActualFleetInput = {
+  stationed: readonly [Fleet, Fleet, Fleet]
+  forward: ReturnType<typeof replayObservedTurn>
+  afterCombatViews: PlayerView[]
+  target: Planet
+}
+
+type VerifyActualBuildInput = {
+  replayBuilds: Array<{ id: string; name: string; ownerPlayerId: PlayerId; originPlanetId: string; strength: number }>
+  afterCombatViews: PlayerView[]
+  actualWorkerBuildNames: string[]
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  preAssaultViews: PlayerView[]
+  target: Planet
+  assaultActionIds: string[]
+}
+
+type AssertEmptyObservedValue12Input = {
+  draw: { value: number; nextGeneratorState: number }
+  observed: ReturnType<typeof reverseWorkerInputEnumeration>
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: number
+  emptyTurn: PlayerView
+  db: Database
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  forward: ReturnType<typeof replayObservedTurn>
+  rngSequence: ReturnType<typeof mulberry32DrawSequence>
+  actualWorkerBuildNames: string[]
+  expectedBuildNames: string[]
+  playerIds: readonly [PlayerId, PlayerId, PlayerId]
+  buildActionIds: string[]
+  homes: readonly [Planet, Planet, Planet]
+  stationed: readonly [Fleet, Fleet, Fleet]
+  assaultActionIds: string[]
+  turnProcessor: TurnProcessor
+  alice: AuthenticatedApiClient
+  target: Planet
+  actualForces: Record<string, undefined | number[]>
+}
+
+type VerifyActionSelections2Input = {
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  preAssaultViews: PlayerView[]
+  stationed: readonly [Fleet, Fleet, Fleet]
+  assaultActionIds: string[]
+  gameId: number
+  target: Planet
+}
+
+type AssertEmptyObservedValue13Input = {
+  draw: ReturnType<typeof mulberry32FirstDraw>
+  observed: ReturnType<typeof reverseWorkerInputEnumeration>
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: number
+  emptyTurn: PlayerView
+  db: Database
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  forward: ReturnType<typeof replayObservedTurn>
+  stationed: readonly [Fleet, Fleet, Fleet]
+  playerIds: readonly [PlayerId, PlayerId, PlayerId]
+  assaultActionIds: string[]
+  turnProcessor: TurnProcessor
+  alice: AuthenticatedApiClient
+  target: Planet
+  actualForces: Record<string, undefined | number[]>
+}

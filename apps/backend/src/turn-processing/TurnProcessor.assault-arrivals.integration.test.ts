@@ -46,24 +46,8 @@ describe("TurnProcessor", () => {
     const bobHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerIds[1])
     Assert.isDefined(target)
     Assert.isDefined(bobHome)
-    for (let buildRound = 0; buildRound < 3; buildRound += 1) {
-      const views = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
-      for (const [ownerIndex, client] of clients.entries()) {
-        const view = views[ownerIndex]
-        const home = ownerIndex === 0 ? target : bobHome
-        Assert.isDefined(view)
-        if ((buildRound < 3 && ownerIndex === 0) || (buildRound < 2 && ownerIndex === 1)) {
-          await client.client.gameplay.updateActionSubmission.mutate({
-            gameId,
-            turn: view.turn,
-            submittedActionTargets: getActionToSubmintegrationTest(view, BuildFleetStandard.id, { planet: home.id }),
-          })
-        }
-      }
-      const view = views[0]
-      Assert.isDefined(view)
-      await processPublicTurn({ clients, gameId, turn: view.turn, turnProcessor })
-    }
+
+    await verifyBuildRound({ clients, gameId, target, bobHome, turnProcessor })
     const builtView = await alice.client.gameplay.getPlayerView.query({ gameId })
     const defender = builtView.fleets.find(
       ({ ownerPlayerId, originPlanetId, movement }) =>
@@ -75,41 +59,10 @@ describe("TurnProcessor", () => {
     )
     Assert.isDefined(defender)
     Assert.isDefined(enemy)
-    expect(defender.strength).toBe(30)
-    expect(enemy.strength).toBe(20)
 
-    // Act: start a public enemy Attack Move and let its persisted movement advance to its literal final remainder.
-    await bob.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: builtView.turn,
-      submittedActionTargets: getActionToSubmintegrationTest(
-        await bob.client.gameplay.getPlayerView.query({ gameId }),
-        AttackMoveTest.id,
-        { fleet: enemy.id, planet: target.id },
-        { strength: 20 },
-      ),
-    })
-    await processPublicTurn({ clients, gameId, turn: builtView.turn, turnProcessor })
-    for (let advance = 0; advance < 3; advance += 1) {
-      const view = await alice.client.gameplay.getPlayerView.query({ gameId })
-      await processPublicTurn({ clients, gameId, turn: view.turn, turnProcessor })
-    }
+    await verifyDefender({ defender, enemy, bob, gameId, builtView, target, clients, turnProcessor, alice })
 
-    const createNearEnemySetupPhase1Result = await createNearEnemySetup({
-      alice,
-      gameId,
-      playerIds,
-      defender,
-      bobHome,
-      clients,
-      turnProcessor,
-      target,
-    })
-    const { nearEnemy, afterCombat } = createNearEnemySetupPhase1Result
-    expect(afterCombat.actions.find(({ id }) => id === nearEnemy.movement?.submission.id)).toMatchObject({
-      selectedTargets: null,
-      isInProgress: false,
-    })
+    await verifyCreateNearEnemySetupResult({ alice, gameId, playerIds, defender, bobHome, clients, turnProcessor, target })
   })
 
   integrationTest("should persist composed Assault intent through public turns and resolve it once after reload", async ({ db }) => {
@@ -150,46 +103,9 @@ describe("TurnProcessor", () => {
       expect(await turnProcessor.processNextDueTurn()).toBe("processed")
     }
 
-    for (let buildTurn = 1; buildTurn <= 5; buildTurn += 1) {
-      const aliceView = await alice.client.gameplay.getPlayerView.query({ gameId })
-      await alice.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: aliceView.turn,
-        submittedActionTargets: getActionToSubmintegrationTest(aliceView, BuildFleetStandard.id, { planet: aliceHome.id }),
-      })
-      if (buildTurn <= 2) {
-        const bobView = await bob.client.gameplay.getPlayerView.query({ gameId })
-        await bob.client.gameplay.updateActionSubmission.mutate({
-          gameId,
-          turn: bobView.turn,
-          submittedActionTargets: getActionToSubmintegrationTest(bobView, BuildFleetStandard.id, { planet: bobHome.id }),
-        })
-      }
-      await processReadyTurn(aliceView.turn)
-    }
+    await verifyBuildTurn({ alice, gameId, aliceHome, bob, bobHome, processReadyTurn })
 
-    const createAliceSourceSetupPhase2Result = await createAliceSourceSetup({
-      alice,
-      gameId,
-      alicePlayerId,
-      aliceHome,
-      bobPlayerId,
-      bobHome,
-      processReadyTurn,
-    })
-    const { assaultAction } = createAliceSourceSetupPhase2Result
-
-    const createAfterEmptyTurnSetupPhase3Result = await createAfterEmptyTurnSetup({
-      ...createAliceSourceSetupPhase2Result,
-      processReadyTurn,
-      alice,
-      gameId,
-      alicePlayerId,
-      bobHome,
-      aliceHome,
-    })
-    const { afterEmptyTurn } = createAfterEmptyTurnSetupPhase3Result
-    expect(afterEmptyTurn.actions.find(({ id }) => id === assaultAction.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
+    await verifyCreateAliceSourceSetupResult({ alice, gameId, alicePlayerId, aliceHome, bobPlayerId, bobHome, processReadyTurn })
   })
 
   integrationTest.for([false, true])(
@@ -339,49 +255,19 @@ describe("TurnProcessor", () => {
         const firstReload = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
         const journey = firstReload.fleets.find(({ movement }) => movement?.submission.id === attackAction.id)
         Assert.isDefined(journey)
-        expect(journey).toMatchObject({ strength: 30, distanceToEnd: 2.418312565270031, destinationPlanetId: fixture.bobHome.id })
-        expect(firstReload.fleets.find(({ id }) => id === fixture.defender.id)?.strength).toBe(20)
-        expect(firstReload.resources[ResourceType.INFLUENCE]).toStrictEqual({
-          total: expectedInfluenceUncommitted,
-          uncommitted: expectedInfluenceUncommitted,
-        })
-        expect(firstReload.resources[ResourceType.FUEL]).toStrictEqual({
-          total: expectedFuelUncommitted,
-          uncommitted: expectedFuelUncommitted,
-        })
 
-        await processReadyTurn(fixture.gameId, firstReload.turn)
-        const secondReload = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
-        expect(secondReload.fleets.find(({ id }) => id === journey.id)?.distanceToEnd).toBe(0.418312565270031)
-        expect(secondReload.fleets.find(({ id }) => id === fixture.defender.id)?.strength).toBe(20)
-        expect(secondReload.resources[ResourceType.INFLUENCE].total).toBe(expectedInfluenceUncommitted)
-        expect(secondReload.resources[ResourceType.FUEL].total).toBe(expectedFuelUncommitted)
-
-        await processReadyTurn(fixture.gameId, secondReload.turn)
+        await verifyJourney({
+          journey,
+          fixture,
+          firstReload,
+          expectedInfluenceUncommitted,
+          expectedFuelUncommitted,
+          processReadyTurn,
+          alice,
+        })
         // Assert: arrival combat preserves the correct owner, survivor identity, resources, and next-turn release.
-        const arrivalView = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
-        expect(arrivalView.fleets.find(({ id }) => id === fixture.defender.id)).toBeUndefined()
-        if (friendlyGuard === undefined) {
-          expect(arrivalView.fleets.find(({ id }) => id === journey.id)).toMatchObject({ strength: 10, originPlanetId: fixture.bobHome.id })
-        } else {
-          expect(arrivalView.fleets.find(({ id }) => id === friendlyGuard?.id)).toMatchObject({
-            id: friendlyGuard.id,
-            name: friendlyGuard.name,
-            strength: 17,
-            originPlanetId: fixture.bobHome.id,
-          })
-          expect(arrivalView.fleets.find(({ id }) => id === journey.id)).toBeUndefined()
-        }
-        expect(arrivalView.actions.find(({ id }) => id === attackAction.id)?.isInProgress).toBe(false)
-        await processReadyTurn(fixture.gameId, arrivalView.turn)
-        const afterEmptyTurn = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
-        expect(afterEmptyTurn.fleets.find(({ id }) => id === (friendlyGuard?.id ?? journey.id))?.strength).toBe(
-          friendlyGuard === undefined ? 10 : 17,
-        )
-        expect(afterEmptyTurn.actions.find(({ id }) => id === attackAction.id)).toMatchObject({
-          selectedTargets: null,
-          isInProgress: false,
-        })
+
+        await verifyArrivalView({ alice, fixture, friendlyGuard, journey, attackAction, processReadyTurn })
       }
 
       await runCombat(await createBuiltGame(), moveFriendlyGuard)
@@ -728,3 +614,268 @@ type CreateAfterEmptyTurnSetupInput = {
 }
 
 type CreateAfterEmptyTurnSetupResult = { afterEmptyTurn: PlayerView }
+
+async function verifyBuildRound({ clients, gameId, target, bobHome, turnProcessor }: VerifyBuildRoundInput): Promise<void> {
+  for (let buildRound = 0; buildRound < 3; buildRound += 1) {
+    const views = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
+    for (const [ownerIndex, client] of clients.entries()) {
+      const view = views[ownerIndex]
+      const home = ownerIndex === 0 ? target : bobHome
+      Assert.isDefined(view)
+      if ((buildRound < 3 && ownerIndex === 0) || (buildRound < 2 && ownerIndex === 1)) {
+        await client.client.gameplay.updateActionSubmission.mutate({
+          gameId,
+          turn: view.turn,
+          submittedActionTargets: getActionToSubmintegrationTest(view, BuildFleetStandard.id, { planet: home.id }),
+        })
+      }
+    }
+    const view = views[0]
+    Assert.isDefined(view)
+    await processPublicTurn({ clients, gameId, turn: view.turn, turnProcessor })
+  }
+}
+
+async function verifyDefender({
+  defender,
+  enemy,
+  bob,
+  gameId,
+  builtView,
+  target,
+  clients,
+  turnProcessor,
+  alice,
+}: VerifyDefenderInput): Promise<void> {
+  expect(defender.strength).toBe(30)
+  expect(enemy.strength).toBe(20)
+
+  // Act: start a public enemy Attack Move and let its persisted movement advance to its literal final remainder.
+  await bob.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: builtView.turn,
+    submittedActionTargets: getActionToSubmintegrationTest(
+      await bob.client.gameplay.getPlayerView.query({ gameId }),
+      AttackMoveTest.id,
+      { fleet: enemy.id, planet: target.id },
+      { strength: 20 },
+    ),
+  })
+  await processPublicTurn({ clients, gameId, turn: builtView.turn, turnProcessor })
+  for (let advance = 0; advance < 3; advance += 1) {
+    const view = await alice.client.gameplay.getPlayerView.query({ gameId })
+    await processPublicTurn({ clients, gameId, turn: view.turn, turnProcessor })
+  }
+}
+
+async function verifyCreateNearEnemySetupResult({
+  alice,
+  gameId,
+  playerIds,
+  defender,
+  bobHome,
+  clients,
+  turnProcessor,
+  target,
+}: VerifyCreateNearEnemySetupResultInput): Promise<void> {
+  const createNearEnemySetupPhase1Result = await createNearEnemySetup({
+    alice,
+    gameId,
+    playerIds,
+    defender,
+    bobHome,
+    clients,
+    turnProcessor,
+    target,
+  })
+  const { nearEnemy, afterCombat } = createNearEnemySetupPhase1Result
+  expect(afterCombat.actions.find(({ id }) => id === nearEnemy.movement?.submission.id)).toMatchObject({
+    selectedTargets: null,
+    isInProgress: false,
+  })
+}
+
+async function verifyBuildTurn({ alice, gameId, aliceHome, bob, bobHome, processReadyTurn }: VerifyBuildTurnInput): Promise<void> {
+  for (let buildTurn = 1; buildTurn <= 5; buildTurn += 1) {
+    const aliceView = await alice.client.gameplay.getPlayerView.query({ gameId })
+    await alice.client.gameplay.updateActionSubmission.mutate({
+      gameId,
+      turn: aliceView.turn,
+      submittedActionTargets: getActionToSubmintegrationTest(aliceView, BuildFleetStandard.id, { planet: aliceHome.id }),
+    })
+    if (buildTurn <= 2) {
+      const bobView = await bob.client.gameplay.getPlayerView.query({ gameId })
+      await bob.client.gameplay.updateActionSubmission.mutate({
+        gameId,
+        turn: bobView.turn,
+        submittedActionTargets: getActionToSubmintegrationTest(bobView, BuildFleetStandard.id, { planet: bobHome.id }),
+      })
+    }
+    await processReadyTurn(aliceView.turn)
+  }
+}
+
+async function verifyCreateAliceSourceSetupResult({
+  alice,
+  gameId,
+  alicePlayerId,
+  aliceHome,
+  bobPlayerId,
+  bobHome,
+  processReadyTurn,
+}: VerifyCreateAliceSourceSetupResultInput): Promise<void> {
+  const createAliceSourceSetupPhase2Result = await createAliceSourceSetup({
+    alice,
+    gameId,
+    alicePlayerId,
+    aliceHome,
+    bobPlayerId,
+    bobHome,
+    processReadyTurn,
+  })
+  const { assaultAction } = createAliceSourceSetupPhase2Result
+
+  const createAfterEmptyTurnSetupPhase3Result = await createAfterEmptyTurnSetup({
+    ...createAliceSourceSetupPhase2Result,
+    processReadyTurn,
+    alice,
+    gameId,
+    alicePlayerId,
+    bobHome,
+    aliceHome,
+  })
+  const { afterEmptyTurn } = createAfterEmptyTurnSetupPhase3Result
+  expect(afterEmptyTurn.actions.find(({ id }) => id === assaultAction.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
+}
+
+async function verifyJourney({
+  journey,
+  fixture,
+  firstReload,
+  expectedInfluenceUncommitted,
+  expectedFuelUncommitted,
+  processReadyTurn,
+  alice,
+}: VerifyJourneyInput): Promise<void> {
+  expect(journey).toMatchObject({ strength: 30, distanceToEnd: 2.418312565270031, destinationPlanetId: fixture.bobHome.id })
+  expect(firstReload.fleets.find(({ id }) => id === fixture.defender.id)?.strength).toBe(20)
+  expect(firstReload.resources[ResourceType.INFLUENCE]).toStrictEqual({
+    total: expectedInfluenceUncommitted,
+    uncommitted: expectedInfluenceUncommitted,
+  })
+  expect(firstReload.resources[ResourceType.FUEL]).toStrictEqual({
+    total: expectedFuelUncommitted,
+    uncommitted: expectedFuelUncommitted,
+  })
+
+  await processReadyTurn(fixture.gameId, firstReload.turn)
+  const secondReload = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
+  expect(secondReload.fleets.find(({ id }) => id === journey.id)?.distanceToEnd).toBe(0.418312565270031)
+  expect(secondReload.fleets.find(({ id }) => id === fixture.defender.id)?.strength).toBe(20)
+  expect(secondReload.resources[ResourceType.INFLUENCE].total).toBe(expectedInfluenceUncommitted)
+  expect(secondReload.resources[ResourceType.FUEL].total).toBe(expectedFuelUncommitted)
+
+  await processReadyTurn(fixture.gameId, secondReload.turn)
+}
+
+async function verifyArrivalView({
+  alice,
+  fixture,
+  friendlyGuard,
+  journey,
+  attackAction,
+  processReadyTurn,
+}: VerifyArrivalViewInput): Promise<void> {
+  const arrivalView = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
+  expect(arrivalView.fleets.find(({ id }) => id === fixture.defender.id)).toBeUndefined()
+  if (friendlyGuard === undefined) {
+    expect(arrivalView.fleets.find(({ id }) => id === journey.id)).toMatchObject({ strength: 10, originPlanetId: fixture.bobHome.id })
+  } else {
+    expect(arrivalView.fleets.find(({ id }) => id === friendlyGuard?.id)).toMatchObject({
+      id: friendlyGuard.id,
+      name: friendlyGuard.name,
+      strength: 17,
+      originPlanetId: fixture.bobHome.id,
+    })
+    expect(arrivalView.fleets.find(({ id }) => id === journey.id)).toBeUndefined()
+  }
+  expect(arrivalView.actions.find(({ id }) => id === attackAction.id)?.isInProgress).toBe(false)
+  await processReadyTurn(fixture.gameId, arrivalView.turn)
+  const afterEmptyTurn = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
+  expect(afterEmptyTurn.fleets.find(({ id }) => id === (friendlyGuard?.id ?? journey.id))?.strength).toBe(
+    friendlyGuard === undefined ? 10 : 17,
+  )
+  expect(afterEmptyTurn.actions.find(({ id }) => id === attackAction.id)).toMatchObject({
+    selectedTargets: null,
+    isInProgress: false,
+  })
+}
+
+type VerifyBuildRoundInput = {
+  clients: AuthenticatedApiClient[]
+  gameId: GameId
+  target: Planet
+  bobHome: Planet
+  turnProcessor: TurnProcessor
+}
+
+type VerifyDefenderInput = {
+  defender: Fleet
+  enemy: Fleet
+  bob: AuthenticatedApiClient
+  gameId: GameId
+  builtView: PlayerView
+  target: Planet
+  clients: AuthenticatedApiClient[]
+  turnProcessor: TurnProcessor
+  alice: AuthenticatedApiClient
+}
+
+type VerifyCreateNearEnemySetupResultInput = {
+  alice: AuthenticatedApiClient
+  gameId: GameId
+  playerIds: PlayerId[]
+  defender: Fleet
+  bobHome: Planet
+  clients: AuthenticatedApiClient[]
+  turnProcessor: TurnProcessor
+  target: Planet
+}
+
+type VerifyBuildTurnInput = {
+  alice: AuthenticatedApiClient
+  gameId: GameId
+  aliceHome: Planet
+  bob: AuthenticatedApiClient
+  bobHome: Planet
+  processReadyTurn: (turn: number) => Promise<void>
+}
+
+type VerifyCreateAliceSourceSetupResultInput = {
+  alice: AuthenticatedApiClient
+  gameId: GameId
+  alicePlayerId: PlayerId
+  aliceHome: Planet
+  bobPlayerId: PlayerId
+  bobHome: Planet
+  processReadyTurn: (turn: number) => Promise<void>
+}
+
+type VerifyJourneyInput = {
+  journey: Fleet
+  fixture: { gameId: number; aliceHome: Planet; bobHome: Planet; source: Fleet; defender: Fleet }
+  firstReload: PlayerView
+  expectedInfluenceUncommitted: 82 | 85
+  expectedFuelUncommitted: 96 | 99
+  processReadyTurn: (gameId: number, turn: number) => Promise<void>
+  alice: AuthenticatedApiClient
+}
+
+type VerifyArrivalViewInput = {
+  alice: AuthenticatedApiClient
+  fixture: { gameId: number; aliceHome: Planet; bobHome: Planet; source: Fleet; defender: Fleet }
+  friendlyGuard: undefined | Fleet
+  journey: Fleet
+  attackAction: Action
+  processReadyTurn: (gameId: number, turn: number) => Promise<void>
+}

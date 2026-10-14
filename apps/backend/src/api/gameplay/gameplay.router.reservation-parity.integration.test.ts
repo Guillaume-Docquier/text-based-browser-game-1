@@ -1,5 +1,6 @@
 import { Assert, branded, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
+import type { GameId } from "shared/domain/games/GameId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { FleetActionSelectionParity } from "shared/testing/FleetActionSelectionParity.ts"
 import { AttackMoveTest, FlexibleAssaultTest, StationaryAssaultTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
@@ -7,6 +8,7 @@ import { ColonizeHereTest, ColonizePlanetTest } from "shared/testing/test-rulese
 import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
+import type { PlayerView, Planet, Fleet, Action } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
@@ -15,9 +17,12 @@ import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-in
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
 import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "#lib/rulesets/standard/action-definitions/move-fleet.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
+import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
+import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import { assertBeforeOutOfRangeAttempt } from "../../tests/fleet-assertions/gameplay.router.composed-parity-2.ts"
 import {
   ComposedGainReservationRuleset,
@@ -50,25 +55,18 @@ describe("gameplay.router", () => {
       const destination = planets.find(({ coordinates }) => coordinates === "55:07:50")
       Assert.isDefined(origin)
       Assert.isDefined(destination)
-      expect({ x: origin.x, y: origin.y }).toStrictEqual(FleetActionSelectionParity.origin)
-      expect({ x: destination.x, y: destination.y }).toStrictEqual(FleetActionSelectionParity.destination)
 
-      // Act
-      for (let buildCount = 0; buildCount < 5; buildCount += 1) {
-        const buildAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
-        Assert.isDefined(buildAction)
-        await player.client.gameplay.updateActionSubmission.mutate({
-          gameId: createdGameId,
-          turn: playerView.turn,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({
-            actionId: buildAction.id,
-            selectedTargets: { planet: origin.id },
-            selectedInputs: {},
-          }),
-        })
-        await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
-        playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      }
+      const updatedVerifyActionSelections = await verifyActionSelections({
+        origin,
+        destination,
+        playerView,
+        player,
+        createdGameId,
+        clock,
+        turnProcessor,
+        turnsRepository,
+      })
+      playerView = updatedVerifyActionSelections.playerView
 
       const sourceFleet = playerView.fleets.find(({ originPlanetId }) => originPlanetId === origin.id)
       const gainAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
@@ -78,51 +76,10 @@ describe("gameplay.router", () => {
       Assert.isDefined(gainAction)
       Assert.isDefined(moveAction)
       Assert.isDefined(attackAction)
-      expect(sourceFleet.strength).toBe(50)
-      expect(playerView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 7, uncommitted: 7 })
-      expect(playerView.resources[ResourceType.METAL].total).toBe(5)
-      expect(playerView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 2 })
 
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: playerView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
-          actionId: gainAction.id,
-          selectedTargets: {},
-          selectedInputs: {},
-        }),
-      })
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: playerView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
-          actionId: moveAction.id,
-          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-          selectedInputs: { strength: 20 },
-        }),
-      })
-      const gainAndMoveView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(gainAndMoveView.actions.find(({ id }) => id === gainAction.id)).toMatchObject({ selectedTargets: {}, selectedInputs: {} })
-      expect(gainAndMoveView.actions.find(({ id }) => id === moveAction.id)).toMatchObject({
-        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-        selectedInputs: { strength: 20 },
-      })
-      expect(gainAndMoveView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 7, uncommitted: 4 })
-      expect(gainAndMoveView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 1 })
+      await verifySourceFleet({ sourceFleet, playerView, player, createdGameId, gainAction, moveAction, destination })
 
-      // Assert
-      const attackAfterGainAndMove = player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: gainAndMoveView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
-          actionId: attackAction.id,
-          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-          selectedInputs: { strength: 30 },
-        }),
-      })
-      await expect(attackAfterGainAndMove).rejects.toThrow("Invalid action submission, targets are invalid or costs cannot be paid.")
-      await expect(attackAfterGainAndMove).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(gainAndMoveView)
+      await verifyGainAndMoveView({ player, createdGameId, gainAction, moveAction, sourceFleet, destination, attackAction })
     })
 
     integrationTest("should enforce Exceptional range and resolve configured movement speeds", async ({ db }) => {
@@ -184,7 +141,7 @@ describe("gameplay.router", () => {
 
       // Act
 
-      await assertBeforeOutOfRangeAttempt({
+      await verifyPublicState({
         player,
         gameId,
         builtView,
@@ -584,3 +541,193 @@ describe("gameplay.router", () => {
     )
   })
 })
+
+async function verifyActionSelections({
+  origin,
+  destination,
+  playerView,
+  player,
+  createdGameId,
+  clock,
+  turnProcessor,
+  turnsRepository,
+}: VerifyActionSelectionsInput): Promise<VerifyActionSelectionsResult> {
+  expect({ x: origin.x, y: origin.y }).toStrictEqual(FleetActionSelectionParity.origin)
+  expect({ x: destination.x, y: destination.y }).toStrictEqual(FleetActionSelectionParity.destination)
+
+  // Act
+  for (let buildCount = 0; buildCount < 5; buildCount += 1) {
+    const buildAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+    Assert.isDefined(buildAction)
+    await player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: playerView.turn,
+      submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        actionId: buildAction.id,
+        selectedTargets: { planet: origin.id },
+        selectedInputs: {},
+      }),
+    })
+    await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
+    playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  }
+
+  return { playerView }
+}
+
+async function verifySourceFleet({
+  sourceFleet,
+  playerView,
+  player,
+  createdGameId,
+  gainAction,
+  moveAction,
+  destination,
+}: VerifySourceFleetInput): Promise<void> {
+  expect(sourceFleet.strength).toBe(50)
+  expect(playerView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 7, uncommitted: 7 })
+  expect(playerView.resources[ResourceType.METAL].total).toBe(5)
+  expect(playerView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 2 })
+
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: playerView.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: gainAction.id,
+      selectedTargets: {},
+      selectedInputs: {},
+    }),
+  })
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: playerView.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: moveAction.id,
+      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      selectedInputs: { strength: 20 },
+    }),
+  })
+}
+
+async function verifyGainAndMoveView({
+  player,
+  createdGameId,
+  gainAction,
+  moveAction,
+  sourceFleet,
+  destination,
+  attackAction,
+}: VerifyGainAndMoveViewInput): Promise<void> {
+  const gainAndMoveView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  expect(gainAndMoveView.actions.find(({ id }) => id === gainAction.id)).toMatchObject({ selectedTargets: {}, selectedInputs: {} })
+  expect(gainAndMoveView.actions.find(({ id }) => id === moveAction.id)).toMatchObject({
+    selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+    selectedInputs: { strength: 20 },
+  })
+  expect(gainAndMoveView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 7, uncommitted: 4 })
+  expect(gainAndMoveView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 1 })
+
+  // Assert
+  const attackAfterGainAndMove = player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: gainAndMoveView.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: attackAction.id,
+      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      selectedInputs: { strength: 30 },
+    }),
+  })
+  await expect(attackAfterGainAndMove).rejects.toThrow("Invalid action submission, targets are invalid or costs cannot be paid.")
+  await expect(attackAfterGainAndMove).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(gainAndMoveView)
+}
+
+async function verifyPublicState({
+  player,
+  gameId,
+  builtView,
+  exceptionalAction,
+  sourceFleet,
+  beyondExceptionalRange,
+  standardAction,
+  standardDestination,
+  improvedAction,
+  improvedDestination,
+  exceptionalDestination,
+  clock,
+  turnProcessor,
+  turnsRepository,
+  initialView,
+  origin,
+}: VerifyPublicStateInput): Promise<void> {
+  await assertBeforeOutOfRangeAttempt({
+    player,
+    gameId,
+    builtView,
+    exceptionalAction,
+    sourceFleet,
+    beyondExceptionalRange,
+    standardAction,
+    standardDestination,
+    improvedAction,
+    improvedDestination,
+    exceptionalDestination,
+    clock,
+    turnProcessor,
+    turnsRepository,
+    initialView,
+    origin,
+  })
+}
+
+type VerifyActionSelectionsInput = {
+  origin: Planet
+  destination: Planet
+  playerView: PlayerView
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+}
+
+type VerifyActionSelectionsResult = { playerView: PlayerView }
+
+type VerifySourceFleetInput = {
+  sourceFleet: Fleet
+  playerView: PlayerView
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  gainAction: Action
+  moveAction: Action
+  destination: Planet
+}
+
+type VerifyGainAndMoveViewInput = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  gainAction: Action
+  moveAction: Action
+  sourceFleet: Fleet
+  destination: Planet
+  attackAction: Action
+}
+
+type VerifyPublicStateInput = {
+  player: AuthenticatedApiClient
+  gameId: GameId
+  builtView: PlayerView
+  exceptionalAction: Action
+  sourceFleet: Fleet
+  beyondExceptionalRange: Planet
+  standardAction: Action
+  standardDestination: Planet
+  improvedAction: Action
+  improvedDestination: Planet
+  exceptionalDestination: Planet
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+  initialView: PlayerView
+  origin: Planet
+}

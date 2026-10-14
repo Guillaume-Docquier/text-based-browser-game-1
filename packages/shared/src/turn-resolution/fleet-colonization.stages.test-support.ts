@@ -107,7 +107,7 @@ export function createColonizeSetup(): CreateColonizeSetupResult {
 }
 
 export type CreateColonizeSetupResult = {
-  colonize: ActionDefinition
+  colonize: ScenarioActionDefinition
   ordinaryMove: ScenarioActionDefinition
   attackMove: ScenarioActionDefinition
   colonizeActionId: ActionId

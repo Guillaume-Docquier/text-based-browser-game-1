@@ -111,7 +111,7 @@ function assaultingFleet(
       EffectError.Failed({ error: `Assaulting Player "${submittingPlayerId}" does not own Fleet "${attackingFleetId}"` }),
     )
   }
-  if (!Number.isSafeInteger(attacker.strength) || attacker.strength < 0) {
+  if (!isSafeStrength(attacker.strength)) {
     return Result.Failure(EffectError.Failed({ error: `Attacking Fleet "${attackingFleetId}" has an unsafe Strength value` }))
   }
   if (!isFleetPresentAtPlanet(attacker, planetId)) {
@@ -151,12 +151,10 @@ function stationaryCombatFleets(context: TurnContext, planetId: PlanetId): Resul
   const stationaryFleets = Object.values(context.turnState.fleets).filter(
     (fleet) =>
       fleet.originPlanetId === planetId &&
-      fleet.destinationPlanetId === undefined &&
-      fleet.distanceToEnd === undefined &&
-      fleet.movement === undefined,
+      [fleet.destinationPlanetId, fleet.distanceToEnd, fleet.movement].every((value) => value === undefined),
   )
   for (const fleet of stationaryFleets) {
-    if (!Number.isSafeInteger(fleet.strength) || fleet.strength < 0) {
+    if (!isSafeStrength(fleet.strength)) {
       return Result.Failure(EffectError.Failed({ error: `Fleet "${fleet.id}" has an unsafe Strength value` }))
     }
   }
@@ -181,22 +179,25 @@ function allocateDefenderLosses(
   })
   const assignedLoss = allocations.reduce((total, allocation) => total + allocation.loss, 0)
   let remainingLoss = exchangedStrength - assignedLoss
-  const remainderOrder = allocations.toSorted((first, second) => {
-    if (first.remainder !== second.remainder) {
-      return first.remainder > second.remainder ? -1 : 1
-    }
-    return compareOrdinalStrings(first.fleetId, second.fleetId)
-  })
-  for (const allocation of remainderOrder) {
-    if (remainingLoss === 0) {
-      break
-    }
+  const remainderOrder = allocations.toSorted(compareDefenderRemainders)
+  const residualRecipients = remainderOrder.slice(0, remainingLoss)
+  for (const allocation of residualRecipients) {
     allocation.loss += 1
-    remainingLoss -= 1
   }
+  remainingLoss -= residualRecipients.length
   if (remainingLoss !== 0) {
     return Result.Failure(EffectError.Failed({ error: `Could not distribute Assault losses at Planet "${planetId}" exactly` }))
   }
 
   return Result.Success(allocations)
+}
+
+function isSafeStrength(strength: number): boolean {
+  return Number.isSafeInteger(strength) && strength >= 0
+}
+function compareDefenderRemainders(first: DefenderAllocation, second: DefenderAllocation): number {
+  if (first.remainder !== second.remainder) {
+    return first.remainder > second.remainder ? -1 : 1
+  }
+  return compareOrdinalStrings(first.fleetId, second.fleetId)
 }

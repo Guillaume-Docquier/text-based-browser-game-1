@@ -255,7 +255,7 @@ describe("gameplay.router", () => {
           .toSorted((left, right) => left.distance - right.distance)[0]
         Assert.isDefined(redirectPlanet)
 
-        await assertRedirectedTargets({
+        await verifyPublicState({
           source,
           redirectPlanet,
           alice,
@@ -267,21 +267,12 @@ describe("gameplay.router", () => {
           journey,
           occupiedJourney,
           validTargets,
-        })
-
-        await assertSecondReload({
           processReadyTurn,
-          gameId,
-          firstReload,
-          alice,
           bob,
-          journey,
           defender,
           aliceView,
           bobHome,
-          source,
           aliceHome,
-          customAction,
         })
       },
       30_000,
@@ -482,4 +473,73 @@ type CreateValidTargetsSetupResult = {
   freeComposedAction: Action
   occupiedComposedAction: Action
   occupiedJourney: Fleet
+}
+
+async function verifyPublicState({
+  source,
+  redirectPlanet,
+  alice,
+  gameId,
+  firstReload,
+  freeComposedAction,
+  customAction,
+  occupiedComposedAction,
+  journey,
+  occupiedJourney,
+  validTargets,
+  processReadyTurn,
+  bob,
+  defender,
+  aliceView,
+  bobHome,
+  aliceHome,
+}: VerifyPublicStateInput): Promise<void> {
+  await assertRedirectedTargets({
+    source,
+    redirectPlanet,
+    alice,
+    gameId,
+    firstReload,
+    freeComposedAction,
+    customAction,
+    occupiedComposedAction,
+    journey,
+    occupiedJourney,
+    validTargets,
+  })
+
+  await assertSecondReload({
+    processReadyTurn,
+    gameId,
+    firstReload,
+    alice,
+    bob,
+    journey,
+    defender,
+    aliceView,
+    bobHome,
+    source,
+    aliceHome,
+    customAction,
+  })
+}
+
+type VerifyPublicStateInput = {
+  source: Fleet
+  redirectPlanet: { planet: Planet; distance: number }
+  alice: AuthenticatedApiClient
+  gameId: GameId
+  firstReload: PlayerView
+  freeComposedAction: Action
+  customAction: Action
+  occupiedComposedAction: Action
+  journey: Fleet
+  occupiedJourney: Fleet
+  validTargets: { originForce: FleetId; landingSite: PlanetId }
+  processReadyTurn: (gameId: number, turn: number, clients: readonly AuthenticatedApiClient[]) => Promise<void>
+  bob: AuthenticatedApiClient
+  defender: Fleet
+  aliceView: PlayerView
+  bobHome: Planet
+  aliceHome: Planet
 }

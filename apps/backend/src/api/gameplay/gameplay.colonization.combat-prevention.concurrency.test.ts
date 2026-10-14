@@ -1,7 +1,7 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { eq } from "drizzle-orm"
-import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import { type GameId, GameIdSchema } from "shared/domain/games/GameId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import type { EffectOutcome } from "shared/domain/turns/actions/EffectOutcome.ts"
 import { ColonizeHereTest, ColonizePlanetTest } from "shared/testing/test-ruleset/action-definitions/colonize.ts"
@@ -18,6 +18,7 @@ import type {
 } from "#tests/colonization/gameplay.colonization.scenarios.ts"
 import type { createPublicTwoPlayerFixture as CapturedcreatePublicTwoPlayerFixture } from "#tests/colonization/gameplay.colonization.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
+import type { normalizeApiDate } from "#tests/fleet-concurrency/gameplay.scenarios.ts"
 import type { reverseWorkerInputEnumeration } from "#tests/fleet-concurrency/gameplay.ts"
 import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
@@ -162,11 +163,10 @@ describe("public Colonization worker companions", () => {
     Assert.isDefined(savedNextTurn)
 
     Assert.isSuccess(replay.resolved)
-    const assertPersistedNextRngStatePhase3Value1 = replay.resolved.value
 
-    assertPersistedNextRngState({
-      savedNextTurn,
+    assertPersistedNextRngStateValue1({
       replay,
+      savedNextTurn,
       gameId,
       homeA,
       homeB,
@@ -175,7 +175,6 @@ describe("public Colonization worker companions", () => {
       bobDistance,
       aliceFleet,
       bobFleet,
-      assertPersistedNextRngStatePhase3Value1,
       workerInput,
       aliceContinuation,
       bobContinuation,
@@ -222,22 +221,19 @@ describe("public Colonization worker companions", () => {
       selectedTargets: { fleet: stagedAlice.id, planet: target.id },
       selectedInputs: {},
     })
-    const selectedViews = await readViews(clients, gameId)
-    expect(required(selectedViews[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 495, uncommitted: 470 })
-    expect(required(selectedViews[0]).resources[ResourceType.FUEL].total).toBe(95)
-    expect(required(selectedViews[1]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 498, uncommitted: 473 })
-    expect(required(selectedViews[1]).resources[ResourceType.FUEL].total).toBe(100)
 
-    stage = await processTurnWithReplay({
+    const updatedVerifySelectedViews = await verifySelectedViews({
+      clients,
+      gameId,
+      stage,
       server,
       clock,
       turnsRepository,
       turnProcessor,
-      clients,
-      gameId,
-      turn: required(selectedViews[0]).turn,
+      views,
     })
-    views = stage.views
+    stage = updatedVerifySelectedViews.stage
+    views = updatedVerifySelectedViews.views
     const bobJourney = required(views[1]).fleets.find(({ movement }) => movement?.submission.id === bobColonizeId)
     Assert.isDefined(bobJourney)
     expect(bobJourney.distanceToEnd).toBeCloseTo(13.852953053708077, 12)
@@ -250,27 +246,24 @@ describe("public Colonization worker companions", () => {
     expect(required(views[1]).actions.find(({ id }) => id === bobColonizeId)).toMatchObject({ isInProgress: true })
     const transitDistances = [13.852953053708077]
 
-    for (const expectedDistance of [8.852953053708077, 3.852953053708077]) {
-      stage = await processTurnWithReplay({
-        server,
-        clock,
-        turnsRepository,
-        turnProcessor,
-        clients,
-        gameId,
-        turn: required(views[0]).turn,
-      })
-      views = stage.views
-      const movingBob: PublicFleet | undefined = required(views[1]).fleets.find(({ id }) => id === bobJourney.id)
-      Assert.isDefined(movingBob)
-      const remainingDistance = movingBob.distanceToEnd
-      Assert.isDefined(remainingDistance)
-      expect(remainingDistance).toBeCloseTo(expectedDistance, 12)
-      expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(playerIdFor(alice))
-      expect(getFleetAt(required(views[0]), playerIdFor(alice), target.id, 15).id).toBe(stagedAlice.id)
-      expect(required(views[1]).actions.find(({ id }) => id === bobColonizeId)).toMatchObject({ isInProgress: true })
-      transitDistances.push(remainingDistance)
-    }
+    const updatedVerifyRemainingDistance = await verifyRemainingDistance({
+      stage,
+      server,
+      clock,
+      turnsRepository,
+      turnProcessor,
+      clients,
+      gameId,
+      views,
+      bobJourney,
+      target,
+      alice,
+      stagedAlice,
+      bobColonizeId,
+      transitDistances,
+    })
+    stage = updatedVerifyRemainingDistance.stage
+    views = updatedVerifyRemainingDistance.views
 
     const createWorkerInputSetupPhase7Result = await createWorkerInputSetup2({
       server,
@@ -304,11 +297,10 @@ describe("public Colonization worker companions", () => {
     Assert.isDefined(savedNextTurn)
 
     Assert.isSuccess(replay.resolved)
-    const assertPersistedNextRngStatePhase4Value1 = replay.resolved.value
 
-    assertPersistedNextRngState2({
-      savedNextTurn,
+    assertPersistedNextRngStateValue12({
       replay,
+      savedNextTurn,
       gameId,
       homeA,
       homeB,
@@ -316,7 +308,6 @@ describe("public Colonization worker companions", () => {
       alice,
       transitDistances,
       workerInput,
-      assertPersistedNextRngStatePhase4Value1,
       bobJourney,
       bobContinuation,
       views,
@@ -413,7 +404,9 @@ async function createArrivedViewSetup({
   const replay = replayWorkerInputWithState(arrivalInput)
   Assert.isSuccess(replay.resolved)
   Assert.isSuccess(replay.resolved)
+  Assert.isSuccess(replay.resolved)
   expect(replay.resolved.value.removedFleetIds).toContain(journey.id)
+  Assert.isSuccess(replay.resolved)
   Assert.isSuccess(replay.resolved)
   expect(replay.resolved.value.planetOwnershipChanges).toStrictEqual([{ planetId: target.id, ownerPlayerId: playerIdFor(player) }])
   expect(replay.nextRngState).toStrictEqual(arrivalInput.rngState)
@@ -446,7 +439,9 @@ async function createArrivedViewSetup({
   Assert.isSuccess(emptyTurnReplay.resolved)
 
   Assert.isSuccess(emptyTurnReplay.resolved)
+  Assert.isSuccess(emptyTurnReplay.resolved)
   const assertEmptyTurnReplayPhase1Value1 = emptyTurnReplay.resolved.value
+  Assert.isSuccess(replay.resolved)
   Assert.isSuccess(replay.resolved)
   const assertEmptyTurnReplayPhase1Value2 = replay.resolved.value
   return { arrivedView, emptyTurnInput, emptyTurnReplay, assertEmptyTurnReplayPhase1Value1, assertEmptyTurnReplayPhase1Value2 }
@@ -586,19 +581,26 @@ async function createWorkerInputSetup({
   Assert.isDefined(loadedBobJourney)
   expect(loadedBobJourney.movement?.submission.id).toBe(bobAttemptId)
   Assert.isSuccess(replay.resolved)
+  Assert.isSuccess(replay.resolved)
   expect(replay.resolved.value.removedFleetIds).toStrictEqual(expect.arrayContaining([loadedAliceJourney.id, loadedBobJourney.id]))
+  Assert.isSuccess(replay.resolved)
   Assert.isSuccess(replay.resolved)
   expect(replay.resolved.value.fleets[loadedAliceJourney.id]).toBeUndefined()
   Assert.isSuccess(replay.resolved)
+  Assert.isSuccess(replay.resolved)
   expect(replay.resolved.value.fleets[loadedBobJourney.id]).toBeUndefined()
+  Assert.isSuccess(replay.resolved)
   Assert.isSuccess(replay.resolved)
   expect(replay.resolved.value.planets[target.id]?.ownerPlayerId).toBeNull()
   Assert.isSuccess(replay.resolved)
+  Assert.isSuccess(replay.resolved)
   expect(replay.resolved.value.planetOwnershipChanges).toStrictEqual([])
+  Assert.isSuccess(replay.resolved)
   Assert.isSuccess(replay.resolved)
   const aliceContinuation = replay.resolved.value.resolvedContinuations.find(
     ({ originatingSubmission }) => originatingSubmission.id === aliceAttemptId,
   )
+  Assert.isSuccess(replay.resolved)
   Assert.isSuccess(replay.resolved)
   const bobContinuation = replay.resolved.value.resolvedContinuations.find(
     ({ originatingSubmission }) => originatingSubmission.id === bobAttemptId,
@@ -700,7 +702,9 @@ async function createWorkerInputSetup2({
   Assert.isDefined(loadedBobJourney)
   expect(loadedBobJourney.movement?.submission.id).toBe(bobColonizeId)
   Assert.isSuccess(replay.resolved)
+  Assert.isSuccess(replay.resolved)
   expect(replay.resolved.value.planets[target.id]?.ownerPlayerId).toBe(playerIdFor(alice))
+  Assert.isSuccess(replay.resolved)
   Assert.isSuccess(replay.resolved)
   expect(replay.resolved.value.fleets[bobJourney.id]).toMatchObject({
     ownerPlayerId: playerIdFor(bob),
@@ -708,6 +712,7 @@ async function createWorkerInputSetup2({
     strength: 35,
     movement: undefined,
   })
+  Assert.isSuccess(replay.resolved)
   Assert.isSuccess(replay.resolved)
   const bobContinuation = replay.resolved.value.resolvedContinuations.find(
     ({ originatingSubmission }) => originatingSubmission.id === bobColonizeId,
@@ -717,6 +722,7 @@ async function createWorkerInputSetup2({
     expect.objectContaining({ type: "RESOLVED", result: expect.stringContaining("arrived on Planet") }),
   )
   expect(bobContinuation.actionOutcomes).toContainEqual(expect.objectContaining({ type: "PREVENTED", reason: "Planet is already claimed" }))
+  Assert.isSuccess(replay.resolved)
   Assert.isSuccess(replay.resolved)
   expect(replay.resolved.value.planetOwnershipChanges).toStrictEqual([])
 
@@ -864,4 +870,232 @@ type CreateWorkerInputSetup2Result = {
   workerInput: ReturnType<typeof reverseWorkerInputEnumeration>
   replay: ReturnType<typeof CapturedreplayWorkerInputWithState>
   bobContinuation: ResolvedTurnState["resolvedContinuations"][number]
+}
+
+function assertPersistedNextRngStateValue1({
+  replay,
+  savedNextTurn,
+  gameId,
+  homeA,
+  homeB,
+  target,
+  aliceDistance,
+  bobDistance,
+  aliceFleet,
+  bobFleet,
+  workerInput,
+  aliceContinuation,
+  bobContinuation,
+  finalOutcomes,
+  views,
+}: AssertPersistedNextRngStateValue1Input): void {
+  Assert.isSuccess(replay.resolved)
+  const assertPersistedNextRngStatePhase3Value1 = replay.resolved.value
+
+  assertPersistedNextRngState({
+    savedNextTurn,
+    replay,
+    gameId,
+    homeA,
+    homeB,
+    target,
+    aliceDistance,
+    bobDistance,
+    aliceFleet,
+    bobFleet,
+    assertPersistedNextRngStatePhase3Value1,
+    workerInput,
+    aliceContinuation,
+    bobContinuation,
+    finalOutcomes,
+    views,
+  })
+}
+
+async function verifySelectedViews({
+  clients,
+  gameId,
+  stage,
+  server,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  views,
+}: VerifySelectedViewsInput): Promise<VerifySelectedViewsResult> {
+  const selectedViews = await readViews(clients, gameId)
+  expect(required(selectedViews[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 495, uncommitted: 470 })
+  expect(required(selectedViews[0]).resources[ResourceType.FUEL].total).toBe(95)
+  expect(required(selectedViews[1]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 498, uncommitted: 473 })
+  expect(required(selectedViews[1]).resources[ResourceType.FUEL].total).toBe(100)
+
+  stage = await processTurnWithReplay({
+    server,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+    gameId,
+    turn: required(selectedViews[0]).turn,
+  })
+  views = stage.views
+
+  return { stage, views }
+}
+
+async function verifyRemainingDistance({
+  stage,
+  server,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  clients,
+  gameId,
+  views,
+  bobJourney,
+  target,
+  alice,
+  stagedAlice,
+  bobColonizeId,
+  transitDistances,
+}: VerifyRemainingDistanceInput): Promise<VerifyRemainingDistanceResult> {
+  for (const expectedDistance of [8.852953053708077, 3.852953053708077]) {
+    stage = await processTurnWithReplay({
+      server,
+      clock,
+      turnsRepository,
+      turnProcessor,
+      clients,
+      gameId,
+      turn: required(views[0]).turn,
+    })
+    views = stage.views
+    const movingBob: PublicFleet | undefined = required(views[1]).fleets.find(({ id }) => id === bobJourney.id)
+    Assert.isDefined(movingBob)
+    const remainingDistance = movingBob.distanceToEnd
+    Assert.isDefined(remainingDistance)
+    expect(remainingDistance).toBeCloseTo(expectedDistance, 12)
+    expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(playerIdFor(alice))
+    expect(getFleetAt(required(views[0]), playerIdFor(alice), target.id, 15).id).toBe(stagedAlice.id)
+    expect(required(views[1]).actions.find(({ id }) => id === bobColonizeId)).toMatchObject({ isInProgress: true })
+    transitDistances.push(remainingDistance)
+  }
+
+  return { stage, views }
+}
+
+function assertPersistedNextRngStateValue12({
+  replay,
+  savedNextTurn,
+  gameId,
+  homeA,
+  homeB,
+  target,
+  alice,
+  transitDistances,
+  workerInput,
+  bobJourney,
+  bobContinuation,
+  views,
+}: AssertPersistedNextRngStateValue12Input): void {
+  Assert.isSuccess(replay.resolved)
+  const assertPersistedNextRngStatePhase4Value1 = replay.resolved.value
+
+  assertPersistedNextRngState2({
+    savedNextTurn,
+    replay,
+    gameId,
+    homeA,
+    homeB,
+    target,
+    alice,
+    transitDistances,
+    workerInput,
+    assertPersistedNextRngStatePhase4Value1,
+    bobJourney,
+    bobContinuation,
+    views,
+  })
+}
+
+type AssertPersistedNextRngStateValue1Input = {
+  replay: ReturnType<typeof CapturedreplayWorkerInputWithState>
+  savedNextTurn: {
+    gameId: GameId
+    turn: number
+    status: "COLLECTING_ACTIONS" | "AWAITING_PROCESSING" | "PROCESSING" | "COMPLETED"
+    startedAt: ReturnType<typeof normalizeApiDate>
+    endsAt: ReturnType<typeof normalizeApiDate>
+    closedAt: null | ReturnType<typeof normalizeApiDate>
+    rngGeneratorState: number
+    rngSpareNormal: null | number
+  }
+  gameId: number
+  homeA: Planet
+  homeB: Planet
+  target: Planet
+  aliceDistance: number
+  bobDistance: number
+  aliceFleet: Fleet
+  bobFleet: Fleet
+  workerInput: ReturnType<typeof reverseWorkerInputEnumeration>
+  aliceContinuation: ResolvedTurnState["resolvedContinuations"][number]
+  bobContinuation: ResolvedTurnState["resolvedContinuations"][number]
+  finalOutcomes: EffectOutcome[]
+  views: PlayerView[]
+}
+
+type VerifySelectedViewsInput = {
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: number
+  stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  views: PlayerView[]
+}
+
+type VerifySelectedViewsResult = { stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>; views: PlayerView[] }
+
+type VerifyRemainingDistanceInput = {
+  stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: number
+  views: PlayerView[]
+  bobJourney: Fleet
+  target: Planet
+  alice: AuthenticatedApiClient
+  stagedAlice: Fleet
+  bobColonizeId: string
+  transitDistances: number[]
+}
+
+type VerifyRemainingDistanceResult = { stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>; views: PlayerView[] }
+
+type AssertPersistedNextRngStateValue12Input = {
+  replay: ReturnType<typeof CapturedreplayWorkerInputWithState>
+  savedNextTurn: {
+    gameId: GameId
+    turn: number
+    status: "COLLECTING_ACTIONS" | "AWAITING_PROCESSING" | "PROCESSING" | "COMPLETED"
+    startedAt: ReturnType<typeof normalizeApiDate>
+    endsAt: ReturnType<typeof normalizeApiDate>
+    closedAt: null | ReturnType<typeof normalizeApiDate>
+    rngGeneratorState: number
+    rngSpareNormal: null | number
+  }
+  gameId: number
+  homeA: Planet
+  homeB: Planet
+  target: Planet
+  alice: AuthenticatedApiClient
+  transitDistances: number[]
+  workerInput: ReturnType<typeof reverseWorkerInputEnumeration>
+  bobJourney: Fleet
+  bobContinuation: ResolvedTurnState["resolvedContinuations"][number]
+  views: PlayerView[]
 }

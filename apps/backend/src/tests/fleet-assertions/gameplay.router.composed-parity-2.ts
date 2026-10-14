@@ -59,54 +59,10 @@ export async function assertBeforeRejectedDrafts({
   await submitSelection(moveAction.id, 19)
   const editedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
   const editedEvaluation = evaluatePublicView(editedView).evaluation
-  expect(editedEvaluation.status).toBe("ELIGIBLE")
-  expect(editedEvaluation.strengthCommitments[sourceFleet.id]).toBe(49)
-  expect(editedEvaluation.remainingStrength[sourceFleet.id]).toBe(1)
-  expect(editedEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(8)
-  expect(editedEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(2)
 
-  const resourceAttempt = createSubmittedActionStub({
-    id: extraMoveAction.id,
-    playerId: editedView.player.id,
-    actionDefinitionId: MoveFleetStandard.id,
-    selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-    selectedInputs: { strength: 1 },
-  })
-  const editedProjection = evaluatePublicView(editedView)
-  const resourceAttemptEvaluation = evaluateSubmittedActions({
-    state: editedProjection.state,
-    ruleset: ComposedReservationRuleset,
-    submissions: [...editedProjection.submissions, resourceAttempt],
-  })
-  expect(resourceAttemptEvaluation.status).toBe("INELIGIBLE")
-  expect(resourceAttemptEvaluation.strengthCommitments[sourceFleet.id]).toBe(50)
-  expect(resourceAttemptEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(11)
-  expect(resourceAttemptEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(3)
-  expect(resourceAttemptEvaluation.issues).toStrictEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
-      expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
-    ]),
-  )
-  const beforeResourceRejection = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  const exhaustedResourcesSubmission = player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: editedView.turn,
-    submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: extraMoveAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-      selectedInputs: { strength: 1 },
-    }),
-  })
-  await expect(exhaustedResourcesSubmission).rejects.toThrow("Invalid action submission, targets are invalid or costs cannot be paid.")
-  await expect(exhaustedResourcesSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(beforeResourceRejection)
+  verifyEditedEvaluation({ editedEvaluation, sourceFleet, extraMoveAction, editedView, destination, evaluatePublicView })
 
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: editedView.turn,
-    submittedActionTargets: { actionId: moveAction.id, selectedTargets: null, selectedInputs: null },
-  })
+  await verifyBeforeResourceRejection({ player, createdGameId, editedView, extraMoveAction, sourceFleet, destination, moveAction })
 }
 
 export type AssertBeforeRejectedDraftsInput = {
@@ -307,73 +263,40 @@ export async function assertBeforeOutOfRangeAttempt({
   initialView,
   origin,
 }: AssertBeforeOutOfRangeAttemptInput): Promise<void> {
-  const beforeOutOfRangeAttempt = await player.client.gameplay.getPlayerView.query({ gameId })
-  await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: builtView.turn,
-      submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: exceptionalAction.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: beyondExceptionalRange.id },
-        selectedInputs: { strength: 1 },
-      }),
-    }),
-  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  // Assert
-  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(beforeOutOfRangeAttempt)
-
-  // Act
-  for (const [action, destination] of [
-    [standardAction, standardDestination],
-    [improvedAction, improvedDestination],
-    [exceptionalAction, exceptionalDestination],
-  ] as const) {
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: builtView.turn,
-      submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: action.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-        selectedInputs: { strength: 1 },
-      }),
-    })
-  }
+  await verifyBeforeOutOfRangeAttempt({
+    player,
+    gameId,
+    builtView,
+    exceptionalAction,
+    sourceFleet,
+    beyondExceptionalRange,
+    standardAction,
+    standardDestination,
+    improvedAction,
+    improvedDestination,
+    exceptionalDestination,
+  })
   const submittedView = await player.client.gameplay.getPlayerView.query({ gameId })
   expect(submittedView.actions.find(({ id }) => id === exceptionalAction.id)).toMatchObject({
     selectedTargets: { fleet: sourceFleet.id, planet: exceptionalDestination.id },
     selectedInputs: { strength: 1 },
   })
   await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
-  const resolvedView = await player.client.gameplay.getPlayerView.query({ gameId })
 
-  // Assert
-  for (const [action, destination, speed, expectedRemainingDistance] of [
-    [standardAction, standardDestination, 0.1, Number.parseFloat("1.8357059928924176")],
-    [improvedAction, improvedDestination, 1, 6.693909440718526],
-    [exceptionalAction, exceptionalDestination, 5, 5.129282735155494],
-  ] as const) {
-    const journey = resolvedView.fleets.find(({ movement }) => movement?.submission.id === action.id)
-    Assert.isDefined(journey)
-    expect(journey).toMatchObject({
-      ownerPlayerId: initialView.player.id,
-      originPlanetId: origin.id,
-      destinationPlanetId: destination.id,
-      strength: 1,
-      distanceToEnd: expect.closeTo(expectedRemainingDistance, 12),
-      movement: {
-        speed,
-        departureTurn: submittedView.turn,
-        pendingArrivalEffects: [],
-        submission: {
-          id: action.id,
-          actionDefinitionId: action.actionDefinitionId,
-          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-          selectedInputs: { strength: 1 },
-        },
-      },
-    })
-  }
-  expect(resolvedView.fleets.find(({ id, movement }) => id === sourceFleet.id && movement === undefined)?.strength).toBe(7)
+  await verifyView({
+    player,
+    gameId,
+    standardAction,
+    standardDestination,
+    improvedAction,
+    improvedDestination,
+    exceptionalAction,
+    exceptionalDestination,
+    initialView,
+    origin,
+    submittedView,
+    sourceFleet,
+  })
 }
 
 export type AssertBeforeOutOfRangeAttemptInput = {
@@ -580,4 +503,268 @@ export type AssertJourney2Input = {
   aliceHome: Planet
   firstReload: PlayerView
   defender: Fleet
+}
+
+function verifyEditedEvaluation({
+  editedEvaluation,
+  sourceFleet,
+  extraMoveAction,
+  editedView,
+  destination,
+  evaluatePublicView,
+}: VerifyEditedEvaluationInput): void {
+  expect(editedEvaluation.status).toBe("ELIGIBLE")
+  expect(editedEvaluation.strengthCommitments[sourceFleet.id]).toBe(49)
+  expect(editedEvaluation.remainingStrength[sourceFleet.id]).toBe(1)
+  expect(editedEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(8)
+  expect(editedEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(2)
+
+  const resourceAttempt = createSubmittedActionStub({
+    id: extraMoveAction.id,
+    playerId: editedView.player.id,
+    actionDefinitionId: MoveFleetStandard.id,
+    selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+    selectedInputs: { strength: 1 },
+  })
+  const editedProjection = evaluatePublicView(editedView)
+  const resourceAttemptEvaluation = evaluateSubmittedActions({
+    state: editedProjection.state,
+    ruleset: ComposedReservationRuleset,
+    submissions: [...editedProjection.submissions, resourceAttempt],
+  })
+  expect(resourceAttemptEvaluation.status).toBe("INELIGIBLE")
+  expect(resourceAttemptEvaluation.strengthCommitments[sourceFleet.id]).toBe(50)
+  expect(resourceAttemptEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(11)
+  expect(resourceAttemptEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(3)
+  expect(resourceAttemptEvaluation.issues).toStrictEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
+      expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
+    ]),
+  )
+}
+
+async function verifyBeforeResourceRejection({
+  player,
+  createdGameId,
+  editedView,
+  extraMoveAction,
+  sourceFleet,
+  destination,
+  moveAction,
+}: VerifyBeforeResourceRejectionInput): Promise<void> {
+  const beforeResourceRejection = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  const exhaustedResourcesSubmission = player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: editedView.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: extraMoveAction.id,
+      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      selectedInputs: { strength: 1 },
+    }),
+  })
+  await expect(exhaustedResourcesSubmission).rejects.toThrow("Invalid action submission, targets are invalid or costs cannot be paid.")
+  await expect(exhaustedResourcesSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(beforeResourceRejection)
+
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: editedView.turn,
+    submittedActionTargets: { actionId: moveAction.id, selectedTargets: null, selectedInputs: null },
+  })
+}
+
+async function verifyBeforeOutOfRangeAttempt({
+  player,
+  gameId,
+  builtView,
+  exceptionalAction,
+  sourceFleet,
+  beyondExceptionalRange,
+  standardAction,
+  standardDestination,
+  improvedAction,
+  improvedDestination,
+  exceptionalDestination,
+}: VerifyBeforeOutOfRangeAttemptInput): Promise<void> {
+  const beforeOutOfRangeAttempt = await player.client.gameplay.getPlayerView.query({ gameId })
+  await expect(
+    player.client.gameplay.updateActionSubmission.mutate({
+      gameId,
+      turn: builtView.turn,
+      submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        actionId: exceptionalAction.id,
+        selectedTargets: { fleet: sourceFleet.id, planet: beyondExceptionalRange.id },
+        selectedInputs: { strength: 1 },
+      }),
+    }),
+  ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  // Assert
+  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(beforeOutOfRangeAttempt)
+
+  // Act
+  for (const [action, destination] of [
+    [standardAction, standardDestination],
+    [improvedAction, improvedDestination],
+    [exceptionalAction, exceptionalDestination],
+  ] as const) {
+    await player.client.gameplay.updateActionSubmission.mutate({
+      gameId,
+      turn: builtView.turn,
+      submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        actionId: action.id,
+        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        selectedInputs: { strength: 1 },
+      }),
+    })
+  }
+}
+
+async function verifyView({
+  player,
+  gameId,
+  standardAction,
+  standardDestination,
+  improvedAction,
+  improvedDestination,
+  exceptionalAction,
+  exceptionalDestination,
+  initialView,
+  origin,
+  submittedView,
+  sourceFleet,
+}: VerifyViewInput): Promise<void> {
+  const resolvedView = await player.client.gameplay.getPlayerView.query({ gameId })
+
+  // Assert
+  for (const [action, destination, speed, expectedRemainingDistance] of [
+    [standardAction, standardDestination, 0.1, Number.parseFloat("1.8357059928924176")],
+    [improvedAction, improvedDestination, 1, 6.693909440718526],
+    [exceptionalAction, exceptionalDestination, 5, 5.129282735155494],
+  ] as const) {
+    const journey = resolvedView.fleets.find(({ movement }) => movement?.submission.id === action.id)
+    Assert.isDefined(journey)
+    expect(journey).toMatchObject({
+      ownerPlayerId: initialView.player.id,
+      originPlanetId: origin.id,
+      destinationPlanetId: destination.id,
+      strength: 1,
+      distanceToEnd: expect.closeTo(expectedRemainingDistance, 12),
+      movement: {
+        speed,
+        departureTurn: submittedView.turn,
+        pendingArrivalEffects: [],
+        submission: {
+          id: action.id,
+          actionDefinitionId: action.actionDefinitionId,
+          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          selectedInputs: { strength: 1 },
+        },
+      },
+    })
+  }
+  expect(resolvedView.fleets.find(({ id, movement }) => id === sourceFleet.id && movement === undefined)?.strength).toBe(7)
+}
+
+type VerifyEditedEvaluationInput = {
+  editedEvaluation: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  sourceFleet: Fleet
+  extraMoveAction: Action
+  editedView: PlayerView
+  destination: Planet
+  evaluatePublicView: (view: PlayerView) => {
+    state: Readonly<{
+      gameId: GameId
+      turn: number
+      submittingPlayerId: PlayerId
+      resources: Readonly<ReturnType<typeof createResourcesStub>>
+      players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+      planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+      fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+      actions: readonly CapturedAction[]
+    }>
+    submissions: Array<
+      Readonly<{
+        id: ActionId
+        playerId: PlayerId
+        actionDefinitionId: ActionDefinitionId
+        selectedTargets: Readonly<Record<TargetTag, TargetId>>
+        selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+      }>
+    >
+    evaluation: Readonly<{
+      status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+      issues: ReadonlyArray<
+        Readonly<{
+          code: EligibilityIssueCode
+          actionId?: ActionId
+          targetTag?: TargetTag
+          inputTag?: InputTag
+          resourceType?: ResourceType
+          message: string
+        }>
+      >
+      missingTargets: readonly TargetTag[]
+      missingInputs: readonly InputTag[]
+      resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+      strengthCommitments: Readonly<Record<FleetId, number>>
+      remainingStrength: Readonly<Record<FleetId, number>>
+    }>
+  }
+}
+
+type VerifyBeforeResourceRejectionInput = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  editedView: PlayerView
+  extraMoveAction: Action
+  sourceFleet: Fleet
+  destination: Planet
+  moveAction: Action
+}
+
+type VerifyBeforeOutOfRangeAttemptInput = {
+  player: AuthenticatedApiClient
+  gameId: GameId
+  builtView: PlayerView
+  exceptionalAction: Action
+  sourceFleet: Fleet
+  beyondExceptionalRange: Planet
+  standardAction: Action
+  standardDestination: Planet
+  improvedAction: Action
+  improvedDestination: Planet
+  exceptionalDestination: Planet
+}
+
+type VerifyViewInput = {
+  player: AuthenticatedApiClient
+  gameId: GameId
+  standardAction: Action
+  standardDestination: Planet
+  improvedAction: Action
+  improvedDestination: Planet
+  exceptionalAction: Action
+  exceptionalDestination: Planet
+  initialView: PlayerView
+  origin: Planet
+  submittedView: PlayerView
+  sourceFleet: Fleet
 }

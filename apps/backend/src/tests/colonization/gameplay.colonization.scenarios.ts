@@ -6,12 +6,13 @@ import { MoveFleetExceptional } from "shared/testing/test-ruleset/action-definit
 import type { ResolvedTurnState } from "shared/turn-resolution/ResolvedTurnState.ts"
 import { resolveTurn } from "shared/turn-resolution/resolveTurn.ts"
 import { expect } from "vitest"
-import type { PlayerView } from "#api/types.ts"
+import type { Planet, Fleet, PlayerView } from "#api/types.ts"
 import type { ControlledClock } from "#lib/ControlledClock.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import type { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
-import type { TurnToProcessModel } from "#turn-processing/turns.repository.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
+import type { TurnsRepository, TurnToProcessModel } from "#turn-processing/turns.repository.ts"
 import {
   MANUAL_CLOCK_ADVANCE,
   BuildFleet10ForStaging,
@@ -34,43 +35,24 @@ export async function stagePublicMergeScenario(
 ): Promise<PublicStagedMergeScenario> {
   const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
   let views = fixture.views
-  await submitAction({
-    client: alice.client,
+
+  const updatedVerifyPublicState = await verifyPublicState({
+    alice,
     gameId,
-    view: required(views[0]),
-    actionDefinitionId: BuildFleet10ForStaging.id,
-    selectedTargets: { planet: homeA.id },
-    selectedInputs: {},
+    views,
+    homeA,
+    bob,
+    homeB,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
   })
-  await submitAction({
-    client: bob.client,
-    gameId,
-    view: required(views[1]),
-    actionDefinitionId: BuildFleet35.id,
-    selectedTargets: { planet: homeB.id },
-    selectedInputs: {},
-  })
-  await processTurn({ clock, turnsRepository, turnProcessor, client: alice.client, gameId, turn: required(views[0]).turn })
-  views = await readViews(clients, gameId)
+  views = updatedVerifyPublicState.views
   const aliceStagingFleet = getFleetAt(required(views[0]), required(views[0]).player.id, homeA.id, 10)
   const bobSourceFleet = getFleetAt(required(views[1]), required(views[1]).player.id, homeB.id, 35)
 
-  await submitAction({
-    client: alice.client,
-    gameId,
-    view: required(views[0]),
-    actionDefinitionId: MoveFleetExceptional.id,
-    selectedTargets: { fleet: aliceStagingFleet.id, planet: target.id },
-    selectedInputs: { strength: 10 },
-  })
-  await submitAction({
-    client: alice.client,
-    gameId,
-    view: required(views[0]),
-    actionDefinitionId: BuildFleet50.id,
-    selectedTargets: { planet: homeA.id },
-    selectedInputs: {},
-  })
+  await verifyPublicState2({ alice, gameId, views, aliceStagingFleet, target, homeA })
   const bobStageActionId = await submitAction({
     client: bob.client,
     gameId,
@@ -134,21 +116,7 @@ export function getFleetAt(view: PlayerView, ownerPlayerId: PlayerId, planetId: 
   return fleet
 }
 
-export async function processTurn({
-  clock,
-  turnsRepository,
-  turnProcessor,
-  client,
-  gameId,
-  turn,
-}: {
-  clock: ControlledClock
-  turnsRepository: PublicTurnProcessor["turnsRepository"]
-  turnProcessor: PublicTurnProcessor["turnProcessor"]
-  client: AuthenticatedApiClient["client"]
-  gameId: number
-  turn: number
-}): Promise<PlayerView> {
+export async function processTurn({ clock, turnsRepository, turnProcessor, client, gameId, turn }: ProcessTurnInput): Promise<PlayerView> {
   clock.increment({ time: MANUAL_CLOCK_ADVANCE })
   await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
   expect(await turnProcessor.processNextDueTurn()).toBe("processed")
@@ -166,15 +134,7 @@ export async function processTurnWithReplay({
   clients,
   gameId,
   turn,
-}: {
-  server: ConcurrencyTestApiServer
-  clock: ControlledClock
-  turnsRepository: PublicTurnProcessor["turnsRepository"]
-  turnProcessor: PublicTurnProcessor["turnProcessor"]
-  clients: readonly PublicClient[]
-  gameId: number
-  turn: number
-}): Promise<{ views: PlayerView[]; resolved: ResolvedTurnState }> {
+}: ProcessTurnWithReplayInput): Promise<ProcessTurnWithReplayResult> {
   const workerInput = await captureWorkerInput({ server, clock, turnsRepository, gameId, turn })
   const replay = replayWorkerInput(workerInput)
   Assert.isSuccess(replay)
@@ -191,13 +151,7 @@ export async function captureWorkerInput({
   turnsRepository,
   gameId,
   turn,
-}: {
-  server: ConcurrencyTestApiServer
-  clock: ControlledClock
-  turnsRepository: PublicTurnProcessor["turnsRepository"]
-  gameId: number
-  turn: number
-}): Promise<TurnToProcessModel> {
+}: CaptureWorkerInputInput): Promise<TurnToProcessModel> {
   clock.increment({ time: MANUAL_CLOCK_ADVANCE })
   await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
   let observed: TurnToProcessModel | undefined
@@ -247,13 +201,7 @@ export function canonicalizeResolvedTurn(resolved: ResolvedTurnState): ResolvedT
   }
 }
 
-export function replayWorkerInputWithState(
-  input: TurnToProcessModel,
-  reverseEnumeration = false,
-): {
-  resolved: ReturnType<typeof resolveTurn>
-  nextRngState: ReturnType<ReturnType<typeof Rng.fromState>["getState"]>
-} {
+export function replayWorkerInputWithState(input: TurnToProcessModel, reverseEnumeration = false): ReplayWorkerInputWithStateResult {
   const rng = Rng.fromState(structuredClone(input.rngState), mulberry32Prng)
   const ordered = <T>(values: T[]): T[] => (reverseEnumeration ? values.toReversed() : values)
   const resolved = resolveTurn(
@@ -270,4 +218,115 @@ export function replayWorkerInputWithState(
     rng,
   )
   return { resolved, nextRngState: rng.getState() }
+}
+
+async function verifyPublicState({
+  alice,
+  gameId,
+  views,
+  homeA,
+  bob,
+  homeB,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  clients,
+}: VerifyPublicStateInput): Promise<VerifyPublicStateResult> {
+  await submitAction({
+    client: alice.client,
+    gameId,
+    view: required(views[0]),
+    actionDefinitionId: BuildFleet10ForStaging.id,
+    selectedTargets: { planet: homeA.id },
+    selectedInputs: {},
+  })
+  await submitAction({
+    client: bob.client,
+    gameId,
+    view: required(views[1]),
+    actionDefinitionId: BuildFleet35.id,
+    selectedTargets: { planet: homeB.id },
+    selectedInputs: {},
+  })
+  await processTurn({ clock, turnsRepository, turnProcessor, client: alice.client, gameId, turn: required(views[0]).turn })
+  views = await readViews(clients, gameId)
+
+  return { views }
+}
+
+async function verifyPublicState2({ alice, gameId, views, aliceStagingFleet, target, homeA }: VerifyPublicState2Input): Promise<void> {
+  await submitAction({
+    client: alice.client,
+    gameId,
+    view: required(views[0]),
+    actionDefinitionId: MoveFleetExceptional.id,
+    selectedTargets: { fleet: aliceStagingFleet.id, planet: target.id },
+    selectedInputs: { strength: 10 },
+  })
+  await submitAction({
+    client: alice.client,
+    gameId,
+    view: required(views[0]),
+    actionDefinitionId: BuildFleet50.id,
+    selectedTargets: { planet: homeA.id },
+    selectedInputs: {},
+  })
+}
+
+type ProcessTurnInput = {
+  clock: ControlledClock
+  turnsRepository: PublicTurnProcessor["turnsRepository"]
+  turnProcessor: PublicTurnProcessor["turnProcessor"]
+  client: AuthenticatedApiClient["client"]
+  gameId: number
+  turn: number
+}
+
+type ProcessTurnWithReplayInput = {
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: PublicTurnProcessor["turnsRepository"]
+  turnProcessor: PublicTurnProcessor["turnProcessor"]
+  clients: readonly PublicClient[]
+  gameId: number
+  turn: number
+}
+
+type ProcessTurnWithReplayResult = { views: PlayerView[]; resolved: ResolvedTurnState }
+
+type CaptureWorkerInputInput = {
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: PublicTurnProcessor["turnsRepository"]
+  gameId: number
+  turn: number
+}
+
+type ReplayWorkerInputWithStateResult = {
+  resolved: ReturnType<typeof resolveTurn>
+  nextRngState: ReturnType<ReturnType<typeof Rng.fromState>["getState"]>
+}
+
+type VerifyPublicStateInput = {
+  alice: AuthenticatedApiClient
+  gameId: number
+  views: PlayerView[]
+  homeA: Planet
+  bob: AuthenticatedApiClient
+  homeB: Planet
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+}
+
+type VerifyPublicStateResult = { views: PlayerView[] }
+
+type VerifyPublicState2Input = {
+  alice: AuthenticatedApiClient
+  gameId: number
+  views: PlayerView[]
+  aliceStagingFleet: Fleet
+  target: Planet
+  homeA: Planet
 }

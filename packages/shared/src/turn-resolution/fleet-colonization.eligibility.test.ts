@@ -1,4 +1,4 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { type RngState, Assert } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
@@ -7,6 +7,7 @@ import type { ActionDefinitionId } from "#shared/domain/ruleset/action-definitio
 import type { InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
 import type { PositiveInteger } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
+import type { EffectDefinitionTargetDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
 import { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import type { TargetId } from "#shared/domain/ruleset/target-definitions/TargetId.ts"
@@ -19,6 +20,7 @@ import { ColonizeHereTest, ColonizePlanetTest } from "#shared/testing/test-rules
 import { TestRuleset } from "#shared/testing/test-ruleset/TestRuleset.ts"
 import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnState.ts"
 import { resolveTurn } from "#shared/turn-resolution/resolveTurn.ts"
+import type { PendingArrivalColonizationIntent } from "#shared/turn-resolution/TurnContext.ts"
 import { createTurnStateStub } from "#shared/turn-resolution/TurnState.stub.ts"
 import {
   PLAYER_A,
@@ -79,71 +81,19 @@ describe("Fleet Colonization", () => {
   })
 
   it("should preserve COLONY7 after success, prevention, and the following empty Turns", () => {
+    expect.hasAssertions()
+
     // Arrange the successful colonization case.
-    const successPlanet = planet("colony-stockpile-success", null, 0)
-    const successfulFleet = fleet("colony-stockpile-success-force", PLAYER_A, successPlanet, 35)
-    const successfulAction = createSubmittedActionStub({
-      id: ColonizeHereTest.id + "_1",
-      playerId: PLAYER_A,
-      actionDefinitionId: ColonizeHereTest.id,
-      selectedTargets: { fleet: successfulFleet.id, planet: successPlanet.id },
-      selectedInputs: {},
-    })
-    // Act
-    const success = resolve({
-      planets: [successPlanet],
-      fleets: [successfulFleet],
-      submissions: [successfulAction],
-      colonyStockpile: 7,
-    })
-    // Assert
-    expect(success.planets[successPlanet.id]?.ownerPlayerId).toBe(PLAYER_A)
-    expect(success.fleets[successfulFleet.id]?.strength).toBe(15)
-    expect(success.players[PLAYER_A]?.resources[ResourceType.COLONY]).toBe(7)
-    // Act: resolve the following empty Turn.
-    const successEmptyTurn = resolveContinuation(success, 2)
-    // Assert the owner, remaining strength, and stockpile persist.
-    expect(successEmptyTurn.planets[successPlanet.id]?.ownerPlayerId).toBe(PLAYER_A)
-    expect(successEmptyTurn.fleets[successfulFleet.id]?.strength).toBe(15)
-    expect(successEmptyTurn.players[PLAYER_A]?.resources[ResourceType.COLONY]).toBe(7)
+
+    verifySuccessPlanet()
 
     // Arrange the prevented colonization case.
     const assaultColonize = createColonizeMoveAction({ id: "TEST_COLONY7_ASSAULT", speed: 1, withAssault: true })
     const ruleset = createRuleset([assaultColonize], [{ id: "COLONY_STOCKPILE_ASSAULT_1", actionDefinitionId: assaultColonize.id }])
     const origin = planet("colony-stockpile-prevention-origin", PLAYER_A, 0)
     const target = planet("colony-stockpile-prevention-target", null, 1)
-    const attacker = fleet("colony-stockpile-prevention-attacker", PLAYER_A, origin, 35)
-    const defender = fleet("colony-stockpile-prevention-defender", PLAYER_B, target, 16)
-    const attack = submit({
-      id: "COLONY_STOCKPILE_ASSAULT_1",
-      playerId: PLAYER_A,
-      actionDefinitionId: assaultColonize.id,
-      source: attacker,
-      target,
-      strength: 35,
-    })
-    // Act
-    const prevention = resolve({
-      planets: [origin, target],
-      fleets: [attacker, defender],
-      submissions: [attack],
-      ruleset,
-      colonyStockpile: 7,
-    })
-    // Assert combat leaves 19, does not claim, and preserves COLONY7.
-    expect(prevention.planets[target.id]?.ownerPlayerId).toBeNull()
-    expect(fleetStrengthForOwner(prevention, PLAYER_A)).toBe(19)
-    expect(prevention.fleets[defender.id]).toBeUndefined()
-    expect(outcomesFor(prevention, PLAYER_A, attack.id)).toContainEqual(
-      expect.objectContaining({ type: "PREVENTED", reason: expect.stringContaining("below the 20 required") }),
-    )
-    expect(prevention.players[PLAYER_A]?.resources[ResourceType.COLONY]).toBe(7)
-    // Act: resolve the following empty Turn.
-    const preventionEmptyTurn = resolveContinuation(prevention, 2, createSeededRng(1234), ruleset)
-    // Assert the prevented owner, surviving force, and stockpile persist.
-    expect(preventionEmptyTurn.planets[target.id]?.ownerPlayerId).toBeNull()
-    expect(fleetStrengthForOwner(preventionEmptyTurn, PLAYER_A)).toBe(19)
-    expect(preventionEmptyTurn.players[PLAYER_A]?.resources[ResourceType.COLONY]).toBe(7)
+
+    verifyAttacker({ origin, target, assaultColonize, ruleset })
   })
 
   it("should allow Colonization beside an enemy Fleet without implicit combat", () => {
@@ -261,6 +211,8 @@ describe("Fleet Colonization", () => {
   })
 
   it("should reject an earlier invalid current force and still let a later eligible arrival claim", () => {
+    expect.hasAssertions()
+
     const target = planet("phase-target", null, 0)
     const originA = planet("phase-origin-a", PLAYER_A, -1)
     const originB = planet("phase-origin-b", PLAYER_B, 1)
@@ -287,39 +239,13 @@ describe("Fleet Colonization", () => {
     ]
     const rng = createSeededRng(0)
     const before = rng.getState()
-    const result = resolveColonizeOnly({ planets: [target, originA, originB], fleets: [fleetA, fleetB], intents, rng })
 
-    expect(result.context.turnState.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
-    expect(result.context.turnState.fleets[fleetA.id]?.strength).toBe(19)
-    expect(result.context.turnState.fleets[fleetB.id]?.strength).toBe(15)
-    expect(intents[0]?.actionOutcomes.at(-1)).toMatchObject({
-      type: "PREVENTED",
-      reason: "Fleet has 19 Strength, below the 20 required to colonize",
-    })
-    expect(intents[1]?.actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
-    expect(rng.getState()).toStrictEqual(before)
-
-    const deadTarget = planet("phase-dead-target", null, 0)
-    const deadFleetB = fleet("phase-dead-valid-b", PLAYER_B, deadTarget, 35)
-    const deadIntents = [
-      intent({ fleet: fleetA, action: actionA, target: deadTarget, tick: 4, colonizeDefinition }),
-      intent({ fleet: deadFleetB, action: actionB, target: deadTarget, tick: 8, colonizeDefinition }),
-    ]
-    const deadRng = createSeededRng(0)
-    const deadRngBefore = deadRng.getState()
-    const dead = resolveColonizeOnly({ planets: [deadTarget], fleets: [deadFleetB], intents: deadIntents, rng: deadRng })
-    expect(dead.context.turnState.fleets[fleetA.id]).toBeUndefined()
-    expect(dead.context.turnState.fleets[deadFleetB.id]?.strength).toBe(15)
-    expect(deadIntents[0]?.actionOutcomes.at(-1)).toMatchObject({
-      type: "PREVENTED",
-      reason: expect.stringContaining("destroyed before colonization"),
-    })
-    expect(deadIntents[1]?.actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
-    expect(deadRng.getState()).toStrictEqual(deadRngBefore)
-    expect(dead.context.turnState.planets[deadTarget.id]?.ownerPlayerId).toBe(PLAYER_B)
+    verifyResult({ target, originA, originB, fleetA, fleetB, intents, rng, before, actionA, colonizeDefinition, actionB })
   })
 
   it("should remove invalid same-tick candidates before arbitration and preserve eligible-only RNG draws", () => {
+    expect.hasAssertions()
+
     const target = planet("invalid-tie-target", null, 0)
     const fleetA = fleet("invalid-tie-a", PLAYER_A, target, 35)
     const fleetB = fleet("invalid-tie-b", PLAYER_B, target, 35)
@@ -337,52 +263,10 @@ describe("Fleet Colonization", () => {
       intent({ fleet: deadFleet, action: deadAction, target, tick: 4, colonizeDefinition }),
     ]
     const rng = createSeededRng(0)
-    const resolved = resolveColonizeOnly({ planets: [target], fleets: [fleetA, fleetB, fleetC], intents, rng })
 
-    expect(resolved.context.turnState.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
-    expect(resolved.context.turnState.fleets[fleetA.id]?.strength).toBe(35)
-    expect(resolved.context.turnState.fleets[fleetB.id]?.strength).toBe(15)
-    expect(resolved.context.turnState.fleets[fleetC.id]?.strength).toBe(19)
-    expect(intents[0]?.actionOutcomes.at(-1)).toMatchObject({ type: "PREVENTED" })
-    expect(intents[1]?.actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
-    expect(intents[2]?.actionOutcomes.at(-1)).toMatchObject({
-      type: "PREVENTED",
-      reason: "Fleet has 19 Strength, below the 20 required to colonize",
-    })
-    expect(intents[3]?.actionOutcomes.at(-1)).toMatchObject({
-      type: "PREVENTED",
-      reason: expect.stringContaining("destroyed before colonization"),
-    })
-    expect(rng.getState()).toStrictEqual({ generatorState: 1831565813, spareNormal: null })
+    verifyCase({ target, fleetA, fleetB, fleetC, intents, rng })
 
-    const singletonRng = createSeededRng(0)
-    const singletonTarget = planet("invalid-singleton-target", null, 0)
-    const singletonFleetB = fleet("invalid-singleton-b", PLAYER_B, singletonTarget, 35)
-    const singletonFleetC = fleet("invalid-singleton-c", PLAYER_C, singletonTarget, 19)
-    const singletonDeadFleet = fleet("invalid-singleton-dead", PLAYER_A, singletonTarget, 35)
-    const singletonIntents = [
-      intent({ fleet: singletonDeadFleet, action: deadAction, target: singletonTarget, tick: 4, colonizeDefinition }),
-      intent({ fleet: singletonFleetC, action: actionC, target: singletonTarget, tick: 4, colonizeDefinition }),
-      intent({ fleet: singletonFleetB, action: actionB, target: singletonTarget, tick: 4, colonizeDefinition }),
-    ]
-    const singleton = resolveColonizeOnly({
-      planets: [singletonTarget],
-      fleets: [singletonFleetB, singletonFleetC],
-      intents: singletonIntents,
-      rng: singletonRng,
-    })
-    expect(singleton.context.turnState.planets[singletonTarget.id]?.ownerPlayerId).toBe(PLAYER_B)
-    expect(singleton.context.turnState.fleets[singletonFleetB.id]?.strength).toBe(15)
-    expect(singletonIntents[0]?.actionOutcomes.at(-1)).toMatchObject({
-      type: "PREVENTED",
-      reason: expect.stringContaining("destroyed before colonization"),
-    })
-    expect(singletonIntents[1]?.actionOutcomes.at(-1)).toMatchObject({
-      type: "PREVENTED",
-      reason: "Fleet has 19 Strength, below the 20 required to colonize",
-    })
-    expect(singletonIntents[2]?.actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
-    expect(singletonRng.getState()).toStrictEqual({ generatorState: 0, spareNormal: null })
+    verifySingletonRng({ deadAction, colonizeDefinition, actionC, actionB })
   })
 
   it("should keep a legal Colonize journey moving after another player claims its target", () => {
@@ -531,6 +415,8 @@ describe("Fleet Colonization", () => {
   })
 
   it("should merge both friendly Colonize arrivals before applying one shared survivor reservation", () => {
+    expect.hasAssertions()
+
     const early = createColonizeMoveAction({ id: "TEST_DUPLICATE_SPEED_FOUR", speed: 4 })
     const late = createColonizeMoveAction({ id: "TEST_DUPLICATE_SPEED_TWO", speed: 2 })
     const ruleset = createRuleset(
@@ -551,52 +437,9 @@ describe("Fleet Colonization", () => {
       submit({ id: "DUPLICATE_LATE_1", playerId: PLAYER_A, actionDefinitionId: late.id, source: sourceLate, target, strength: 20 }),
     ]
 
-    const resolved = resolve({
-      planets: [target, originEarly, originLate],
-      fleets: [survivor, sourceEarly, sourceLate],
-      submissions,
-      ruleset,
-    })
-    const reversed = resolve({
-      planets: [target, originEarly, originLate].toReversed(),
-      fleets: [survivor, sourceEarly, sourceLate].toReversed(),
-      submissions: submissions.toReversed(),
-      ruleset,
-    })
-    expect(resolved.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
-    expect(resolved.fleets[survivor.id]).toMatchObject({ strength: 30, arrivedAtTick: 4 })
-    expect(resolved.fleets[sourceEarly.id]?.strength).toBe(5)
-    expect(resolved.fleets[sourceLate.id]?.strength).toBe(5)
-    expect(resolved.removedFleetIds).toHaveLength(2)
-    expect(outcomeFor(resolved, PLAYER_A, "DUPLICATE_EARLY_1").type).toBe("RESOLVED")
-    expect(outcomeFor(resolved, PLAYER_A, "DUPLICATE_LATE_1").type).toBe("PREVENTED")
-    expect(reversed.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
-    expect(reversed.fleets[survivor.id]?.strength).toBe(30)
-    expect(outcomeFor(reversed, PLAYER_A, "DUPLICATE_EARLY_1")).toStrictEqual(outcomeFor(resolved, PLAYER_A, "DUPLICATE_EARLY_1"))
+    verify2({ target, originEarly, originLate, survivor, sourceEarly, sourceLate, submissions, ruleset })
 
-    const lateTickTarget = planet("duplicate-late-tick-target", null, 1)
-    const lateTickOrigin = planet("duplicate-late-tick-origin", PLAYER_A, 1.8)
-    const lateTickSource = fleet("duplicate-late-tick-source", PLAYER_A, lateTickOrigin, 25)
-    const lateTickRuleset = createRuleset([late], [{ id: "DUPLICATE_LATE_TICK_1", actionDefinitionId: late.id }])
-    const lateTickResolved = resolve({
-      planets: [lateTickOrigin, lateTickTarget],
-      fleets: [lateTickSource],
-      submissions: [
-        submit({
-          id: "DUPLICATE_LATE_TICK_1",
-          playerId: PLAYER_A,
-          actionDefinitionId: late.id,
-          source: lateTickSource,
-          target: lateTickTarget,
-          strength: 25,
-        }),
-      ],
-      ruleset: lateTickRuleset,
-    })
-    expect(fleetAtPlanetForOwner(lateTickResolved, lateTickTarget.id, PLAYER_A)).toMatchObject({
-      strength: 5,
-      arrivedAtTick: 8,
-    })
+    verifyLateTickTarget({ late })
   })
 })
 
@@ -769,3 +612,280 @@ type AssertLaterEnemyInput = {
   ordinary: ReturnType<typeof createActionDefinitionStub>
   late: ReturnType<typeof createActionDefinitionStub>
 }
+
+function verifySuccessPlanet(): void {
+  const successPlanet = planet("colony-stockpile-success", null, 0)
+  const successfulFleet = fleet("colony-stockpile-success-force", PLAYER_A, successPlanet, 35)
+  const successfulAction = createSubmittedActionStub({
+    id: ColonizeHereTest.id + "_1",
+    playerId: PLAYER_A,
+    actionDefinitionId: ColonizeHereTest.id,
+    selectedTargets: { fleet: successfulFleet.id, planet: successPlanet.id },
+    selectedInputs: {},
+  })
+  // Act
+  const success = resolve({
+    planets: [successPlanet],
+    fleets: [successfulFleet],
+    submissions: [successfulAction],
+    colonyStockpile: 7,
+  })
+  // Assert
+  expect(success.planets[successPlanet.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(success.fleets[successfulFleet.id]?.strength).toBe(15)
+  expect(success.players[PLAYER_A]?.resources[ResourceType.COLONY]).toBe(7)
+  // Act: resolve the following empty Turn.
+  const successEmptyTurn = resolveContinuation(success, 2)
+  // Assert the owner, remaining strength, and stockpile persist.
+  expect(successEmptyTurn.planets[successPlanet.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(successEmptyTurn.fleets[successfulFleet.id]?.strength).toBe(15)
+  expect(successEmptyTurn.players[PLAYER_A]?.resources[ResourceType.COLONY]).toBe(7)
+}
+
+function verifyAttacker({ origin, target, assaultColonize, ruleset }: VerifyAttackerInput): void {
+  const attacker = fleet("colony-stockpile-prevention-attacker", PLAYER_A, origin, 35)
+  const defender = fleet("colony-stockpile-prevention-defender", PLAYER_B, target, 16)
+  const attack = submit({
+    id: "COLONY_STOCKPILE_ASSAULT_1",
+    playerId: PLAYER_A,
+    actionDefinitionId: assaultColonize.id,
+    source: attacker,
+    target,
+    strength: 35,
+  })
+  // Act
+  const prevention = resolve({
+    planets: [origin, target],
+    fleets: [attacker, defender],
+    submissions: [attack],
+    ruleset,
+    colonyStockpile: 7,
+  })
+  // Assert combat leaves 19, does not claim, and preserves COLONY7.
+  expect(prevention.planets[target.id]?.ownerPlayerId).toBeNull()
+  expect(fleetStrengthForOwner(prevention, PLAYER_A)).toBe(19)
+  expect(prevention.fleets[defender.id]).toBeUndefined()
+  expect(outcomesFor(prevention, PLAYER_A, attack.id)).toContainEqual(
+    expect.objectContaining({ type: "PREVENTED", reason: expect.stringContaining("below the 20 required") }),
+  )
+  expect(prevention.players[PLAYER_A]?.resources[ResourceType.COLONY]).toBe(7)
+  // Act: resolve the following empty Turn.
+  const preventionEmptyTurn = resolveContinuation(prevention, 2, createSeededRng(1234), ruleset)
+  // Assert the prevented owner, surviving force, and stockpile persist.
+  expect(preventionEmptyTurn.planets[target.id]?.ownerPlayerId).toBeNull()
+  expect(fleetStrengthForOwner(preventionEmptyTurn, PLAYER_A)).toBe(19)
+  expect(preventionEmptyTurn.players[PLAYER_A]?.resources[ResourceType.COLONY]).toBe(7)
+}
+
+function verifyResult({
+  target,
+  originA,
+  originB,
+  fleetA,
+  fleetB,
+  intents,
+  rng,
+  before,
+  actionA,
+  colonizeDefinition,
+  actionB,
+}: VerifyResultInput): void {
+  const result = resolveColonizeOnly({ planets: [target, originA, originB], fleets: [fleetA, fleetB], intents, rng })
+
+  expect(result.context.turnState.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
+  expect(result.context.turnState.fleets[fleetA.id]?.strength).toBe(19)
+  expect(result.context.turnState.fleets[fleetB.id]?.strength).toBe(15)
+  expect(intents[0]?.actionOutcomes.at(-1)).toMatchObject({
+    type: "PREVENTED",
+    reason: "Fleet has 19 Strength, below the 20 required to colonize",
+  })
+  expect(intents[1]?.actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
+  expect(rng.getState()).toStrictEqual(before)
+
+  const deadTarget = planet("phase-dead-target", null, 0)
+  const deadFleetB = fleet("phase-dead-valid-b", PLAYER_B, deadTarget, 35)
+  const deadIntents = [
+    intent({ fleet: fleetA, action: actionA, target: deadTarget, tick: 4, colonizeDefinition }),
+    intent({ fleet: deadFleetB, action: actionB, target: deadTarget, tick: 8, colonizeDefinition }),
+  ]
+  const deadRng = createSeededRng(0)
+  const deadRngBefore = deadRng.getState()
+  const dead = resolveColonizeOnly({ planets: [deadTarget], fleets: [deadFleetB], intents: deadIntents, rng: deadRng })
+  expect(dead.context.turnState.fleets[fleetA.id]).toBeUndefined()
+  expect(dead.context.turnState.fleets[deadFleetB.id]?.strength).toBe(15)
+  expect(deadIntents[0]?.actionOutcomes.at(-1)).toMatchObject({
+    type: "PREVENTED",
+    reason: expect.stringContaining("destroyed before colonization"),
+  })
+  expect(deadIntents[1]?.actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
+  expect(deadRng.getState()).toStrictEqual(deadRngBefore)
+  expect(dead.context.turnState.planets[deadTarget.id]?.ownerPlayerId).toBe(PLAYER_B)
+}
+
+function verifyCase({ target, fleetA, fleetB, fleetC, intents, rng }: VerifyCaseInput): void {
+  const resolved = resolveColonizeOnly({ planets: [target], fleets: [fleetA, fleetB, fleetC], intents, rng })
+
+  expect(resolved.context.turnState.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
+  expect(resolved.context.turnState.fleets[fleetA.id]?.strength).toBe(35)
+  expect(resolved.context.turnState.fleets[fleetB.id]?.strength).toBe(15)
+  expect(resolved.context.turnState.fleets[fleetC.id]?.strength).toBe(19)
+  expect(intents[0]?.actionOutcomes.at(-1)).toMatchObject({ type: "PREVENTED" })
+  expect(intents[1]?.actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
+  expect(intents[2]?.actionOutcomes.at(-1)).toMatchObject({
+    type: "PREVENTED",
+    reason: "Fleet has 19 Strength, below the 20 required to colonize",
+  })
+  expect(intents[3]?.actionOutcomes.at(-1)).toMatchObject({
+    type: "PREVENTED",
+    reason: expect.stringContaining("destroyed before colonization"),
+  })
+  expect(rng.getState()).toStrictEqual({ generatorState: 1831565813, spareNormal: null })
+}
+
+function verifySingletonRng({ deadAction, colonizeDefinition, actionC, actionB }: VerifySingletonRngInput): void {
+  const singletonRng = createSeededRng(0)
+  const singletonTarget = planet("invalid-singleton-target", null, 0)
+  const singletonFleetB = fleet("invalid-singleton-b", PLAYER_B, singletonTarget, 35)
+  const singletonFleetC = fleet("invalid-singleton-c", PLAYER_C, singletonTarget, 19)
+  const singletonDeadFleet = fleet("invalid-singleton-dead", PLAYER_A, singletonTarget, 35)
+  const singletonIntents = [
+    intent({ fleet: singletonDeadFleet, action: deadAction, target: singletonTarget, tick: 4, colonizeDefinition }),
+    intent({ fleet: singletonFleetC, action: actionC, target: singletonTarget, tick: 4, colonizeDefinition }),
+    intent({ fleet: singletonFleetB, action: actionB, target: singletonTarget, tick: 4, colonizeDefinition }),
+  ]
+  const singleton = resolveColonizeOnly({
+    planets: [singletonTarget],
+    fleets: [singletonFleetB, singletonFleetC],
+    intents: singletonIntents,
+    rng: singletonRng,
+  })
+  expect(singleton.context.turnState.planets[singletonTarget.id]?.ownerPlayerId).toBe(PLAYER_B)
+  expect(singleton.context.turnState.fleets[singletonFleetB.id]?.strength).toBe(15)
+  expect(singletonIntents[0]?.actionOutcomes.at(-1)).toMatchObject({
+    type: "PREVENTED",
+    reason: expect.stringContaining("destroyed before colonization"),
+  })
+  expect(singletonIntents[1]?.actionOutcomes.at(-1)).toMatchObject({
+    type: "PREVENTED",
+    reason: "Fleet has 19 Strength, below the 20 required to colonize",
+  })
+  expect(singletonIntents[2]?.actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
+  expect(singletonRng.getState()).toStrictEqual({ generatorState: 0, spareNormal: null })
+}
+
+function verify2({ target, originEarly, originLate, survivor, sourceEarly, sourceLate, submissions, ruleset }: Verify2Input): void {
+  const resolved = resolve({
+    planets: [target, originEarly, originLate],
+    fleets: [survivor, sourceEarly, sourceLate],
+    submissions,
+    ruleset,
+  })
+  const reversed = resolve({
+    planets: [target, originEarly, originLate].toReversed(),
+    fleets: [survivor, sourceEarly, sourceLate].toReversed(),
+    submissions: submissions.toReversed(),
+    ruleset,
+  })
+  expect(resolved.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(resolved.fleets[survivor.id]).toMatchObject({ strength: 30, arrivedAtTick: 4 })
+  expect(resolved.fleets[sourceEarly.id]?.strength).toBe(5)
+  expect(resolved.fleets[sourceLate.id]?.strength).toBe(5)
+  expect(resolved.removedFleetIds).toHaveLength(2)
+  expect(outcomeFor(resolved, PLAYER_A, "DUPLICATE_EARLY_1").type).toBe("RESOLVED")
+  expect(outcomeFor(resolved, PLAYER_A, "DUPLICATE_LATE_1").type).toBe("PREVENTED")
+  expect(reversed.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(reversed.fleets[survivor.id]?.strength).toBe(30)
+  expect(outcomeFor(reversed, PLAYER_A, "DUPLICATE_EARLY_1")).toStrictEqual(outcomeFor(resolved, PLAYER_A, "DUPLICATE_EARLY_1"))
+}
+
+function verifyLateTickTarget({ late }: VerifyLateTickTargetInput): void {
+  const lateTickTarget = planet("duplicate-late-tick-target", null, 1)
+  const lateTickOrigin = planet("duplicate-late-tick-origin", PLAYER_A, 1.8)
+  const lateTickSource = fleet("duplicate-late-tick-source", PLAYER_A, lateTickOrigin, 25)
+  const lateTickRuleset = createRuleset([late], [{ id: "DUPLICATE_LATE_TICK_1", actionDefinitionId: late.id }])
+  const lateTickResolved = resolve({
+    planets: [lateTickOrigin, lateTickTarget],
+    fleets: [lateTickSource],
+    submissions: [
+      submit({
+        id: "DUPLICATE_LATE_TICK_1",
+        playerId: PLAYER_A,
+        actionDefinitionId: late.id,
+        source: lateTickSource,
+        target: lateTickTarget,
+        strength: 25,
+      }),
+    ],
+    ruleset: lateTickRuleset,
+  })
+  expect(fleetAtPlanetForOwner(lateTickResolved, lateTickTarget.id, PLAYER_A)).toMatchObject({
+    strength: 5,
+    arrivedAtTick: 8,
+  })
+}
+
+type VerifyAttackerInput = {
+  origin: ReturnType<typeof createPlanetStub>
+  target: ReturnType<typeof createPlanetStub>
+  assaultColonize: ReturnType<typeof createActionDefinitionStub>
+  ruleset: Ruleset
+}
+
+type VerifyResultInput = {
+  target: ReturnType<typeof createPlanetStub>
+  originA: ReturnType<typeof createPlanetStub>
+  originB: ReturnType<typeof createPlanetStub>
+  fleetA: ReturnType<typeof createFleetStub>
+  fleetB: ReturnType<typeof createFleetStub>
+  intents: PendingArrivalColonizationIntent[]
+  rng: ReturnType<typeof createSeededRng>
+  before: RngState<unknown>
+  actionA: ReturnType<typeof createSubmittedActionStub>
+  colonizeDefinition: {
+    type: "FLEET_COLONIZE"
+    targets: { fleet: EffectDefinitionTargetDefinition<"FLEET">; planet: EffectDefinitionTargetDefinition<"PLANET"> }
+    parameters: { strengthRequirement: PositiveInteger }
+  }
+  actionB: ReturnType<typeof createSubmittedActionStub>
+}
+
+type VerifyCaseInput = {
+  target: ReturnType<typeof createPlanetStub>
+  fleetA: ReturnType<typeof createFleetStub>
+  fleetB: ReturnType<typeof createFleetStub>
+  fleetC: ReturnType<typeof createFleetStub>
+  intents: PendingArrivalColonizationIntent[]
+  rng: ReturnType<typeof createSeededRng>
+}
+
+type VerifySingletonRngInput = {
+  deadAction: ReturnType<typeof createSubmittedActionStub>
+  colonizeDefinition: {
+    type: "FLEET_COLONIZE"
+    targets: { fleet: EffectDefinitionTargetDefinition<"FLEET">; planet: EffectDefinitionTargetDefinition<"PLANET"> }
+    parameters: { strengthRequirement: PositiveInteger }
+  }
+  actionC: ReturnType<typeof createSubmittedActionStub>
+  actionB: ReturnType<typeof createSubmittedActionStub>
+}
+
+type Verify2Input = {
+  target: ReturnType<typeof createPlanetStub>
+  originEarly: ReturnType<typeof createPlanetStub>
+  originLate: ReturnType<typeof createPlanetStub>
+  survivor: ReturnType<typeof createFleetStub>
+  sourceEarly: ReturnType<typeof createFleetStub>
+  sourceLate: ReturnType<typeof createFleetStub>
+  submissions: Array<
+    Readonly<{
+      id: ActionId
+      playerId: PlayerId
+      actionDefinitionId: ActionDefinitionId
+      selectedTargets: Readonly<Record<TargetTag, TargetId>>
+      selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+    }>
+  >
+  ruleset: Ruleset
+}
+
+type VerifyLateTickTargetInput = { late: ReturnType<typeof createActionDefinitionStub> }

@@ -1,21 +1,32 @@
 import { Assert, Logger, Time, UnitOfTime, type DeepUnbranded } from "@guillaume-docquier/tools-ts"
 import { eq } from "drizzle-orm"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
+import type { GameId } from "shared/domain/games/GameId.ts"
+import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
+import type { FleetName } from "shared/domain/world/fleets/FleetName.ts"
 import { AttackMoveTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { BuildFleetImproved, BuildFleetStandard } from "shared/testing/test-ruleset/action-definitions/build-fleet.ts"
 import { MoveFleetExceptional } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 import { describe, expect, it } from "vitest"
 import type { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
-import type { PlayerView } from "#api/types.ts"
+import type { Action, Planet, Fleet, PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { actionsTable, fleetsTable, planetsTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
+import type { createAfterFailureSetup as CapturedcreateAfterFailureSetup } from "#tests/fleet-assertions/gameplay.worker-rollback.stages.ts"
+import type {
+  InvalidOwnerProjectionTurnsRepository as CapturedInvalidOwnerProjectionTurnsRepository,
+  readColonizationPersistenceSnapshot as CapturedreadColonizationPersistenceSnapshot,
+} from "#tests/fleet-concurrency/gameplay.scenarios.ts"
+import type { RetryActionInput } from "#tests/fleet-concurrency/gameplay.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import {
   createClockSetup,
   createTurnProcessorSetup,
@@ -113,32 +124,28 @@ describe("gameplay submission concurrency", () => {
     defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
     const defenderBuildAction = defenderView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
     Assert.isDefined(defenderBuildAction)
-    await defender.client.gameplay.updateActionSubmission.mutate({
+
+    const updatedVerifyActionSelections = await verifyActionSelections({
+      defender,
       gameId,
-      turn: defenderView.turn,
-      submittedActionTargets: {
-        actionId: defenderBuildAction.id,
-        selectedTargets: { planet: defenderHome.id },
-        selectedInputs: {},
-      },
-    })
-    await processManualDeadlineTurn({
+      defenderView,
+      defenderBuildAction,
+      defenderHome,
       clock,
       turnProcessor,
       turnsRepository,
-      client: defender.client,
-      gameId,
-      turn: defenderView.turn,
+      view,
+      player,
     })
-    view = await player.client.gameplay.getPlayerView.query({ gameId })
-    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+    view = updatedVerifyActionSelections.view
+    defenderView = updatedVerifyActionSelections.defenderView
 
     const defenderSource = findStationaryFleetAt(defenderView, defenderView.player.id, defenderHome.id)
     const defenderMoveAction = defenderView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetExceptional.id)
     Assert.isDefined(defenderSource)
     Assert.isDefined(defenderMoveAction)
 
-    const updatedVerifyDefenderSource = await assertDefenderSource({
+    const updatedVerifyUpdatedVerifyDefenderSource = await verifyUpdatedVerifyDefenderSource({
       defenderSource,
       defenderHome,
       target,
@@ -152,8 +159,8 @@ describe("gameplay submission concurrency", () => {
       view,
       player,
     })
-    view = updatedVerifyDefenderSource.view
-    defenderView = updatedVerifyDefenderSource.defenderView
+    view = updatedVerifyUpdatedVerifyDefenderSource.view
+    defenderView = updatedVerifyUpdatedVerifyDefenderSource.defenderView
     let defenderJourney = findMovingFleetForOwner(defenderView, defenderView.player.id)
     Assert.isDefined(defenderJourney)
     expect(defenderJourney.distanceToEnd).toBeCloseTo(12.497277624718329, 12)
@@ -258,10 +265,9 @@ describe("gameplay submission concurrency", () => {
       stagedDefender,
       turnsRepository,
     })
-    const { afterFailure, afterReset } = createAfterFailureSetupPhase4Result
 
-    await assertAfterReset({
-      afterReset,
+    await verifyAfterFailure({
+      createAfterFailureSetupPhase4Result,
       failureView,
       expectedFailureActionInputs,
       turnsRepository,
@@ -278,7 +284,6 @@ describe("gameplay submission concurrency", () => {
       untouchedGameId,
       invalidOwnerPlayerId,
       preSaveSnapshot,
-      afterFailure,
     })
   })
 
@@ -356,25 +361,17 @@ describe("gameplay submission concurrency", () => {
     const alternateDestination = findUnoccupiedUnclaimedAssaultDestination(firstReload, aliceHome, bobHome.id)
     Assert.isDefined(alternateDestination)
     const alternateDistance = Math.hypot(alternateDestination.x - aliceHome.x, alternateDestination.y - aliceHome.y)
-    expect(alternateDistance).toBeGreaterThan(4.418312565270031)
-    expect(alternateDistance).toBeLessThanOrEqual(5)
-    const rejectBusySubmission = async (
-      selectedTargets: DeepUnbranded<SubmittedActionTargetsDto["selectedTargets"]>,
-      selectedInputs: DeepUnbranded<SubmittedActionTargetsDto["selectedInputs"]>,
-    ): Promise<void> => {
-      await expect(
-        alice.client.gameplay.updateActionSubmission.mutate({
-          gameId,
-          turn: firstReload.turn,
-          submittedActionTargets: { actionId: assaultActionId, selectedTargets, selectedInputs },
-        }),
-      ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-      expect(await alice.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(firstReload)
-    }
-    await rejectBusySubmission({ fleet: aliceSource.id, planet: bobHome.id }, { strength: 29 })
-    await rejectBusySubmission(null, null)
-    await rejectBusySubmission({ fleet: aliceSource.id, planet: alternateDestination.id }, { strength: 29 })
-    await rejectBusySubmission({ fleet: aliceSource.id, planet: bobHome.id }, { strength: 13 })
+
+    await verifyAlternateDistance({
+      alternateDistance,
+      alice,
+      gameId,
+      firstReload,
+      assaultActionId,
+      aliceSource,
+      bobHome,
+      alternateDestination,
+    })
 
     // Act: a distinct pooled instance moves one source remainder to another legal public destination.
     const remainderAction = firstReload.actions.find(({ id }) => id === "TEST_ATTACK_MOVE_2")
@@ -428,28 +425,23 @@ describe("gameplay submission concurrency", () => {
     const afterRemainderArrival = await alice.client.gameplay.getPlayerView.query({ gameId })
     const stationaryRemainder = afterRemainderArrival.fleets.find(({ id }) => id === remainderJourneyId)
     Assert.isDefined(stationaryRemainder)
-    expect(stationaryRemainder).toMatchObject({
-      id: remainderJourneyId,
-      name: remainderJourneyName,
-      ownerPlayerId: readyView.player.id,
-      strength: 1,
-      originPlanetId: alternateDestination.id,
-    })
-    expect(stationaryRemainder.movement).toBeUndefined()
-    expect(stationaryRemainder.destinationPlanetId).toBeUndefined()
-    expect(afterRemainderArrival.actions.find(({ id }) => id === remainderAction.id)?.isInProgress).toBe(false)
-    expect(afterRemainderArrival.fleets.find(({ id }) => id === friendlyGuard.id)?.strength).toBe(17)
 
-    await processDeadlineTurn(afterRemainderArrival.turn)
-    const afterEmptyTurn = await alice.client.gameplay.getPlayerView.query({ gameId })
-    expect(afterEmptyTurn.fleets.find(({ id }) => id === friendlyGuard.id)?.strength).toBe(17)
-    expect(afterEmptyTurn.fleets.find(({ id }) => id === journey.id)).toBeUndefined()
-    expect(afterEmptyTurn.fleets.find(({ id }) => id === stationaryRemainder.id)).toStrictEqual(stationaryRemainder)
-    expect(afterEmptyTurn.fleets.find(({ id }) => id === bobDefender.id)).toBeUndefined()
-    expect(afterEmptyTurn.actions.find(({ id }) => id === assaultActionId)).toMatchObject({ selectedTargets: null, isInProgress: false })
-    expect(afterEmptyTurn.resources[ResourceType.INFLUENCE].total).toBe(77)
-    expect(afterEmptyTurn.resources[ResourceType.FUEL].total).toBe(93)
-    expect(afterEmptyTurn.actions.find(({ id }) => id === remainderAction.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
+    await verifyStationaryRemainder({
+      stationaryRemainder,
+      remainderJourneyId,
+      remainderJourneyName,
+      readyView,
+      alternateDestination,
+      afterRemainderArrival,
+      remainderAction,
+      friendlyGuard,
+      processDeadlineTurn,
+      alice,
+      gameId,
+      journey,
+      bobDefender,
+      assaultActionId,
+    })
   })
 
   it.each(pendingColonizeCorruptions)(
@@ -557,3 +549,266 @@ describe("gameplay submission concurrency", () => {
     },
   )
 })
+
+async function verifyActionSelections({
+  defender,
+  gameId,
+  defenderView,
+  defenderBuildAction,
+  defenderHome,
+  clock,
+  turnProcessor,
+  turnsRepository,
+  view,
+  player,
+}: VerifyActionSelectionsInput): Promise<VerifyActionSelectionsResult> {
+  await defender.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: defenderView.turn,
+    submittedActionTargets: {
+      actionId: defenderBuildAction.id,
+      selectedTargets: { planet: defenderHome.id },
+      selectedInputs: {},
+    },
+  })
+  await processManualDeadlineTurn({
+    clock,
+    turnProcessor,
+    turnsRepository,
+    client: defender.client,
+    gameId,
+    turn: defenderView.turn,
+  })
+  view = await player.client.gameplay.getPlayerView.query({ gameId })
+  defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+
+  return { view, defenderView }
+}
+
+async function verifyUpdatedVerifyDefenderSource({
+  defenderSource,
+  defenderHome,
+  target,
+  defender,
+  gameId,
+  defenderView,
+  defenderMoveAction,
+  clock,
+  turnProcessor,
+  turnsRepository,
+  view,
+  player,
+}: VerifyUpdatedVerifyDefenderSourceInput): Promise<VerifyUpdatedVerifyDefenderSourceResult> {
+  const updatedVerifyDefenderSource = await assertDefenderSource({
+    defenderSource,
+    defenderHome,
+    target,
+    defender,
+    gameId,
+    defenderView,
+    defenderMoveAction,
+    clock,
+    turnProcessor,
+    turnsRepository,
+    view,
+    player,
+  })
+  view = updatedVerifyDefenderSource.view
+  defenderView = updatedVerifyDefenderSource.defenderView
+
+  return { view, defenderView }
+}
+
+async function verifyAfterFailure({
+  createAfterFailureSetupPhase4Result,
+  failureView,
+  expectedFailureActionInputs,
+  turnsRepository,
+  turnProcessor,
+  player,
+  gameId,
+  defender,
+  server,
+  target,
+  home,
+  source,
+  movingFleet,
+  clock,
+  untouchedGameId,
+  invalidOwnerPlayerId,
+  preSaveSnapshot,
+}: VerifyAfterFailureInput): Promise<void> {
+  const { afterFailure, afterReset } = createAfterFailureSetupPhase4Result
+
+  await assertAfterReset({
+    afterReset,
+    failureView,
+    expectedFailureActionInputs,
+    turnsRepository,
+    turnProcessor,
+    player,
+    gameId,
+    defender,
+    server,
+    target,
+    home,
+    source,
+    movingFleet,
+    clock,
+    untouchedGameId,
+    invalidOwnerPlayerId,
+    preSaveSnapshot,
+    afterFailure,
+  })
+}
+
+async function verifyAlternateDistance({
+  alternateDistance,
+  alice,
+  gameId,
+  firstReload,
+  assaultActionId,
+  aliceSource,
+  bobHome,
+  alternateDestination,
+}: VerifyAlternateDistanceInput): Promise<void> {
+  expect(alternateDistance).toBeGreaterThan(4.418312565270031)
+  expect(alternateDistance).toBeLessThanOrEqual(5)
+  const rejectBusySubmission = async (
+    selectedTargets: DeepUnbranded<SubmittedActionTargetsDto["selectedTargets"]>,
+    selectedInputs: DeepUnbranded<SubmittedActionTargetsDto["selectedInputs"]>,
+  ): Promise<void> => {
+    await expect(
+      alice.client.gameplay.updateActionSubmission.mutate({
+        gameId,
+        turn: firstReload.turn,
+        submittedActionTargets: { actionId: assaultActionId, selectedTargets, selectedInputs },
+      }),
+    ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+    expect(await alice.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(firstReload)
+  }
+  await rejectBusySubmission({ fleet: aliceSource.id, planet: bobHome.id }, { strength: 29 })
+  await rejectBusySubmission(null, null)
+  await rejectBusySubmission({ fleet: aliceSource.id, planet: alternateDestination.id }, { strength: 29 })
+  await rejectBusySubmission({ fleet: aliceSource.id, planet: bobHome.id }, { strength: 13 })
+}
+
+async function verifyStationaryRemainder({
+  stationaryRemainder,
+  remainderJourneyId,
+  remainderJourneyName,
+  readyView,
+  alternateDestination,
+  afterRemainderArrival,
+  remainderAction,
+  friendlyGuard,
+  processDeadlineTurn,
+  alice,
+  gameId,
+  journey,
+  bobDefender,
+  assaultActionId,
+}: VerifyStationaryRemainderInput): Promise<void> {
+  expect(stationaryRemainder).toMatchObject({
+    id: remainderJourneyId,
+    name: remainderJourneyName,
+    ownerPlayerId: readyView.player.id,
+    strength: 1,
+    originPlanetId: alternateDestination.id,
+  })
+  expect(stationaryRemainder.movement).toBeUndefined()
+  expect(stationaryRemainder.destinationPlanetId).toBeUndefined()
+  expect(afterRemainderArrival.actions.find(({ id }) => id === remainderAction.id)?.isInProgress).toBe(false)
+  expect(afterRemainderArrival.fleets.find(({ id }) => id === friendlyGuard.id)?.strength).toBe(17)
+
+  await processDeadlineTurn(afterRemainderArrival.turn)
+  const afterEmptyTurn = await alice.client.gameplay.getPlayerView.query({ gameId })
+  expect(afterEmptyTurn.fleets.find(({ id }) => id === friendlyGuard.id)?.strength).toBe(17)
+  expect(afterEmptyTurn.fleets.find(({ id }) => id === journey.id)).toBeUndefined()
+  expect(afterEmptyTurn.fleets.find(({ id }) => id === stationaryRemainder.id)).toStrictEqual(stationaryRemainder)
+  expect(afterEmptyTurn.fleets.find(({ id }) => id === bobDefender.id)).toBeUndefined()
+  expect(afterEmptyTurn.actions.find(({ id }) => id === assaultActionId)).toMatchObject({ selectedTargets: null, isInProgress: false })
+  expect(afterEmptyTurn.resources[ResourceType.INFLUENCE].total).toBe(77)
+  expect(afterEmptyTurn.resources[ResourceType.FUEL].total).toBe(93)
+  expect(afterEmptyTurn.actions.find(({ id }) => id === remainderAction.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
+}
+
+type VerifyActionSelectionsInput = {
+  defender: AuthenticatedApiClient
+  gameId: GameId
+  defenderView: PlayerView
+  defenderBuildAction: Action
+  defenderHome: Planet
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: CapturedInvalidOwnerProjectionTurnsRepository
+  view: PlayerView
+  player: AuthenticatedApiClient
+}
+
+type VerifyActionSelectionsResult = { view: PlayerView; defenderView: PlayerView }
+
+type VerifyUpdatedVerifyDefenderSourceInput = {
+  defenderSource: Fleet
+  defenderHome: Planet
+  target: Planet
+  defender: AuthenticatedApiClient
+  gameId: GameId
+  defenderView: PlayerView
+  defenderMoveAction: Action
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: CapturedInvalidOwnerProjectionTurnsRepository
+  view: PlayerView
+  player: AuthenticatedApiClient
+}
+
+type VerifyUpdatedVerifyDefenderSourceResult = { view: PlayerView; defenderView: PlayerView }
+
+type VerifyAfterFailureInput = {
+  createAfterFailureSetupPhase4Result: Awaited<ReturnType<typeof CapturedcreateAfterFailureSetup>>
+  failureView: PlayerView
+  expectedFailureActionInputs: RetryActionInput[]
+  turnsRepository: CapturedInvalidOwnerProjectionTurnsRepository
+  turnProcessor: TurnProcessor
+  player: AuthenticatedApiClient
+  gameId: GameId
+  defender: AuthenticatedApiClient
+  server: ConcurrencyTestApiServer
+  target: Planet
+  home: Planet
+  source: Fleet
+  movingFleet: Fleet
+  clock: ControlledClock
+  untouchedGameId: GameId
+  invalidOwnerPlayerId: PlayerId
+  preSaveSnapshot: Awaited<ReturnType<typeof CapturedreadColonizationPersistenceSnapshot>>
+}
+
+type VerifyAlternateDistanceInput = {
+  alternateDistance: number
+  alice: AuthenticatedApiClient
+  gameId: GameId
+  firstReload: PlayerView
+  assaultActionId: string
+  aliceSource: Fleet
+  bobHome: Planet
+  alternateDestination: Planet
+}
+
+type VerifyStationaryRemainderInput = {
+  stationaryRemainder: Fleet
+  remainderJourneyId: FleetId
+  remainderJourneyName: FleetName
+  readyView: PlayerView
+  alternateDestination: Planet
+  afterRemainderArrival: PlayerView
+  remainderAction: Action
+  friendlyGuard: Fleet
+  processDeadlineTurn: (turn: number) => Promise<void>
+  alice: AuthenticatedApiClient
+  gameId: GameId
+  journey: Fleet
+  bobDefender: Fleet
+  assaultActionId: string
+}

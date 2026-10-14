@@ -1,6 +1,7 @@
 import { Assert, branded, indexBy, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { PositiveNumber } from "@guillaume-docquier/tools-ts/schemas"
 import { evaluateSubmittedActions, type EligibilityState } from "shared/action-submission/evaluateActionSelection.ts"
+import type { EligibilityIssueCode } from "shared/action-submission/selectionEvaluation.ts"
 import { compareOrdinalStrings } from "shared/domain/compareOrdinalStrings.ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import type { GameId } from "shared/domain/games/GameId.ts"
@@ -13,7 +14,9 @@ import type { InputTag } from "shared/domain/ruleset/action-definitions/InputTag
 import type { PositiveInteger } from "shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
 import type { EffectDefinitionTargetDefinition } from "shared/domain/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
+import type { TargetId } from "shared/domain/ruleset/target-definitions/TargetId.ts"
 import { createAvailableActionStub, createSubmittedActionStub } from "shared/domain/turns/actions/Action.stub.ts"
+import type { Action as CapturedAction } from "shared/domain/turns/actions/Action.ts"
 import type { ActionId } from "shared/domain/turns/actions/ActionId.ts"
 import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
@@ -30,6 +33,7 @@ import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import type { TurnsRepository, TurnToProcessModel } from "#turn-processing/turns.repository.ts"
 import { assertBeforeRejectedDrafts, assertCanceledView } from "../../tests/fleet-assertions/gameplay.router.composed-parity-2.ts"
 import {
@@ -98,26 +102,18 @@ describe("gameplay.router", () => {
       const destination = planets.find(({ coordinates }) => coordinates === "55:07:50")
       Assert.isDefined(origin)
       Assert.isDefined(destination)
-      expect({ x: origin.x, y: origin.y }).toStrictEqual(FleetActionSelectionParity.origin)
-      expect({ x: destination.x, y: destination.y }).toStrictEqual(FleetActionSelectionParity.destination)
 
-      // Act
-      // Build all 50 source strength through the router and actual persisted turn processing.
-      for (let buildCount = 0; buildCount < 5; buildCount += 1) {
-        const buildAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
-        Assert.isDefined(buildAction)
-        await player.client.gameplay.updateActionSubmission.mutate({
-          gameId: createdGameId,
-          turn: playerView.turn,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({
-            actionId: buildAction.id,
-            selectedTargets: { planet: origin.id },
-            selectedInputs: {},
-          }),
-        })
-        await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
-        playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      }
+      const updatedVerifyActionSelections = await verifyActionSelections({
+        origin,
+        destination,
+        playerView,
+        player,
+        createdGameId,
+        clock,
+        turnProcessor,
+        turnsRepository,
+      })
+      playerView = updatedVerifyActionSelections.playerView
 
       const createSourceFleetSetupPhase1Result = await createSourceFleetSetup({
         playerView,
@@ -319,25 +315,18 @@ describe("gameplay.router", () => {
       const destination = planets.find(({ coordinates }) => coordinates === "55:07:50")
       Assert.isDefined(origin)
       Assert.isDefined(destination)
-      expect({ x: origin.x, y: origin.y }).toStrictEqual(FleetActionSelectionParity.origin)
-      expect({ x: destination.x, y: destination.y }).toStrictEqual(FleetActionSelectionParity.destination)
 
-      // Act
-      for (let buildCount = 0; buildCount < 5; buildCount += 1) {
-        const buildAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
-        Assert.isDefined(buildAction)
-        await player.client.gameplay.updateActionSubmission.mutate({
-          gameId: createdGameId,
-          turn: playerView.turn,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({
-            actionId: buildAction.id,
-            selectedTargets: { planet: origin.id },
-            selectedInputs: {},
-          }),
-        })
-        await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
-        playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      }
+      const updatedVerifyActionSelections2 = await verifyActionSelections2({
+        origin,
+        destination,
+        playerView,
+        player,
+        createdGameId,
+        clock,
+        turnProcessor,
+        turnsRepository,
+      })
+      playerView = updatedVerifyActionSelections2.playerView
 
       const sourceFleet = playerView.fleets.find(({ originPlanetId }) => originPlanetId === origin.id)
       const moveAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_1")
@@ -423,24 +412,19 @@ describe("gameplay.router", () => {
           }),
         })
       }
-      await submitSelection(moveAction.id, 20)
-      await submitSelection(attackAction.id, 30)
-      const selectedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
-      assertSelectedView({ selectedView, moveAction, sourceFleet, destination, attackAction, evaluatePublicView, extraAttackAction })
-
-      await assertBeforeRejectedDrafts({
-        player,
-        createdGameId,
-        selectedView,
-        attackAction,
-        sourceFleet,
-        destination,
-        buildAction,
-        origin,
+      await verifyPublicState({
         submitSelection,
         moveAction,
+        attackAction,
+        player,
+        createdGameId,
+        sourceFleet,
+        destination,
         evaluatePublicView,
+        extraAttackAction,
+        buildAction,
+        origin,
         extraMoveAction,
       })
 
@@ -746,4 +730,186 @@ type CreateNormalizedSelectedViewSetupResult = {
     }>
   }
   delegateStartTurnProcessing: TurnsRepository["startTurnProcessing"]
+}
+
+async function verifyActionSelections({
+  origin,
+  destination,
+  playerView,
+  player,
+  createdGameId,
+  clock,
+  turnProcessor,
+  turnsRepository,
+}: VerifyActionSelectionsInput): Promise<VerifyActionSelectionsResult> {
+  expect({ x: origin.x, y: origin.y }).toStrictEqual(FleetActionSelectionParity.origin)
+  expect({ x: destination.x, y: destination.y }).toStrictEqual(FleetActionSelectionParity.destination)
+
+  // Act
+  // Build all 50 source strength through the router and actual persisted turn processing.
+  for (let buildCount = 0; buildCount < 5; buildCount += 1) {
+    const buildAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+    Assert.isDefined(buildAction)
+    await player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: playerView.turn,
+      submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        actionId: buildAction.id,
+        selectedTargets: { planet: origin.id },
+        selectedInputs: {},
+      }),
+    })
+    await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
+    playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  }
+
+  return { playerView }
+}
+
+async function verifyActionSelections2({
+  origin,
+  destination,
+  playerView,
+  player,
+  createdGameId,
+  clock,
+  turnProcessor,
+  turnsRepository,
+}: VerifyActionSelections2Input): Promise<VerifyActionSelections2Result> {
+  expect({ x: origin.x, y: origin.y }).toStrictEqual(FleetActionSelectionParity.origin)
+  expect({ x: destination.x, y: destination.y }).toStrictEqual(FleetActionSelectionParity.destination)
+
+  // Act
+  for (let buildCount = 0; buildCount < 5; buildCount += 1) {
+    const buildAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+    Assert.isDefined(buildAction)
+    await player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: playerView.turn,
+      submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        actionId: buildAction.id,
+        selectedTargets: { planet: origin.id },
+        selectedInputs: {},
+      }),
+    })
+    await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
+    playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  }
+
+  return { playerView }
+}
+
+async function verifyPublicState({
+  submitSelection,
+  moveAction,
+  attackAction,
+  player,
+  createdGameId,
+  sourceFleet,
+  destination,
+  evaluatePublicView,
+  extraAttackAction,
+  buildAction,
+  origin,
+  extraMoveAction,
+}: VerifyPublicStateInput): Promise<void> {
+  await submitSelection(moveAction.id, 20)
+  await submitSelection(attackAction.id, 30)
+  const selectedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+  assertSelectedView({ selectedView, moveAction, sourceFleet, destination, attackAction, evaluatePublicView, extraAttackAction })
+
+  await assertBeforeRejectedDrafts({
+    player,
+    createdGameId,
+    selectedView,
+    attackAction,
+    sourceFleet,
+    destination,
+    buildAction,
+    origin,
+    submitSelection,
+    moveAction,
+    evaluatePublicView,
+    extraMoveAction,
+  })
+}
+
+type VerifyActionSelectionsInput = {
+  origin: Planet
+  destination: Planet
+  playerView: PlayerView
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+}
+
+type VerifyActionSelectionsResult = { playerView: PlayerView }
+
+type VerifyActionSelections2Input = {
+  origin: Planet
+  destination: Planet
+  playerView: PlayerView
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+}
+
+type VerifyActionSelections2Result = { playerView: PlayerView }
+
+type VerifyPublicStateInput = {
+  submitSelection: (actionId: string, strength: number) => Promise<void>
+  moveAction: Action
+  attackAction: Action
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  sourceFleet: Fleet
+  destination: Planet
+  evaluatePublicView: (view: PlayerView) => {
+    state: Readonly<{
+      gameId: GameId
+      turn: number
+      submittingPlayerId: PlayerId
+      resources: Readonly<ReturnType<typeof createResourcesStub>>
+      players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+      planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+      fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+      actions: readonly CapturedAction[]
+    }>
+    submissions: Array<
+      Readonly<{
+        id: ActionId
+        playerId: PlayerId
+        actionDefinitionId: ActionDefinitionId
+        selectedTargets: Readonly<Record<TargetTag, TargetId>>
+        selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+      }>
+    >
+    evaluation: Readonly<{
+      status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+      issues: ReadonlyArray<
+        Readonly<{
+          code: EligibilityIssueCode
+          actionId?: ActionId
+          targetTag?: TargetTag
+          inputTag?: InputTag
+          resourceType?: ResourceType
+          message: string
+        }>
+      >
+      missingTargets: readonly TargetTag[]
+      missingInputs: readonly InputTag[]
+      resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+      strengthCommitments: Readonly<Record<FleetId, number>>
+      remainingStrength: Readonly<Record<FleetId, number>>
+    }>
+  }
+  extraAttackAction: Action
+  buildAction: Action
+  origin: Planet
+  extraMoveAction: Action
 }

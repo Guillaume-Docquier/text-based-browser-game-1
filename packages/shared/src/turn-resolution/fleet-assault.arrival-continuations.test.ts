@@ -1,18 +1,30 @@
-import { Assert, branded, indexBy, Result } from "@guillaume-docquier/tools-ts"
+import { type Success, Assert, branded, indexBy, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import type { NonNegativeSafeInteger } from "#shared/domain/NonNegativeSafeInteger.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { createResourcesStub } from "#shared/domain/resources/Resources.stub.ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
+import type { ActionDefinitionId } from "#shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
+import type { InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
+import type { PositiveInteger } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
+import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
+import type { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
+import type { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import type { TargetId } from "#shared/domain/ruleset/target-definitions/TargetId.ts"
 import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
 import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
+import type { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
 import { FleetSchema, type Fleet } from "#shared/domain/world/fleets/Fleet.ts"
+import type { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import type { Planet } from "#shared/domain/world/planets/Planet.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 import { FlexibleAssaultTest, StationaryAssaultTest } from "#shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { BuildFleetStandard } from "#shared/testing/test-ruleset/action-definitions/build-fleet.ts"
 import { TestRuleset } from "#shared/testing/test-ruleset/TestRuleset.ts"
+import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnState.ts"
 import { resolveTurn } from "#shared/turn-resolution/resolveTurn.ts"
+import type { ResolutionFleet } from "#shared/turn-resolution/state/ResolutionFleet.ts"
 import { createTurnStateStub } from "#shared/turn-resolution/TurnState.stub.ts"
 import { assertAttackerA } from "./fleet-assault.assertions.test-support.ts"
 import { PLAYER_A, PLAYER_B, PLAYER_C, resolve, planet, fleet, ownerStrengths } from "./fleet-assault.test-support.ts"
@@ -144,28 +156,8 @@ describe("Fleet Assault", () => {
     Assert.isDefined(journey.movement)
     const pendingAssault = journey.movement.pendingArrivalEffects[0]
     Assert.isDefined(pendingAssault)
-    const corruptPendingAssault = Object.assign({ ...pendingAssault }, { definitionOrdinal: pendingAssault.definitionOrdinal + 1 })
-    const corruptJourney = {
-      ...journey,
-      movement: {
-        ...journey.movement,
-        pendingArrivalEffects: [corruptPendingAssault],
-      },
-    }
-    // Act
-    const continued = resolveTurn(
-      createTurnStateStub({
-        turn: 2,
-        players: firstTurn.value.players,
-        planets: firstTurn.value.planets,
-        fleets: indexBy("id", [...Object.values(firstTurn.value.fleets).filter(({ id }) => id !== corruptJourney.id), corruptJourney]),
-      }),
-      TestRuleset,
-      createSeededRng(),
-    )
 
-    // Assert
-    expect(Result.isFailure(continued)).toBe(true)
+    verifyCorruptPendingAssault({ pendingAssault, journey, firstTurn })
   })
 
   it("should assign Build names canonically across owners and mixed-case pooled IDs", () => {
@@ -198,36 +190,8 @@ describe("Fleet Assault", () => {
     // Act
     const forwardRng = createSeededRng(1234)
     const reversedRng = createSeededRng(1234)
-    const forward = resolve({
-      planets: [alicePlanetB, alicePlanetA, bobPlanetB, bobPlanetA],
-      fleets: [],
-      submissions,
-      rng: forwardRng,
-      ruleset,
-    })
-    const reversed = resolve({
-      planets: [bobPlanetA, bobPlanetB, alicePlanetA, alicePlanetB],
-      fleets: [],
-      submissions: submissions.toReversed(),
-      rng: reversedRng,
-      ruleset,
-    })
-    const expectedNames = [
-      [alicePlanetB.id, "fleet 74220"],
-      [alicePlanetA.id, "fleet 703708"],
-      [bobPlanetB.id, "fleet 902953"],
-      [bobPlanetA.id, "fleet 970578"],
-    ] as const
 
-    // Assert
-    for (const result of [forward, reversed]) {
-      for (const [planetId, name] of expectedNames) {
-        const builtFleet = Object.values(result.fleets).find(({ originPlanetId }) => originPlanetId === planetId)
-        Assert.isDefined(builtFleet)
-        expect(builtFleet.name).toBe(name)
-      }
-    }
-    expect(forwardRng.getState()).toStrictEqual({ generatorState: 3031297190, spareNormal: null })
+    verifyForward({ alicePlanetB, alicePlanetA, bobPlanetB, bobPlanetA, submissions, forwardRng, ruleset, reversedRng })
     expect(reversedRng.getState()).toStrictEqual({ generatorState: 3031297190, spareNormal: null })
   })
 
@@ -275,31 +239,200 @@ describe("Fleet Assault", () => {
       assault(PLAYER_A, attackerA, { station: attackerA.id, battlePlanet: battle.id }),
       assault(PLAYER_B, attackerB, { battlePlanet: battle.id, station: attackerB.id }),
     ]
-    const reversedSubmissions = [
-      assault(PLAYER_B, attackerB, { station: attackerB.id, battlePlanet: battle.id }),
-      assault(PLAYER_A, attackerA, { battlePlanet: battle.id, station: attackerA.id }),
-      build("a:", PLAYER_B, bobBuildA),
-      build("B!", PLAYER_B, bobBuildB),
-      build("a:", PLAYER_A, aliceBuildA),
-      build("B!", PLAYER_A, aliceBuildB),
-    ]
-    const planets = [aliceBuildB, aliceBuildA, bobBuildB, bobBuildA, battle]
-    const fleets = [attackerA, attackerB, defenderC]
 
-    assertAttackerA({
-      attackerA,
-      battle,
+    verifyReversedSubmissions({
+      assault,
       attackerB,
-      planets,
-      fleets,
+      battle,
+      attackerA,
+      build,
+      bobBuildA,
+      bobBuildB,
+      aliceBuildA,
+      aliceBuildB,
+      defenderC,
       forwardSubmissions,
       actionPool,
-      reversedSubmissions,
-      defenderC,
-      aliceBuildB,
-      aliceBuildA,
-      bobBuildB,
-      bobBuildA,
     })
   })
 })
+
+function verifyCorruptPendingAssault({ pendingAssault, journey, firstTurn }: VerifyCorruptPendingAssaultInput): void {
+  Assert.isDefined(journey.movement)
+  const corruptPendingAssault = Object.assign({ ...pendingAssault }, { definitionOrdinal: pendingAssault.definitionOrdinal + 1 })
+  const corruptJourney = {
+    ...journey,
+    movement: {
+      ...journey.movement,
+      pendingArrivalEffects: [corruptPendingAssault],
+    },
+  }
+  // Act
+  const continued = resolveTurn(
+    createTurnStateStub({
+      turn: 2,
+      players: firstTurn.value.players,
+      planets: firstTurn.value.planets,
+      fleets: indexBy("id", [...Object.values(firstTurn.value.fleets).filter(({ id }) => id !== corruptJourney.id), corruptJourney]),
+    }),
+    TestRuleset,
+    createSeededRng(),
+  )
+
+  // Assert
+  expect(Result.isFailure(continued)).toBe(true)
+}
+
+function verifyForward({
+  alicePlanetB,
+  alicePlanetA,
+  bobPlanetB,
+  bobPlanetA,
+  submissions,
+  forwardRng,
+  ruleset,
+  reversedRng,
+}: VerifyForwardInput): void {
+  const forward = resolve({
+    planets: [alicePlanetB, alicePlanetA, bobPlanetB, bobPlanetA],
+    fleets: [],
+    submissions,
+    rng: forwardRng,
+    ruleset,
+  })
+  const reversed = resolve({
+    planets: [bobPlanetA, bobPlanetB, alicePlanetA, alicePlanetB],
+    fleets: [],
+    submissions: submissions.toReversed(),
+    rng: reversedRng,
+    ruleset,
+  })
+  const expectedNames = [
+    [alicePlanetB.id, "fleet 74220"],
+    [alicePlanetA.id, "fleet 703708"],
+    [bobPlanetB.id, "fleet 902953"],
+    [bobPlanetA.id, "fleet 970578"],
+  ] as const
+
+  // Assert
+  for (const result of [forward, reversed]) {
+    for (const [planetId, name] of expectedNames) {
+      const builtFleet = Object.values(result.fleets).find(({ originPlanetId }) => originPlanetId === planetId)
+      Assert.isDefined(builtFleet)
+      expect(builtFleet.name).toBe(name)
+    }
+  }
+  expect(forwardRng.getState()).toStrictEqual({ generatorState: 3031297190, spareNormal: null })
+}
+
+function verifyReversedSubmissions({
+  assault,
+  attackerB,
+  battle,
+  attackerA,
+  build,
+  bobBuildA,
+  bobBuildB,
+  aliceBuildA,
+  aliceBuildB,
+  defenderC,
+  forwardSubmissions,
+  actionPool,
+}: VerifyReversedSubmissionsInput): void {
+  const reversedSubmissions = [
+    assault(PLAYER_B, attackerB, { station: attackerB.id, battlePlanet: battle.id }),
+    assault(PLAYER_A, attackerA, { battlePlanet: battle.id, station: attackerA.id }),
+    build("a:", PLAYER_B, bobBuildA),
+    build("B!", PLAYER_B, bobBuildB),
+    build("a:", PLAYER_A, aliceBuildA),
+    build("B!", PLAYER_A, aliceBuildB),
+  ]
+  const planets = [aliceBuildB, aliceBuildA, bobBuildB, bobBuildA, battle]
+  const fleets = [attackerA, attackerB, defenderC]
+
+  assertAttackerA({
+    attackerA,
+    battle,
+    attackerB,
+    planets,
+    fleets,
+    forwardSubmissions,
+    actionPool,
+    reversedSubmissions,
+    defenderC,
+    aliceBuildB,
+    aliceBuildA,
+    bobBuildB,
+    bobBuildA,
+  })
+}
+
+type VerifyCorruptPendingAssaultInput = {
+  pendingAssault:
+    | Readonly<{ effectDefinition: FleetAssaultEffectDefinition; definitionOrdinal: NonNegativeSafeInteger }>
+    | Readonly<{ effectDefinition: FleetColonizeEffectDefinition; definitionOrdinal: NonNegativeSafeInteger }>
+  journey: ResolutionFleet
+  firstTurn: Success<ResolvedTurnState>
+}
+
+type VerifyForwardInput = {
+  alicePlanetB: ReturnType<typeof createPlanetStub>
+  alicePlanetA: ReturnType<typeof createPlanetStub>
+  bobPlanetB: ReturnType<typeof createPlanetStub>
+  bobPlanetA: ReturnType<typeof createPlanetStub>
+  submissions: Array<
+    Readonly<{
+      id: ActionId
+      playerId: PlayerId
+      actionDefinitionId: ActionDefinitionId
+      selectedTargets: Readonly<Record<TargetTag, TargetId>>
+      selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+    }>
+  >
+  forwardRng: ReturnType<typeof createSeededRng>
+  ruleset: Ruleset
+  reversedRng: ReturnType<typeof createSeededRng>
+}
+
+type VerifyReversedSubmissionsInput = {
+  assault: (
+    playerId: PlayerId,
+    source: ReturnType<typeof createFleetStub>,
+    selectedTargets: Record<string, string>,
+  ) => Readonly<{
+    id: ActionId
+    playerId: PlayerId
+    actionDefinitionId: ActionDefinitionId
+    selectedTargets: Readonly<Record<TargetTag, TargetId>>
+    selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+  }>
+  attackerB: ReturnType<typeof createFleetStub>
+  battle: ReturnType<typeof createPlanetStub>
+  attackerA: ReturnType<typeof createFleetStub>
+  build: (
+    id: string,
+    playerId: PlayerId,
+    destination: ReturnType<typeof createPlanetStub>,
+  ) => Readonly<{
+    id: ActionId
+    playerId: PlayerId
+    actionDefinitionId: ActionDefinitionId
+    selectedTargets: Readonly<Record<TargetTag, TargetId>>
+    selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+  }>
+  bobBuildA: ReturnType<typeof createPlanetStub>
+  bobBuildB: ReturnType<typeof createPlanetStub>
+  aliceBuildA: ReturnType<typeof createPlanetStub>
+  aliceBuildB: ReturnType<typeof createPlanetStub>
+  defenderC: ReturnType<typeof createFleetStub>
+  forwardSubmissions: Array<
+    Readonly<{
+      id: ActionId
+      playerId: PlayerId
+      actionDefinitionId: ActionDefinitionId
+      selectedTargets: Readonly<Record<TargetTag, TargetId>>
+      selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+    }>
+  >
+  actionPool: Array<Readonly<{ id: ActionId; actionDefinitionId: ActionDefinitionId }>>
+}

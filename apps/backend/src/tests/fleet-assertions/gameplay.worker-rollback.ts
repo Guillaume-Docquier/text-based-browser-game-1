@@ -12,8 +12,8 @@ import type { ControlledClock } from "#lib/ControlledClock.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import type { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import type {
-  InvalidOwnerProjectionTurnsRepository as CapturedInvalidOwnerProjectionTurnsRepository,
   readColonizationPersistenceSnapshot as CapturedreadColonizationPersistenceSnapshot,
+  InvalidOwnerProjectionTurnsRepository as CapturedInvalidOwnerProjectionTurnsRepository,
 } from "#tests/fleet-concurrency/gameplay.scenarios.ts"
 import type { RetryActionInput } from "#tests/fleet-concurrency/gameplay.ts"
 import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
@@ -197,23 +197,20 @@ export async function assertAfterReset({
   const retryView = await player.client.gameplay.getPlayerView.query({ gameId })
   const retryDefenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
   const afterRetry = await readColonizationPersistenceSnapshot(server.database, gameId)
-  expect(retryView.turnStatus).toBe(TurnStatus.COLLECTING_ACTIONS)
-  expect(retryView.turn).toBe(failureView.turn + 1)
-  expect(findPlanetOwnerInView(retryView, target.id)).toBe(retryView.player.id)
-  expect(findStationaryFleetAt(retryView, retryView.player.id, home.id)).toMatchObject({ id: source.id, strength: 75 })
-  expect(findStationaryFleetAt(retryView, retryView.player.id, target.id)).toMatchObject({
-    id: movingFleet.id,
-    strength: 5,
-  })
-  expect(hasFleetAtPlanet(retryDefenderView, retryDefenderView.player.id, target.id)).toBe(false)
-  expect(retryView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 22, uncommitted: 22 })
-  expect(retryView.resources[ResourceType.METAL]).toStrictEqual({ total: 1, uncommitted: 1 })
-  expect(areActionInstancesReleased(retryView.actions)).toBe(true)
-  expect(afterRetry.turns.find(({ turn }) => turn === failureView.turn)?.status).toBe(TurnStatus.COMPLETED)
 
-  expect(await turnProcessor.processNextDueTurn()).toBe("idle")
-  const afterNoDuePoll = await readColonizationPersistenceSnapshot(server.database, gameId)
-  expect(afterNoDuePoll).toStrictEqual(afterRetry)
+  await verifyRetryView({
+    retryView,
+    failureView,
+    target,
+    home,
+    source,
+    movingFleet,
+    retryDefenderView,
+    afterRetry,
+    turnProcessor,
+    server,
+    gameId,
+  })
 
   const emptyTurn = retryView.turn
   await processManualDeadlineTurn({
@@ -417,4 +414,50 @@ export type AssertJourney2Input = {
   firstReload: PlayerView
   bobDefender: Fleet
   friendlyGuard: Fleet
+}
+
+async function verifyRetryView({
+  retryView,
+  failureView,
+  target,
+  home,
+  source,
+  movingFleet,
+  retryDefenderView,
+  afterRetry,
+  turnProcessor,
+  server,
+  gameId,
+}: VerifyRetryViewInput): Promise<void> {
+  expect(retryView.turnStatus).toBe(TurnStatus.COLLECTING_ACTIONS)
+  expect(retryView.turn).toBe(failureView.turn + 1)
+  expect(findPlanetOwnerInView(retryView, target.id)).toBe(retryView.player.id)
+  expect(findStationaryFleetAt(retryView, retryView.player.id, home.id)).toMatchObject({ id: source.id, strength: 75 })
+  expect(findStationaryFleetAt(retryView, retryView.player.id, target.id)).toMatchObject({
+    id: movingFleet.id,
+    strength: 5,
+  })
+  expect(hasFleetAtPlanet(retryDefenderView, retryDefenderView.player.id, target.id)).toBe(false)
+  expect(retryView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 22, uncommitted: 22 })
+  expect(retryView.resources[ResourceType.METAL]).toStrictEqual({ total: 1, uncommitted: 1 })
+  expect(areActionInstancesReleased(retryView.actions)).toBe(true)
+  expect(afterRetry.turns.find(({ turn }) => turn === failureView.turn)?.status).toBe(TurnStatus.COMPLETED)
+
+  expect(await turnProcessor.processNextDueTurn()).toBe("idle")
+  const afterNoDuePoll = await readColonizationPersistenceSnapshot(server.database, gameId)
+  expect(afterNoDuePoll).toStrictEqual(afterRetry)
+}
+
+type VerifyRetryViewInput = {
+  retryView: PlayerView
+  failureView: PlayerView
+  target: Planet
+  home: Planet
+  source: Fleet
+  movingFleet: Fleet
+  retryDefenderView: PlayerView
+  afterRetry: Awaited<ReturnType<typeof CapturedreadColonizationPersistenceSnapshot>>
+  turnProcessor: TurnProcessor
+  server: ConcurrencyTestApiServer
+  gameId: GameId
 }

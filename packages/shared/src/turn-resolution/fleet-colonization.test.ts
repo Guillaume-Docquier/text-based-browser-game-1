@@ -2,16 +2,33 @@ import { Assert, indexBy, mulberry32Prng, Rng } from "@guillaume-docquier/tools-
 import { describe, expect, it } from "vitest"
 import { computeAvailableActions } from "#shared/action-submission/computeAvailableActions.ts"
 import type { EligibilityState } from "#shared/action-submission/evaluateActionSelection.ts"
+import type { GameId } from "#shared/domain/games/GameId.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
+import type { createResourcesStub } from "#shared/domain/resources/Resources.stub.ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
+import type { createActionDefinitionStub } from "#shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
+import type { ActionDefinitionId } from "#shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
+import type { InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
+import type { PositiveInteger } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
+import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
+import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import type { TargetId } from "#shared/domain/ruleset/target-definitions/TargetId.ts"
 import type { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
+import type { Action } from "#shared/domain/turns/actions/Action.ts"
+import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
+import type { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
 import { FleetSchema, type Fleet } from "#shared/domain/world/fleets/Fleet.ts"
+import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import { isPlanetUnclaimed } from "#shared/domain/world/planets/isPlanetUnclaimed.ts"
+import type { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import type { Planet } from "#shared/domain/world/planets/Planet.ts"
+import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 import { ColonizePlanetTest } from "#shared/testing/test-ruleset/action-definitions/colonize.ts"
 import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnState.ts"
 import { resolveTurn } from "#shared/turn-resolution/resolveTurn.ts"
+import type { ResolutionFleet } from "#shared/turn-resolution/state/ResolutionFleet.ts"
+import type { ResolutionPlayer } from "#shared/turn-resolution/state/ResolutionPlayer.ts"
 import { createTurnStateStub } from "#shared/turn-resolution/TurnState.stub.ts"
 import { assertAAtP2, assertAAtP } from "./fleet-colonization.assertions-2.test-support.ts"
 import { createEdgeArrivalSetup } from "./fleet-colonization.stages-2.test-support.ts"
@@ -42,7 +59,7 @@ describe("Fleet Colonization", () => {
   it("should resolve the complete three-player fleet-operations vector across reloaded Turns and reuse released Actions", () => {
     expect.hasAssertions()
 
-    const createColonizeSetupPhase1Result = createColonizeSetup({})
+    const createColonizeSetupPhase1Result = createColonizeSetup()
     const { ordinaryMove, attackMove, colonizeActionId, moveActionId, attackActionId, ruleset, gameId, playerIds } =
       createColonizeSetupPhase1Result
 
@@ -147,7 +164,7 @@ describe("Fleet Colonization", () => {
     })
     const { aAtP, aAtQ, bAtP } = createAAtPSetupPhase5Result
 
-    assertAAtP2({
+    verifyPublicState({
       aAtP,
       aAtQ,
       bAtP,
@@ -165,7 +182,7 @@ describe("Fleet Colonization", () => {
     const aAtHome = afterArrival.fleets[aSource.id]
     Assert.isDefined(aAtHome)
 
-    assertAAtP({
+    verifyPublicState2({
       aAtP,
       bAtP,
       aAtQ,
@@ -239,7 +256,7 @@ describe("Fleet Colonization", () => {
   })
 
   it("should resolve renamed Seed Outpost at its exact threshold and range edge with speed2 and one-time costs", () => {
-    const createRulesetSetupPhase6Result = createRulesetSetup({})
+    const createRulesetSetupPhase6Result = createRulesetSetup()
     const { edgeSite, edgeJourney } = createRulesetSetupPhase6Result
 
     const createEdgeArrivalSetupPhase7Result = createEdgeArrivalSetup({ ...createRulesetSetupPhase6Result })
@@ -368,3 +385,136 @@ describe("Fleet Colonization", () => {
     expect(isPlanetUnclaimed(PLAYER_A)).toBe(false)
   })
 })
+
+function verifyPublicState({
+  aAtP,
+  aAtQ,
+  bAtP,
+  afterArrival,
+  p,
+  q,
+  cAttackJourney,
+  strengthTotal,
+  colonizeActionId,
+  moveActionId,
+  attackActionId,
+  aColonizeJourney,
+  bColonizeJourney,
+}: VerifyPublicStateInput): void {
+  assertAAtP2({
+    aAtP,
+    aAtQ,
+    bAtP,
+    afterArrival,
+    p,
+    q,
+    cAttackJourney,
+    strengthTotal,
+    colonizeActionId,
+    moveActionId,
+    attackActionId,
+    aColonizeJourney,
+    bColonizeJourney,
+  })
+}
+
+function verifyPublicState2({
+  aAtP,
+  bAtP,
+  aAtQ,
+  aAtHome,
+  eligibilityState,
+  afterArrival,
+  journeyActionBindings,
+  ruleset,
+  moveActionId,
+  aSource,
+  q,
+  ordinaryMove,
+  turnThreeRng,
+  reloadTurn,
+  p,
+  strengthTotal,
+}: VerifyPublicState2Input): void {
+  assertAAtP({
+    aAtP,
+    bAtP,
+    aAtQ,
+    aAtHome,
+    eligibilityState,
+    afterArrival,
+    journeyActionBindings,
+    ruleset,
+    moveActionId,
+    aSource,
+    q,
+    ordinaryMove,
+    turnThreeRng,
+    reloadTurn,
+    p,
+    strengthTotal,
+  })
+}
+
+type VerifyPublicStateInput = {
+  aAtP: ReturnType<typeof createFleetStub>
+  aAtQ: ReturnType<typeof createFleetStub>
+  bAtP: ReturnType<typeof createFleetStub>
+  afterArrival: ResolvedTurnState
+  p: ReturnType<typeof createPlanetStub>
+  q: ReturnType<typeof createPlanetStub>
+  cAttackJourney: ReturnType<typeof createFleetStub>
+  strengthTotal: (state: ResolvedTurnState) => number
+  colonizeActionId: ActionId
+  moveActionId: ActionId
+  attackActionId: ActionId
+  aColonizeJourney: ReturnType<typeof createFleetStub>
+  bColonizeJourney: ReturnType<typeof createFleetStub>
+}
+
+type VerifyPublicState2Input = {
+  aAtP: ReturnType<typeof createFleetStub>
+  bAtP: ReturnType<typeof createFleetStub>
+  aAtQ: ReturnType<typeof createFleetStub>
+  aAtHome: ResolutionFleet
+  eligibilityState: (
+    playerId: PlayerId,
+    turn: number,
+    players: Readonly<Record<PlayerId, ResolutionPlayer>>,
+    currentPlanets: ReadonlyArray<Pick<ReturnType<typeof createPlanetStub>, "id" | "ownerPlayerId" | "x" | "y">>,
+    currentFleets: ReadonlyArray<ReturnType<typeof createFleetStub>>,
+  ) => Readonly<{
+    gameId: GameId
+    turn: number
+    submittingPlayerId: PlayerId
+    resources: Readonly<ReturnType<typeof createResourcesStub>>
+    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+    actions: readonly Action[]
+  }>
+  afterArrival: ResolvedTurnState
+  journeyActionBindings: Array<{ playerId: PlayerId; actionId: ActionId; freeMoveActionId: ActionId }>
+  ruleset: Ruleset
+  moveActionId: ActionId
+  aSource: ReturnType<typeof createFleetStub>
+  q: ReturnType<typeof createPlanetStub>
+  ordinaryMove: ReturnType<typeof createActionDefinitionStub>
+  turnThreeRng: Rng<number>
+  reloadTurn: (
+    previous: ResolvedTurnState,
+    turn: number,
+    submissions: Array<
+      Readonly<{
+        id: ActionId
+        playerId: PlayerId
+        actionDefinitionId: ActionDefinitionId
+        selectedTargets: Readonly<Record<TargetTag, TargetId>>
+        selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+      }>
+    >,
+    rng: ReturnType<typeof createSeededRng>,
+  ) => ResolvedTurnState
+  p: ReturnType<typeof createPlanetStub>
+  strengthTotal: (state: ResolvedTurnState) => number
+}

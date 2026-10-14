@@ -1,11 +1,19 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { eq } from "drizzle-orm"
-import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import { type GameId, GameIdSchema } from "shared/domain/games/GameId.ts"
 import { MoveFleetExceptional } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
+import type { ResolvedTurnState } from "shared/turn-resolution/ResolvedTurnState.ts"
 import { describe, expect, it } from "vitest"
+import type { Planet, Fleet, PlayerView } from "#api/types.ts"
 import { turnsTable } from "#lib/db/schema.ts"
+import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
+import type { replayWorkerInputWithState } from "#tests/colonization/gameplay.colonization.scenarios.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
+import type { createOrdinaryActionIdSetup as CapturedcreateOrdinaryActionIdSetup } from "#tests/fleet-assertions/gameplay.colonization.renamed-content.stages.ts"
+import type { normalizeApiDate } from "#tests/fleet-concurrency/gameplay.scenarios.ts"
+import type { reverseWorkerInputEnumeration } from "#tests/fleet-concurrency/gameplay.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import { getFleetAt, processTurnWithReplay } from "../../tests/colonization/gameplay.colonization.scenarios.ts"
 import {
   DeadEarlierAttackColonize,
@@ -110,11 +118,10 @@ describe("public Colonization worker companions", () => {
     Assert.isDefined(savedNextTurn)
 
     Assert.isSuccess(finalReplay.resolved)
-    const assertPersistedNextRngStatePhase2Value1 = finalReplay.resolved.value
 
-    assertPersistedNextRngState({
-      savedNextTurn,
+    assertPersistedNextRngStateValue1({
       finalReplay,
+      savedNextTurn,
       gameId,
       target,
       aliceDistance,
@@ -122,7 +129,6 @@ describe("public Colonization worker companions", () => {
       stagedAlice,
       bobJourney,
       bobContinuation,
-      assertPersistedNextRngStatePhase2Value1,
       aliceColonizeActionId,
       bob,
       finalWorkerInput,
@@ -236,35 +242,23 @@ describe("public Colonization worker companions", () => {
     expect(
       publicReplay.value.resolvedActions.find(({ submittedAction }) => submittedAction.id === ordinaryActionId)?.actionOutcomes,
     ).toContainEqual(expect.objectContaining({ type: "RESOLVED" }))
-    expect(finalReplay.nextRngState).toStrictEqual(finalTurnInput.rngState)
 
-    expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-    views = await readViews(clients, gameId)
-
-    const createPersistedFriendlyFleetsSetupPhase6Result = await createPersistedFriendlyFleetsSetup({
-      ...createOrdinaryActionIdSetupPhase5Result,
+    const updatedVerifyFinalReplay = await verifyFinalReplay({
+      finalReplay,
+      finalTurnInput,
+      turnProcessor,
       views,
+      clients,
+      gameId,
+      createOrdinaryActionIdSetupPhase5Result,
       target,
       stagedFriendly,
       homeA,
       server,
-      gameId,
-    })
-    const { persistedFriendlyFleets, savedNextTurn } = createPersistedFriendlyFleetsSetupPhase6Result
-
-    assertPersistedNextRngState2({
-      savedNextTurn,
-      finalTurnInput,
-      gameId,
-      views,
-      homeA,
-      target,
-      stagedFriendly,
-      persistedFriendlyFleets,
-      finalReplay,
       bobStageActionId,
       aliceStageActionId,
     })
+    views = updatedVerifyFinalReplay.views
   })
 
   it("should let the earlier speed-2 claimant beat a later speed-1 arrival on the next Turn", async () => {
@@ -290,3 +284,130 @@ describe("public Colonization worker companions", () => {
     views = updatedVerifyLaterReplay.views
   })
 })
+
+function assertPersistedNextRngStateValue1({
+  finalReplay,
+  savedNextTurn,
+  gameId,
+  target,
+  aliceDistance,
+  bobDistance,
+  stagedAlice,
+  bobJourney,
+  bobContinuation,
+  aliceColonizeActionId,
+  bob,
+  finalWorkerInput,
+  views,
+}: AssertPersistedNextRngStateValue1Input): void {
+  Assert.isSuccess(finalReplay.resolved)
+  const assertPersistedNextRngStatePhase2Value1 = finalReplay.resolved.value
+
+  assertPersistedNextRngState({
+    savedNextTurn,
+    finalReplay,
+    gameId,
+    target,
+    aliceDistance,
+    bobDistance,
+    stagedAlice,
+    bobJourney,
+    bobContinuation,
+    assertPersistedNextRngStatePhase2Value1,
+    aliceColonizeActionId,
+    bob,
+    finalWorkerInput,
+    views,
+  })
+}
+
+async function verifyFinalReplay({
+  finalReplay,
+  finalTurnInput,
+  turnProcessor,
+  views,
+  clients,
+  gameId,
+  createOrdinaryActionIdSetupPhase5Result,
+  target,
+  stagedFriendly,
+  homeA,
+  server,
+  bobStageActionId,
+  aliceStageActionId,
+}: VerifyFinalReplayInput): Promise<VerifyFinalReplayResult> {
+  expect(finalReplay.nextRngState).toStrictEqual(finalTurnInput.rngState)
+
+  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+  views = await readViews(clients, gameId)
+
+  const createPersistedFriendlyFleetsSetupPhase6Result = await createPersistedFriendlyFleetsSetup({
+    ...createOrdinaryActionIdSetupPhase5Result,
+    views,
+    target,
+    stagedFriendly,
+    homeA,
+    server,
+    gameId,
+  })
+  const { persistedFriendlyFleets, savedNextTurn } = createPersistedFriendlyFleetsSetupPhase6Result
+
+  assertPersistedNextRngState2({
+    savedNextTurn,
+    finalTurnInput,
+    gameId,
+    views,
+    homeA,
+    target,
+    stagedFriendly,
+    persistedFriendlyFleets,
+    finalReplay,
+    bobStageActionId,
+    aliceStageActionId,
+  })
+
+  return { views }
+}
+
+type AssertPersistedNextRngStateValue1Input = {
+  finalReplay: ReturnType<typeof replayWorkerInputWithState>
+  savedNextTurn: {
+    gameId: GameId
+    turn: number
+    status: "COLLECTING_ACTIONS" | "AWAITING_PROCESSING" | "PROCESSING" | "COMPLETED"
+    startedAt: ReturnType<typeof normalizeApiDate>
+    endsAt: ReturnType<typeof normalizeApiDate>
+    closedAt: null | ReturnType<typeof normalizeApiDate>
+    rngGeneratorState: number
+    rngSpareNormal: null | number
+  }
+  gameId: GameId
+  target: Planet
+  aliceDistance: number
+  bobDistance: number
+  stagedAlice: Fleet
+  bobJourney: Fleet
+  bobContinuation: ResolvedTurnState["resolvedContinuations"][number]
+  aliceColonizeActionId: string
+  bob: AuthenticatedApiClient
+  finalWorkerInput: ReturnType<typeof reverseWorkerInputEnumeration>
+  views: PlayerView[]
+}
+
+type VerifyFinalReplayInput = {
+  finalReplay: ReturnType<typeof replayWorkerInputWithState>
+  finalTurnInput: ReturnType<typeof reverseWorkerInputEnumeration>
+  turnProcessor: TurnProcessor
+  views: PlayerView[]
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: number
+  createOrdinaryActionIdSetupPhase5Result: Awaited<ReturnType<typeof CapturedcreateOrdinaryActionIdSetup>>
+  target: Planet
+  stagedFriendly: Fleet
+  homeA: Planet
+  server: ConcurrencyTestApiServer
+  bobStageActionId: string
+  aliceStageActionId: string
+}
+
+type VerifyFinalReplayResult = { views: PlayerView[] }

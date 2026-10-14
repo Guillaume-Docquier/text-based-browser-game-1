@@ -164,13 +164,7 @@ export const ResourceRaceRuleset = Ruleset.create({
   },
 })
 
-export async function markManualDeadlineDue({
-  clock,
-  turnsRepository,
-}: {
-  clock: ControlledClock
-  turnsRepository: TurnsRepository
-}): Promise<void> {
+export async function markManualDeadlineDue({ clock, turnsRepository }: MarkManualDeadlineDueInput): Promise<void> {
   clock.increment({ time: MANUAL_WORKER_CLOCK_ADVANCE })
   await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
 }
@@ -182,14 +176,7 @@ export async function processManualDeadlineTurn({
   client,
   gameId,
   turn,
-}: {
-  clock: ControlledClock
-  turnProcessor: Awaited<ReturnType<typeof createTurnProcessorStub>>["turnProcessor"]
-  turnsRepository: TurnsRepository
-  client: AuthenticatedApiClient["client"]
-  gameId: GameId
-  turn: number
-}): Promise<void> {
+}: ProcessManualDeadlineTurnInput): Promise<void> {
   await markManualDeadlineDue({ clock, turnsRepository })
   expect(await turnProcessor.processNextDueTurn()).toBe("processed")
   const nextView = await client.gameplay.getPlayerView.query({ gameId })
@@ -205,11 +192,7 @@ export async function waitForCollectingSuccessor({
   client,
   gameId,
   closedTurn,
-}: {
-  client: AuthenticatedApiClient["client"]
-  gameId: number
-  closedTurn: number
-}): Promise<Awaited<ReturnType<AuthenticatedApiClient["client"]["gameplay"]["getPlayerView"]["query"]>>> {
+}: WaitForCollectingSuccessorInput): Promise<Awaited<ReturnType<AuthenticatedApiClient["client"]["gameplay"]["getPlayerView"]["query"]>>> {
   await expect
     .poll(
       async () => {
@@ -237,23 +220,7 @@ export function createStartGate(parties: number): () => Promise<void> {
 
 export async function submitMoveAfterGate(
   waitAtStart: () => Promise<void>,
-  {
-    client,
-    gameId,
-    turn,
-    actionId,
-    fleetId,
-    destinationId,
-    strength,
-  }: {
-    client: AuthenticatedApiClient["client"]
-    gameId: number
-    turn: number
-    actionId: string
-    fleetId: string
-    destinationId: string
-    strength: number
-  },
+  { client, gameId, turn, actionId, fleetId, destinationId, strength }: SubmitMoveAfterGateInput2,
 ): Promise<void> {
   await waitAtStart()
   await client.gameplay.updateActionSubmission.mutate({
@@ -269,19 +236,7 @@ export async function submitMoveAfterGate(
 
 export async function submitBuildAfterGate(
   waitAtStart: () => Promise<void>,
-  {
-    client,
-    gameId,
-    turn,
-    actionId,
-    planetId,
-  }: {
-    client: AuthenticatedApiClient["client"]
-    gameId: number
-    turn: number
-    actionId: string
-    planetId: string
-  },
+  { client, gameId, turn, actionId, planetId }: SubmitBuildAfterGateInput2,
 ): Promise<void> {
   await waitAtStart()
   await client.gameplay.updateActionSubmission.mutate({
@@ -289,4 +244,42 @@ export async function submitBuildAfterGate(
     turn,
     submittedActionTargets: { actionId, selectedTargets: { planet: planetId }, selectedInputs: {} },
   })
+}
+
+type MarkManualDeadlineDueInput = {
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+}
+
+type ProcessManualDeadlineTurnInput = {
+  clock: ControlledClock
+  turnProcessor: Awaited<ReturnType<typeof createTurnProcessorStub>>["turnProcessor"]
+  turnsRepository: TurnsRepository
+  client: AuthenticatedApiClient["client"]
+  gameId: GameId
+  turn: number
+}
+
+type WaitForCollectingSuccessorInput = {
+  client: AuthenticatedApiClient["client"]
+  gameId: number
+  closedTurn: number
+}
+
+type SubmitMoveAfterGateInput2 = {
+  client: AuthenticatedApiClient["client"]
+  gameId: number
+  turn: number
+  actionId: string
+  fleetId: string
+  destinationId: string
+  strength: number
+}
+
+type SubmitBuildAfterGateInput2 = {
+  client: AuthenticatedApiClient["client"]
+  gameId: number
+  turn: number
+  actionId: string
+  planetId: string
 }

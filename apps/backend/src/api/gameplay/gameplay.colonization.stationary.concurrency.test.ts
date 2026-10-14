@@ -1,11 +1,26 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { type Success, Assert } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { eq } from "drizzle-orm"
-import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import { type GameId, GameIdSchema } from "shared/domain/games/GameId.ts"
+import type { NonNegativeSafeInteger } from "shared/domain/NonNegativeSafeInteger.ts"
+import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
+import type { ResolvedTurnState } from "shared/turn-resolution/ResolvedTurnState.ts"
 import { describe, expect, it } from "vitest"
+import type { PlayerView, Planet, Fleet } from "#api/types.ts"
+import type { ControlledClock } from "#lib/ControlledClock.ts"
 import { turnsTable } from "#lib/db/schema.ts"
+import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
+import type {
+  processTurnWithReplay as CapturedprocessTurnWithReplay,
+  replayWorkerInputWithState,
+} from "#tests/colonization/gameplay.colonization.scenarios.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
+import type { normalizeApiDate } from "#tests/fleet-concurrency/gameplay.scenarios.ts"
+import type { reverseWorkerInputEnumeration } from "#tests/fleet-concurrency/gameplay.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
+import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import {
   getPlanets,
   getFleetAt,
@@ -204,7 +219,7 @@ describe("public Colonization worker companions", () => {
 
     const distances = homes.map((home) => Math.hypot(home.x - target.x, home.y - target.y))
 
-    const updatedVerifyDistances = await assertDistances({
+    const updatedVerifyUpdatedVerifyDistances = await verifyUpdatedVerifyDistances({
       distances,
       target,
       clients,
@@ -218,7 +233,7 @@ describe("public Colonization worker companions", () => {
       homeIdsByPlayer,
       carol,
     })
-    views = updatedVerifyDistances.views
+    views = updatedVerifyUpdatedVerifyDistances.views
 
     let stage = await processTurnWithReplay({
       server,
@@ -255,24 +270,21 @@ describe("public Colonization worker companions", () => {
     )
     Assert.isDefined(movingBob)
     const movingBobId = movingBob.id
-    expect(movingBob.distanceToEnd).toBeCloseTo(3.116999448433268, 12)
-    const bobContinuationDistances = [2.116999448433268, 1.116999448433268, 0.116999448433268]
-    for (const expectedDistance of bobContinuationDistances) {
-      bobDeparture = await processTurnWithReplay({
-        server,
-        clock,
-        turnsRepository,
-        turnProcessor,
-        clients,
-        gameId,
-        turn: required(views[0]).turn,
-      })
-      views = bobDeparture.views
-      const currentMovement = required(views[1]).fleets.find(({ id }) => id === movingBobId)
-      Assert.isDefined(currentMovement)
-      expect(currentMovement.movement).toBeDefined()
-      expect(currentMovement.distanceToEnd).toBeCloseTo(expectedDistance, 12)
-    }
+
+    const updatedVerifyMovingBob = await verifyMovingBob({
+      movingBob,
+      bobDeparture,
+      server,
+      clock,
+      turnsRepository,
+      turnProcessor,
+      clients,
+      gameId,
+      views,
+      movingBobId,
+    })
+    bobDeparture = updatedVerifyMovingBob.bobDeparture
+    views = updatedVerifyMovingBob.views
 
     const createReadyViewsSetupPhase9Result = await createReadyViewsSetup({
       ...createClockSetupPhase6Result,
@@ -308,9 +320,8 @@ describe("public Colonization worker companions", () => {
     const savedNextTurn = savedTurns.find(({ turn }) => turn === required(readyViews[0]).turn + 1)
     Assert.isDefined(savedNextTurn)
 
-    const assertPersistedNextRngStatePhase12Value1 = publicReplay.value
-
-    assertPersistedNextRngState({
+    assertPersistedNextRngStateValue1({
+      publicReplay,
       savedNextTurn,
       finalTurnInput,
       gameId,
@@ -318,7 +329,6 @@ describe("public Colonization worker companions", () => {
       homes,
       distances,
       bobJourney,
-      assertPersistedNextRngStatePhase12Value1,
       finalReplay,
       ownerByFleet,
       views,
@@ -326,3 +336,158 @@ describe("public Colonization worker companions", () => {
     })
   })
 })
+
+async function verifyUpdatedVerifyDistances({
+  distances,
+  target,
+  clients,
+  views,
+  homes,
+  gameId,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  alice,
+  homeIdsByPlayer,
+  carol,
+}: VerifyUpdatedVerifyDistancesInput): Promise<VerifyUpdatedVerifyDistancesResult> {
+  const updatedVerifyDistances = await assertDistances({
+    distances,
+    target,
+    clients,
+    views,
+    homes,
+    gameId,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    alice,
+    homeIdsByPlayer,
+    carol,
+  })
+  views = updatedVerifyDistances.views
+
+  return { views }
+}
+
+async function verifyMovingBob({
+  movingBob,
+  bobDeparture,
+  server,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  clients,
+  gameId,
+  views,
+  movingBobId,
+}: VerifyMovingBobInput): Promise<VerifyMovingBobResult> {
+  expect(movingBob.distanceToEnd).toBeCloseTo(3.116999448433268, 12)
+  const bobContinuationDistances = [2.116999448433268, 1.116999448433268, 0.116999448433268]
+  for (const expectedDistance of bobContinuationDistances) {
+    bobDeparture = await processTurnWithReplay({
+      server,
+      clock,
+      turnsRepository,
+      turnProcessor,
+      clients,
+      gameId,
+      turn: required(views[0]).turn,
+    })
+    views = bobDeparture.views
+    const currentMovement = required(views[1]).fleets.find(({ id }) => id === movingBobId)
+    Assert.isDefined(currentMovement)
+    expect(currentMovement.movement).toBeDefined()
+    expect(currentMovement.distanceToEnd).toBeCloseTo(expectedDistance, 12)
+  }
+
+  return { bobDeparture, views }
+}
+
+function assertPersistedNextRngStateValue1({
+  publicReplay,
+  savedNextTurn,
+  finalTurnInput,
+  gameId,
+  target,
+  homes,
+  distances,
+  bobJourney,
+  finalReplay,
+  ownerByFleet,
+  views,
+  homeIdsByPlayer,
+}: AssertPersistedNextRngStateValue1Input): void {
+  const assertPersistedNextRngStatePhase12Value1 = publicReplay.value
+
+  assertPersistedNextRngState({
+    savedNextTurn,
+    finalTurnInput,
+    gameId,
+    target,
+    homes,
+    distances,
+    bobJourney,
+    assertPersistedNextRngStatePhase12Value1,
+    finalReplay,
+    ownerByFleet,
+    views,
+    homeIdsByPlayer,
+  })
+}
+
+type VerifyUpdatedVerifyDistancesInput = {
+  distances: number[]
+  target: Planet
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  views: PlayerView[]
+  homes: Planet[]
+  gameId: GameId
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  alice: AuthenticatedApiClient
+  homeIdsByPlayer: PlayerId[]
+  carol: AuthenticatedApiClient
+}
+
+type VerifyUpdatedVerifyDistancesResult = { views: PlayerView[] }
+
+type VerifyMovingBobInput = {
+  movingBob: Fleet
+  bobDeparture: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: GameId
+  views: PlayerView[]
+  movingBobId: FleetId
+}
+
+type VerifyMovingBobResult = { bobDeparture: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>; views: PlayerView[] }
+
+type AssertPersistedNextRngStateValue1Input = {
+  publicReplay: Success<ResolvedTurnState>
+  savedNextTurn: {
+    gameId: GameId
+    turn: number
+    status: "COLLECTING_ACTIONS" | "AWAITING_PROCESSING" | "PROCESSING" | "COMPLETED"
+    startedAt: ReturnType<typeof normalizeApiDate>
+    endsAt: ReturnType<typeof normalizeApiDate>
+    closedAt: null | ReturnType<typeof normalizeApiDate>
+    rngGeneratorState: number
+    rngSpareNormal: null | number
+  }
+  finalTurnInput: ReturnType<typeof reverseWorkerInputEnumeration>
+  gameId: GameId
+  target: Planet
+  homes: Planet[]
+  distances: number[]
+  bobJourney: Fleet
+  finalReplay: ReturnType<typeof replayWorkerInputWithState>
+  ownerByFleet: Array<{ ownerPlayerId: undefined | PlayerId; strength: undefined | NonNegativeSafeInteger }>
+  views: PlayerView[]
+  homeIdsByPlayer: PlayerId[]
+}

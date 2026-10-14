@@ -99,7 +99,7 @@ export const SeedOutpostHere: ActionDefinition = typedParse(ActionDefinitionSche
   effects: [FleetColonizeEffectDefinition.create({ fleetTag: "force", planetTag: "site", strengthRequirement: 30 })],
 })
 
-export const BuildFleet20ForExactColonize = createFixtureBuildFleetAction("FIXTURE_BUILD20_EXACT", 20)
+export const BuildFleet20ForExactColonize = createFixtureBuildFleetAction({ id: "FIXTURE_BUILD20_EXACT", strength: 20 })
 
 export const PublicNaturalColonizationRuleset = Ruleset.create({
   ...TestRuleset,
@@ -196,7 +196,7 @@ export const PublicStationarySeedOutpostRuleset = Ruleset.create({
   actionPool: [...PublicColonizationBudgetRuleset.actionPool, { id: "TEST_SEED_OUTPOST_HERE_1", actionDefinitionId: SeedOutpostHere.id }],
 })
 
-export function createFixtureBuildFleetAction(id: string, strength: number): ActionDefinition {
+export function createFixtureBuildFleetAction({ id, strength }: { id: string; strength: number }): ActionDefinition {
   return typedParse(ActionDefinitionSchema, {
     ...BuildFleetStandard,
     id,
@@ -205,7 +205,7 @@ export function createFixtureBuildFleetAction(id: string, strength: number): Act
   })
 }
 
-export function createFixtureMoveFleetAction(id: string, speed: number): ActionDefinition {
+export function createFixtureMoveFleetAction({ id, speed }: { id: string; speed: number }): ActionDefinition {
   return typedParse(ActionDefinitionSchema, {
     ...MoveFleetExceptional,
     id,
@@ -214,7 +214,7 @@ export function createFixtureMoveFleetAction(id: string, speed: number): ActionD
   })
 }
 
-export function createFixtureColonizeAction(id: string, speed: number): ActionDefinition {
+export function createFixtureColonizeAction({ id, speed }: { id: string; speed: number }): ActionDefinition {
   return typedParse(ActionDefinitionSchema, {
     ...ColonizePlanetTest,
     id,
@@ -226,27 +226,27 @@ export function createFixtureColonizeAction(id: string, speed: number): ActionDe
   })
 }
 
-export const BuildFleet10ForStaging = createFixtureBuildFleetAction("FIXTURE_BUILD_FLEET_10_STAGING", 10)
+export const BuildFleet10ForStaging = createFixtureBuildFleetAction({ id: "FIXTURE_BUILD_FLEET_10_STAGING", strength: 10 })
 
-export const BuildFleet16ForStaging = createFixtureBuildFleetAction("FIXTURE_BUILD_FLEET_16_STAGING", 16)
+export const BuildFleet16ForStaging = createFixtureBuildFleetAction({ id: "FIXTURE_BUILD_FLEET_16_STAGING", strength: 16 })
 
-export const BuildFleet10ForRoute = createFixtureBuildFleetAction("FIXTURE_BUILD_FLEET_10_ROUTE", 10)
+export const BuildFleet10ForRoute = createFixtureBuildFleetAction({ id: "FIXTURE_BUILD_FLEET_10_ROUTE", strength: 10 })
 
-export const BuildFleet35 = createFixtureBuildFleetAction("FIXTURE_BUILD_FLEET_35", 35)
+export const BuildFleet35 = createFixtureBuildFleetAction({ id: "FIXTURE_BUILD_FLEET_35", strength: 35 })
 
-export const BuildFleet48 = createFixtureBuildFleetAction("FIXTURE_BUILD_FLEET_48", 48)
+export const BuildFleet48 = createFixtureBuildFleetAction({ id: "FIXTURE_BUILD_FLEET_48", strength: 48 })
 
-export const BuildFleet50 = createFixtureBuildFleetAction("FIXTURE_BUILD_FLEET_50", 50)
+export const BuildFleet50 = createFixtureBuildFleetAction({ id: "FIXTURE_BUILD_FLEET_50", strength: 50 })
 
-export const BuildFleet70 = createFixtureBuildFleetAction("FIXTURE_BUILD_FLEET_70", 70)
+export const BuildFleet70 = createFixtureBuildFleetAction({ id: "FIXTURE_BUILD_FLEET_70", strength: 70 })
 
-export const MoveFleetSpeed10 = createFixtureMoveFleetAction("FIXTURE_MOVE_FLEET_SPEED_10", 10)
+export const MoveFleetSpeed10 = createFixtureMoveFleetAction({ id: "FIXTURE_MOVE_FLEET_SPEED_10", speed: 10 })
 
-export const ColonizeFleetSpeed2 = createFixtureColonizeAction("FIXTURE_COLONIZE_FLEET_SPEED_2", 2)
+export const ColonizeFleetSpeed2 = createFixtureColonizeAction({ id: "FIXTURE_COLONIZE_FLEET_SPEED_2", speed: 2 })
 
-export const ColonizeFleetSpeed4 = createFixtureColonizeAction("FIXTURE_COLONIZE_FLEET_SPEED_4", 4)
+export const ColonizeFleetSpeed4 = createFixtureColonizeAction({ id: "FIXTURE_COLONIZE_FLEET_SPEED_4", speed: 4 })
 
-export const ColonizeFleetSpeed01 = createFixtureColonizeAction("FIXTURE_COLONIZE_FLEET_SPEED_01", 0.1)
+export const ColonizeFleetSpeed01 = createFixtureColonizeAction({ id: "FIXTURE_COLONIZE_FLEET_SPEED_01", speed: 0.1 })
 
 export const ColonizeFarFleetSpeed5: ActionDefinition = typedParse(ActionDefinitionSchema, {
   ...ColonizePlanetTest,
@@ -409,14 +409,17 @@ export type PublicFleetMatch = Readonly<{
 }>
 
 export function matchesPublicFleet(fleet: PublicFleetMatchView, match: PublicFleetMatch): boolean {
+  const fields: ReadonlyArray<readonly [unknown, unknown]> = [
+    [match.fleetId, fleet.id],
+    [match.ownerPlayerId, fleet.ownerPlayerId],
+    [match.originPlanetId, fleet.originPlanetId],
+    [match.destinationPlanetId, fleet.destinationPlanetId],
+    [match.strength, fleet.strength],
+    [match.movementSubmissionId, fleet.movement?.submission.id],
+    [match.arrivedAtTick, fleet.arrivedAtTick],
+  ]
   return (
-    (match.fleetId === undefined || fleet.id === match.fleetId) &&
-    (match.ownerPlayerId === undefined || fleet.ownerPlayerId === match.ownerPlayerId) &&
-    (match.originPlanetId === undefined || fleet.originPlanetId === match.originPlanetId) &&
-    (match.destinationPlanetId === undefined || fleet.destinationPlanetId === match.destinationPlanetId) &&
-    (match.strength === undefined || fleet.strength === match.strength) &&
-    (match.movementSubmissionId === undefined || fleet.movement?.submission.id === match.movementSubmissionId) &&
-    (match.arrivedAtTick === undefined || fleet.arrivedAtTick === match.arrivedAtTick) &&
+    fields.every(([expected, actual]) => expected === undefined || expected === actual) &&
     (match.stationary !== true || fleet.movement === undefined)
   )
 }
@@ -466,13 +469,13 @@ export function describeOutcomeRecord(outcome: EffectOutcome): EffectOutcome {
 }
 
 export function isUnselectedActionWithDefinition(
-  action: { actionDefinitionId: ActionDefinitionId; selectedTargets: unknown },
+  action: IsUnselectedActionWithDefinitionInput1,
   actionDefinitionId: ActionDefinitionId,
 ): boolean {
   return action.actionDefinitionId === actionDefinitionId && action.selectedTargets === null
 }
 
-export function isActionSelected(action: { selectedTargets: unknown }): boolean {
+export function isActionSelected(action: IsActionSelectedInput): boolean {
   return action.selectedTargets !== null
 }
 
@@ -525,14 +528,7 @@ export async function submitAction({
   actionDefinitionId,
   selectedTargets,
   selectedInputs,
-}: {
-  client: AuthenticatedApiClient["client"]
-  gameId: number
-  view: PlayerView
-  actionDefinitionId: ActionDefinitionId
-  selectedTargets: DeepUnbranded<SubmittedActionTargetsDto["selectedTargets"]>
-  selectedInputs: DeepUnbranded<SubmittedActionTargetsDto["selectedInputs"]>
-}): Promise<string> {
+}: SubmitActionInput): Promise<string> {
   const action = view.actions.find(({ actionDefinitionId: candidate }) => candidate === actionDefinitionId)
   Assert.isDefined(action)
   await client.gameplay.updateActionSubmission.mutate({
@@ -647,7 +643,7 @@ export async function createPublicNaturalRouteFixture(
   return { player, gameId, clock, turnProcessor, turnsRepository, view, home, target }
 }
 
-export async function publiclyBuildFleetToFifty(fixture: PublicNaturalRouteFixture): Promise<{ view: PlayerView; fleet: PublicFleet }> {
+export async function publiclyBuildFleetToFifty(fixture: PublicNaturalRouteFixture): Promise<PubliclyBuildFleetToFiftyResult> {
   const { player, gameId, clock, turnProcessor, turnsRepository, home } = fixture
   let view = fixture.view
   for (let build = 0; build < 5; build += 1) {
@@ -682,3 +678,18 @@ export type PublicStagedMergeScenario = {
   aliceSource: PublicFleet
   bobStageActionId: string
 }
+
+type IsUnselectedActionWithDefinitionInput1 = { actionDefinitionId: ActionDefinitionId; selectedTargets: unknown }
+
+type IsActionSelectedInput = { selectedTargets: unknown }
+
+type SubmitActionInput = {
+  client: AuthenticatedApiClient["client"]
+  gameId: number
+  view: PlayerView
+  actionDefinitionId: ActionDefinitionId
+  selectedTargets: DeepUnbranded<SubmittedActionTargetsDto["selectedTargets"]>
+  selectedInputs: DeepUnbranded<SubmittedActionTargetsDto["selectedInputs"]>
+}
+
+type PubliclyBuildFleetToFiftyResult = { view: PlayerView; fleet: PublicFleet }

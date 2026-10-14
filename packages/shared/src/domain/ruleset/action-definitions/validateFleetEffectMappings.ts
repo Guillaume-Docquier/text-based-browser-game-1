@@ -94,7 +94,6 @@ export function validateMovementMapping({
   const planetTag = effect.targets.planet.actionTargetTag
   const planetDefinition = actionDefinition.targets[planetTag]
   const planetConstraints = planetDefinition?.constraints ?? []
-  const strengthInputTag = effect.inputs.strength.actionInputTag
 
   if (
     !planetConstraints.some((constraint) => constraint.type === "WITHIN_FLEET_RANGE" && constraint.references.sourceFleetTag === fleetTag)
@@ -117,6 +116,16 @@ export function validateMovementMapping({
     })
   }
 
+  validateMovementStrengthInput({ actionDefinition, context, effect, effectIndex, referencedInputTags })
+}
+function validateMovementStrengthInput({
+  actionDefinition,
+  context,
+  effect,
+  effectIndex,
+  referencedInputTags,
+}: Parameters<typeof validateMovementMapping>[0]): void {
+  const strengthInputTag = effect.inputs.strength.actionInputTag
   referencedInputTags.add(strengthInputTag)
   const inputDefinition = actionDefinition.inputs[strengthInputTag]
   if (inputDefinition === undefined) {

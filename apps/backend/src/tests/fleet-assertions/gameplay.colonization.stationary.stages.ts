@@ -173,7 +173,7 @@ export async function createMoveFixtureSetup({
   const replayedArrival = arrivalReplay.value.fleets[journey.id]
   Assert.isDefined(replayedArrival)
 
-  await assertReplayedArrival({
+  await verifyPublicState({
     replayedArrival,
     clock,
     turnsRepository,
@@ -577,4 +577,52 @@ export type CreateStagedAliceJourneyIdSetupResult = {
   stagedCarolJourneyId: FleetId
   stagingResolutions: ResolvedTurnState[]
   updatedVerifyPublicState: Awaited<ReturnType<typeof CapturedassertPublicState>>
+}
+
+async function verifyPublicState({
+  replayedArrival,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  player,
+  gameId,
+  departedView,
+  target,
+  home,
+  sourceFleet,
+  colonizeActionId,
+  selectedView,
+  arrivalInput,
+}: VerifyPublicStateInput): Promise<void> {
+  await assertReplayedArrival({
+    replayedArrival,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    player,
+    gameId,
+    departedView,
+    target,
+    home,
+    sourceFleet,
+    colonizeActionId,
+    selectedView,
+    arrivalInput,
+  })
+}
+
+type VerifyPublicStateInput = {
+  replayedArrival: ResolutionFleet
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  player: AuthenticatedApiClient
+  gameId: number
+  departedView: PlayerView
+  target: Planet
+  home: Planet
+  sourceFleet: Fleet
+  colonizeActionId: string
+  selectedView: PlayerView
+  arrivalInput: ReturnType<typeof reverseWorkerInputEnumeration>
 }

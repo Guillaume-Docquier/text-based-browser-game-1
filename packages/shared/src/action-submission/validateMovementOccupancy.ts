@@ -57,10 +57,10 @@ function validateDuplicateOccupancy(occupancy: ReadonlyMap<ActionId, readonly Fl
 function hasCompleteJourney(
   fleet: Fleet,
 ): fleet is Fleet & { movement: FleetMovement; destinationPlanetId: PlanetId; distanceToEnd: number } {
-  return fleet.destinationPlanetId !== undefined && fleet.distanceToEnd !== undefined && fleet.movement !== undefined
+  return [fleet.destinationPlanetId, fleet.distanceToEnd, fleet.movement].every((value) => value !== undefined)
 }
 function journeyIssue(fleet: Fleet, state: EligibilityState, ruleset: Ruleset): EligibilityIssue | undefined {
-  if (fleet.destinationPlanetId === undefined && fleet.distanceToEnd === undefined && fleet.movement === undefined) {
+  if ([fleet.destinationPlanetId, fleet.distanceToEnd, fleet.movement].every((value) => value === undefined)) {
     return undefined
   }
   if (!hasCompleteJourney(fleet)) {

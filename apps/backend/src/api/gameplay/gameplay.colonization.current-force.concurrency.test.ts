@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { type GameId, GameIdSchema } from "shared/domain/games/GameId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import type { createSubmittedActionStub } from "shared/domain/turns/actions/Action.stub.ts"
+import type { EffectOutcome } from "shared/domain/turns/actions/EffectOutcome.ts"
 import { StationaryAssaultTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { ColonizeHereTest } from "shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { MoveFleetStandard } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
@@ -16,12 +18,13 @@ import { turnsTable } from "#lib/db/schema.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import type {
-  processTurnWithReplay as CapturedprocessTurnWithReplay,
   replayWorkerInputWithState as CapturedreplayWorkerInputWithState,
+  processTurnWithReplay as CapturedprocessTurnWithReplay,
 } from "#tests/colonization/gameplay.colonization.scenarios.ts"
 import type { createPublicTwoPlayerFixture as CapturedcreatePublicTwoPlayerFixture } from "#tests/colonization/gameplay.colonization.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import type { AssertJourneyResult } from "#tests/fleet-assertions/gameplay.colonization-2.ts"
+import type { normalizeApiDate } from "#tests/fleet-concurrency/gameplay.scenarios.ts"
 import type { reverseWorkerInputEnumeration } from "#tests/fleet-concurrency/gameplay.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
@@ -151,7 +154,7 @@ describe("public Colonization worker companions", () => {
     const savedNextTurn = savedTurns.find(({ turn: candidateTurn }) => candidateTurn === turn + 1)
     Assert.isDefined(savedNextTurn)
 
-    assertPersistedNextRngState2({
+    verifyPublicState({
       savedNextTurn,
       replay,
       gameId,
@@ -702,3 +705,66 @@ type CreateJourneySetupInput = {
 }
 
 type CreateJourneySetupResult = { journey: ResolutionFleet; updatedVerifyJourney: AssertJourneyResult }
+
+function verifyPublicState({
+  savedNextTurn,
+  replay,
+  gameId,
+  target,
+  routeDistance,
+  aliceStationary,
+  bobAssaultFleet,
+  moveActionId,
+  colonizeActionId,
+  assaultActionId,
+  views,
+  colonizeResult,
+  persistedJourney,
+  homeA,
+  workerInput,
+}: VerifyPublicStateInput): void {
+  assertPersistedNextRngState2({
+    savedNextTurn,
+    replay,
+    gameId,
+    target,
+    routeDistance,
+    aliceStationary,
+    bobAssaultFleet,
+    moveActionId,
+    colonizeActionId,
+    assaultActionId,
+    views,
+    colonizeResult,
+    persistedJourney,
+    homeA,
+    workerInput,
+  })
+}
+
+type VerifyPublicStateInput = {
+  savedNextTurn: {
+    gameId: GameId
+    turn: number
+    status: "COLLECTING_ACTIONS" | "AWAITING_PROCESSING" | "PROCESSING" | "COMPLETED"
+    startedAt: ReturnType<typeof normalizeApiDate>
+    endsAt: ReturnType<typeof normalizeApiDate>
+    closedAt: null | ReturnType<typeof normalizeApiDate>
+    rngGeneratorState: number
+    rngSpareNormal: null | number
+  }
+  replay: ReturnType<typeof CapturedreplayWorkerInputWithState>
+  gameId: number
+  target: Planet
+  routeDistance: number
+  aliceStationary: Fleet
+  bobAssaultFleet: Fleet
+  moveActionId: string
+  colonizeActionId: string
+  assaultActionId: string
+  views: PlayerView[]
+  colonizeResult: Readonly<{ submittedAction: ReturnType<typeof createSubmittedActionStub>; actionOutcomes: readonly EffectOutcome[] }>
+  persistedJourney: Fleet
+  homeA: Planet
+  workerInput: ReturnType<typeof reverseWorkerInputEnumeration>
+}

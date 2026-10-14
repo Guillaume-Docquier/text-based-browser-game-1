@@ -13,7 +13,7 @@ import type { ResolvedTurnState } from "shared/turn-resolution/ResolvedTurnState
 import { resolveTurn } from "shared/turn-resolution/resolveTurn.ts"
 import { expect } from "vitest"
 import type { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
-import type { GameId, PlayerView } from "#api/types.ts"
+import type { Fleet, Planet, Action, GameId, PlayerView } from "#api/types.ts"
 import { Clock } from "#lib/Clock.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import type {
@@ -135,27 +135,8 @@ export async function createPublicPendingAssaultFixture(server: ConcurrencyTestA
   const pendingView = await alice.client.gameplay.getPlayerView.query({ gameId })
   const capturedJourney = pendingView.fleets.find(({ movement }) => movement?.submission.id === attackAction.id)
   Assert.isDefined(capturedJourney)
-  expect(capturedJourney).toMatchObject({
-    strength: 1,
-    destinationPlanetId: bobHome.id,
-    distanceToEnd: 3.418312565270031,
-    movement: {
-      speed: 1,
-      submission: {
-        id: attackAction.id,
-        playerId: aliceView.player.id,
-        actionDefinitionId: AttackMoveTest.id,
-        selectedTargets: { fleet: aliceSource.id, planet: bobHome.id },
-        selectedInputs: { strength: 1 },
-      },
-      pendingArrivalEffects: [{ definitionOrdinal: 3, effectDefinition: { type: "FLEET_ASSAULT" } }],
-    },
-  })
-  expect(pendingView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 93, uncommitted: 93 })
-  expect(pendingView.resources[ResourceType.FUEL]).toStrictEqual({ total: 99, uncommitted: 99 })
-  expect(pendingView.resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
-  expect(pendingView.actions.find(({ id }) => id === attackAction.id)?.isInProgress).toBe(true)
-  expect(pendingView.fleets.find(({ id }) => id === aliceSource.id)?.strength).toBe(9)
+
+  verifyCapturedJourney({ capturedJourney, bobHome, attackAction, aliceView, aliceSource, pendingView })
 
   return {
     alice,
@@ -208,22 +189,8 @@ export async function createPublicPendingColonizeFixture(server: ConcurrencyTest
   const target = planets.find(({ coordinates }) => coordinates === "55:07:50")
   Assert.isDefined(home)
   Assert.isDefined(target)
-  expect({ id: home.id, name: home.name, coordinates: home.coordinates, x: home.x, y: home.y }).toStrictEqual({
-    id: "78821e36-f066-5df0-adbd-19785571d245",
-    name: "planet 278494",
-    coordinates: "45:98:30",
-    x: 58.43842436611536,
-    y: 49.61917707239218,
-  })
-  expect({ id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y }).toStrictEqual({
-    id: "a34e5eae-656c-5330-ac90-9f9a7e0afa5d",
-    name: "planet 684163",
-    coordinates: "55:07:50",
-    x: 57.77998524757335,
-    y: 50.556704120958045,
-  })
-  expect(Math.hypot(home.x - target.x, home.y - target.y)).toBeCloseTo(1.1456435045942517, 12)
-  expect(target.ownerPlayerId).toBeNull()
+
+  verifyMath({ home, target })
 
   const buildAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === WorkerBuildFleetForty.id)
   Assert.isDefined(buildAction)
@@ -262,28 +229,8 @@ export async function createPublicPendingColonizeFixture(server: ConcurrencyTest
   const pendingView = await player.client.gameplay.getPlayerView.query({ gameId })
   const journey = pendingView.fleets.find(({ movement }) => movement?.submission.id === colonizeAction.id)
   Assert.isDefined(journey)
-  expect(journey).toMatchObject({
-    strength: 35,
-    destinationPlanetId: target.id,
 
-    movement: {
-      speed: 1,
-      submission: {
-        id: colonizeAction.id,
-        playerId: view.player.id,
-        actionDefinitionId: ColonizePlanetTest.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: target.id },
-        selectedInputs: { strength: 35 },
-      },
-      pendingArrivalEffects: [
-        { definitionOrdinal: 2, effectDefinition: { type: "FLEET_COLONIZE", parameters: { strengthRequirement: 20 } } },
-      ],
-    },
-  })
-  expect(journey.distanceToEnd).toBeCloseTo(0.1456435045942517, 12)
-  expect(pendingView.fleets.find(({ id }) => id === sourceFleet.id)?.strength).toBe(5)
-  expect(pendingView.actions.find(({ id }) => id === colonizeAction.id)?.isInProgress).toBe(true)
-  expect(pendingView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 23, uncommitted: 23 })
+  verifyJourney({ journey, target, colonizeAction, view, sourceFleet, pendingView })
 
   return {
     player,
@@ -499,3 +446,98 @@ export {
   pendingAssaultCorruptions,
   pendingColonizeCorruptions,
 } from "./gameplay.rulesets.ts"
+
+function verifyCapturedJourney({
+  capturedJourney,
+  bobHome,
+  attackAction,
+  aliceView,
+  aliceSource,
+  pendingView,
+}: VerifyCapturedJourneyInput): void {
+  expect(capturedJourney).toMatchObject({
+    strength: 1,
+    destinationPlanetId: bobHome.id,
+    distanceToEnd: 3.418312565270031,
+    movement: {
+      speed: 1,
+      submission: {
+        id: attackAction.id,
+        playerId: aliceView.player.id,
+        actionDefinitionId: AttackMoveTest.id,
+        selectedTargets: { fleet: aliceSource.id, planet: bobHome.id },
+        selectedInputs: { strength: 1 },
+      },
+      pendingArrivalEffects: [{ definitionOrdinal: 3, effectDefinition: { type: "FLEET_ASSAULT" } }],
+    },
+  })
+  expect(pendingView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 93, uncommitted: 93 })
+  expect(pendingView.resources[ResourceType.FUEL]).toStrictEqual({ total: 99, uncommitted: 99 })
+  expect(pendingView.resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
+  expect(pendingView.actions.find(({ id }) => id === attackAction.id)?.isInProgress).toBe(true)
+  expect(pendingView.fleets.find(({ id }) => id === aliceSource.id)?.strength).toBe(9)
+}
+
+function verifyMath({ home, target }: VerifyMathInput): void {
+  expect({ id: home.id, name: home.name, coordinates: home.coordinates, x: home.x, y: home.y }).toStrictEqual({
+    id: "78821e36-f066-5df0-adbd-19785571d245",
+    name: "planet 278494",
+    coordinates: "45:98:30",
+    x: 58.43842436611536,
+    y: 49.61917707239218,
+  })
+  expect({ id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y }).toStrictEqual({
+    id: "a34e5eae-656c-5330-ac90-9f9a7e0afa5d",
+    name: "planet 684163",
+    coordinates: "55:07:50",
+    x: 57.77998524757335,
+    y: 50.556704120958045,
+  })
+  expect(Math.hypot(home.x - target.x, home.y - target.y)).toBeCloseTo(1.1456435045942517, 12)
+  expect(target.ownerPlayerId).toBeNull()
+}
+
+function verifyJourney({ journey, target, colonizeAction, view, sourceFleet, pendingView }: VerifyJourneyInput): void {
+  expect(journey).toMatchObject({
+    strength: 35,
+    destinationPlanetId: target.id,
+
+    movement: {
+      speed: 1,
+      submission: {
+        id: colonizeAction.id,
+        playerId: view.player.id,
+        actionDefinitionId: ColonizePlanetTest.id,
+        selectedTargets: { fleet: sourceFleet.id, planet: target.id },
+        selectedInputs: { strength: 35 },
+      },
+      pendingArrivalEffects: [
+        { definitionOrdinal: 2, effectDefinition: { type: "FLEET_COLONIZE", parameters: { strengthRequirement: 20 } } },
+      ],
+    },
+  })
+  expect(journey.distanceToEnd).toBeCloseTo(0.1456435045942517, 12)
+  expect(pendingView.fleets.find(({ id }) => id === sourceFleet.id)?.strength).toBe(5)
+  expect(pendingView.actions.find(({ id }) => id === colonizeAction.id)?.isInProgress).toBe(true)
+  expect(pendingView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 23, uncommitted: 23 })
+}
+
+type VerifyCapturedJourneyInput = {
+  capturedJourney: Fleet
+  bobHome: Planet
+  attackAction: Action
+  aliceView: PlayerView
+  aliceSource: Fleet
+  pendingView: PlayerView
+}
+
+type VerifyMathInput = { home: Planet; target: Planet }
+
+type VerifyJourneyInput = {
+  journey: Fleet
+  target: Planet
+  colonizeAction: Action
+  view: PlayerView
+  sourceFleet: Fleet
+  pendingView: PlayerView
+}
