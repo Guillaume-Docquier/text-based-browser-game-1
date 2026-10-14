@@ -1,5 +1,5 @@
 import type { Enumify } from "@guillaume-docquier/tools-ts"
-import type { TRPCError } from "@trpc/server"
+import type { TrpcErrorResponse } from "#api/trpc.ts"
 
 export type CreateGameError = Enumify<typeof CreateGameError>
 export const CreateGameError = {
@@ -11,7 +11,7 @@ export const CreateGameError = {
 /**
  * Maps each use-case failure to its API response code and user message.
  */
-export const CreateGameErrorResponses: Record<CreateGameError, { code: TRPCError["code"]; message: string }> = {
+export const CreateGameErrorResponses: Record<CreateGameError, TrpcErrorResponse> = {
   [CreateGameError.TOO_MANY_SEATS]: { code: "BAD_REQUEST", message: "Games cannot have that many seats." },
   [CreateGameError.INVALID_MAP_SEED]: { code: "BAD_REQUEST", message: "The selected seed is invalid." },
   [CreateGameError.UNKNOWN]: { code: "INTERNAL_SERVER_ERROR", message: "Game could not be created." },

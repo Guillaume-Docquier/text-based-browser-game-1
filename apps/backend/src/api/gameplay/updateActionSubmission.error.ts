@@ -1,5 +1,5 @@
 import type { Enumify } from "@guillaume-docquier/tools-ts"
-import type { TRPCError } from "@trpc/server"
+import type { TrpcErrorResponse } from "#api/trpc.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 
 export type UpdateActionSubmissionError = Enumify<typeof UpdateActionSubmissionError>
@@ -15,7 +15,7 @@ export const UpdateActionSubmissionError = {
 /**
  * Maps each use-case failure to its API response code and user message.
  */
-export const UpdateActionSubmissionErrorResponses: Record<UpdateActionSubmissionError, { code: TRPCError["code"]; message: string }> = {
+export const UpdateActionSubmissionErrorResponses: Record<UpdateActionSubmissionError, TrpcErrorResponse> = {
   [UpdateActionSubmissionError.TURN_NOT_OPEN]: { code: "CONFLICT", message: "Actions cannot be changed: the turn is not open." },
   [UpdateActionSubmissionError.PLAYER_READY]: { code: "CONFLICT", message: "You must cancel readiness before changing actions." },
   [UpdateActionSubmissionError.INVALID_ACTION_ID]: { code: "BAD_REQUEST", message: "This action is not available." },

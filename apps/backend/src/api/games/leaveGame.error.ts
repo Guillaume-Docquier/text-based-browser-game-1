@@ -1,5 +1,5 @@
 import type { Enumify } from "@guillaume-docquier/tools-ts"
-import type { TRPCError } from "@trpc/server"
+import type { TrpcErrorResponse } from "#api/trpc.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 
 export type LeaveGameError = Enumify<typeof LeaveGameError>
@@ -13,7 +13,7 @@ export const LeaveGameError = {
 /**
  * Maps each use-case failure to its API response code and user message.
  */
-export const LeaveGameErrorResponses: Record<LeaveGameError, { code: TRPCError["code"]; message: string }> = {
+export const LeaveGameErrorResponses: Record<LeaveGameError, TrpcErrorResponse> = {
   [LeaveGameError.GAME_NOT_FOUND]: { code: "NOT_FOUND", message: "The game does not exist." },
   [LeaveGameError.GAME_ALREADY_STARTED]: { code: "CONFLICT", message: "You cannot leave a game that has already started." },
   [LeaveGameError.CREATOR_CANNOT_LEAVE]: { code: "FORBIDDEN", message: "The game creator cannot leave the lobby." },

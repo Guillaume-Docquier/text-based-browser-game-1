@@ -1,5 +1,5 @@
 import type { Enumify } from "@guillaume-docquier/tools-ts"
-import type { TRPCError } from "@trpc/server"
+import type { TrpcErrorResponse } from "#api/trpc.ts"
 
 export type GetGameByIdError = Enumify<typeof GetGameByIdError>
 export const GetGameByIdError = {
@@ -12,7 +12,7 @@ export const GetGameByIdError = {
 /**
  * Maps each use-case failure to its API response code and user message.
  */
-export const GetGameByIdErrorResponses: Record<GetGameByIdError, { code: TRPCError["code"]; message: string }> = {
+export const GetGameByIdErrorResponses: Record<GetGameByIdError, TrpcErrorResponse> = {
   [GetGameByIdError.GAME_NOT_FOUND]: { code: "NOT_FOUND", message: "No game exists with that id." },
   [GetGameByIdError.RULESET_NOT_FOUND]: { code: "INTERNAL_SERVER_ERROR", message: "Could not find the ruleset." },
   [GetGameByIdError.FAILED_TO_GET_PLAYERS]: { code: "INTERNAL_SERVER_ERROR", message: "Could not get the players." },

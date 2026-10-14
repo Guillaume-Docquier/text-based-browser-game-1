@@ -1,5 +1,5 @@
 import type { Enumify } from "@guillaume-docquier/tools-ts"
-import type { TRPCError } from "@trpc/server"
+import type { TrpcErrorResponse } from "#api/trpc.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 
 export type StartGameError = Enumify<typeof StartGameError>
@@ -14,7 +14,7 @@ export const StartGameError = {
 /**
  * Maps each use-case failure to its API response code and user message.
  */
-export const StartGameErrorResponses: Record<StartGameError, { code: TRPCError["code"]; message: string }> = {
+export const StartGameErrorResponses: Record<StartGameError, TrpcErrorResponse> = {
   [StartGameError.GAME_NOT_FOUND]: { code: "NOT_FOUND", message: "The game does not exist." },
   [StartGameError.NOT_GAME_CREATOR]: { code: "FORBIDDEN", message: "Only the game creator can start it." },
   [StartGameError.INVALID_GAME_STATUS]: { code: "CONFLICT", message: "The game cannot start in its current status." },
