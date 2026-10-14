@@ -25,6 +25,13 @@ import type { Planet } from "#shared/domain/world/planets/Planet.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 import { ColonizePlanetTest } from "#shared/testing/test-ruleset/action-definitions/colonize.ts"
+import type {
+  CreateAColonizeJourneySetupResult,
+  CreateAAtPSetupResult,
+  CreateColonizeSetupResult,
+  CreateInitialPlayersSetupResult,
+  CreateDepartureSetupResult,
+} from "#shared/turn-resolution/fleet-colonization.stages.test-support.ts"
 import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnState.ts"
 import { resolveTurn } from "#shared/turn-resolution/resolveTurn.ts"
 import type { ResolutionFleet } from "#shared/turn-resolution/state/ResolutionFleet.ts"
@@ -60,11 +67,10 @@ describe("Fleet Colonization", () => {
     expect.hasAssertions()
 
     const createColonizeSetupPhase1Result = createColonizeSetup()
-    const { ordinaryMove, attackMove, colonizeActionId, moveActionId, attackActionId, ruleset, gameId, playerIds } =
-      createColonizeSetupPhase1Result
+    const { attackMove, attackActionId, ruleset, gameId, playerIds } = createColonizeSetupPhase1Result
 
     const createInitialPlayersSetupPhase2Result = createInitialPlayersSetup({ ...createColonizeSetupPhase1Result })
-    const { p, q, aSource, cSource } = createInitialPlayersSetupPhase2Result
+    const { p, cSource } = createInitialPlayersSetupPhase2Result
     const cAttack = submit({
       id: attackActionId,
       playerId: PLAYER_C,
@@ -143,61 +149,29 @@ describe("Fleet Colonization", () => {
     const strengthTotal = (state: ResolvedTurnState): number =>
       Object.values(state.fleets).reduce((total, currentFleet) => total + currentFleet.strength, 0)
 
-    const createAColonizeJourneySetupPhase4Result = createAColonizeJourneySetup({
-      ...createColonizeSetupPhase1Result,
+    const createCreateAColonizeJourneySetupPhase4ResultSetupPhase1Result = createCreateAColonizeJourneySetupResultSetup({
       ...createInitialPlayersSetupPhase2Result,
-      ...createDepartureSetupPhase3Result,
-      strengthTotal,
-      turnTwo,
-    })
-    const { aColonizeJourney, bColonizeJourney, cAttackJourney, journeyActionBindings } = createAColonizeJourneySetupPhase4Result
-
-    const createAAtPSetupPhase5Result = createAAtPSetup({
-      ...createColonizeSetupPhase1Result,
-      ...createInitialPlayersSetupPhase2Result,
-      ...createDepartureSetupPhase3Result,
-      ...createAColonizeJourneySetupPhase4Result,
+      createColonizeSetupPhase1Result,
+      createInitialPlayersSetupPhase2Result,
+      createDepartureSetupPhase3Result,
       strengthTotal,
       turnTwo,
       eligibilityState,
       afterArrival,
     })
-    const { aAtP, aAtQ, bAtP } = createAAtPSetupPhase5Result
-
-    verifyPublicState({
-      aAtP,
-      aAtQ,
-      bAtP,
-      afterArrival,
-      p,
-      q,
-      cAttackJourney,
-      strengthTotal,
-      colonizeActionId,
-      moveActionId,
-      attackActionId,
-      aColonizeJourney,
-      bColonizeJourney,
-    })
-    const aAtHome = afterArrival.fleets[aSource.id]
-    Assert.isDefined(aAtHome)
+    const { createAColonizeJourneySetupPhase4Result, createAAtPSetupPhase5Result } =
+      createCreateAColonizeJourneySetupPhase4ResultSetupPhase1Result
 
     verifyPublicState2({
-      aAtP,
-      bAtP,
-      aAtQ,
-      aAtHome,
+      ...createCreateAColonizeJourneySetupPhase4ResultSetupPhase1Result,
+      ...createColonizeSetupPhase1Result,
+      ...createInitialPlayersSetupPhase2Result,
+      ...createAColonizeJourneySetupPhase4Result,
+      ...createAAtPSetupPhase5Result,
       eligibilityState,
       afterArrival,
-      journeyActionBindings,
-      ruleset,
-      moveActionId,
-      aSource,
-      q,
-      ordinaryMove,
       turnThreeRng,
       reloadTurn,
-      p,
       strengthTotal,
     })
   })
@@ -477,22 +451,7 @@ type VerifyPublicState2Input = {
   bAtP: ReturnType<typeof createFleetStub>
   aAtQ: ReturnType<typeof createFleetStub>
   aAtHome: ResolutionFleet
-  eligibilityState: (
-    playerId: PlayerId,
-    turn: number,
-    players: Readonly<Record<PlayerId, ResolutionPlayer>>,
-    currentPlanets: ReadonlyArray<Pick<ReturnType<typeof createPlanetStub>, "id" | "ownerPlayerId" | "x" | "y">>,
-    currentFleets: ReadonlyArray<ReturnType<typeof createFleetStub>>,
-  ) => Readonly<{
-    gameId: GameId
-    turn: number
-    submittingPlayerId: PlayerId
-    resources: Readonly<ReturnType<typeof createResourcesStub>>
-    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
-    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
-    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
-    actions: readonly Action[]
-  }>
+  eligibilityState: EligibilityStateCallback
   afterArrival: ResolvedTurnState
   journeyActionBindings: Array<{ playerId: PlayerId; actionId: ActionId; freeMoveActionId: ActionId }>
   ruleset: Ruleset
@@ -501,20 +460,98 @@ type VerifyPublicState2Input = {
   q: ReturnType<typeof createPlanetStub>
   ordinaryMove: ReturnType<typeof createActionDefinitionStub>
   turnThreeRng: Rng<number>
-  reloadTurn: (
-    previous: ResolvedTurnState,
-    turn: number,
-    submissions: Array<
-      Readonly<{
-        id: ActionId
-        playerId: PlayerId
-        actionDefinitionId: ActionDefinitionId
-        selectedTargets: Readonly<Record<TargetTag, TargetId>>
-        selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
-      }>
-    >,
-    rng: ReturnType<typeof createSeededRng>,
-  ) => ResolvedTurnState
+  reloadTurn: ReloadTurnCallback
   p: ReturnType<typeof createPlanetStub>
   strengthTotal: (state: ResolvedTurnState) => number
 }
+
+function createCreateAColonizeJourneySetupResultSetup({
+  createColonizeSetupPhase1Result,
+  createInitialPlayersSetupPhase2Result,
+  createDepartureSetupPhase3Result,
+  strengthTotal,
+  turnTwo,
+  eligibilityState,
+  afterArrival,
+  aSource,
+}: CreateCreateAColonizeJourneySetupResultSetupInput): CreateCreateAColonizeJourneySetupResultSetupResult {
+  const createAColonizeJourneySetupPhase4Result = createAColonizeJourneySetup({
+    ...createColonizeSetupPhase1Result,
+    ...createInitialPlayersSetupPhase2Result,
+    ...createDepartureSetupPhase3Result,
+    strengthTotal,
+    turnTwo,
+  })
+
+  const createAAtPSetupPhase5Result = createAAtPSetup({
+    ...createColonizeSetupPhase1Result,
+    ...createInitialPlayersSetupPhase2Result,
+    ...createDepartureSetupPhase3Result,
+    ...createAColonizeJourneySetupPhase4Result,
+    strengthTotal,
+    turnTwo,
+    eligibilityState,
+    afterArrival,
+  })
+
+  verifyPublicState({
+    ...createColonizeSetupPhase1Result,
+    ...createInitialPlayersSetupPhase2Result,
+    ...createAColonizeJourneySetupPhase4Result,
+    ...createAAtPSetupPhase5Result,
+    afterArrival,
+    strengthTotal,
+  })
+  const aAtHome = afterArrival.fleets[aSource.id]
+  Assert.isDefined(aAtHome)
+  return { createAColonizeJourneySetupPhase4Result, createAAtPSetupPhase5Result, aAtHome }
+}
+
+type CreateCreateAColonizeJourneySetupResultSetupInput = {
+  createColonizeSetupPhase1Result: CreateColonizeSetupResult
+  createInitialPlayersSetupPhase2Result: CreateInitialPlayersSetupResult
+  createDepartureSetupPhase3Result: CreateDepartureSetupResult
+  strengthTotal: (state: ResolvedTurnState) => number
+  turnTwo: ResolvedTurnState
+  eligibilityState: EligibilityStateCallback
+  afterArrival: ResolvedTurnState
+  aSource: ReturnType<typeof createFleetStub>
+}
+
+type CreateCreateAColonizeJourneySetupResultSetupResult = {
+  createAColonizeJourneySetupPhase4Result: CreateAColonizeJourneySetupResult
+  createAAtPSetupPhase5Result: CreateAAtPSetupResult
+  aAtHome: ResolutionFleet
+}
+
+type EligibilityStateCallback = (
+  playerId: PlayerId,
+  turn: number,
+  players: Readonly<Record<PlayerId, ResolutionPlayer>>,
+  currentPlanets: ReadonlyArray<Pick<ReturnType<typeof createPlanetStub>, "id" | "ownerPlayerId" | "x" | "y">>,
+  currentFleets: ReadonlyArray<ReturnType<typeof createFleetStub>>,
+) => Readonly<{
+  gameId: GameId
+  turn: number
+  submittingPlayerId: PlayerId
+  resources: Readonly<ReturnType<typeof createResourcesStub>>
+  players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+  planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+  fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+  actions: readonly Action[]
+}>
+
+type ReloadTurnCallback = (
+  previous: ResolvedTurnState,
+  turn: number,
+  submissions: Array<
+    Readonly<{
+      id: ActionId
+      playerId: PlayerId
+      actionDefinitionId: ActionDefinitionId
+      selectedTargets: Readonly<Record<TargetTag, TargetId>>
+      selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+    }>
+  >,
+  rng: ReturnType<typeof createSeededRng>,
+) => ResolvedTurnState

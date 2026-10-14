@@ -50,12 +50,11 @@ describe("public Colonization worker companions", () => {
     await using server = await ConcurrencyTestApiServer.create()
 
     const createClientsSetupPhase1Result = await createClientsSetup({ server })
-    const { gameId, homeA, target, stagedFriendly, speed4ActionId, speed2ActionId, selectedViews, finalTurnInput } =
-      createClientsSetupPhase1Result
+    const { gameId, selectedViews } = createClientsSetupPhase1Result
     let { views } = createClientsSetupPhase1Result
 
     const createFinalReplaySetupPhase2Result = await createFinalReplaySetup({ ...createClientsSetupPhase1Result })
-    const { finalReplay, reversedReplay, mergedFriendly, updatedVerifyMergedFriendly } = createFinalReplaySetupPhase2Result
+    const { updatedVerifyMergedFriendly } = createFinalReplaySetupPhase2Result
     views = updatedVerifyMergedFriendly.views
 
     const savedTurns = await server.database
@@ -65,20 +64,7 @@ describe("public Colonization worker companions", () => {
     const savedNextTurn = savedTurns.find(({ turn }) => turn === required(selectedViews[0]).turn + 1)
     Assert.isDefined(savedNextTurn)
 
-    assertPersistedNextRngState3({
-      savedNextTurn,
-      finalTurnInput,
-      gameId,
-      views,
-      homeA,
-      target,
-      stagedFriendly,
-      speed4ActionId,
-      speed2ActionId,
-      mergedFriendly,
-      finalReplay,
-      reversedReplay,
-    })
+    assertPersistedNextRngState3({ ...createClientsSetupPhase1Result, ...createFinalReplaySetupPhase2Result, savedNextTurn, views })
   })
 
   it("should serialize aggregate Move and stationary Colonize reservations against PostgreSQL and Turn closure", async () => {
@@ -87,46 +73,21 @@ describe("public Colonization worker companions", () => {
     await using server = await ConcurrencyTestApiServer.create()
 
     const createAliceSetupPhase3Result = await createAliceSetup({ server })
-    const { alice, bob, gameId, homeA, target, arrivedView, stationary, moveAction, colonizeAction } = createAliceSetupPhase3Result
 
     const createRaceSetupPhase4Result = await createRaceSetup({ ...createAliceSetupPhase3Result })
-    const { race, selectedMove, selectedColonize, winningAction, beforeClosure } = createRaceSetupPhase4Result
+
     let { selectedView } = createRaceSetupPhase4Result
 
-    const updatedVerifyRaceObservation = await assertRaceObservation({
-      selectedMove,
-      selectedColonize,
-      beforeClosure,
-      winningAction,
-      stationary,
-      homeA,
-      arrivedView,
-      moveAction,
-      target,
-      colonizeAction,
-      alice,
-      gameId,
-      bob,
-      selectedView,
-    })
+    const updatedVerifyRaceObservation = await assertRaceObservation({ ...createAliceSetupPhase3Result, ...createRaceSetupPhase4Result })
     selectedView = updatedVerifyRaceObservation.selectedView
 
     const createClosureColonizeSetupPhase5Result = await createClosureColonizeSetup({ ...createAliceSetupPhase3Result, selectedView })
-    const { closureColonize, closureRace, closureSubmissionStatus, claimedPlanet } = createClosureColonizeSetupPhase5Result
-    const { completedView } = createClosureColonizeSetupPhase5Result
 
     assertRemainingAtTarget({
-      completedView,
-      target,
-      closureSubmissionStatus,
-      claimedPlanet,
+      ...createAliceSetupPhase3Result,
+      ...createRaceSetupPhase4Result,
+      ...createClosureColonizeSetupPhase5Result,
       selectedView,
-      closureColonize,
-      gameId,
-      stationary,
-      race,
-      beforeClosure,
-      closureRace,
     })
   })
 })

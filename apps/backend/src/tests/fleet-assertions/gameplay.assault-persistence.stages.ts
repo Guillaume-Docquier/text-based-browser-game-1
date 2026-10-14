@@ -23,7 +23,7 @@ import {
   processManualDeadlineTurn,
   normalizeApiDate,
   createStartGate,
-  submitMoveAfterGate,
+  submitActionAfterGate,
 } from "../fleet-concurrency/gameplay.scenarios.ts"
 import { MANUAL_WORKER_TURN_INTERVAL } from "../fleet-concurrency/gameplay.ts"
 
@@ -178,23 +178,29 @@ export async function assertPersistedCancelReplaceState({
   // Both 20 and 30 fit the 50-strength source and the exact 6 Influence / 2 Fuel budget.
   const twentyThirtyGate = createStartGate(2)
   const twentyThirtyResults = await Promise.allSettled([
-    submitMoveAfterGate(twentyThirtyGate, {
+    submitActionAfterGate(twentyThirtyGate, {
       client: player.client,
-      gameId: strengthGameId,
-      turn: playerView.turn,
-      actionId: moveOne.id,
-      fleetId: sourceFleet.id,
-      destinationId: destination.id,
-      strength: 20,
+      submission: {
+        gameId: strengthGameId,
+        turn: playerView.turn,
+        submittedActionTargets: {
+          actionId: moveOne.id,
+          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          selectedInputs: { strength: 20 },
+        },
+      },
     }),
-    submitMoveAfterGate(twentyThirtyGate, {
+    submitActionAfterGate(twentyThirtyGate, {
       client: player.client,
-      gameId: strengthGameId,
-      turn: playerView.turn,
-      actionId: moveTwo.id,
-      fleetId: sourceFleet.id,
-      destinationId: destination.id,
-      strength: 30,
+      submission: {
+        gameId: strengthGameId,
+        turn: playerView.turn,
+        submittedActionTargets: {
+          actionId: moveTwo.id,
+          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          selectedInputs: { strength: 30 },
+        },
+      },
     }),
   ])
   expect(twentyThirtyResults.every(({ status }) => status === "fulfilled")).toBe(true)
@@ -427,23 +433,29 @@ export async function createThirtyStrengthResultsSetup({
 }: CreateThirtyStrengthResultsSetupInput): Promise<CreateThirtyStrengthResultsSetupResult> {
   const thirtyStrengthGate = createStartGate(2)
   const thirtyStrengthResults = await Promise.allSettled([
-    submitMoveAfterGate(thirtyStrengthGate, {
+    submitActionAfterGate(thirtyStrengthGate, {
       client: player.client,
-      gameId: strengthGameId,
-      turn: playerView.turn,
-      actionId: moveOne.id,
-      fleetId: sourceFleet.id,
-      destinationId: destination.id,
-      strength: 30,
+      submission: {
+        gameId: strengthGameId,
+        turn: playerView.turn,
+        submittedActionTargets: {
+          actionId: moveOne.id,
+          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          selectedInputs: { strength: 30 },
+        },
+      },
     }),
-    submitMoveAfterGate(thirtyStrengthGate, {
+    submitActionAfterGate(thirtyStrengthGate, {
       client: player.client,
-      gameId: strengthGameId,
-      turn: playerView.turn,
-      actionId: moveTwo.id,
-      fleetId: sourceFleet.id,
-      destinationId: destination.id,
-      strength: 30,
+      submission: {
+        gameId: strengthGameId,
+        turn: playerView.turn,
+        submittedActionTargets: {
+          actionId: moveTwo.id,
+          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          selectedInputs: { strength: 30 },
+        },
+      },
     }),
   ])
 

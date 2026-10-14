@@ -393,13 +393,7 @@ export type CreateAliceHomeSetupInput = {
   alice: AuthenticatedApiClient
   gameId: GameId
   bob: AuthenticatedApiClient
-  submit: (__0: {
-    client: AuthenticatedApiClient["client"]
-    view: PlayerView
-    actionDefinitionId: ActionDefinitionId
-    selectedTargets: DeepUnbranded<SelectedTargets>
-    selectedInputs: DeepUnbranded<SelectedInputs>
-  }) => Promise<string>
+  submit: SubmitCallback
   processDeadlineTurn: (turn: number) => Promise<void>
 }
 
@@ -507,3 +501,11 @@ export type CreateRemainderJourneyIdSetupInput = {
 }
 
 export type CreateRemainderJourneyIdSetupResult = { remainderJourneyId: FleetId; remainderJourneyName: FleetName; arrivalView: PlayerView }
+
+type SubmitCallback = (__0: {
+  client: AuthenticatedApiClient["client"]
+  view: PlayerView
+  actionDefinitionId: ActionDefinitionId
+  selectedTargets: DeepUnbranded<SelectedTargets>
+  selectedInputs: DeepUnbranded<SelectedInputs>
+}) => Promise<string>

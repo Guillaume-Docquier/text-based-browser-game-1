@@ -2,6 +2,7 @@ import { Assert, indexBy, Logger, mulberry32Prng, Rng, Time, UnitOfTime, type De
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { compareOrdinalStrings } from "shared/domain/compareOrdinalStrings.ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
+import type { GameId as CapturedGameId } from "shared/domain/games/GameId.ts"
 import { PlayerIdSchema, type PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
@@ -29,6 +30,7 @@ import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import type { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import type { TurnToProcessModel, TurnsRepository } from "#turn-processing/turns.repository.ts"
 import {
   MANUAL_WORKER_TURN_INTERVAL,
@@ -88,55 +90,16 @@ export async function createPublicPendingAssaultFixture(server: ConcurrencyTestA
     await processManualDeadlineTurn({ clock, turnProcessor, turnsRepository, client: alice.client, gameId, turn })
   }
 
-  const aliceView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  const bobView = await bob.client.gameplay.getPlayerView.query({ gameId })
-  const planets = aliceView.galaxy.systems.flatMap(({ planets }) => planets)
-  const aliceHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === aliceView.player.id)
-  const bobHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === bobView.player.id)
-  Assert.isDefined(aliceHome)
-  Assert.isDefined(bobHome)
-  expect([aliceHome.coordinates, bobHome.coordinates].toSorted()).toStrictEqual(["44:98:05", "45:83:40"])
-  expect(Math.hypot(bobHome.x - aliceHome.x, bobHome.y - aliceHome.y)).toBe(4.418312565270031)
+  const createAliceViewSetupPhase1Result = await createAliceViewSetup({ alice, gameId, bob, processDeadlineTurn })
+  const { aliceView, bobView, bobHome, aliceSource } = createAliceViewSetupPhase1Result
 
-  const buildAction = aliceView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
-  Assert.isDefined(buildAction)
-  await alice.client.gameplay.updateActionSubmission.mutate({
+  const createPendingViewSetupPhase2Result = await createPendingViewSetup({
+    ...createAliceViewSetupPhase1Result,
+    alice,
     gameId,
-    turn: aliceView.turn,
-    submittedActionTargets: { actionId: buildAction.id, selectedTargets: { planet: aliceHome.id }, selectedInputs: {} },
+    processDeadlineTurn,
   })
-  await processDeadlineTurn(aliceView.turn)
-
-  const builtView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  const aliceSource = builtView.fleets.find(
-    ({ ownerPlayerId, originPlanetId, movement }) =>
-      ownerPlayerId === builtView.player.id && originPlanetId === aliceHome.id && movement === undefined,
-  )
-  Assert.isDefined(aliceSource)
-  expect(aliceSource.strength).toBe(10)
-
-  const attackAction = builtView.actions.find(({ actionDefinitionId }) => actionDefinitionId === AttackMoveTest.id)
-  Assert.isDefined(attackAction)
-  await alice.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: builtView.turn,
-    submittedActionTargets: {
-      actionId: attackAction.id,
-      selectedTargets: { fleet: aliceSource.id, planet: bobHome.id },
-      selectedInputs: { strength: 1 },
-    },
-  })
-  const selectedView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 98, uncommitted: 93 })
-  expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 100, uncommitted: 99 })
-  expect(selectedView.resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
-  await processDeadlineTurn(builtView.turn)
-
-  const pendingView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  const capturedJourney = pendingView.fleets.find(({ movement }) => movement?.submission.id === attackAction.id)
-  Assert.isDefined(capturedJourney)
-
-  verifyCapturedJourney({ capturedJourney, bobHome, attackAction, aliceView, aliceSource, pendingView })
+  const { pendingView, capturedJourney } = createPendingViewSetupPhase2Result
 
   return {
     alice,
@@ -169,68 +132,15 @@ export type PublicPendingColonizeFixture = {
 }
 
 export async function createPublicPendingColonizeFixture(server: ConcurrencyTestApiServer): Promise<PublicPendingColonizeFixture> {
-  const rulesetsRepository = new RulesetsRepository({ db: server.database, logger: Logger.get() })
-  Assert.isSuccess(await rulesetsRepository.upsertRuleset(PostgresColonizeJourneyValidationRuleset))
-  const player = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000031" })
-  const { createdGameId: gameId } = await player.client.games.create.mutate({
-    configuration: createGameConfigurationStub({
-      rulesetId: PostgresColonizeJourneyValidationRuleset.id,
-      nbSeats: 1,
-      turnIntervalSeconds: Time.in(MANUAL_WORKER_TURN_INTERVAL, UnitOfTime.SECONDS),
-      mapGenerationSeed: 1234,
-    }),
-  })
-  await player.client.games.startGame.mutate({ gameId })
-  const clock = new ControlledClock({ startDate: Clock.now() })
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: server.database, clock })
-  let view = await player.client.gameplay.getPlayerView.query({ gameId })
-  const planets = view.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
-  const home = planets.find(({ ownerPlayerId }) => ownerPlayerId === view.player.id)
-  const target = planets.find(({ coordinates }) => coordinates === "55:07:50")
-  Assert.isDefined(home)
-  Assert.isDefined(target)
-
-  verifyMath({ home, target })
-
-  const buildAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === WorkerBuildFleetForty.id)
-  Assert.isDefined(buildAction)
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: view.turn,
-    submittedActionTargets: { actionId: buildAction.id, selectedTargets: { planet: home.id }, selectedInputs: {} },
-  })
+  const createPlayerSetupPhase3Result = await createPlayerSetup({ server })
+  const { player, gameId, clock, turnProcessor, turnsRepository, home, target } = createPlayerSetupPhase3Result
+  let { view } = createPlayerSetupPhase3Result
   await processManualDeadlineTurn({ clock, turnProcessor, turnsRepository, client: player.client, gameId, turn: view.turn })
 
   view = await player.client.gameplay.getPlayerView.query({ gameId })
-  const sourceFleet = view.fleets.find(
-    ({ ownerPlayerId, originPlanetId, movement }) =>
-      ownerPlayerId === view.player.id && originPlanetId === home.id && movement === undefined,
-  )
-  Assert.isDefined(sourceFleet)
-  expect(sourceFleet.strength).toBe(40)
-  expect(view.resources[ResourceType.INFLUENCE].total).toBe(48)
 
-  const colonizeAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === ColonizePlanetTest.id)
-  Assert.isDefined(colonizeAction)
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: view.turn,
-    submittedActionTargets: {
-      actionId: colonizeAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: target.id },
-      selectedInputs: { strength: 35 },
-    },
-  })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
-    resources: { [ResourceType.INFLUENCE]: { total: 48, uncommitted: 23 } },
-  })
-  await processManualDeadlineTurn({ clock, turnProcessor, turnsRepository, client: player.client, gameId, turn: view.turn })
-
-  const pendingView = await player.client.gameplay.getPlayerView.query({ gameId })
-  const journey = pendingView.fleets.find(({ movement }) => movement?.submission.id === colonizeAction.id)
-  Assert.isDefined(journey)
-
-  verifyJourney({ journey, target, colonizeAction, view, sourceFleet, pendingView })
+  const createSourceFleetSetupPhase4Result = await createSourceFleetSetup({ ...createPlayerSetupPhase3Result, view })
+  const { sourceFleet, pendingView, journey } = createSourceFleetSetupPhase4Result
 
   return {
     player,
@@ -541,3 +451,205 @@ type VerifyJourneyInput = {
   sourceFleet: Fleet
   pendingView: PlayerView
 }
+
+async function createAliceViewSetup({
+  alice,
+  gameId,
+  bob,
+  processDeadlineTurn,
+}: CreateAliceViewSetupInput): Promise<CreateAliceViewSetupResult> {
+  const aliceView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  const bobView = await bob.client.gameplay.getPlayerView.query({ gameId })
+  const planets = aliceView.galaxy.systems.flatMap(({ planets }) => planets)
+  const aliceHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === aliceView.player.id)
+  const bobHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === bobView.player.id)
+  Assert.isDefined(aliceHome)
+  Assert.isDefined(bobHome)
+  expect([aliceHome.coordinates, bobHome.coordinates].toSorted()).toStrictEqual(["44:98:05", "45:83:40"])
+  expect(Math.hypot(bobHome.x - aliceHome.x, bobHome.y - aliceHome.y)).toBe(4.418312565270031)
+
+  const buildAction = aliceView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+  Assert.isDefined(buildAction)
+  await alice.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: aliceView.turn,
+    submittedActionTargets: { actionId: buildAction.id, selectedTargets: { planet: aliceHome.id }, selectedInputs: {} },
+  })
+  await processDeadlineTurn(aliceView.turn)
+
+  const builtView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  const aliceSource = builtView.fleets.find(
+    ({ ownerPlayerId, originPlanetId, movement }) =>
+      ownerPlayerId === builtView.player.id && originPlanetId === aliceHome.id && movement === undefined,
+  )
+  Assert.isDefined(aliceSource)
+  expect(aliceSource.strength).toBe(10)
+
+  const attackAction = builtView.actions.find(({ actionDefinitionId }) => actionDefinitionId === AttackMoveTest.id)
+  Assert.isDefined(attackAction)
+  return { aliceView, bobView, bobHome, builtView, aliceSource, attackAction }
+}
+
+async function createPendingViewSetup({
+  alice,
+  gameId,
+  builtView,
+  attackAction,
+  aliceSource,
+  bobHome,
+  processDeadlineTurn,
+  aliceView,
+}: CreatePendingViewSetupInput): Promise<CreatePendingViewSetupResult> {
+  await alice.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: builtView.turn,
+    submittedActionTargets: {
+      actionId: attackAction.id,
+      selectedTargets: { fleet: aliceSource.id, planet: bobHome.id },
+      selectedInputs: { strength: 1 },
+    },
+  })
+  const selectedView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 98, uncommitted: 93 })
+  expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 100, uncommitted: 99 })
+  expect(selectedView.resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
+  await processDeadlineTurn(builtView.turn)
+
+  const pendingView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  const capturedJourney = pendingView.fleets.find(({ movement }) => movement?.submission.id === attackAction.id)
+  Assert.isDefined(capturedJourney)
+
+  verifyCapturedJourney({ capturedJourney, bobHome, attackAction, aliceView, aliceSource, pendingView })
+  return { pendingView, capturedJourney }
+}
+
+async function createPlayerSetup({ server }: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
+  const rulesetsRepository = new RulesetsRepository({ db: server.database, logger: Logger.get() })
+  Assert.isSuccess(await rulesetsRepository.upsertRuleset(PostgresColonizeJourneyValidationRuleset))
+  const player = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000031" })
+  const { createdGameId: gameId } = await player.client.games.create.mutate({
+    configuration: createGameConfigurationStub({
+      rulesetId: PostgresColonizeJourneyValidationRuleset.id,
+      nbSeats: 1,
+      turnIntervalSeconds: Time.in(MANUAL_WORKER_TURN_INTERVAL, UnitOfTime.SECONDS),
+      mapGenerationSeed: 1234,
+    }),
+  })
+  await player.client.games.startGame.mutate({ gameId })
+  const clock = new ControlledClock({ startDate: Clock.now() })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: server.database, clock })
+  const view = await player.client.gameplay.getPlayerView.query({ gameId })
+  const planets = view.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
+  const home = planets.find(({ ownerPlayerId }) => ownerPlayerId === view.player.id)
+  const target = planets.find(({ coordinates }) => coordinates === "55:07:50")
+  Assert.isDefined(home)
+  Assert.isDefined(target)
+
+  verifyMath({ home, target })
+
+  const buildAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === WorkerBuildFleetForty.id)
+  Assert.isDefined(buildAction)
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: view.turn,
+    submittedActionTargets: { actionId: buildAction.id, selectedTargets: { planet: home.id }, selectedInputs: {} },
+  })
+  return { player, gameId, clock, turnProcessor, turnsRepository, view, home, target }
+}
+
+async function createSourceFleetSetup({
+  view,
+  home,
+  player,
+  gameId,
+  target,
+  clock,
+  turnProcessor,
+  turnsRepository,
+}: CreateSourceFleetSetupInput): Promise<CreateSourceFleetSetupResult> {
+  const sourceFleet = view.fleets.find(
+    ({ ownerPlayerId, originPlanetId, movement }) =>
+      ownerPlayerId === view.player.id && originPlanetId === home.id && movement === undefined,
+  )
+  Assert.isDefined(sourceFleet)
+  expect(sourceFleet.strength).toBe(40)
+  expect(view.resources[ResourceType.INFLUENCE].total).toBe(48)
+
+  const colonizeAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === ColonizePlanetTest.id)
+  Assert.isDefined(colonizeAction)
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: view.turn,
+    submittedActionTargets: {
+      actionId: colonizeAction.id,
+      selectedTargets: { fleet: sourceFleet.id, planet: target.id },
+      selectedInputs: { strength: 35 },
+    },
+  })
+  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
+    resources: { [ResourceType.INFLUENCE]: { total: 48, uncommitted: 23 } },
+  })
+  await processManualDeadlineTurn({ clock, turnProcessor, turnsRepository, client: player.client, gameId, turn: view.turn })
+
+  const pendingView = await player.client.gameplay.getPlayerView.query({ gameId })
+  const journey = pendingView.fleets.find(({ movement }) => movement?.submission.id === colonizeAction.id)
+  Assert.isDefined(journey)
+
+  verifyJourney({ journey, target, colonizeAction, view, sourceFleet, pendingView })
+  return { sourceFleet, pendingView, journey }
+}
+
+type CreateAliceViewSetupInput = {
+  alice: AuthenticatedApiClient
+  gameId: CapturedGameId
+  bob: AuthenticatedApiClient
+  processDeadlineTurn: (turn: number) => Promise<void>
+}
+
+type CreateAliceViewSetupResult = {
+  aliceView: PlayerView
+  bobView: PlayerView
+  bobHome: Planet
+  builtView: PlayerView
+  aliceSource: Fleet
+  attackAction: Action
+}
+
+type CreatePendingViewSetupInput = {
+  alice: AuthenticatedApiClient
+  gameId: CapturedGameId
+  builtView: PlayerView
+  attackAction: Action
+  aliceSource: Fleet
+  bobHome: Planet
+  processDeadlineTurn: (turn: number) => Promise<void>
+  aliceView: PlayerView
+}
+
+type CreatePendingViewSetupResult = { pendingView: PlayerView; capturedJourney: Fleet }
+
+type CreatePlayerSetupInput = { server: ConcurrencyTestApiServer }
+
+type CreatePlayerSetupResult = {
+  player: AuthenticatedApiClient
+  gameId: CapturedGameId
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+  view: PlayerView
+  home: Planet
+  target: Planet
+}
+
+type CreateSourceFleetSetupInput = {
+  view: PlayerView
+  home: Planet
+  player: AuthenticatedApiClient
+  gameId: CapturedGameId
+  target: Planet
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+}
+
+type CreateSourceFleetSetupResult = { sourceFleet: Fleet; pendingView: PlayerView; journey: Fleet }

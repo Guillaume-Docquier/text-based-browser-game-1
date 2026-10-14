@@ -1,4 +1,5 @@
 import { type Success, Assert, branded, indexBy, Result } from "@guillaume-docquier/tools-ts"
+import type { NonNegativeNumber, PositiveNumber } from "@guillaume-docquier/tools-ts/schemas"
 import { describe, expect, it } from "vitest"
 import type { NonNegativeSafeInteger } from "#shared/domain/NonNegativeSafeInteger.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
@@ -8,6 +9,7 @@ import type { ActionDefinitionId } from "#shared/domain/ruleset/action-definitio
 import type { InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
 import type { PositiveInteger } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
+import type { EffectDefinitionTargetDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
 import type { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
 import type { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
@@ -16,8 +18,11 @@ import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.s
 import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
 import type { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
 import { FleetSchema, type Fleet } from "#shared/domain/world/fleets/Fleet.ts"
+import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
+import type { FleetName } from "#shared/domain/world/fleets/FleetName.ts"
 import type { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import type { Planet } from "#shared/domain/world/planets/Planet.ts"
+import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 import { FlexibleAssaultTest, StationaryAssaultTest } from "#shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { BuildFleetStandard } from "#shared/testing/test-ruleset/action-definitions/build-fleet.ts"
@@ -32,56 +37,13 @@ import { PLAYER_A, PLAYER_B, PLAYER_C, resolve, planet, fleet, ownerStrengths } 
 describe("Fleet Assault", () => {
   it("should capture arbitrary-tag Assault rules through JSON reload and resolves them on the actual arrival turn", () => {
     // Arrange
-    const origin = planet("reload-origin", PLAYER_A, 0)
-    const target = planet("reload-target", PLAYER_B, 5)
-    const attacker = fleet("reload-attacker", PLAYER_A, origin, 50)
-    const defender = fleet("reload-defender", PLAYER_B, target, 20)
-    const submission = createSubmittedActionStub({
-      id: FlexibleAssaultTest.id + "_1",
-      playerId: PLAYER_A,
-      actionDefinitionId: FlexibleAssaultTest.id,
-      selectedTargets: { source: attacker.id, destination: target.id },
-      selectedInputs: { force: 30 },
-    })
-    const players = indexBy(
-      "id",
-      [PLAYER_A, PLAYER_B, PLAYER_C].map((id) => ({
-        id,
-        resources: createResourcesStub({
-          [ResourceType.INFLUENCE]: 100,
-          [ResourceType.FUEL]: 100,
-        }),
-      })),
-    )
-    const firstTurn = resolveTurn(
-      createTurnStateStub({
-        turn: 1,
-        submittedActions: [submission],
-        players,
-        planets: indexBy("id", [origin, target]),
-        fleets: indexBy("id", [attacker, defender]),
-      }),
-      TestRuleset,
-      createSeededRng(),
-    )
-    Assert.isSuccess(firstTurn)
 
-    const inTransit = Object.values(firstTurn.value.fleets).find(({ movement }) => movement !== undefined)
-    Assert.isDefined(inTransit)
-    Assert.isDefined(inTransit.movement)
-    expect(inTransit.strength).toBe(30)
-    expect(inTransit.distanceToEnd).toBe(3)
-    expect(inTransit.movement.pendingArrivalEffects).toHaveLength(1)
-    expect(inTransit.movement.pendingArrivalEffects[0]?.definitionOrdinal).toBe(3)
-    expect(inTransit.movement.pendingArrivalEffects[0]?.effectDefinition.targets.fleet.actionTargetTag).toBe("source")
-    expect(firstTurn.value.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(93)
-    expect(firstTurn.value.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(98)
+    const createOriginSetupPhase1Result = createOriginSetup()
+    const { defender } = createOriginSetupPhase1Result
 
-    // Act
-    let reloadedFleets = indexBy(
-      "id",
-      Object.values(firstTurn.value.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
-    )
+    const createFirstTurnSetupPhase2Result = createFirstTurnSetup({ ...createOriginSetupPhase1Result })
+    const { firstTurn } = createFirstTurnSetupPhase2Result
+    let { reloadedFleets } = createFirstTurnSetupPhase2Result
     const secondTurn = resolveTurn(
       createTurnStateStub({
         turn: 2,
@@ -395,31 +357,11 @@ type VerifyForwardInput = {
 }
 
 type VerifyReversedSubmissionsInput = {
-  assault: (
-    playerId: PlayerId,
-    source: ReturnType<typeof createFleetStub>,
-    selectedTargets: Record<string, string>,
-  ) => Readonly<{
-    id: ActionId
-    playerId: PlayerId
-    actionDefinitionId: ActionDefinitionId
-    selectedTargets: Readonly<Record<TargetTag, TargetId>>
-    selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
-  }>
+  assault: AssaultCallback
   attackerB: ReturnType<typeof createFleetStub>
   battle: ReturnType<typeof createPlanetStub>
   attackerA: ReturnType<typeof createFleetStub>
-  build: (
-    id: string,
-    playerId: PlayerId,
-    destination: ReturnType<typeof createPlanetStub>,
-  ) => Readonly<{
-    id: ActionId
-    playerId: PlayerId
-    actionDefinitionId: ActionDefinitionId
-    selectedTargets: Readonly<Record<TargetTag, TargetId>>
-    selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
-  }>
+  build: BuildCallback
   bobBuildA: ReturnType<typeof createPlanetStub>
   bobBuildB: ReturnType<typeof createPlanetStub>
   aliceBuildA: ReturnType<typeof createPlanetStub>
@@ -436,3 +378,157 @@ type VerifyReversedSubmissionsInput = {
   >
   actionPool: Array<Readonly<{ id: ActionId; actionDefinitionId: ActionDefinitionId }>>
 }
+
+function createOriginSetup(): CreateOriginSetupResult {
+  const origin = planet("reload-origin", PLAYER_A, 0)
+  const target = planet("reload-target", PLAYER_B, 5)
+  const attacker = fleet("reload-attacker", PLAYER_A, origin, 50)
+  const defender = fleet("reload-defender", PLAYER_B, target, 20)
+  const submission = createSubmittedActionStub({
+    id: FlexibleAssaultTest.id + "_1",
+    playerId: PLAYER_A,
+    actionDefinitionId: FlexibleAssaultTest.id,
+    selectedTargets: { source: attacker.id, destination: target.id },
+    selectedInputs: { force: 30 },
+  })
+  const players = indexBy(
+    "id",
+    [PLAYER_A, PLAYER_B, PLAYER_C].map((id) => ({
+      id,
+      resources: createResourcesStub({
+        [ResourceType.INFLUENCE]: 100,
+        [ResourceType.FUEL]: 100,
+      }),
+    })),
+  )
+  return { origin, target, attacker, defender, submission, players }
+}
+
+function createFirstTurnSetup({
+  submission,
+  players,
+  origin,
+  target,
+  attacker,
+  defender,
+}: CreateFirstTurnSetupInput): CreateFirstTurnSetupResult {
+  const firstTurn = resolveTurn(
+    createTurnStateStub({
+      turn: 1,
+      submittedActions: [submission],
+      players,
+      planets: indexBy("id", [origin, target]),
+      fleets: indexBy("id", [attacker, defender]),
+    }),
+    TestRuleset,
+    createSeededRng(),
+  )
+  Assert.isSuccess(firstTurn)
+
+  const inTransit = Object.values(firstTurn.value.fleets).find(({ movement }) => movement !== undefined)
+  Assert.isDefined(inTransit)
+  Assert.isDefined(inTransit.movement)
+  expect(inTransit.strength).toBe(30)
+  expect(inTransit.distanceToEnd).toBe(3)
+  expect(inTransit.movement.pendingArrivalEffects).toHaveLength(1)
+  expect(inTransit.movement.pendingArrivalEffects[0]?.definitionOrdinal).toBe(3)
+  expect(inTransit.movement.pendingArrivalEffects[0]?.effectDefinition.targets.fleet.actionTargetTag).toBe("source")
+  expect(firstTurn.value.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(93)
+  expect(firstTurn.value.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(98)
+
+  // Act
+  const reloadedFleets = indexBy(
+    "id",
+    Object.values(firstTurn.value.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
+  )
+  return { firstTurn, reloadedFleets }
+}
+
+type CreateOriginSetupResult = {
+  origin: ReturnType<typeof createPlanetStub>
+  target: ReturnType<typeof createPlanetStub>
+  attacker: ReturnType<typeof createFleetStub>
+  defender: ReturnType<typeof createFleetStub>
+  submission: ReturnType<typeof createSubmittedActionStub>
+  players: Record<PlayerId, { id: PlayerId; resources: ReturnType<typeof createResourcesStub> }>
+}
+
+type CreateFirstTurnSetupInput = {
+  submission: ReturnType<typeof createSubmittedActionStub>
+  players: Record<PlayerId, { id: PlayerId; resources: ReturnType<typeof createResourcesStub> }>
+  origin: ReturnType<typeof createPlanetStub>
+  target: ReturnType<typeof createPlanetStub>
+  attacker: ReturnType<typeof createFleetStub>
+  defender: ReturnType<typeof createFleetStub>
+}
+
+type CreateFirstTurnSetupResult = {
+  firstTurn: Success<ResolvedTurnState>
+  reloadedFleets: Record<
+    FleetId,
+    {
+      id: FleetId
+      ownerPlayerId: PlayerId
+      name: FleetName
+      strength: NonNegativeSafeInteger
+      originPlanetId: PlanetId
+      destinationPlanetId?: undefined | PlanetId
+      distanceToEnd?: undefined | NonNegativeNumber
+      movement?:
+        | undefined
+        | {
+            speed: PositiveNumber
+            departureTurn: PositiveInteger
+            submission: {
+              id: ActionId
+              playerId: PlayerId
+              actionDefinitionId: ActionDefinitionId
+              selectedTargets: Readonly<Record<TargetTag, PlayerId | FleetId | PlanetId>>
+              selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+            }
+            pendingArrivalEffects: ReadonlyArray<
+              | {
+                  effectDefinition: {
+                    type: "FLEET_ASSAULT"
+                    targets: { fleet: EffectDefinitionTargetDefinition<"FLEET">; planet: EffectDefinitionTargetDefinition<"PLANET"> }
+                    parameters: Record<string, never>
+                  }
+                  definitionOrdinal: NonNegativeSafeInteger
+                }
+              | {
+                  effectDefinition: {
+                    type: "FLEET_COLONIZE"
+                    targets: { fleet: EffectDefinitionTargetDefinition<"FLEET">; planet: EffectDefinitionTargetDefinition<"PLANET"> }
+                    parameters: { strengthRequirement: PositiveInteger }
+                  }
+                  definitionOrdinal: NonNegativeSafeInteger
+                }
+            >
+          }
+    }
+  >
+}
+
+type AssaultCallback = (
+  playerId: PlayerId,
+  source: ReturnType<typeof createFleetStub>,
+  selectedTargets: Record<string, string>,
+) => Readonly<{
+  id: ActionId
+  playerId: PlayerId
+  actionDefinitionId: ActionDefinitionId
+  selectedTargets: Readonly<Record<TargetTag, TargetId>>
+  selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+}>
+
+type BuildCallback = (
+  id: string,
+  playerId: PlayerId,
+  destination: ReturnType<typeof createPlanetStub>,
+) => Readonly<{
+  id: ActionId
+  playerId: PlayerId
+  actionDefinitionId: ActionDefinitionId
+  selectedTargets: Readonly<Record<TargetTag, TargetId>>
+  selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+}>

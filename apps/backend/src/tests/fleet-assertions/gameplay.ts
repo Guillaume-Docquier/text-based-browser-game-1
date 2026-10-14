@@ -87,13 +87,7 @@ export type AssertUntouchedTargetInput = {
   readViews: () => Promise<[PlayerView, PlayerView]>
   clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
   homes: Array<undefined | Planet>
-  submit: (
-    client: AuthenticatedApiClient["client"],
-    view: PlayerView,
-    actionDefinitionId: ActionDefinitionId,
-    selectedTargets: DeepUnbranded<SelectedTargets>,
-    selectedInputs: DeepUnbranded<SelectedInputs>,
-  ) => Promise<string>
+  submit: SubmitCallback
   processDeadlineTurn: (turn: number) => Promise<void>
   target: Planet
   gameId: GameId
@@ -457,3 +451,11 @@ export type AssertPersistedNextRngStateInput = {
   persistedAlice: Fleet
   persistedBob: Fleet
 }
+
+type SubmitCallback = (
+  client: AuthenticatedApiClient["client"],
+  view: PlayerView,
+  actionDefinitionId: ActionDefinitionId,
+  selectedTargets: DeepUnbranded<SelectedTargets>,
+  selectedInputs: DeepUnbranded<SelectedInputs>,
+) => Promise<string>

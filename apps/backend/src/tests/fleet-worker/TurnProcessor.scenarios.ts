@@ -39,34 +39,8 @@ export async function createThreeOwnerStationedAssaultFixture({
   clock,
   apiServer,
 }: CreateThreeOwnerStationedAssaultFixtureInput): Promise<ThreeOwnerStationedAssaultFixture> {
-  const alice = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000001" })
-  const bob = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000002" })
-  const carol = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000003" })
-  const clients = [alice, bob, carol] as const
-  const playerAId = branded<PlayerId>(alice.account.id)
-  const playerBId = branded<PlayerId>(bob.account.id)
-  const playerCId = branded<PlayerId>(carol.account.id)
-  const playerIds = [playerAId, playerBId, playerCId] as const
-  const turnInterval = Time.create(10, UnitOfTime.SECONDS)
-  const { createdGameId: gameId } = await alice.client.games.create.mutate({
-    configuration: createGameConfigurationStub({
-      rulesetId: AssaultWorkerRuleset.id,
-      nbSeats: 3,
-      turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS),
-      mapGenerationSeed: 147,
-    }),
-  })
-  await bob.client.games.join.mutate({ gameId })
-  await carol.client.games.join.mutate({ gameId })
-  await alice.client.games.startGame.mutate({ gameId })
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-  const initialView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  const planets = initialView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
-  const target = planets.find(({ coordinates }) => coordinates === "45:83:40")
-  Assert.isDefined(target)
-  const homeA = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerAId)
-  const homeB = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerBId)
-  const homeC = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerCId)
+  const createAliceSetupPhase1Result = await createAliceSetup({ apiServer, db, clock })
+  const { alice, clients, playerIds, gameId, turnProcessor, turnsRepository, target, homeA, homeB, homeC } = createAliceSetupPhase1Result
   Assert.isDefined(homeA)
   Assert.isDefined(homeB)
   Assert.isDefined(homeC)
@@ -124,7 +98,7 @@ export async function createThreeOwnerStationedAssaultFixture({
 
   // Arrange: build literal A30/B20/C10 through public Build submissions and completed actual-worker turns.
 
-  await verifyBuildRound({ clients, gameId, homes, turnProcessor })
+  await verifyBuildRound({ ...createAliceSetupPhase1Result, homes })
 
   // Assert: public worker builds have independently established force inputs before staging.
   const builtView = await alice.client.gameplay.getPlayerView.query({ gameId })
@@ -142,7 +116,7 @@ export async function createThreeOwnerStationedAssaultFixture({
   Assert.isDefined(builtFleetB)
   Assert.isDefined(builtFleetC)
 
-  await verifyActionSelections({ builtFleetA, builtFleetB, builtFleetC, clients, gameId, builtFleets, target, alice, turnProcessor })
+  await verifyActionSelections({ ...createAliceSetupPhase1Result, builtFleetA, builtFleetB, builtFleetC, builtFleets })
   const firstTransitView = await alice.client.gameplay.getPlayerView.query({ gameId })
   const firstTransit = homes.map((home, index) => {
     const playerId = playerIds[index]
@@ -151,36 +125,13 @@ export async function createThreeOwnerStationedAssaultFixture({
       ({ ownerPlayerId, originPlanetId, movement }) => ownerPlayerId === playerId && originPlanetId === home.id && movement !== undefined,
     )
   })
-  const transitA = firstTransit[0]
-  const transitB = firstTransit[1]
-  const transitC = firstTransit[2]
-  Assert.isDefined(transitA)
-  Assert.isDefined(transitB)
-  Assert.isDefined(transitC)
-  expect([transitA.distanceToEnd, transitB.distanceToEnd, transitC.distanceToEnd]).toStrictEqual([
-    1.3404141011226551, 7.1821526257827575, 3.039286685075407,
-  ])
 
-  // Act: reload the two first arrivals while B remains in transit, then resolve B's saved remainder.
-  await processPublicTurn({ clients, gameId, turn: firstTransitView.turn, turnProcessor })
-  const secondTransitView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  const remainingB = secondTransitView.fleets.find(
-    ({ ownerPlayerId, movement }) => ownerPlayerId === playerIds[1] && movement !== undefined,
-  )
-  Assert.isDefined(remainingB)
-  expect(remainingB.distanceToEnd).toBe(2.1821526257827575)
-  expect(
-    secondTransitView.fleets
-      .filter(
-        ({ ownerPlayerId, originPlanetId, movement }) =>
-          [playerIds[0], playerIds[2]].includes(ownerPlayerId) && originPlanetId === target.id && movement === undefined,
-      )
-      .map(({ ownerPlayerId, strength }) => ({ ownerPlayerId, strength }))
-      .toSorted((first, second) => compareOrdinalStrings(first.ownerPlayerId, second.ownerPlayerId)),
-  ).toStrictEqual([
-    { ownerPlayerId: playerIds[0], strength: 30 },
-    { ownerPlayerId: playerIds[2], strength: 10 },
-  ])
+  const createSecondTransitViewSetupPhase2Result = await createSecondTransitViewSetup({
+    ...createAliceSetupPhase1Result,
+    firstTransit,
+    firstTransitView,
+  })
+  const { secondTransitView } = createSecondTransitViewSetupPhase2Result
   await processPublicTurn({ clients, gameId, turn: secondTransitView.turn, turnProcessor })
   const stationedView = await alice.client.gameplay.getPlayerView.query({ gameId })
   const stationed = homes.map((home, index) => {
@@ -251,11 +202,7 @@ export function reverseObjectPropertyOrder<Value>(value: Value): Value {
     }
     return value
   }
-  if (
-    value === null ||
-    typeof value !== "object" ||
-    (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)
-  ) {
+  if (!isPlainRecord(value)) {
     return value
   }
   const entries = Object.entries(value).map(([key, nestedValue]) => [key, nestedValue] as const)
@@ -550,3 +497,114 @@ type VerifyActionSelectionsInput = {
   alice: AuthenticatedApiClient
   turnProcessor: TurnProcessor
 }
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== "object") {
+    return false
+  }
+  const prototype: unknown = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
+async function createAliceSetup({ apiServer, db, clock }: CreateAliceSetupInput): Promise<CreateAliceSetupResult> {
+  const alice = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000001" })
+  const bob = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000002" })
+  const carol = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000003" })
+  const clients = [alice, bob, carol] as const
+  const playerAId = branded<PlayerId>(alice.account.id)
+  const playerBId = branded<PlayerId>(bob.account.id)
+  const playerCId = branded<PlayerId>(carol.account.id)
+  const playerIds = [playerAId, playerBId, playerCId] as const
+  const turnInterval = Time.create(10, UnitOfTime.SECONDS)
+  const { createdGameId: gameId } = await alice.client.games.create.mutate({
+    configuration: createGameConfigurationStub({
+      rulesetId: AssaultWorkerRuleset.id,
+      nbSeats: 3,
+      turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS),
+      mapGenerationSeed: 147,
+    }),
+  })
+  await bob.client.games.join.mutate({ gameId })
+  await carol.client.games.join.mutate({ gameId })
+  await alice.client.games.startGame.mutate({ gameId })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+  const initialView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  const planets = initialView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
+  const target = planets.find(({ coordinates }) => coordinates === "45:83:40")
+  Assert.isDefined(target)
+  const homeA = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerAId)
+  const homeB = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerBId)
+  const homeC = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerCId)
+  return { alice, clients, playerIds, gameId, turnProcessor, turnsRepository, target, homeA, homeB, homeC }
+}
+
+async function createSecondTransitViewSetup({
+  firstTransit,
+  clients,
+  gameId,
+  firstTransitView,
+  turnProcessor,
+  alice,
+  playerIds,
+  target,
+}: CreateSecondTransitViewSetupInput): Promise<CreateSecondTransitViewSetupResult> {
+  const transitA = firstTransit[0]
+  const transitB = firstTransit[1]
+  const transitC = firstTransit[2]
+  Assert.isDefined(transitA)
+  Assert.isDefined(transitB)
+  Assert.isDefined(transitC)
+  expect([transitA.distanceToEnd, transitB.distanceToEnd, transitC.distanceToEnd]).toStrictEqual([
+    1.3404141011226551, 7.1821526257827575, 3.039286685075407,
+  ])
+
+  // Act: reload the two first arrivals while B remains in transit, then resolve B's saved remainder.
+  await processPublicTurn({ clients, gameId, turn: firstTransitView.turn, turnProcessor })
+  const secondTransitView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  const remainingB = secondTransitView.fleets.find(
+    ({ ownerPlayerId, movement }) => ownerPlayerId === playerIds[1] && movement !== undefined,
+  )
+  Assert.isDefined(remainingB)
+  expect(remainingB.distanceToEnd).toBe(2.1821526257827575)
+  expect(
+    secondTransitView.fleets
+      .filter(
+        ({ ownerPlayerId, originPlanetId, movement }) =>
+          [playerIds[0], playerIds[2]].includes(ownerPlayerId) && originPlanetId === target.id && movement === undefined,
+      )
+      .map(({ ownerPlayerId, strength }) => ({ ownerPlayerId, strength }))
+      .toSorted((first, second) => compareOrdinalStrings(first.ownerPlayerId, second.ownerPlayerId)),
+  ).toStrictEqual([
+    { ownerPlayerId: playerIds[0], strength: 30 },
+    { ownerPlayerId: playerIds[2], strength: 10 },
+  ])
+  return { secondTransitView }
+}
+
+type CreateAliceSetupInput = { apiServer: ApiServer; db: Database; clock: ControlledClock }
+
+type CreateAliceSetupResult = {
+  alice: AuthenticatedApiClient
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  playerIds: readonly [PlayerId, PlayerId, PlayerId]
+  gameId: GameId
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+  target: Planet
+  homeA: undefined | Planet
+  homeB: undefined | Planet
+  homeC: undefined | Planet
+}
+
+type CreateSecondTransitViewSetupInput = {
+  firstTransit: Array<undefined | Fleet>
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: GameId
+  firstTransitView: PlayerView
+  turnProcessor: TurnProcessor
+  alice: AuthenticatedApiClient
+  playerIds: readonly [PlayerId, PlayerId, PlayerId]
+  target: Planet
+}
+
+type CreateSecondTransitViewSetupResult = { secondTransitView: PlayerView }

@@ -35,7 +35,7 @@ describe("Move and Assault action selection", () => {
     const { fleet, extraDestination, extraFleet, attack, gain, extraAttack } = createPlayerIdSetupPhase1Result
 
     const createBaseStateSetupPhase2Result = createBaseStateSetup({ ...createPlayerIdSetupPhase1Result })
-    const { baseState, submissions, currentState, underfundedState, submitted, editedAttack, editedMove } = createBaseStateSetupPhase2Result
+    const { baseState, currentState } = createBaseStateSetupPhase2Result
     const canceledMove = evaluateSubmittedActions({
       state: baseState,
       ruleset: TestRuleset,
@@ -62,16 +62,11 @@ describe("Move and Assault action selection", () => {
     })
 
     assertGainCannotFund({
-      underfundedState,
-      submissions,
-      submitted,
-      fleet,
-      editedAttack,
-      editedMove,
+      ...createPlayerIdSetupPhase1Result,
+      ...createBaseStateSetupPhase2Result,
       canceledMove,
       exhaustedSourceCandidate,
       extraCostAttempt,
-      extraFleet,
     })
   })
 })

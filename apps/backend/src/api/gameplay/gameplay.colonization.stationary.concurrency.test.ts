@@ -17,6 +17,10 @@ import type {
   replayWorkerInputWithState,
 } from "#tests/colonization/gameplay.colonization.scenarios.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
+import type {
+  createClockSetup as CapturedcreateClockSetup,
+  createStagedAliceJourneyIdSetup as CapturedcreateStagedAliceJourneyIdSetup,
+} from "#tests/fleet-assertions/gameplay.colonization.stationary.stages.ts"
 import type { normalizeApiDate } from "#tests/fleet-concurrency/gameplay.scenarios.ts"
 import type { reverseWorkerInputEnumeration } from "#tests/fleet-concurrency/gameplay.ts"
 import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
@@ -69,28 +73,10 @@ describe("public Colonization worker companions", () => {
     const createPlayerSetupPhase1Result = await createPlayerSetup({ server })
 
     const createMoveFixtureSetupPhase2Result = await createMoveFixtureSetup({ ...createPlayerSetupPhase1Result, server })
-    const { moveFixture, movePlayer, moveGameId, moveClock, moveProcessor, moveTurns, moveHome, moveSource, moveColonizeId } =
-      createMoveFixtureSetupPhase2Result
 
     const createMoveDestinationSetupPhase3Result = await createMoveDestinationSetup({ ...createMoveFixtureSetupPhase2Result, server })
-    const { moveDestination, moveDistance, simultaneousSelections, moveInput, replayedMovedFive } = createMoveDestinationSetupPhase3Result
 
-    await assertReplayedMovedFive({
-      replayedMovedFive,
-      moveClock,
-      moveTurns,
-      moveProcessor,
-      movePlayer,
-      moveGameId,
-      simultaneousSelections,
-      moveFixture,
-      moveHome,
-      moveSource,
-      moveDestination,
-      moveColonizeId,
-      moveDistance,
-      moveInput,
-    })
+    await assertReplayedMovedFive({ ...createMoveFixtureSetupPhase2Result, ...createMoveDestinationSetupPhase3Result })
   })
 
   it("should resolve the renamed Seed Outpost content using its public tags and exact costs", async () => {
@@ -212,55 +198,24 @@ describe("public Colonization worker companions", () => {
   it("should let the later surviving public claimant succeed after a third-owner Assault weakens the earlier force", async () => {
     await using server = await ConcurrencyTestApiServer.create()
 
-    const createClockSetupPhase6Result = await createClockSetup({ server })
-    const { clock, alice, carol, clients, gameId, turnProcessor, turnsRepository, homes, homeIdsByPlayer, target } =
-      createClockSetupPhase6Result
-    let { views } = createClockSetupPhase6Result
-
-    const distances = homes.map((home) => Math.hypot(home.x - target.x, home.y - target.y))
-
-    const updatedVerifyUpdatedVerifyDistances = await verifyUpdatedVerifyDistances({
-      distances,
-      target,
+    const createCreateClockSetupPhase6ResultSetupPhase1Result = await createCreateClockSetupResultSetup({ server })
+    const {
+      createClockSetupPhase6Result,
       clients,
-      views,
-      homes,
       gameId,
-      clock,
-      turnsRepository,
       turnProcessor,
-      alice,
       homeIdsByPlayer,
-      carol,
-    })
-    views = updatedVerifyUpdatedVerifyDistances.views
-
-    let stage = await processTurnWithReplay({
-      server,
-      clock,
-      turnsRepository,
-      turnProcessor,
-      clients,
-      gameId,
-      turn: required(views[0]).turn,
-    })
-    views = stage.views
-
-    const createStagedAliceJourneyIdSetupPhase7Result = await createStagedAliceJourneyIdSetup({
-      ...createClockSetupPhase6Result,
-      views,
-      stage,
-      server,
-    })
-    const { updatedVerifyPublicState } = createStagedAliceJourneyIdSetupPhase7Result
-    stage = updatedVerifyPublicState.stage
-    views = updatedVerifyPublicState.views
+      target,
+      createStagedAliceJourneyIdSetupPhase7Result,
+    } = createCreateClockSetupPhase6ResultSetupPhase1Result
+    let { views } = createCreateClockSetupPhase6ResultSetupPhase1Result
 
     const createStagedAliceSetupPhase8Result = await createStagedAliceSetup({
+      ...createCreateClockSetupPhase6ResultSetupPhase1Result,
       ...createClockSetupPhase6Result,
       ...createStagedAliceJourneyIdSetupPhase7Result,
-      views,
       server,
+      views,
     })
     const { stagedAlice, stagedCarol } = createStagedAliceSetupPhase8Result
     let { bobDeparture } = createStagedAliceSetupPhase8Result
@@ -272,14 +227,10 @@ describe("public Colonization worker companions", () => {
     const movingBobId = movingBob.id
 
     const updatedVerifyMovingBob = await verifyMovingBob({
+      ...createClockSetupPhase6Result,
+      ...createStagedAliceSetupPhase8Result,
       movingBob,
-      bobDeparture,
       server,
-      clock,
-      turnsRepository,
-      turnProcessor,
-      clients,
-      gameId,
       views,
       movingBobId,
     })
@@ -293,7 +244,7 @@ describe("public Colonization worker companions", () => {
       movingBobId,
       server,
     })
-    const { readyViews, bobJourney, finalTurnInput, finalReplay, publicReplay } = createReadyViewsSetupPhase9Result
+    const { readyViews, bobJourney, publicReplay } = createReadyViewsSetupPhase9Result
     const ownerByFleet = [stagedAlice.id, stagedCarol.id, bobJourney.id].map((fleetId) => {
       const fleet = publicReplay.value.fleets[fleetId]
       return { ownerPlayerId: fleet?.ownerPlayerId, strength: fleet?.strength }
@@ -321,18 +272,12 @@ describe("public Colonization worker companions", () => {
     Assert.isDefined(savedNextTurn)
 
     assertPersistedNextRngStateValue1({
-      publicReplay,
+      ...createCreateClockSetupPhase6ResultSetupPhase1Result,
+      ...createClockSetupPhase6Result,
+      ...createReadyViewsSetupPhase9Result,
       savedNextTurn,
-      finalTurnInput,
-      gameId,
-      target,
-      homes,
-      distances,
-      bobJourney,
-      finalReplay,
       ownerByFleet,
       views,
-      homeIdsByPlayer,
     })
   })
 })
@@ -490,4 +435,63 @@ type AssertPersistedNextRngStateValue1Input = {
   ownerByFleet: Array<{ ownerPlayerId: undefined | PlayerId; strength: undefined | NonNegativeSafeInteger }>
   views: PlayerView[]
   homeIdsByPlayer: PlayerId[]
+}
+
+async function createCreateClockSetupResultSetup({
+  server,
+}: CreateCreateClockSetupResultSetupInput): Promise<CreateCreateClockSetupResultSetupResult> {
+  const createClockSetupPhase6Result = await createClockSetup({ server })
+  const { clock, clients, gameId, turnProcessor, turnsRepository, homes, homeIdsByPlayer, target } = createClockSetupPhase6Result
+  let { views } = createClockSetupPhase6Result
+
+  const distances = homes.map((home) => Math.hypot(home.x - target.x, home.y - target.y))
+
+  const updatedVerifyUpdatedVerifyDistances = await verifyUpdatedVerifyDistances({ ...createClockSetupPhase6Result, distances })
+  views = updatedVerifyUpdatedVerifyDistances.views
+
+  let stage = await processTurnWithReplay({
+    server,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+    gameId,
+    turn: required(views[0]).turn,
+  })
+  views = stage.views
+
+  const createStagedAliceJourneyIdSetupPhase7Result = await createStagedAliceJourneyIdSetup({
+    ...createClockSetupPhase6Result,
+    views,
+    stage,
+    server,
+  })
+  const { updatedVerifyPublicState } = createStagedAliceJourneyIdSetupPhase7Result
+  stage = updatedVerifyPublicState.stage
+  views = updatedVerifyPublicState.views
+  return {
+    createClockSetupPhase6Result,
+    clients,
+    gameId,
+    turnProcessor,
+    homeIdsByPlayer,
+    target,
+    views,
+    distances,
+    createStagedAliceJourneyIdSetupPhase7Result,
+  }
+}
+
+type CreateCreateClockSetupResultSetupInput = { server: ConcurrencyTestApiServer }
+
+type CreateCreateClockSetupResultSetupResult = {
+  createClockSetupPhase6Result: Awaited<ReturnType<typeof CapturedcreateClockSetup>>
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: GameId
+  turnProcessor: TurnProcessor
+  homeIdsByPlayer: PlayerId[]
+  target: Planet
+  views: PlayerView[]
+  distances: number[]
+  createStagedAliceJourneyIdSetupPhase7Result: Awaited<ReturnType<typeof CapturedcreateStagedAliceJourneyIdSetup>>
 }

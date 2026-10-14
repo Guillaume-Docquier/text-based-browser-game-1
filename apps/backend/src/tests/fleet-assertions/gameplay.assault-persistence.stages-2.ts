@@ -9,7 +9,7 @@ import type { ControlledClock } from "#lib/ControlledClock.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
-import { ResourceRaceRuleset, createStartGate, submitBuildAfterGate } from "../fleet-concurrency/gameplay.scenarios.ts"
+import { ResourceRaceRuleset, createStartGate, submitActionAfterGate } from "../fleet-concurrency/gameplay.scenarios.ts"
 import { MANUAL_WORKER_TURN_INTERVAL } from "../fleet-concurrency/gameplay.ts"
 import { assertMoveOneBeforeDeparture } from "./gameplay.assault-persistence.stages.ts"
 
@@ -101,19 +101,21 @@ export async function createResourceResultsSetup({
   secondBuild,
 }: CreateResourceResultsSetupInput): Promise<CreateResourceResultsSetupResult> {
   const resourceResults = await Promise.allSettled([
-    submitBuildAfterGate(resourceGate, {
+    submitActionAfterGate(resourceGate, {
       client: player.client,
-      gameId: resourceGameId,
-      turn: resourceView.turn,
-      actionId: firstBuild.id,
-      planetId: resourceOrigin.id,
+      submission: {
+        gameId: resourceGameId,
+        turn: resourceView.turn,
+        submittedActionTargets: { actionId: firstBuild.id, selectedTargets: { planet: resourceOrigin.id }, selectedInputs: {} },
+      },
     }),
-    submitBuildAfterGate(resourceGate, {
+    submitActionAfterGate(resourceGate, {
       client: player.client,
-      gameId: resourceGameId,
-      turn: resourceView.turn,
-      actionId: secondBuild.id,
-      planetId: resourceOrigin.id,
+      submission: {
+        gameId: resourceGameId,
+        turn: resourceView.turn,
+        submittedActionTargets: { actionId: secondBuild.id, selectedTargets: { planet: resourceOrigin.id }, selectedInputs: {} },
+      },
     }),
   ])
   expect(resourceResults.filter(({ status }) => status === "fulfilled")).toHaveLength(1)

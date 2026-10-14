@@ -14,6 +14,7 @@ import { ControlledClock } from "#lib/ControlledClock.ts"
 import { turnsTable } from "#lib/db/schema.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
+import { BudgetSelectionHarness } from "#tests/colonization/BudgetSelectionHarness.ts"
 import type { replayWorkerInputWithState as CapturedreplayWorkerInputWithState } from "#tests/colonization/gameplay.colonization.scenarios.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import type { normalizeApiDate } from "#tests/fleet-concurrency/gameplay.scenarios.ts"
@@ -43,34 +44,20 @@ describe("public Colonization worker companions", () => {
   it("should preserve the public 15+20 stationary Colonize budget through selection, replacement, cancellation, and the exact40 boundary", async () => {
     await using server = await ConcurrencyTestApiServer.create()
 
-    const createPlayerSetupPhase1Result = await createPlayerSetup({ server })
-    const { player, gameId, clock, turnProcessor, turnsRepository, home, target, replacementTarget, stationary, buildThirtyAction } =
-      createPlayerSetupPhase1Result
-    let { view } = createPlayerSetupPhase1Result
-    Assert.isDefined(buildThirtyAction)
-    await player.client.gameplay.updateActionSubmission.mutate({
+    const createCreatePlayerSetupPhase1ResultSetupPhase1Result = await createCreatePlayerSetupResultSetup({ server })
+    const {
+      createPlayerSetupPhase1Result,
+      player,
       gameId,
-      turn: view.turn,
-      submittedActionTargets: {
-        actionId: buildThirtyAction.id,
-        selectedTargets: { planet: home.id },
-        selectedInputs: {},
-      },
-    })
-    view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
-    const replacementSourceAtHome = getFleetAt(view, view.player.id, home.id, 30)
-    const replacementStageAction = view.actions.find(({ id }) => id === "PUBLIC_BUDGET_STAGE_FLEET")
-    Assert.isDefined(replacementStageAction)
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: view.turn,
-      submittedActionTargets: {
-        actionId: replacementStageAction.id,
-        selectedTargets: { fleet: replacementSourceAtHome.id, planet: replacementTarget.id },
-        selectedInputs: { strength: 30 },
-      },
-    })
-    view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
+      clock,
+      turnProcessor,
+      turnsRepository,
+      home,
+      target,
+      replacementTarget,
+      stationary,
+    } = createCreatePlayerSetupPhase1ResultSetupPhase1Result
+    let { view } = createCreatePlayerSetupPhase1ResultSetupPhase1Result
     const replacementSource = getFleetAt(view, view.player.id, replacementTarget.id, 30)
     expect(getFleetAt(view, view.player.id, target.id, 35).strength).toBe(35)
     expect(getPlanets(view).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
@@ -88,40 +75,15 @@ describe("public Colonization worker companions", () => {
     Assert.isDefined(colonizeAction)
     Assert.isDefined(secondColonizeAction)
 
-    const submitMove = async (strength: number): Promise<void> => {
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: view.turn,
-        submittedActionTargets: {
-          actionId: moveAction.id,
-          selectedTargets: { fleet: stationary.id, planet: home.id },
-          selectedInputs: { strength },
-        },
-      })
-    }
-    const submitColonize = async (
-      actionId: string,
-      selectedFleetId: string = stationary.id,
-      selectedPlanetId: string = target.id,
-    ): Promise<void> => {
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: view.turn,
-        submittedActionTargets: {
-          actionId,
-          selectedTargets: { fleet: selectedFleetId, planet: selectedPlanetId },
-          selectedInputs: {},
-        },
-      })
-    }
-    const cancelAction = async (actionId: string): Promise<void> => {
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: view.turn,
-        submittedActionTargets: { actionId, selectedTargets: null, selectedInputs: null },
-      })
-    }
-    const currentView = async (): Promise<PlayerView> => await player.client.gameplay.getPlayerView.query({ gameId })
+    const { submitMove, submitColonize, cancelAction, currentView } = new BudgetSelectionHarness({
+      client: player.client,
+      gameId,
+      readView: (): PlayerView => view,
+      stationary,
+      target,
+      home,
+      moveAction,
+    })
 
     const createExact35ViewSetupPhase2Result = await createExact35ViewSetup({
       ...createPlayerSetupPhase1Result,
@@ -151,27 +113,18 @@ describe("public Colonization worker companions", () => {
     view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
 
     const createFullForceSetupPhase3Result = await createFullForceSetup({ ...createPlayerSetupPhase1Result, view, currentView, server })
-    const { fullColonizeAction, fullSecondColonizeAction, exact40View, exact40WorkerInput, exact40Replay } =
-      createFullForceSetupPhase3Result
+    const { exact40WorkerInput, exact40Replay } = createFullForceSetupPhase3Result
     Assert.isSuccess(exact40Replay.resolved)
     expect(exact40WorkerInput.submittedActions).toHaveLength(2)
     Assert.isSuccess(exact40Replay.resolved)
 
     await verifyExact40({
-      exact40Replay,
-      fullColonizeAction,
-      fullSecondColonizeAction,
-      createPlayerSetupPhase1Result,
+      ...createCreatePlayerSetupPhase1ResultSetupPhase1Result,
+      ...createPlayerSetupPhase1Result,
+      ...createFullForceSetupPhase3Result,
       createFullForceSetupPhase3Result,
       server,
-      gameId,
-      home,
-      target,
-      stationary,
-      replacementTarget,
       replacementSource,
-      exact40WorkerInput,
-      exact40View,
     })
   })
 })
@@ -336,12 +289,12 @@ type AssertCombinedReservationInput = {
   home: Planet
   colonizeAction: Action
   target: Planet
-  submitMove: (strength: number) => Promise<void>
-  submitColonize: (actionId: string, selectedFleetId?: string, selectedPlanetId?: string) => Promise<void>
-  currentView: () => Promise<PlayerView>
+  submitMove: BudgetSelectionHarness["submitMove"]
+  submitColonize: BudgetSelectionHarness["submitColonize"]
+  currentView: BudgetSelectionHarness["currentView"]
   replacementSource: Fleet
   replacementTarget: Planet
-  cancelAction: (actionId: string) => Promise<void>
+  cancelAction: BudgetSelectionHarness["cancelAction"]
   secondColonizeAction: Action
 }
 
@@ -461,7 +414,7 @@ async function createExact35ViewSetup({
   })
   expect(exact35View.actions.find(({ id }) => id === secondColonizeAction.id)?.selectedTargets).toBeNull()
   expect(exact35View.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 75 })
-  await cancelAction(colonizeAction.id)
+  await cancelAction({ actionId: colonizeAction.id })
 
   const buildFiveAction = exact35View.actions.find(({ id }) => id === "PUBLIC_BUDGET_BUILD5")
   Assert.isDefined(buildFiveAction)
@@ -611,12 +564,12 @@ type CreateExact35ViewSetupInput = {
   home: Planet
   colonizeAction: Action
   target: Planet
-  submitMove: (strength: number) => Promise<void>
-  submitColonize: (actionId: string, selectedFleetId?: string, selectedPlanetId?: string) => Promise<void>
-  currentView: () => Promise<PlayerView>
+  submitMove: BudgetSelectionHarness["submitMove"]
+  submitColonize: BudgetSelectionHarness["submitColonize"]
+  currentView: BudgetSelectionHarness["currentView"]
   replacementSource: Fleet
   replacementTarget: Planet
-  cancelAction: (actionId: string) => Promise<void>
+  cancelAction: BudgetSelectionHarness["cancelAction"]
   secondColonizeAction: Action
   player: AuthenticatedApiClient
   gameId: GameId
@@ -629,7 +582,7 @@ type CreateFullForceSetupInput = {
   target: Planet
   player: AuthenticatedApiClient
   gameId: GameId
-  currentView: () => Promise<PlayerView>
+  currentView: BudgetSelectionHarness["currentView"]
   server: ConcurrencyTestApiServer
   clock: ControlledClock
   turnsRepository: TurnsRepository
@@ -706,10 +659,9 @@ async function verifyExact40({
     exact40Results,
     server,
   })
-  const { exact40ColonizeOutcomes, exact40CompletedView, exact40SavedNextTurn } = createExact40ColonizeOutcomesSetupPhase4Result
 
   assertExact40PersistedRngState({
-    exact40SavedNextTurn,
+    ...createExact40ColonizeOutcomesSetupPhase4Result,
     exact40Replay,
     gameId,
     home,
@@ -718,8 +670,6 @@ async function verifyExact40({
     replacementTarget,
     replacementSource,
     exact40WorkerInput,
-    exact40ColonizeOutcomes,
-    exact40CompletedView,
     exact40View,
   })
 }
@@ -737,11 +687,11 @@ async function verifySourceReplacementView({
   home,
   cancelAction,
 }: VerifySourceReplacementViewInput): Promise<void> {
-  await submitMove(15)
-  await submitColonize(colonizeAction.id)
+  await submitMove({ strength: 15 })
+  await submitColonize({ actionId: colonizeAction.id })
   assertCombinedReservation(await currentView())
 
-  await submitColonize(colonizeAction.id, replacementSource.id, replacementTarget.id)
+  await submitColonize({ actionId: colonizeAction.id, selectedFleetId: replacementSource.id, selectedPlanetId: replacementTarget.id })
   const sourceReplacementView = await currentView()
   expect(sourceReplacementView.actions.find(({ id }) => id === moveAction.id)).toMatchObject({
     selectedTargets: { fleet: stationary.id, planet: home.id },
@@ -755,15 +705,15 @@ async function verifySourceReplacementView({
   expect(sourceReplacementView.fleets.find(({ id }) => id === replacementSource.id)?.strength).toBe(30)
   expect(sourceReplacementView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 72 })
   expect(sourceReplacementView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 9 })
-  await submitColonize(colonizeAction.id)
+  await submitColonize({ actionId: colonizeAction.id })
 
-  await cancelAction(moveAction.id)
-  await cancelAction(colonizeAction.id)
-  await submitColonize(colonizeAction.id)
-  await submitMove(15)
+  await cancelAction({ actionId: moveAction.id })
+  await cancelAction({ actionId: colonizeAction.id })
+  await submitColonize({ actionId: colonizeAction.id })
+  await submitMove({ strength: 15 })
   assertCombinedReservation(await currentView())
 
-  await submitMove(14)
+  await submitMove({ strength: 14 })
 }
 
 async function verifyEditedView({
@@ -783,7 +733,7 @@ async function verifyEditedView({
   })
   expect(editedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 72 })
   expect(editedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 9 })
-  await expect(submitMove(16)).rejects.toThrow("Invalid action submission, targets are invalid or costs cannot be paid.")
+  await expect(submitMove({ strength: 16 })).rejects.toThrow("Invalid action submission, targets are invalid or costs cannot be paid.")
   editedView = await currentView()
   expect(editedView.actions.find(({ id }) => id === moveAction.id)?.selectedInputs).toStrictEqual({ strength: 14 })
   expect(editedView.actions.find(({ id }) => id === colonizeAction.id)?.selectedTargets).toStrictEqual({
@@ -791,7 +741,7 @@ async function verifyEditedView({
     planet: target.id,
   })
 
-  await cancelAction(moveAction.id)
+  await cancelAction({ actionId: moveAction.id })
 }
 
 async function verifyCancelledView({
@@ -812,19 +762,19 @@ async function verifyCancelledView({
     fleet: stationary.id,
     planet: target.id,
   })
-  await cancelAction(colonizeAction.id)
+  await cancelAction({ actionId: colonizeAction.id })
 
-  await submitMove(15)
-  await submitColonize(colonizeAction.id)
-  await cancelAction(colonizeAction.id)
+  await submitMove({ strength: 15 })
+  await submitColonize({ actionId: colonizeAction.id })
+  await cancelAction({ actionId: colonizeAction.id })
   cancelledView = await currentView()
   expect(cancelledView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 97 })
   expect(cancelledView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 9 })
   expect(cancelledView.actions.find(({ id }) => id === moveAction.id)?.selectedInputs).toStrictEqual({ strength: 15 })
-  await cancelAction(moveAction.id)
+  await cancelAction({ actionId: moveAction.id })
 
-  await submitColonize(colonizeAction.id)
-  await expect(submitColonize(secondColonizeAction.id)).rejects.toThrow(
+  await submitColonize({ actionId: colonizeAction.id })
+  await expect(submitColonize({ actionId: secondColonizeAction.id })).rejects.toThrow(
     "Invalid action submission, targets are invalid or costs cannot be paid.",
   )
 }
@@ -847,38 +797,100 @@ type VerifyExact40Input = {
 }
 
 type VerifySourceReplacementViewInput = {
-  submitMove: (strength: number) => Promise<void>
-  submitColonize: (actionId: string, selectedFleetId?: string, selectedPlanetId?: string) => Promise<void>
+  submitMove: BudgetSelectionHarness["submitMove"]
+  submitColonize: BudgetSelectionHarness["submitColonize"]
   colonizeAction: Action
   assertCombinedReservation: (selected: PlayerView) => void
-  currentView: () => Promise<PlayerView>
+  currentView: BudgetSelectionHarness["currentView"]
   replacementSource: Fleet
   replacementTarget: Planet
   moveAction: Action
   stationary: Fleet
   home: Planet
-  cancelAction: (actionId: string) => Promise<void>
+  cancelAction: BudgetSelectionHarness["cancelAction"]
 }
 
 type VerifyEditedViewInput = {
-  currentView: () => Promise<PlayerView>
+  currentView: BudgetSelectionHarness["currentView"]
   moveAction: Action
   stationary: Fleet
   home: Planet
-  submitMove: (strength: number) => Promise<void>
+  submitMove: BudgetSelectionHarness["submitMove"]
   colonizeAction: Action
   target: Planet
-  cancelAction: (actionId: string) => Promise<void>
+  cancelAction: BudgetSelectionHarness["cancelAction"]
 }
 
 type VerifyCancelledViewInput = {
-  currentView: () => Promise<PlayerView>
+  currentView: BudgetSelectionHarness["currentView"]
   colonizeAction: Action
   stationary: Fleet
   target: Planet
-  cancelAction: (actionId: string) => Promise<void>
-  submitMove: (strength: number) => Promise<void>
-  submitColonize: (actionId: string, selectedFleetId?: string, selectedPlanetId?: string) => Promise<void>
+  cancelAction: BudgetSelectionHarness["cancelAction"]
+  submitMove: BudgetSelectionHarness["submitMove"]
+  submitColonize: BudgetSelectionHarness["submitColonize"]
   moveAction: Action
   secondColonizeAction: Action
+}
+
+async function createCreatePlayerSetupResultSetup({
+  server,
+}: CreateCreatePlayerSetupResultSetupInput): Promise<CreateCreatePlayerSetupResultSetupResult> {
+  const createPlayerSetupPhase1Result = await createPlayerSetup({ server })
+  const { player, gameId, clock, turnProcessor, turnsRepository, home, target, replacementTarget, stationary, buildThirtyAction } =
+    createPlayerSetupPhase1Result
+  let { view } = createPlayerSetupPhase1Result
+  Assert.isDefined(buildThirtyAction)
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: view.turn,
+    submittedActionTargets: {
+      actionId: buildThirtyAction.id,
+      selectedTargets: { planet: home.id },
+      selectedInputs: {},
+    },
+  })
+  view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
+  const replacementSourceAtHome = getFleetAt(view, view.player.id, home.id, 30)
+  const replacementStageAction = view.actions.find(({ id }) => id === "PUBLIC_BUDGET_STAGE_FLEET")
+  Assert.isDefined(replacementStageAction)
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: view.turn,
+    submittedActionTargets: {
+      actionId: replacementStageAction.id,
+      selectedTargets: { fleet: replacementSourceAtHome.id, planet: replacementTarget.id },
+      selectedInputs: { strength: 30 },
+    },
+  })
+  view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
+  return {
+    createPlayerSetupPhase1Result,
+    player,
+    gameId,
+    clock,
+    turnProcessor,
+    turnsRepository,
+    home,
+    target,
+    replacementTarget,
+    stationary,
+    view,
+  }
+}
+
+type CreateCreatePlayerSetupResultSetupInput = { server: ConcurrencyTestApiServer }
+
+type CreateCreatePlayerSetupResultSetupResult = {
+  createPlayerSetupPhase1Result: CreatePlayerSetupResult
+  player: AuthenticatedApiClient
+  gameId: GameId
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+  home: Planet
+  target: Planet
+  replacementTarget: Planet
+  stationary: Fleet
+  view: PlayerView
 }

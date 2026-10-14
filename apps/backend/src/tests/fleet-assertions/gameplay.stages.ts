@@ -137,13 +137,7 @@ export type CreateHomeASetupInput = {
   clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
   alice: AuthenticatedApiClient
   untouchedGameId: GameId
-  submit: (
-    client: AuthenticatedApiClient["client"],
-    view: PlayerView,
-    actionDefinitionId: ActionDefinitionId,
-    selectedTargets: DeepUnbranded<SelectedTargets>,
-    selectedInputs: DeepUnbranded<SelectedInputs>,
-  ) => Promise<string>
+  submit: SubmitCallback
   processDeadlineTurn: (turn: number) => Promise<void>
   gameId: GameId
 }
@@ -333,13 +327,7 @@ export type CreateViewsSetupInput = {
   readViews: () => Promise<[PlayerView, PlayerView]>
   alice: AuthenticatedApiClient
   bob: AuthenticatedApiClient
-  submitAction: (
-    client: AuthenticatedApiClient["client"],
-    view: PlayerView,
-    actionDefinitionId: ActionDefinitionId,
-    selectedTargets: DeepUnbranded<SelectedTargets>,
-    selectedInputs: DeepUnbranded<SelectedInputs>,
-  ) => Promise<string>
+  submitAction: SubmitCallback
   buildActionDefinitionId: ActionDefinitionId
   clock: ControlledClock
   turnProcessor: TurnProcessor
@@ -425,13 +413,7 @@ export type CreatePriorityTurnSetupInput = {
   findPlanetOwner: (view: PlayerView, planetId: PlanetId) => undefined | null | PlayerId
   views: [PlayerView, PlayerView]
   target: Planet
-  submitAction: (
-    client: AuthenticatedApiClient["client"],
-    view: PlayerView,
-    actionDefinitionId: ActionDefinitionId,
-    selectedTargets: DeepUnbranded<SelectedTargets>,
-    selectedInputs: DeepUnbranded<SelectedInputs>,
-  ) => Promise<string>
+  submitAction: SubmitCallback
   alice: AuthenticatedApiClient
   bob: AuthenticatedApiClient
   movingStrength: 35 | 70
@@ -532,3 +514,11 @@ export type CreateCapturedInputSetupResult = {
   replay: ReturnType<typeof CapturedreplayWorkerInput>
   bobArrival: ResolutionFleet
 }
+
+type SubmitCallback = (
+  client: AuthenticatedApiClient["client"],
+  view: PlayerView,
+  actionDefinitionId: ActionDefinitionId,
+  selectedTargets: DeepUnbranded<SelectedTargets>,
+  selectedInputs: DeepUnbranded<SelectedInputs>,
+) => Promise<string>

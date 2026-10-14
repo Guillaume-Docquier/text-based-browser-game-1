@@ -1,19 +1,32 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { type Success, Assert } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { eq } from "drizzle-orm"
 import { type GameId, GameIdSchema } from "shared/domain/games/GameId.ts"
+import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
 import { MoveFleetExceptional } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 import type { ResolvedTurnState } from "shared/turn-resolution/ResolvedTurnState.ts"
+import type { ResolutionFleet } from "shared/turn-resolution/state/ResolutionFleet.ts"
 import { describe, expect, it } from "vitest"
 import type { Planet, Fleet, PlayerView } from "#api/types.ts"
+import type { ControlledClock } from "#lib/ControlledClock.ts"
 import { turnsTable } from "#lib/db/schema.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
-import type { replayWorkerInputWithState } from "#tests/colonization/gameplay.colonization.scenarios.ts"
+import type {
+  processTurnWithReplay as CapturedprocessTurnWithReplay,
+  replayWorkerInputWithState,
+} from "#tests/colonization/gameplay.colonization.scenarios.ts"
+import type { createPublicTwoPlayerFixture as CapturedcreatePublicTwoPlayerFixture } from "#tests/colonization/gameplay.colonization.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
-import type { createOrdinaryActionIdSetup as CapturedcreateOrdinaryActionIdSetup } from "#tests/fleet-assertions/gameplay.colonization.renamed-content.stages.ts"
+import type {
+  createBobDistanceSetup as CapturedcreateBobDistanceSetup,
+  createAliceSetup as CapturedcreateAliceSetup,
+  createViewsSetup as CapturedcreateViewsSetup,
+  createOrdinaryActionIdSetup as CapturedcreateOrdinaryActionIdSetup,
+} from "#tests/fleet-assertions/gameplay.colonization.renamed-content.stages.ts"
 import type { normalizeApiDate } from "#tests/fleet-concurrency/gameplay.scenarios.ts"
 import type { reverseWorkerInputEnumeration } from "#tests/fleet-concurrency/gameplay.ts"
 import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
+import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import { getFleetAt, processTurnWithReplay } from "../../tests/colonization/gameplay.colonization.scenarios.ts"
 import {
   DeadEarlierAttackColonize,
@@ -46,36 +59,11 @@ describe("public Colonization worker companions", () => {
     await using server = await ConcurrencyTestApiServer.create()
 
     const createAliceSetupPhase1Result = await createAliceSetup({ server })
-    const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, aliceHome, bobHome, target, aliceDistance } =
-      createAliceSetupPhase1Result
-    let { views } = createAliceSetupPhase1Result
 
-    const createBobDistanceSetupPhase2Result = await createBobDistanceSetup({ ...createAliceSetupPhase1Result, server })
-    const { bobDistance } = createBobDistanceSetupPhase2Result
-    let { stage } = createBobDistanceSetupPhase2Result
-    views = stage.views
-    const aliceSource = getFleetAt(required(views[0]), required(views[0]).player.id, aliceHome.id, 35)
-    const bobSource = getFleetAt(required(views[1]), required(views[1]).player.id, bobHome.id, 70)
-
-    const aliceMoveActionId = await submitAction({
-      client: alice.client,
-      gameId,
-      view: required(views[0]),
-      actionDefinitionId: MoveFleetExceptional.id,
-      selectedTargets: { fleet: aliceSource.id, planet: target.id },
-      selectedInputs: { strength: 35 },
-    })
-    stage = await processTurnWithReplay({ server, clock, turnsRepository, turnProcessor, clients, gameId, turn: required(views[0]).turn })
-    views = stage.views
-    const aliceJourney = required(views[0]).fleets.find(({ movement }) => movement?.submission.id === aliceMoveActionId)
-    Assert.isDefined(aliceJourney)
-    expect(aliceJourney.distanceToEnd).toBeCloseTo(5.679420165502142, 12)
-    stage = await processTurnWithReplay({ server, clock, turnsRepository, turnProcessor, clients, gameId, turn: required(views[0]).turn })
-    views = stage.views
-    expect(required(views[0]).fleets.find(({ id }) => id === aliceJourney.id)?.distanceToEnd).toBeCloseTo(0.679420165502142, 12)
-    stage = await processTurnWithReplay({ server, clock, turnsRepository, turnProcessor, clients, gameId, turn: required(views[0]).turn })
-    views = stage.views
-    expect(stage.resolved.fleets[aliceJourney.id]?.arrivedAtTick).toBe(3)
+    const createBobSetupPhase1Result = await createBobSetup({ createAliceSetupPhase1Result, server })
+    const { bob, clients, gameId, clock, turnProcessor, turnsRepository, target, createBobDistanceSetupPhase2Result, bobSource } =
+      createBobSetupPhase1Result
+    let { views, stage } = createBobSetupPhase1Result
     const stagedAlice = getFleetAt(required(views[0]), required(views[0]).player.id, target.id, 35)
     expect(bobSource.strength).toBe(70)
 
@@ -106,8 +94,7 @@ describe("public Colonization worker companions", () => {
       server,
       bobAttackColonizeActionId,
     })
-    const { aliceColonizeActionId, finalTurn, finalWorkerInput, finalReplay, bobContinuation, updatedVerifyFinalReplay } =
-      createAliceColonizeActionIdSetupPhase3Result
+    const { finalTurn, finalReplay, updatedVerifyFinalReplay } = createAliceColonizeActionIdSetupPhase3Result
     views = updatedVerifyFinalReplay.views
 
     const savedTurns = await server.database
@@ -120,18 +107,12 @@ describe("public Colonization worker companions", () => {
     Assert.isSuccess(finalReplay.resolved)
 
     assertPersistedNextRngStateValue1({
-      finalReplay,
+      ...createAliceSetupPhase1Result,
+      ...createBobDistanceSetupPhase2Result,
+      ...createAliceColonizeActionIdSetupPhase3Result,
       savedNextTurn,
-      gameId,
-      target,
-      aliceDistance,
-      bobDistance,
       stagedAlice,
       bobJourney,
-      bobContinuation,
-      aliceColonizeActionId,
-      bob,
-      finalWorkerInput,
       views,
     })
   })
@@ -141,7 +122,7 @@ describe("public Colonization worker companions", () => {
     const fixture = await createPublicTwoPlayerFixture(server)
     const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
 
-    const createViewsSetupPhase4Result = await createViewsSetup({
+    const createCreateViewsSetupPhase4ResultSetupPhase2Result = await createCreateViewsSetupResultSetup({
       fixture,
       target,
       alice,
@@ -153,19 +134,10 @@ describe("public Colonization worker companions", () => {
       turnsRepository,
       turnProcessor,
       clients,
-    })
-    const { stagingFleet, aliceStageActionId, bobStageActionId } = createViewsSetupPhase4Result
-    let { views } = createViewsSetupPhase4Result
-    let stage = await processTurnWithReplay({
       server,
-      clock,
-      turnsRepository,
-      turnProcessor,
-      clients,
-      gameId,
-      turn: required(views[0]).turn,
     })
-    views = stage.views
+    const { stagingFleet, bobStageActionId } = createCreateViewsSetupPhase4ResultSetupPhase2Result
+    let { views, stage } = createCreateViewsSetupPhase4ResultSetupPhase2Result
     const stagedFriendlyArrival = findPublicFleet(Object.values(stage.resolved.fleets), {
       ownerPlayerId: required(views[0]).player.id,
       originPlanetId: target.id,
@@ -192,7 +164,7 @@ describe("public Colonization worker companions", () => {
     stage = await processTurnWithReplay({ server, clock, turnsRepository, turnProcessor, clients, gameId, turn: required(views[0]).turn })
     views = stage.views
 
-    const createOrdinaryActionIdSetupPhase5Result = await createOrdinaryActionIdSetup({
+    const createCreateOrdinaryActionIdSetupPhase5ResultSetupPhase3Result = await createCreateOrdinaryActionIdSetupResultSetup({
       stage,
       bobJourneyId,
       views,
@@ -207,57 +179,20 @@ describe("public Colonization worker companions", () => {
       clock,
       turnsRepository,
     })
-    const {
-      ordinaryActionId,
-      aliceColonizeActionId,
-      bobColonizeActionId,
-      selectedViews,
-      finalTurnInput,
-      finalReplay,
-      publicReplay,
-      friendlyWinner,
-    } = createOrdinaryActionIdSetupPhase5Result
-    expect(friendlyWinner).toMatchObject({
-      id: stagedFriendly.id,
-      name: stagedFriendly.name,
-      ownerPlayerId: required(selectedViews[0]).player.id,
-      originPlanetId: target.id,
-      strength: 40,
-      arrivedAtTick: 3,
-    })
-    const bobWinner = findPublicFleet(Object.values(publicReplay.value.fleets), {
-      ownerPlayerId: required(selectedViews[1]).player.id,
-      originPlanetId: target.id,
-      strength: 15,
-    })
-    Assert.isDefined(bobWinner)
-    expect(bobWinner.arrivedAtTick).toBe(7)
-    expect(publicReplay.value.planets[target.id]?.ownerPlayerId).toBe(required(selectedViews[1]).player.id)
-    expect(
-      publicReplay.value.resolvedActions.find(({ submittedAction }) => submittedAction.id === aliceColonizeActionId)?.actionOutcomes,
-    ).toContainEqual(expect.objectContaining({ type: "PREVENTED" }))
-    expect(
-      publicReplay.value.resolvedActions.find(({ submittedAction }) => submittedAction.id === bobColonizeActionId)?.actionOutcomes,
-    ).toContainEqual(expect.objectContaining({ type: "RESOLVED" }))
-    expect(
-      publicReplay.value.resolvedActions.find(({ submittedAction }) => submittedAction.id === ordinaryActionId)?.actionOutcomes,
-    ).toContainEqual(expect.objectContaining({ type: "RESOLVED" }))
 
-    const updatedVerifyFinalReplay = await verifyFinalReplay({
-      finalReplay,
-      finalTurnInput,
+    const createUpdatedVerifyFinalReplaySetupPhase4Result = await createUpdatedVerifyFinalReplaySetup({
+      ...createCreateViewsSetupPhase4ResultSetupPhase2Result,
+      ...createCreateOrdinaryActionIdSetupPhase5ResultSetupPhase3Result,
+      stagedFriendly,
+      target,
       turnProcessor,
       views,
       clients,
       gameId,
-      createOrdinaryActionIdSetupPhase5Result,
-      target,
-      stagedFriendly,
       homeA,
       server,
-      bobStageActionId,
-      aliceStageActionId,
     })
+    const { updatedVerifyFinalReplay } = createUpdatedVerifyFinalReplaySetupPhase4Result
     views = updatedVerifyFinalReplay.views
   })
 
@@ -350,17 +285,15 @@ async function verifyFinalReplay({
     server,
     gameId,
   })
-  const { persistedFriendlyFleets, savedNextTurn } = createPersistedFriendlyFleetsSetupPhase6Result
 
   assertPersistedNextRngState2({
-    savedNextTurn,
+    ...createPersistedFriendlyFleetsSetupPhase6Result,
     finalTurnInput,
     gameId,
     views,
     homeA,
     target,
     stagedFriendly,
-    persistedFriendlyFleets,
     finalReplay,
     bobStageActionId,
     aliceStageActionId,
@@ -411,3 +344,282 @@ type VerifyFinalReplayInput = {
 }
 
 type VerifyFinalReplayResult = { views: PlayerView[] }
+
+async function createBobSetup({ createAliceSetupPhase1Result, server }: CreateBobSetupInput): Promise<CreateBobSetupResult> {
+  const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, aliceHome, bobHome, target } = createAliceSetupPhase1Result
+  let { views } = createAliceSetupPhase1Result
+
+  const createBobDistanceSetupPhase2Result = await createBobDistanceSetup({ ...createAliceSetupPhase1Result, server })
+
+  let { stage } = createBobDistanceSetupPhase2Result
+  views = stage.views
+  const aliceSource = getFleetAt(required(views[0]), required(views[0]).player.id, aliceHome.id, 35)
+  const bobSource = getFleetAt(required(views[1]), required(views[1]).player.id, bobHome.id, 70)
+
+  const aliceMoveActionId = await submitAction({
+    client: alice.client,
+    gameId,
+    view: required(views[0]),
+    actionDefinitionId: MoveFleetExceptional.id,
+    selectedTargets: { fleet: aliceSource.id, planet: target.id },
+    selectedInputs: { strength: 35 },
+  })
+  stage = await processTurnWithReplay({ server, clock, turnsRepository, turnProcessor, clients, gameId, turn: required(views[0]).turn })
+  views = stage.views
+  const aliceJourney = required(views[0]).fleets.find(({ movement }) => movement?.submission.id === aliceMoveActionId)
+  Assert.isDefined(aliceJourney)
+  expect(aliceJourney.distanceToEnd).toBeCloseTo(5.679420165502142, 12)
+  stage = await processTurnWithReplay({ server, clock, turnsRepository, turnProcessor, clients, gameId, turn: required(views[0]).turn })
+  views = stage.views
+  expect(required(views[0]).fleets.find(({ id }) => id === aliceJourney.id)?.distanceToEnd).toBeCloseTo(0.679420165502142, 12)
+  stage = await processTurnWithReplay({ server, clock, turnsRepository, turnProcessor, clients, gameId, turn: required(views[0]).turn })
+  views = stage.views
+  expect(stage.resolved.fleets[aliceJourney.id]?.arrivedAtTick).toBe(3)
+  return {
+    bob,
+    clients,
+    gameId,
+    clock,
+    turnProcessor,
+    turnsRepository,
+    target,
+    views,
+    createBobDistanceSetupPhase2Result,
+    stage,
+    bobSource,
+  }
+}
+
+async function createCreateViewsSetupResultSetup({
+  fixture,
+  target,
+  alice,
+  gameId,
+  homeA,
+  bob,
+  homeB,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  clients,
+  server,
+}: CreateCreateViewsSetupResultSetupInput): Promise<CreateCreateViewsSetupResultSetupResult> {
+  const createViewsSetupPhase4Result = await createViewsSetup({
+    fixture,
+    target,
+    alice,
+    gameId,
+    homeA,
+    bob,
+    homeB,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+  })
+  const { stagingFleet, bobStageActionId } = createViewsSetupPhase4Result
+  let { views } = createViewsSetupPhase4Result
+  const stage = await processTurnWithReplay({
+    server,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+    gameId,
+    turn: required(views[0]).turn,
+  })
+  views = stage.views
+  return { createViewsSetupPhase4Result, stagingFleet, bobStageActionId, views, stage }
+}
+
+async function createCreateOrdinaryActionIdSetupResultSetup({
+  stage,
+  bobJourneyId,
+  views,
+  homeA,
+  target,
+  stagedFriendly,
+  alice,
+  gameId,
+  bob,
+  clients,
+  server,
+  clock,
+  turnsRepository,
+}: CreateCreateOrdinaryActionIdSetupResultSetupInput): Promise<CreateCreateOrdinaryActionIdSetupResultSetupResult> {
+  const createOrdinaryActionIdSetupPhase5Result = await createOrdinaryActionIdSetup({
+    stage,
+    bobJourneyId,
+    views,
+    homeA,
+    target,
+    stagedFriendly,
+    alice,
+    gameId,
+    bob,
+    clients,
+    server,
+    clock,
+    turnsRepository,
+  })
+  const { ordinaryActionId, aliceColonizeActionId, bobColonizeActionId, selectedViews, publicReplay, friendlyWinner } =
+    createOrdinaryActionIdSetupPhase5Result
+  return {
+    createOrdinaryActionIdSetupPhase5Result,
+    ordinaryActionId,
+    aliceColonizeActionId,
+    bobColonizeActionId,
+    selectedViews,
+    publicReplay,
+    friendlyWinner,
+  }
+}
+
+async function createUpdatedVerifyFinalReplaySetup({
+  friendlyWinner,
+  stagedFriendly,
+  selectedViews,
+  target,
+  publicReplay,
+  aliceColonizeActionId,
+  bobColonizeActionId,
+  ordinaryActionId,
+  createViewsSetupPhase4Result,
+  createOrdinaryActionIdSetupPhase5Result,
+  turnProcessor,
+  views,
+  clients,
+  gameId,
+  homeA,
+  server,
+}: CreateUpdatedVerifyFinalReplaySetupInput): Promise<CreateUpdatedVerifyFinalReplaySetupResult> {
+  expect(friendlyWinner).toMatchObject({
+    id: stagedFriendly.id,
+    name: stagedFriendly.name,
+    ownerPlayerId: required(selectedViews[0]).player.id,
+    originPlanetId: target.id,
+    strength: 40,
+    arrivedAtTick: 3,
+  })
+  const bobWinner = findPublicFleet(Object.values(publicReplay.value.fleets), {
+    ownerPlayerId: required(selectedViews[1]).player.id,
+    originPlanetId: target.id,
+    strength: 15,
+  })
+  Assert.isDefined(bobWinner)
+  expect(bobWinner.arrivedAtTick).toBe(7)
+  expect(publicReplay.value.planets[target.id]?.ownerPlayerId).toBe(required(selectedViews[1]).player.id)
+  expect(
+    publicReplay.value.resolvedActions.find(({ submittedAction }) => submittedAction.id === aliceColonizeActionId)?.actionOutcomes,
+  ).toContainEqual(expect.objectContaining({ type: "PREVENTED" }))
+  expect(
+    publicReplay.value.resolvedActions.find(({ submittedAction }) => submittedAction.id === bobColonizeActionId)?.actionOutcomes,
+  ).toContainEqual(expect.objectContaining({ type: "RESOLVED" }))
+  expect(
+    publicReplay.value.resolvedActions.find(({ submittedAction }) => submittedAction.id === ordinaryActionId)?.actionOutcomes,
+  ).toContainEqual(expect.objectContaining({ type: "RESOLVED" }))
+
+  const updatedVerifyFinalReplay = await verifyFinalReplay({
+    ...createViewsSetupPhase4Result,
+    ...createOrdinaryActionIdSetupPhase5Result,
+    turnProcessor,
+    views,
+    clients,
+    gameId,
+    createOrdinaryActionIdSetupPhase5Result,
+    target,
+    stagedFriendly,
+    homeA,
+    server,
+  })
+  return { updatedVerifyFinalReplay }
+}
+
+type CreateBobSetupInput = {
+  createAliceSetupPhase1Result: Awaited<ReturnType<typeof CapturedcreateAliceSetup>>
+  server: ConcurrencyTestApiServer
+}
+
+type CreateBobSetupResult = {
+  bob: AuthenticatedApiClient
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: GameId
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+  target: Planet
+  views: PlayerView[]
+  createBobDistanceSetupPhase2Result: Awaited<ReturnType<typeof CapturedcreateBobDistanceSetup>>
+  stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+  bobSource: Fleet
+}
+
+type CreateCreateViewsSetupResultSetupInput = {
+  fixture: Awaited<ReturnType<typeof CapturedcreatePublicTwoPlayerFixture>>
+  target: Planet
+  alice: AuthenticatedApiClient
+  gameId: number
+  homeA: Planet
+  bob: AuthenticatedApiClient
+  homeB: Planet
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  server: ConcurrencyTestApiServer
+}
+
+type CreateCreateViewsSetupResultSetupResult = {
+  createViewsSetupPhase4Result: Awaited<ReturnType<typeof CapturedcreateViewsSetup>>
+  stagingFleet: Fleet
+  bobStageActionId: string
+  views: PlayerView[]
+  stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+}
+
+type CreateCreateOrdinaryActionIdSetupResultSetupInput = {
+  stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+  bobJourneyId: FleetId
+  views: PlayerView[]
+  homeA: Planet
+  target: Planet
+  stagedFriendly: Fleet
+  alice: AuthenticatedApiClient
+  gameId: number
+  bob: AuthenticatedApiClient
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+}
+
+type CreateCreateOrdinaryActionIdSetupResultSetupResult = {
+  createOrdinaryActionIdSetupPhase5Result: Awaited<ReturnType<typeof CapturedcreateOrdinaryActionIdSetup>>
+  ordinaryActionId: string
+  aliceColonizeActionId: string
+  bobColonizeActionId: string
+  selectedViews: PlayerView[]
+  publicReplay: Success<ResolvedTurnState>
+  friendlyWinner: ResolutionFleet
+}
+
+type CreateUpdatedVerifyFinalReplaySetupInput = {
+  friendlyWinner: ResolutionFleet
+  stagedFriendly: Fleet
+  selectedViews: PlayerView[]
+  target: Planet
+  publicReplay: Success<ResolvedTurnState>
+  aliceColonizeActionId: string
+  bobColonizeActionId: string
+  ordinaryActionId: string
+  createViewsSetupPhase4Result: Awaited<ReturnType<typeof CapturedcreateViewsSetup>>
+  createOrdinaryActionIdSetupPhase5Result: Awaited<ReturnType<typeof CapturedcreateOrdinaryActionIdSetup>>
+  turnProcessor: TurnProcessor
+  views: PlayerView[]
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: number
+  homeA: Planet
+  server: ConcurrencyTestApiServer
+}
+
+type CreateUpdatedVerifyFinalReplaySetupResult = { updatedVerifyFinalReplay: VerifyFinalReplayResult }

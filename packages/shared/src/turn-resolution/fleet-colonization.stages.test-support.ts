@@ -289,22 +289,7 @@ export function createDepartureSetup({
 }
 
 export type CreateDepartureSetupInput = {
-  eligibilityState: (
-    playerId: PlayerId,
-    turn: number,
-    players: Readonly<Record<PlayerId, ResolutionPlayer>>,
-    currentPlanets: ReadonlyArray<Pick<ReturnType<typeof createPlanetStub>, "id" | "ownerPlayerId" | "x" | "y">>,
-    currentFleets: ReadonlyArray<ReturnType<typeof createFleetStub>>,
-  ) => Readonly<{
-    gameId: GameId
-    turn: number
-    submittingPlayerId: PlayerId
-    resources: Readonly<ReturnType<typeof createResourcesStub>>
-    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
-    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
-    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
-    actions: readonly Action[]
-  }>
+  eligibilityState: EligibilityStateCallback
   initialPlayers: Record<PlayerId, { id: PlayerId; resources: ReturnType<typeof createResourcesStub> }>
   planets: Array<ReturnType<typeof createPlanetStub>>
   fleets: Array<ReturnType<typeof createFleetStub>>
@@ -497,22 +482,7 @@ export type CreateAAtPSetupInput = {
   turnTwo: ResolvedTurnState
   departure: ResolvedTurnState
   journeyActionBindings: Array<{ playerId: PlayerId; actionId: ActionId; freeMoveActionId: ActionId }>
-  eligibilityState: (
-    playerId: PlayerId,
-    turn: number,
-    players: Readonly<Record<PlayerId, ResolutionPlayer>>,
-    currentPlanets: ReadonlyArray<Pick<ReturnType<typeof createPlanetStub>, "id" | "ownerPlayerId" | "x" | "y">>,
-    currentFleets: ReadonlyArray<ReturnType<typeof createFleetStub>>,
-  ) => Readonly<{
-    gameId: GameId
-    turn: number
-    submittingPlayerId: PlayerId
-    resources: Readonly<ReturnType<typeof createResourcesStub>>
-    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
-    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
-    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
-    actions: readonly Action[]
-  }>
+  eligibilityState: EligibilityStateCallback
   aSource: ReturnType<typeof createFleetStub>
   afterArrival: ResolvedTurnState
   q: ReturnType<typeof createPlanetStub>
@@ -582,3 +552,20 @@ export type CreateRulesetSetupResult = {
   edgeDeparture: ResolvedTurnState
   edgeJourney: ResolutionFleet
 }
+
+type EligibilityStateCallback = (
+  playerId: PlayerId,
+  turn: number,
+  players: Readonly<Record<PlayerId, ResolutionPlayer>>,
+  currentPlanets: ReadonlyArray<Pick<ReturnType<typeof createPlanetStub>, "id" | "ownerPlayerId" | "x" | "y">>,
+  currentFleets: ReadonlyArray<ReturnType<typeof createFleetStub>>,
+) => Readonly<{
+  gameId: GameId
+  turn: number
+  submittingPlayerId: PlayerId
+  resources: Readonly<ReturnType<typeof createResourcesStub>>
+  players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+  planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+  fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+  actions: readonly Action[]
+}>

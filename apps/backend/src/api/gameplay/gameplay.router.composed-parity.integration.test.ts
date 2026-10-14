@@ -28,6 +28,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
 import type { Fleet, Action, Planet, PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
+import type { Database } from "#lib/db/createDb.ts"
 import { BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
@@ -86,56 +87,12 @@ describe("gameplay.router", () => {
       const apiServices = await createApiStub({ db, clock })
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(FleetActionParityRuleset))
       using apiServer = new ApiServer(apiServices)
-      const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.games.create.mutate({
-        configuration: createGameConfigurationStub({
-          rulesetId: FleetActionParityRuleset.id,
-          mapGenerationSeed: 1234,
-          turnIntervalSeconds: 10,
-        }),
-      })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-      let playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const planets = playerView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
-      const origin = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerView.player.id)
-      const destination = planets.find(({ coordinates }) => coordinates === "55:07:50")
-      Assert.isDefined(origin)
-      Assert.isDefined(destination)
 
-      const updatedVerifyActionSelections = await verifyActionSelections({
-        origin,
-        destination,
-        playerView,
-        player,
-        createdGameId,
-        clock,
-        turnProcessor,
-        turnsRepository,
-      })
-      playerView = updatedVerifyActionSelections.playerView
+      const createPlayerSetupPhase1Result = await createPlayerSetup({ apiServer, db, clock })
+      const { createdGameId, turnProcessor, turnsRepository, origin, destination } = createPlayerSetupPhase1Result
 
-      const createSourceFleetSetupPhase1Result = await createSourceFleetSetup({
-        playerView,
-        player,
-        createdGameId,
-        planets,
-        origin,
-        destination,
-      })
-      const { sourceFleet, improvedOnlyDestination } = createSourceFleetSetupPhase1Result
-      Assert.isDefined(improvedOnlyDestination)
-
-      const createSelectedViewSetupPhase2Result = await createSelectedViewSetup({
-        ...createSourceFleetSetupPhase1Result,
-        player,
-        createdGameId,
-        playerView,
-        improvedOnlyDestination,
-        destination,
-        origin,
-      })
-      const { selectedView } = createSelectedViewSetupPhase2Result
+      const createSourceFleetSetupPhase2Result = await createSourceFleetSetupCase({ ...createPlayerSetupPhase1Result })
+      const { sourceFleet, createSelectedViewSetupPhase2Result, selectedView } = createSourceFleetSetupPhase2Result
 
       const isStringRecord = (value: unknown): value is Record<string, string> =>
         typeof value === "object" &&
@@ -149,13 +106,7 @@ describe("gameplay.router", () => {
         selectedTargets: unknown
         selectedInputs: unknown
         isInProgress: boolean
-      }): {
-        id: string
-        actionDefinitionId: string
-        selectedTargets: { fleet: string | undefined; planet: string | undefined } | null
-        selectedInputs: unknown
-        isInProgress: boolean
-      } => {
+      }): NormalizeActionProjection => {
         let selectedTargets: Record<string, string> | null = null
         if (action.selectedTargets !== null) {
           if (!isStringRecord(action.selectedTargets)) {
@@ -179,11 +130,10 @@ describe("gameplay.router", () => {
       }
 
       const createNormalizedSelectedViewSetupPhase3Result = await createNormalizedSelectedViewSetup({
+        ...createPlayerSetupPhase1Result,
         ...createSelectedViewSetupPhase2Result,
-        origin,
         normalizeAction,
         clock,
-        turnsRepository,
       })
       const { normalizedSelectedView, delegateStartTurnProcessing } = createNormalizedSelectedViewSetupPhase3Result
       const lockedInputObserver = vi.spyOn(turnsRepository, "startTurnProcessing").mockImplementation(async (startModel, tx) => {
@@ -299,36 +249,10 @@ describe("gameplay.router", () => {
       const apiServices = await createApiStub({ db, clock })
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(ComposedReservationRuleset))
       using apiServer = new ApiServer(apiServices)
-      const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.games.create.mutate({
-        configuration: createGameConfigurationStub({
-          rulesetId: ComposedReservationRuleset.id,
-          mapGenerationSeed: 1234,
-          turnIntervalSeconds: 10,
-        }),
-      })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-      let playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const planets = playerView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
-      const origin = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerView.player.id)
-      const destination = planets.find(({ coordinates }) => coordinates === "55:07:50")
-      Assert.isDefined(origin)
-      Assert.isDefined(destination)
 
-      const updatedVerifyActionSelections2 = await verifyActionSelections2({
-        origin,
-        destination,
-        playerView,
-        player,
-        createdGameId,
-        clock,
-        turnProcessor,
-        turnsRepository,
-      })
-      playerView = updatedVerifyActionSelections2.playerView
-
-      const sourceFleet = playerView.fleets.find(({ originPlanetId }) => originPlanetId === origin.id)
+      const createPlayerSetupPhase3Result = await createPlayerSetup2({ apiServer, db, clock })
+      const { player, createdGameId, destination, sourceFleet } = createPlayerSetupPhase3Result
+      const { playerView } = createPlayerSetupPhase3Result
       const moveAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_1")
       const attackAction = playerView.actions.find(({ id }) => id === AttackMoveTest.id + "_1")
       const extraMoveAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_2")
@@ -345,13 +269,7 @@ describe("gameplay.router", () => {
       expect(playerView.resources[ResourceType.METAL].total).toBe(5)
       expect(playerView.resources[ResourceType.FUEL].total).toBe(2)
 
-      const evaluatePublicView = (
-        view: typeof playerView,
-      ): {
-        state: EligibilityState
-        submissions: Array<ReturnType<typeof createSubmittedActionStub>>
-        evaluation: ReturnType<typeof evaluateSubmittedActions>
-      } => {
+      const evaluatePublicView = (view: typeof playerView): EvaluatePublicViewProjection => {
         const actions = view.actions.map((action) =>
           action.selectedTargets === null
             ? createAvailableActionStub({
@@ -414,30 +332,24 @@ describe("gameplay.router", () => {
       }
 
       await verifyPublicState({
+        ...createPlayerSetupPhase3Result,
         submitSelection,
         moveAction,
         attackAction,
-        player,
-        createdGameId,
         sourceFleet,
-        destination,
         evaluatePublicView,
         extraAttackAction,
         buildAction,
-        origin,
         extraMoveAction,
       })
 
       await assertCanceledView({
-        player,
-        createdGameId,
+        ...createPlayerSetupPhase3Result,
         evaluatePublicView,
         moveAction,
         sourceFleet,
         submitSelection,
         clock,
-        turnProcessor,
-        turnsRepository,
         attackAction,
       })
     })
@@ -664,19 +576,7 @@ type CreateNormalizedSelectedViewSetupInput = {
   origin: Planet
   selectedOrigin: Planet
   selectedDestination: Planet
-  normalizeAction: (action: {
-    id: string
-    actionDefinitionId: string
-    selectedTargets: unknown
-    selectedInputs: unknown
-    isInProgress: false | true
-  }) => {
-    id: string
-    actionDefinitionId: string
-    selectedTargets: null | { fleet: undefined | string; planet: undefined | string }
-    selectedInputs: unknown
-    isInProgress: false | true
-  }
+  normalizeAction: NormalizeActionCallback
   clock: ControlledClock
   turnsRepository: TurnsRepository
 }
@@ -869,47 +769,221 @@ type VerifyPublicStateInput = {
   createdGameId: GameId
   sourceFleet: Fleet
   destination: Planet
-  evaluatePublicView: (view: PlayerView) => {
-    state: Readonly<{
-      gameId: GameId
-      turn: number
-      submittingPlayerId: PlayerId
-      resources: Readonly<ReturnType<typeof createResourcesStub>>
-      players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
-      planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
-      fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
-      actions: readonly CapturedAction[]
-    }>
-    submissions: Array<
-      Readonly<{
-        id: ActionId
-        playerId: PlayerId
-        actionDefinitionId: ActionDefinitionId
-        selectedTargets: Readonly<Record<TargetTag, TargetId>>
-        selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
-      }>
-    >
-    evaluation: Readonly<{
-      status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
-      issues: ReadonlyArray<
-        Readonly<{
-          code: EligibilityIssueCode
-          actionId?: ActionId
-          targetTag?: TargetTag
-          inputTag?: InputTag
-          resourceType?: ResourceType
-          message: string
-        }>
-      >
-      missingTargets: readonly TargetTag[]
-      missingInputs: readonly InputTag[]
-      resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
-      strengthCommitments: Readonly<Record<FleetId, number>>
-      remainingStrength: Readonly<Record<FleetId, number>>
-    }>
-  }
+  evaluatePublicView: EvaluatePublicViewCallback
   extraAttackAction: Action
   buildAction: Action
   origin: Planet
   extraMoveAction: Action
 }
+
+async function createPlayerSetup({ apiServer, db, clock }: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
+  const player = await apiServer.createClient({ authenticated: true })
+  const { createdGameId } = await player.client.games.create.mutate({
+    configuration: createGameConfigurationStub({
+      rulesetId: FleetActionParityRuleset.id,
+      mapGenerationSeed: 1234,
+      turnIntervalSeconds: 10,
+    }),
+  })
+  await player.client.games.startGame.mutate({ gameId: createdGameId })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+  let playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  const planets = playerView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
+  const origin = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerView.player.id)
+  const destination = planets.find(({ coordinates }) => coordinates === "55:07:50")
+  Assert.isDefined(origin)
+  Assert.isDefined(destination)
+
+  const updatedVerifyActionSelections = await verifyActionSelections({
+    origin,
+    destination,
+    playerView,
+    player,
+    createdGameId,
+    clock,
+    turnProcessor,
+    turnsRepository,
+  })
+  playerView = updatedVerifyActionSelections.playerView
+  return { player, createdGameId, turnProcessor, turnsRepository, playerView, planets, origin, destination }
+}
+
+async function createSourceFleetSetupCase({
+  playerView,
+  player,
+  createdGameId,
+  planets,
+  origin,
+  destination,
+}: CreateSourceFleetSetupCaseInput): Promise<CreateSourceFleetSetupCaseResult> {
+  const createSourceFleetSetupPhase1Result = await createSourceFleetSetup({
+    playerView,
+    player,
+    createdGameId,
+    planets,
+    origin,
+    destination,
+  })
+  const { sourceFleet, improvedOnlyDestination } = createSourceFleetSetupPhase1Result
+  Assert.isDefined(improvedOnlyDestination)
+
+  const createSelectedViewSetupPhase2Result = await createSelectedViewSetup({
+    ...createSourceFleetSetupPhase1Result,
+    player,
+    createdGameId,
+    playerView,
+    improvedOnlyDestination,
+    destination,
+    origin,
+  })
+  const { selectedView } = createSelectedViewSetupPhase2Result
+  return { sourceFleet, createSelectedViewSetupPhase2Result, selectedView }
+}
+
+async function createPlayerSetup2({ apiServer, db, clock }: CreatePlayerSetup2Input): Promise<CreatePlayerSetup2Result> {
+  const player = await apiServer.createClient({ authenticated: true })
+  const { createdGameId } = await player.client.games.create.mutate({
+    configuration: createGameConfigurationStub({
+      rulesetId: ComposedReservationRuleset.id,
+      mapGenerationSeed: 1234,
+      turnIntervalSeconds: 10,
+    }),
+  })
+  await player.client.games.startGame.mutate({ gameId: createdGameId })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+  let playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  const planets = playerView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
+  const origin = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerView.player.id)
+  const destination = planets.find(({ coordinates }) => coordinates === "55:07:50")
+  Assert.isDefined(origin)
+  Assert.isDefined(destination)
+
+  const updatedVerifyActionSelections2 = await verifyActionSelections2({
+    origin,
+    destination,
+    playerView,
+    player,
+    createdGameId,
+    clock,
+    turnProcessor,
+    turnsRepository,
+  })
+  playerView = updatedVerifyActionSelections2.playerView
+
+  const sourceFleet = playerView.fleets.find(({ originPlanetId }) => originPlanetId === origin.id)
+  return { player, createdGameId, turnProcessor, turnsRepository, playerView, planets, origin, destination, sourceFleet }
+}
+
+type CreatePlayerSetupInput = { apiServer: ApiServer; db: Database; clock: ControlledClock }
+
+type CreatePlayerSetupResult = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+  playerView: PlayerView
+  planets: Planet[]
+  origin: Planet
+  destination: Planet
+}
+
+type CreateSourceFleetSetupCaseInput = {
+  playerView: PlayerView
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  planets: Planet[]
+  origin: Planet
+  destination: Planet
+}
+
+type CreateSourceFleetSetupCaseResult = {
+  sourceFleet: Fleet
+  createSelectedViewSetupPhase2Result: CreateSelectedViewSetupResult
+  selectedView: PlayerView
+}
+
+type CreatePlayerSetup2Input = { apiServer: ApiServer; db: Database; clock: ControlledClock }
+
+type CreatePlayerSetup2Result = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+  playerView: PlayerView
+  planets: Planet[]
+  origin: Planet
+  destination: Planet
+  sourceFleet: undefined | Fleet
+}
+
+type NormalizeActionProjection = {
+  id: string
+  actionDefinitionId: string
+  selectedTargets: { fleet: string | undefined; planet: string | undefined } | null
+  selectedInputs: unknown
+  isInProgress: boolean
+}
+
+type EvaluatePublicViewProjection = {
+  state: EligibilityState
+  submissions: Array<ReturnType<typeof createSubmittedActionStub>>
+  evaluation: ReturnType<typeof evaluateSubmittedActions>
+}
+
+type NormalizeActionProjection2 = {
+  id: string
+  actionDefinitionId: string
+  selectedTargets: null | { fleet: undefined | string; planet: undefined | string }
+  selectedInputs: unknown
+  isInProgress: false | true
+}
+
+type NormalizeActionCallback = (action: {
+  id: string
+  actionDefinitionId: string
+  selectedTargets: unknown
+  selectedInputs: unknown
+  isInProgress: false | true
+}) => NormalizeActionProjection2
+
+type EvaluatePublicViewProjection2 = {
+  state: Readonly<{
+    gameId: GameId
+    turn: number
+    submittingPlayerId: PlayerId
+    resources: Readonly<ReturnType<typeof createResourcesStub>>
+    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+    actions: readonly CapturedAction[]
+  }>
+  submissions: Array<
+    Readonly<{
+      id: ActionId
+      playerId: PlayerId
+      actionDefinitionId: ActionDefinitionId
+      selectedTargets: Readonly<Record<TargetTag, TargetId>>
+      selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+    }>
+  >
+  evaluation: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+}
+
+type EvaluatePublicViewCallback = (view: PlayerView) => EvaluatePublicViewProjection2

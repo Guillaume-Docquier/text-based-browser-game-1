@@ -13,8 +13,8 @@ import type { ControlledClock } from "#lib/ControlledClock.ts"
 import { fleetsTable, turnsTable } from "#lib/db/schema.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import type {
-  replayWorkerInputWithState as CapturedreplayWorkerInputWithState,
   processTurnWithReplay as CapturedprocessTurnWithReplay,
+  replayWorkerInputWithState as CapturedreplayWorkerInputWithState,
 } from "#tests/colonization/gameplay.colonization.scenarios.ts"
 import type { createPublicTwoPlayerFixture as CapturedcreatePublicTwoPlayerFixture } from "#tests/colonization/gameplay.colonization.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
@@ -58,30 +58,10 @@ describe("public Colonization worker companions", () => {
     await using server = await ConcurrencyTestApiServer.create()
 
     const createPlayerSetupPhase1Result = await createPlayerSetup({ server })
-    const { player, gameId, turnProcessor, home, target, sourceFleet, colonizeActionId, selectedView, journey } =
-      createPlayerSetupPhase1Result
 
     const createArrivedViewSetupPhase2Result = await createArrivedViewSetup({ ...createPlayerSetupPhase1Result, server })
-    const { arrivedView, emptyTurnInput, emptyTurnReplay, assertEmptyTurnReplayPhase1Value1, assertEmptyTurnReplayPhase1Value2 } =
-      createArrivedViewSetupPhase2Result
 
-    await assertEmptyTurnReplay({
-      assertEmptyTurnReplayPhase1Value1,
-      emptyTurnReplay,
-      emptyTurnInput,
-      turnProcessor,
-      player,
-      gameId,
-      arrivedView,
-      target,
-      colonizeActionId,
-      server,
-      home,
-      sourceFleet,
-      selectedView,
-      journey,
-      assertEmptyTurnReplayPhase1Value2,
-    })
+    await assertEmptyTurnReplay({ ...createPlayerSetupPhase1Result, ...createArrivedViewSetupPhase2Result, server })
   })
 
   it("should prevent both exact20 public claimants after their Assaults destroy both Fleets", async () => {
@@ -103,7 +83,7 @@ describe("public Colonization worker companions", () => {
       target,
       server,
     })
-    const { aliceFleet, bobFleet, aliceDistance, bobDistance, bobAttemptId, bobJourney } = createViewsSetupPhase3Result
+    const { bobJourney } = createViewsSetupPhase3Result
     let { views, stage } = createViewsSetupPhase3Result
     for (const expectedDistance of [8.852953053708077]) {
       stage = await processTurnWithReplay({ server, clock, turnsRepository, turnProcessor, clients, gameId, turn: required(views[0]).turn })
@@ -127,7 +107,7 @@ describe("public Colonization worker companions", () => {
       turnsRepository,
       turnProcessor,
     })
-    const { aliceAttemptId, finalMovement } = createAliceAttemptIdSetupPhase4Result
+    const { finalMovement } = createAliceAttemptIdSetupPhase4Result
     views = finalMovement.views
 
     const createWorkerInputSetupPhase5Result = await createWorkerInputSetup({
@@ -140,17 +120,17 @@ describe("public Colonization worker companions", () => {
       turnsRepository,
       gameId,
     })
-    const { workerInput, replay, aliceContinuation, bobContinuation, finalOutcomes } = createWorkerInputSetupPhase5Result
+    const { workerInput, replay } = createWorkerInputSetupPhase5Result
 
     const updatedVerifyFinalOutcomes = await assertFinalOutcomes({
-      finalOutcomes,
+      ...createViewsSetupPhase3Result,
+      ...createAliceAttemptIdSetupPhase4Result,
+      ...createWorkerInputSetupPhase5Result,
       turnProcessor,
       views,
       clients,
       gameId,
       target,
-      aliceAttemptId,
-      bobAttemptId,
       server,
     })
     views = updatedVerifyFinalOutcomes.views
@@ -165,20 +145,13 @@ describe("public Colonization worker companions", () => {
     Assert.isSuccess(replay.resolved)
 
     assertPersistedNextRngStateValue1({
-      replay,
+      ...createViewsSetupPhase3Result,
+      ...createWorkerInputSetupPhase5Result,
       savedNextTurn,
       gameId,
       homeA,
       homeB,
       target,
-      aliceDistance,
-      bobDistance,
-      aliceFleet,
-      bobFleet,
-      workerInput,
-      aliceContinuation,
-      bobContinuation,
-      finalOutcomes,
       views,
     })
   })
@@ -188,7 +161,7 @@ describe("public Colonization worker companions", () => {
     const fixture = await createPublicTwoPlayerFixture(server)
     const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
 
-    const createViewsSetupPhase6Result = await createViewsSetup2({
+    const createCreateViewsSetupPhase6ResultSetupPhase1Result = await createCreateViewsSetupResultSetup({
       fixture,
       alice,
       homeA,
@@ -202,17 +175,8 @@ describe("public Colonization worker companions", () => {
       target,
       server,
     })
-    const { bobSource, stagedAlice } = createViewsSetupPhase6Result
-    let { views, stage } = createViewsSetupPhase6Result
-
-    const bobColonizeId = await submitAction({
-      client: bob.client,
-      gameId,
-      view: required(views[1]),
-      actionDefinitionId: ColonizeFarFleetSpeed5.id,
-      selectedTargets: { fleet: bobSource.id, planet: target.id },
-      selectedInputs: { strength: 35 },
-    })
+    const { createViewsSetupPhase6Result, stagedAlice, bobColonizeId } = createCreateViewsSetupPhase6ResultSetupPhase1Result
+    let { views, stage } = createCreateViewsSetupPhase6ResultSetupPhase1Result
     const aliceColonizeId = await submitAction({
       client: alice.client,
       gameId,
@@ -223,14 +187,13 @@ describe("public Colonization worker companions", () => {
     })
 
     const updatedVerifySelectedViews = await verifySelectedViews({
+      ...createViewsSetupPhase6Result,
       clients,
       gameId,
-      stage,
       server,
       clock,
       turnsRepository,
       turnProcessor,
-      views,
     })
     stage = updatedVerifySelectedViews.stage
     views = updatedVerifySelectedViews.views
@@ -247,6 +210,8 @@ describe("public Colonization worker companions", () => {
     const transitDistances = [13.852953053708077]
 
     const updatedVerifyRemainingDistance = await verifyRemainingDistance({
+      ...createCreateViewsSetupPhase6ResultSetupPhase1Result,
+      ...createViewsSetupPhase6Result,
       stage,
       server,
       clock,
@@ -258,27 +223,25 @@ describe("public Colonization worker companions", () => {
       bobJourney,
       target,
       alice,
-      stagedAlice,
-      bobColonizeId,
       transitDistances,
     })
     stage = updatedVerifyRemainingDistance.stage
     views = updatedVerifyRemainingDistance.views
 
     const createWorkerInputSetupPhase7Result = await createWorkerInputSetup2({
+      ...createCreateViewsSetupPhase6ResultSetupPhase1Result,
       server,
       clock,
       turnsRepository,
       gameId,
       views,
       bobJourney,
-      bobColonizeId,
       target,
       alice,
       bob,
       turnProcessor,
     })
-    const { workerInput, replay, bobContinuation } = createWorkerInputSetupPhase7Result
+    const { workerInput, replay } = createWorkerInputSetupPhase7Result
     views = await readViews(clients, gameId)
     expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(playerIdFor(alice))
     expect(getFleetAt(required(views[0]), playerIdFor(alice), target.id, 15).id).toBe(stagedAlice.id)
@@ -299,7 +262,7 @@ describe("public Colonization worker companions", () => {
     Assert.isSuccess(replay.resolved)
 
     assertPersistedNextRngStateValue12({
-      replay,
+      ...createWorkerInputSetupPhase7Result,
       savedNextTurn,
       gameId,
       homeA,
@@ -307,9 +270,7 @@ describe("public Colonization worker companions", () => {
       target,
       alice,
       transitDistances,
-      workerInput,
       bobJourney,
-      bobContinuation,
       views,
     })
   })
@@ -1098,4 +1059,69 @@ type AssertPersistedNextRngStateValue12Input = {
   bobJourney: Fleet
   bobContinuation: ResolvedTurnState["resolvedContinuations"][number]
   views: PlayerView[]
+}
+
+async function createCreateViewsSetupResultSetup({
+  fixture,
+  alice,
+  homeA,
+  bob,
+  homeB,
+  gameId,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  clients,
+  target,
+  server,
+}: CreateCreateViewsSetupResultSetupInput): Promise<CreateCreateViewsSetupResultSetupResult> {
+  const createViewsSetupPhase6Result = await createViewsSetup2({
+    fixture,
+    alice,
+    homeA,
+    bob,
+    homeB,
+    gameId,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+    target,
+    server,
+  })
+  const { bobSource, stagedAlice } = createViewsSetupPhase6Result
+  const { views, stage } = createViewsSetupPhase6Result
+
+  const bobColonizeId = await submitAction({
+    client: bob.client,
+    gameId,
+    view: required(views[1]),
+    actionDefinitionId: ColonizeFarFleetSpeed5.id,
+    selectedTargets: { fleet: bobSource.id, planet: target.id },
+    selectedInputs: { strength: 35 },
+  })
+  return { createViewsSetupPhase6Result, stagedAlice, views, stage, bobColonizeId }
+}
+
+type CreateCreateViewsSetupResultSetupInput = {
+  fixture: Awaited<ReturnType<typeof CapturedcreatePublicTwoPlayerFixture>>
+  alice: AuthenticatedApiClient
+  homeA: Planet
+  bob: AuthenticatedApiClient
+  homeB: Planet
+  gameId: number
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  target: Planet
+  server: ConcurrencyTestApiServer
+}
+
+type CreateCreateViewsSetupResultSetupResult = {
+  createViewsSetupPhase6Result: CreateViewsSetup2Result
+  stagedAlice: Fleet
+  views: PlayerView[]
+  stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+  bobColonizeId: string
 }

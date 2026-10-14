@@ -186,22 +186,7 @@ export type AssertAAtPInput = {
   bAtP: ReturnType<typeof createFleetStub>
   aAtQ: ReturnType<typeof createFleetStub>
   aAtHome: ResolutionFleet
-  eligibilityState: (
-    playerId: PlayerId,
-    turn: number,
-    players: Readonly<Record<PlayerId, ResolutionPlayer>>,
-    currentPlanets: ReadonlyArray<Pick<ReturnType<typeof createPlanetStub>, "id" | "ownerPlayerId" | "x" | "y">>,
-    currentFleets: ReadonlyArray<ReturnType<typeof createFleetStub>>,
-  ) => Readonly<{
-    gameId: GameId
-    turn: number
-    submittingPlayerId: PlayerId
-    resources: Readonly<ReturnType<typeof createResourcesStub>>
-    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
-    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
-    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
-    actions: readonly Action[]
-  }>
+  eligibilityState: EligibilityStateCallback
   afterArrival: ResolvedTurnState
   journeyActionBindings: Array<{ playerId: PlayerId; actionId: ActionId; freeMoveActionId: ActionId }>
   ruleset: Ruleset
@@ -265,20 +250,7 @@ export type AssertAAtPInput = {
     >
   }
   turnThreeRng: Rng<number>
-  reloadTurn: (
-    previous: ResolvedTurnState,
-    turn: number,
-    submissions: Array<
-      Readonly<{
-        id: ActionId
-        playerId: PlayerId
-        actionDefinitionId: ActionDefinitionId
-        selectedTargets: Readonly<Record<TargetTag, TargetId>>
-        selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
-      }>
-    >,
-    rng: ReturnType<typeof createSeededRng>,
-  ) => ResolvedTurnState
+  reloadTurn: ReloadTurnCallback
   p: ReturnType<typeof createPlanetStub>
   strengthTotal: (state: ResolvedTurnState) => number
 }
@@ -496,22 +468,7 @@ function verifyReuseSubmission({
 
 type VerifyReleasedInput = {
   journeyActionBindings: Array<{ playerId: PlayerId; actionId: ActionId; freeMoveActionId: ActionId }>
-  eligibilityState: (
-    playerId: PlayerId,
-    turn: number,
-    players: Readonly<Record<PlayerId, ResolutionPlayer>>,
-    currentPlanets: ReadonlyArray<Pick<ReturnType<typeof createPlanetStub>, "id" | "ownerPlayerId" | "x" | "y">>,
-    currentFleets: ReadonlyArray<ReturnType<typeof createFleetStub>>,
-  ) => Readonly<{
-    gameId: GameId
-    turn: number
-    submittingPlayerId: PlayerId
-    resources: Readonly<ReturnType<typeof createResourcesStub>>
-    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
-    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
-    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
-    actions: readonly Action[]
-  }>
+  eligibilityState: EligibilityStateCallback
   afterArrival: ResolvedTurnState
   ruleset: Ruleset
   aTurnFour: Readonly<{
@@ -590,22 +547,41 @@ type VerifyReuseSubmissionInput = {
   aSource: ReturnType<typeof createFleetStub>
   q: ReturnType<typeof createPlanetStub>
   turnThreeRng: Rng<number>
-  reloadTurn: (
-    previous: ResolvedTurnState,
-    turn: number,
-    submissions: Array<
-      Readonly<{
-        id: ActionId
-        playerId: PlayerId
-        actionDefinitionId: ActionDefinitionId
-        selectedTargets: Readonly<Record<TargetTag, TargetId>>
-        selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
-      }>
-    >,
-    rng: ReturnType<typeof createSeededRng>,
-  ) => ResolvedTurnState
+  reloadTurn: ReloadTurnCallback
   afterArrival: ResolvedTurnState
   p: ReturnType<typeof createPlanetStub>
   bAtP: ReturnType<typeof createFleetStub>
   strengthTotal: (state: ResolvedTurnState) => number
 }
+
+type EligibilityStateCallback = (
+  playerId: PlayerId,
+  turn: number,
+  players: Readonly<Record<PlayerId, ResolutionPlayer>>,
+  currentPlanets: ReadonlyArray<Pick<ReturnType<typeof createPlanetStub>, "id" | "ownerPlayerId" | "x" | "y">>,
+  currentFleets: ReadonlyArray<ReturnType<typeof createFleetStub>>,
+) => Readonly<{
+  gameId: GameId
+  turn: number
+  submittingPlayerId: PlayerId
+  resources: Readonly<ReturnType<typeof createResourcesStub>>
+  players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+  planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+  fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+  actions: readonly Action[]
+}>
+
+type ReloadTurnCallback = (
+  previous: ResolvedTurnState,
+  turn: number,
+  submissions: Array<
+    Readonly<{
+      id: ActionId
+      playerId: PlayerId
+      actionDefinitionId: ActionDefinitionId
+      selectedTargets: Readonly<Record<TargetTag, TargetId>>
+      selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+    }>
+  >,
+  rng: ReturnType<typeof createSeededRng>,
+) => ResolvedTurnState

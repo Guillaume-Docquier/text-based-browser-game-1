@@ -42,14 +42,13 @@ describe("TurnProcessor", () => {
       const alice = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000001" })
 
       const createClientsSetupPhase1Result = await createClientsSetup({ apiServer, alice, db, clock })
-      const { clients, playerIds, gameId, turnProcessor, turnsRepository, target } = createClientsSetupPhase1Result
+      const { clients, gameId } = createClientsSetupPhase1Result
 
       // Act: move the non-target owner's complete fleet to the fixed target through a public ordinary Move order.
 
       const createStationedSetupPhase2Result = await createStationedSetup({ ...createClientsSetupPhase1Result, alice })
-      const { stationed, preAssaultViews, actionIds } = createStationedSetupPhase2Result
 
-      await verifyOwnerIndex({ clients, preAssaultViews, stationed, actionIds, gameId, target })
+      await verifyOwnerIndex({ ...createClientsSetupPhase1Result, ...createStationedSetupPhase2Result })
 
       const createObservedSetupPhase3Result = await createObservedSetup({
         ...createClientsSetupPhase1Result,
@@ -57,43 +56,24 @@ describe("TurnProcessor", () => {
         db,
         clock,
       })
-      const { observed, draw, forward, outcomeA, outcomeB, assertOutcomeBPhase2Value1, assertOutcomeBPhase2Observed } =
-        createObservedSetupPhase3Result
 
-      await assertOutcomeB({
-        assertOutcomeBPhase2Value1,
-        outcomeB,
-        stationed,
-        target,
-        outcomeA,
-        forward,
-        draw,
-        assertOutcomeBPhase2Observed,
-        turnProcessor,
-      })
+      await assertOutcomeB({ ...createClientsSetupPhase1Result, ...createStationedSetupPhase2Result, ...createObservedSetupPhase3Result })
 
       const afterCombatViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
 
-      verifyAfterCombatViews({ afterCombatViews, playerIds, target, clients, preAssaultViews, actionIds })
+      verifyAfterCombatViews({ ...createClientsSetupPhase1Result, ...createStationedSetupPhase2Result, afterCombatViews })
 
       // Assert: the next publicly closed empty turn observes the saved one-draw RNG and an empty action list.
       const emptyTurn = afterCombatViews[0]
       Assert.isDefined(emptyTurn)
 
       await assertEmptyObservedValue1({
-        draw,
-        observed,
-        clients,
-        gameId,
+        ...createClientsSetupPhase1Result,
+        ...createStationedSetupPhase2Result,
+        ...createObservedSetupPhase3Result,
         emptyTurn,
-        turnProcessor,
         db,
         clock,
-        turnsRepository,
-        forward,
-        stationed,
-        playerIds,
-        actionIds,
         afterCombatViews,
       })
     },
@@ -131,7 +111,6 @@ describe("TurnProcessor", () => {
       playerIds,
       homes,
     })
-    const { observed, rngSequence, draw, forward, expectedBuildNames, replayBuilds } = createObservedSetupPhase4Result
 
     const createAfterCombatViewsSetupPhase5Result = await createAfterCombatViewsSetup({
       ...createObservedSetupPhase4Result,
@@ -146,30 +125,35 @@ describe("TurnProcessor", () => {
       clients,
       gameId,
     })
-    const { afterCombatViews, actualForces } = createAfterCombatViewsSetupPhase5Result
+    const { afterCombatViews } = createAfterCombatViewsSetupPhase5Result
 
-    verifyActualFleet({ stationed, forward, afterCombatViews, target })
+    verifyActualFleet({ ...createObservedSetupPhase4Result, ...createAfterCombatViewsSetupPhase5Result, stationed, target })
     const actualWorkerBuildNames: string[] = []
 
-    verifyActualBuild({ replayBuilds, afterCombatViews, actualWorkerBuildNames, clients, preAssaultViews, target, assaultActionIds })
+    verifyActualBuild({
+      ...createObservedSetupPhase4Result,
+      ...createAfterCombatViewsSetupPhase5Result,
+      actualWorkerBuildNames,
+      clients,
+      preAssaultViews,
+      target,
+      assaultActionIds,
+    })
 
     // Assert: capture the next empty public turn and verify the naturally persisted one-draw RNG before the real worker.
     const emptyTurn = afterCombatViews[0]
     Assert.isDefined(emptyTurn)
 
     await assertEmptyObservedValue12({
-      draw,
-      observed,
+      ...createObservedSetupPhase4Result,
+      ...createAfterCombatViewsSetupPhase5Result,
       clients,
       gameId,
       emptyTurn,
       db,
       clock,
       turnsRepository,
-      forward,
-      rngSequence,
       actualWorkerBuildNames,
-      expectedBuildNames,
       playerIds,
       buildActionIds,
       homes,
@@ -178,7 +162,6 @@ describe("TurnProcessor", () => {
       turnProcessor,
       alice,
       target,
-      actualForces,
     })
   })
 
@@ -212,7 +195,6 @@ describe("TurnProcessor", () => {
       playerIds,
       stationed,
     })
-    const { observed, draw, forward } = createObservedSetupPhase6Result
 
     const createAfterCombatViewsSetupPhase7Result = await createAfterCombatViewsSetup2({
       ...createObservedSetupPhase6Result,
@@ -225,7 +207,7 @@ describe("TurnProcessor", () => {
       clients,
       gameId,
     })
-    const { afterCombatViews, actualForces } = createAfterCombatViewsSetupPhase7Result
+    const { afterCombatViews } = createAfterCombatViewsSetupPhase7Result
     for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
       const before = preAssaultViews[ownerIndex]
       const after = afterCombatViews[ownerIndex]
@@ -246,22 +228,20 @@ describe("TurnProcessor", () => {
     Assert.isDefined(emptyTurn)
 
     await assertEmptyObservedValue13({
-      draw,
-      observed,
+      ...createObservedSetupPhase6Result,
+      ...createAfterCombatViewsSetupPhase7Result,
       clients,
       gameId,
       emptyTurn,
       db,
       clock,
       turnsRepository,
-      forward,
       stationed,
       playerIds,
       assaultActionIds,
       turnProcessor,
       alice,
       target,
-      actualForces,
     })
   })
 })

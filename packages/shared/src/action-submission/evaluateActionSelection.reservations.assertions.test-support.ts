@@ -404,13 +404,7 @@ export type AssertEitherUpdateOrderInput = {
     selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
   }>
   colonize20: ReturnType<typeof createSubmittedActionStub>
-  moveSubmission: (strength: number) => Readonly<{
-    id: ActionId
-    playerId: PlayerId
-    actionDefinitionId: ActionDefinitionId
-    selectedTargets: Readonly<Record<TargetTag, TargetId>>
-    selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
-  }>
+  moveSubmission: MoveSubmissionCallback
   occupied: Readonly<{
     gameId: GameId
     turn: number
@@ -421,9 +415,19 @@ export type AssertEitherUpdateOrderInput = {
     fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
     actions: readonly Action[]
   }>
-  moveDraft: (strength: number) => Readonly<{
-    actionId: ActionId
-    selectedTargets: Readonly<Record<TargetTag, undefined | PlayerId | FleetId | PlanetId>>
-    selectedInputs: Readonly<Record<InputTag, undefined | number>>
-  }>
+  moveDraft: MoveDraftCallback
 }
+
+type MoveSubmissionCallback = (strength: number) => Readonly<{
+  id: ActionId
+  playerId: PlayerId
+  actionDefinitionId: ActionDefinitionId
+  selectedTargets: Readonly<Record<TargetTag, TargetId>>
+  selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+}>
+
+type MoveDraftCallback = (strength: number) => Readonly<{
+  actionId: ActionId
+  selectedTargets: Readonly<Record<TargetTag, undefined | PlayerId | FleetId | PlanetId>>
+  selectedInputs: Readonly<Record<InputTag, undefined | number>>
+}>

@@ -258,20 +258,7 @@ describe("TurnProcessor", () => {
       using apiServer = new ApiServer(apiServices)
 
       const createPlayerSetupPhase1Result = await createPlayerSetup({ apiServer, db, clock })
-      const {
-        player,
-        turnInterval,
-        gameId,
-        turnProcessor,
-        turnsRepository,
-        origin,
-        destination,
-        builtView,
-        sourceFleet,
-        moveAction,
-        departedView,
-        journey,
-      } = createPlayerSetupPhase1Result
+      const { sourceFleet, departedView, journey } = createPlayerSetupPhase1Result
       const remainder = departedView.fleets.find(({ id, movement }) => id === sourceFleet.id && movement === undefined)
       Assert.isDefined(journey)
       Assert.isDefined(remainder)
@@ -282,27 +269,14 @@ describe("TurnProcessor", () => {
         journey,
         clock,
       })
-      const { expectedMovementProvenance, expectedResourcesAfterPayment, continuedView, continuedJourney } =
-        createExpectedMovementProvenanceSetupPhase2Result
+
       // Assert
 
       await assertContinuedJourney({
-        continuedJourney,
-        expectedMovementProvenance,
-        destination,
-        continuedView,
-        moveAction,
-        expectedResourcesAfterPayment,
+        ...createPlayerSetupPhase1Result,
+        ...createExpectedMovementProvenanceSetupPhase2Result,
         clock,
-        turnInterval,
-        turnsRepository,
-        turnProcessor,
-        player,
-        gameId,
-        builtView,
         journey,
-        sourceFleet,
-        origin,
       })
     })
 
@@ -427,8 +401,6 @@ describe("TurnProcessor", () => {
         turnsRepository,
         turnProcessor,
       })
-      const { inTransitView, firstOccupied, secondOccupied, freeThird, stationaryRemainder, otherStationaryFleet } =
-        createImmediateMoveSetupPhase3Result
 
       const createBeforeOccupiedRedirectSetupPhase4Result = await createBeforeOccupiedRedirectSetup({
         ...createImmediateMoveSetupPhase3Result,
@@ -437,20 +409,13 @@ describe("TurnProcessor", () => {
         player,
         gameId,
       })
-      const { beforeOccupiedRedirect, journeyFleet } = createBeforeOccupiedRedirectSetupPhase4Result
 
       await assertPlayer({
+        ...createImmediateMoveSetupPhase3Result,
+        ...createBeforeOccupiedRedirectSetupPhase4Result,
         player,
         gameId,
-        inTransitView,
-        freeThird,
-        journeyFleet,
         destination,
-        beforeOccupiedRedirect,
-        stationaryRemainder,
-        firstOccupied,
-        secondOccupied,
-        otherStationaryFleet,
         quickDestination,
       })
     })

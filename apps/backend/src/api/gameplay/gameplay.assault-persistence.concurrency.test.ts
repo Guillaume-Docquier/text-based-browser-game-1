@@ -26,7 +26,7 @@ import {
   normalizeApiDate,
   waitForCollectingSuccessor,
   createStartGate,
-  submitMoveAfterGate,
+  submitActionAfterGate,
 } from "../../tests/fleet-concurrency/gameplay.scenarios.ts"
 import { TURN_INTERVAL, MANUAL_WORKER_TURN_INTERVAL } from "../../tests/fleet-concurrency/gameplay.ts"
 
@@ -130,23 +130,29 @@ describe("gameplay submission concurrency", () => {
 
     const startTogether = createStartGate(2)
     const reservationRace = await Promise.allSettled([
-      submitMoveAfterGate(startTogether, {
+      submitActionAfterGate(startTogether, {
         client: player.client,
-        gameId,
-        turn: playerView.turn,
-        actionId: moveAction.id,
-        fleetId: sourceFleet.id,
-        destinationId: destination.id,
-        strength: 20,
+        submission: {
+          gameId,
+          turn: playerView.turn,
+          submittedActionTargets: {
+            actionId: moveAction.id,
+            selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+            selectedInputs: { strength: 20 },
+          },
+        },
       }),
-      submitMoveAfterGate(startTogether, {
+      submitActionAfterGate(startTogether, {
         client: player.client,
-        gameId,
-        turn: playerView.turn,
-        actionId: attackAction.id,
-        fleetId: sourceFleet.id,
-        destinationId: destination.id,
-        strength: 30,
+        submission: {
+          gameId,
+          turn: playerView.turn,
+          submittedActionTargets: {
+            actionId: attackAction.id,
+            selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+            selectedInputs: { strength: 30 },
+          },
+        },
       }),
     ])
     expect(reservationRace.map(({ status }) => status)).toStrictEqual(["fulfilled", "fulfilled"])

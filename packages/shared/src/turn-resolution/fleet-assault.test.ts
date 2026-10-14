@@ -471,15 +471,7 @@ describe("Fleet Assault", () => {
 
   it("should resolve the chronological 20-first then 15 Assault after their merge, independent of input order", () => {
     // Arrange
-    const createFixture = (): {
-      origin: Planet
-      target: Planet
-      earlierTwenty: Fleet
-      laterFifteen: Fleet
-      defender: Fleet
-      earlierSubmission: ReturnType<typeof createSubmittedActionStub>
-      laterSubmission: ReturnType<typeof createSubmittedActionStub>
-    } => {
+    const createFixture = (): CreateFixtureProjection => {
       const origin = planet("provenance-complement-origin", PLAYER_A, 0)
       const target = planet("provenance-complement-target", PLAYER_B, 1)
       const earlierTwenty = fleet("provenance-complement-20", PLAYER_A, origin, 20)
@@ -567,3 +559,13 @@ describe("Fleet Assault", () => {
     expect(assaultOutcomes).toHaveLength(1)
   })
 })
+
+type CreateFixtureProjection = {
+  origin: Planet
+  target: Planet
+  earlierTwenty: Fleet
+  laterFifteen: Fleet
+  defender: Fleet
+  earlierSubmission: ReturnType<typeof createSubmittedActionStub>
+  laterSubmission: ReturnType<typeof createSubmittedActionStub>
+}

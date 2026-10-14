@@ -268,7 +268,7 @@ describe("TurnProcessor", () => {
       using apiServer = new ApiServer(apiServices)
 
       const createClientsSetupPhase1Result = await createClientsSetup({ apiServer, db, clock })
-      const { turnProcessor, turnsRepository, fixture, actionIds, forward, firstFleet } = createClientsSetupPhase1Result
+      const { fixture, actionIds, forward, firstFleet } = createClientsSetupPhase1Result
       const laterFleet = fixture.stationed[1]
       const playerAId = fixture.playerIds[0]
       const playerBId = fixture.playerIds[1]
@@ -294,9 +294,8 @@ describe("TurnProcessor", () => {
         firstOutcome,
         laterOutcome,
       })
-      const { emptyTurn, assertEmptyObservedPhase3Observed } = createEmptyTurnSetupPhase2Result
 
-      await assertEmptyObserved({ fixture, emptyTurn, db, clock, turnsRepository, assertEmptyObservedPhase3Observed, turnProcessor })
+      await assertEmptyObserved({ ...createClientsSetupPhase1Result, ...createEmptyTurnSetupPhase2Result, db, clock })
     },
   )
 
@@ -311,10 +310,10 @@ describe("TurnProcessor", () => {
       using apiServer = new ApiServer(apiServices)
 
       const createClientsSetupPhase3Result = await createClientsSetup2({ apiServer, db, clock })
-      const { turnProcessor, turnsRepository, fixture, target, beforeViews, actionIds, observed, forward } = createClientsSetupPhase3Result
+      const { fixture, target, observed, forward } = createClientsSetupPhase3Result
 
       const createFleetBSetupPhase4Result = await createFleetBSetup({ ...createClientsSetupPhase3Result })
-      const { fleetB, fleetC, thirdJourneyId, secondJourneyId, expectedForces } = createFleetBSetupPhase4Result
+      const { expectedForces } = createFleetBSetupPhase4Result
       const afterViews = await Promise.all(
         fixture.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: fixture.gameId })),
       )
@@ -326,14 +325,14 @@ describe("TurnProcessor", () => {
       )
       Assert.isDefined(survivor)
 
-      assertSurvivor({ survivor, secondJourneyId, fleetB, fixture, target, afterViews, fleetC, thirdJourneyId, beforeViews, actionIds })
+      assertSurvivor({ ...createClientsSetupPhase3Result, ...createFleetBSetupPhase4Result, survivor, afterViews })
 
       const emptyTurn = afterViews[0]
       Assert.isDefined(emptyTurn)
 
       const assertEmptyObservedPhase6Observed = observed
 
-      await assertEmptyObserved2({ fixture, emptyTurn, db, clock, turnsRepository, assertEmptyObservedPhase6Observed, turnProcessor })
+      await assertEmptyObserved2({ ...createClientsSetupPhase3Result, emptyTurn, db, clock, assertEmptyObservedPhase6Observed })
     },
   )
 

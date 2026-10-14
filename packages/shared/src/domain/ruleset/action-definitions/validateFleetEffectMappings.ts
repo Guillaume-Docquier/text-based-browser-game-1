@@ -49,11 +49,7 @@ export function validateTargetConstraintSources({
 }): void {
   for (const [targetTag, targetDefinition] of Object.entries(actionDefinition.targets)) {
     for (const [constraintIndex, constraint] of targetDefinition.constraints.entries()) {
-      if (
-        constraint.type !== "WITHIN_FLEET_RANGE" &&
-        constraint.type !== "DIFFERENT_FROM_FLEET_ORIGIN" &&
-        constraint.type !== AtFleetPlanetConstraint.type
-      ) {
+      if (!isFleetReferenceConstraint(constraint)) {
         continue
       }
 
@@ -295,4 +291,14 @@ function validateAssaultSourceAndArrival(options: Parameters<typeof validateArri
     label: options.label,
   })
   validateArrivalMapping(options)
+}
+
+type ActionTargetConstraint = ActionDefinition["targets"][TargetTag]["constraints"][number]
+type FleetReferenceConstraint = Extract<
+  ActionTargetConstraint,
+  { type: "WITHIN_FLEET_RANGE" | "DIFFERENT_FROM_FLEET_ORIGIN" | "AT_FLEET_PLANET" }
+>
+function isFleetReferenceConstraint(constraint: ActionTargetConstraint): constraint is FleetReferenceConstraint {
+  const types: ReadonlyArray<ActionTargetConstraint["type"]> = ["WITHIN_FLEET_RANGE", "DIFFERENT_FROM_FLEET_ORIGIN", "AT_FLEET_PLANET"]
+  return types.includes(constraint.type)
 }

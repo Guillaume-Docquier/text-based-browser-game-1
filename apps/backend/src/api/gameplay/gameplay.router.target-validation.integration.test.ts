@@ -141,45 +141,14 @@ describe("gameplay.router", () => {
           expect(await turnProcessor.processNextDueTurn()).toBe("processed")
         }
 
-        const createForeignFleetSetupPhase1Result = await createForeignFleetSetup({ alice, processReadyTurn, bob })
-        const { gameId, planets, aliceHome, bobHome, source } = createForeignFleetSetupPhase1Result
-        let { aliceView, bobView } = createForeignFleetSetupPhase1Result
-        const defender = bobView.fleets.find(
-          ({ ownerPlayerId, originPlanetId, movement }) =>
-            ownerPlayerId === bobView.player.id && originPlanetId === bobHome.id && movement === undefined,
-        )
-        Assert.isDefined(source)
-        Assert.isDefined(defender)
-        expect(source.strength).toBe(50)
-        expect(defender.strength).toBe(20)
-
-        // Act & Assert: the standalone definition is a legal no-op at its own source when no enemy is present.
-        const stationaryAssault = aliceView.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
-        Assert.isDefined(stationaryAssault)
-
-        const updatedVerifyActionSelections = await assertActionSelections({
+        const createCreateForeignFleetSetupPhase1ResultSetupPhase1Result = await createCreateForeignFleetSetupResultSetup({
           alice,
-          gameId,
-          aliceView,
-          stationaryAssault,
-          source,
-          aliceHome,
           processReadyTurn,
           bob,
-          defender,
         })
-        aliceView = updatedVerifyActionSelections.aliceView
-
-        // Arrange: create a genuinely moving source with an ordinary public Move and worker turn.
-        const movingView = await alice.client.gameplay.getPlayerView.query({ gameId })
-        const movingDestination = planets
-          .filter(({ ownerPlayerId, id }) => ownerPlayerId === null && id !== aliceHome.id)
-          .map((planet) => ({ planet, distance: Math.hypot(planet.x - aliceHome.x, planet.y - aliceHome.y) }))
-          .filter(({ distance }) => distance > 4 && distance <= 10)
-          .toSorted((left, right) => left.distance - right.distance)[0]
-        const moveAction = movingView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetImproved.id)
-        Assert.isDefined(movingDestination)
-        Assert.isDefined(moveAction)
+        const { createForeignFleetSetupPhase1Result, gameId, source, movingView, movingDestination, moveAction } =
+          createCreateForeignFleetSetupPhase1ResultSetupPhase1Result
+        let { aliceView } = createCreateForeignFleetSetupPhase1ResultSetupPhase1Result
         await alice.client.gameplay.updateActionSubmission.mutate({
           gameId,
           turn: movingView.turn,
@@ -226,11 +195,9 @@ describe("gameplay.router", () => {
           expect(await alice.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(beforeRejectedDraft)
         }
 
-        const createValidTargetsSetupPhase2Result = await createValidTargetsSetup({
-          ...createForeignFleetSetupPhase1Result,
-          source,
+        const createCreateValidTargetsSetupPhase2ResultSetupPhase2Result = await createCreateValidTargetsSetupResultSetup({
+          ...createCreateForeignFleetSetupPhase1ResultSetupPhase1Result,
           rejectDraftWithoutMutation,
-          defender,
           movingSource,
           alice,
           aliceView,
@@ -238,41 +205,20 @@ describe("gameplay.router", () => {
           processReadyTurn,
           bob,
         })
-        const { validTargets, firstReload, journey, freeComposedAction, occupiedComposedAction, occupiedJourney } =
-          createValidTargetsSetupPhase2Result
-        expect(occupiedJourney.movement?.submission).toStrictEqual({
-          id: customAction.id,
-          playerId: aliceView.player.id,
-          actionDefinitionId: RenamedComposedAssault.id,
-          selectedTargets: validTargets,
-          selectedInputs: { units: 30 },
-        })
+        const { createValidTargetsSetupPhase2Result } = createCreateValidTargetsSetupPhase2ResultSetupPhase2Result
 
-        const redirectPlanet = planets
-          .filter(({ id }) => id !== aliceHome.id && id !== bobHome.id)
-          .map((planet) => ({ planet, distance: Math.hypot(planet.x - aliceHome.x, planet.y - aliceHome.y) }))
-          .filter(({ distance }) => distance <= 5)
-          .toSorted((left, right) => left.distance - right.distance)[0]
-        Assert.isDefined(redirectPlanet)
-
+        Assert.isDefined(source)
         await verifyPublicState({
-          source,
-          redirectPlanet,
+          ...createCreateForeignFleetSetupPhase1ResultSetupPhase1Result,
+          ...createCreateValidTargetsSetupPhase2ResultSetupPhase2Result,
+          ...createForeignFleetSetupPhase1Result,
+          ...createValidTargetsSetupPhase2Result,
           alice,
-          gameId,
-          firstReload,
-          freeComposedAction,
           customAction,
-          occupiedComposedAction,
-          journey,
-          occupiedJourney,
-          validTargets,
           processReadyTurn,
           bob,
-          defender,
           aliceView,
-          bobHome,
-          aliceHome,
+          source,
         })
       },
       30_000,
@@ -542,4 +488,147 @@ type VerifyPublicStateInput = {
   aliceView: PlayerView
   bobHome: Planet
   aliceHome: Planet
+}
+
+async function createCreateForeignFleetSetupResultSetup({
+  alice,
+  processReadyTurn,
+  bob,
+}: CreateCreateForeignFleetSetupResultSetupInput): Promise<CreateCreateForeignFleetSetupResultSetupResult> {
+  const createForeignFleetSetupPhase1Result = await createForeignFleetSetup({ alice, processReadyTurn, bob })
+  const { gameId, planets, aliceHome, bobHome, source } = createForeignFleetSetupPhase1Result
+  let { aliceView, bobView } = createForeignFleetSetupPhase1Result
+  const defender = bobView.fleets.find(
+    ({ ownerPlayerId, originPlanetId, movement }) =>
+      ownerPlayerId === bobView.player.id && originPlanetId === bobHome.id && movement === undefined,
+  )
+  Assert.isDefined(source)
+  Assert.isDefined(defender)
+  expect(source.strength).toBe(50)
+  expect(defender.strength).toBe(20)
+
+  // Act & Assert: the standalone definition is a legal no-op at its own source when no enemy is present.
+  const stationaryAssault = aliceView.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
+  Assert.isDefined(stationaryAssault)
+
+  const updatedVerifyActionSelections = await assertActionSelections({
+    ...createForeignFleetSetupPhase1Result,
+    alice,
+    stationaryAssault,
+    source,
+    processReadyTurn,
+    bob,
+    defender,
+  })
+  aliceView = updatedVerifyActionSelections.aliceView
+
+  // Arrange: create a genuinely moving source with an ordinary public Move and worker turn.
+  const movingView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  const movingDestination = planets
+    .filter(({ ownerPlayerId, id }) => ownerPlayerId === null && id !== aliceHome.id)
+    .map((planet) => ({ planet, distance: Math.hypot(planet.x - aliceHome.x, planet.y - aliceHome.y) }))
+    .filter(({ distance }) => distance > 4 && distance <= 10)
+    .toSorted((left, right) => left.distance - right.distance)[0]
+  const moveAction = movingView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetImproved.id)
+  Assert.isDefined(movingDestination)
+  Assert.isDefined(moveAction)
+  return {
+    createForeignFleetSetupPhase1Result,
+    gameId,
+    planets,
+    aliceHome,
+    bobHome,
+    source,
+    aliceView,
+    defender,
+    movingView,
+    movingDestination,
+    moveAction,
+  }
+}
+
+async function createCreateValidTargetsSetupResultSetup({
+  createForeignFleetSetupPhase1Result,
+  source,
+  rejectDraftWithoutMutation,
+  defender,
+  movingSource,
+  alice,
+  aliceView,
+  customAction,
+  processReadyTurn,
+  bob,
+  planets,
+  aliceHome,
+  bobHome,
+}: CreateCreateValidTargetsSetupResultSetupInput): Promise<CreateCreateValidTargetsSetupResultSetupResult> {
+  const createValidTargetsSetupPhase2Result = await createValidTargetsSetup({
+    ...createForeignFleetSetupPhase1Result,
+    source,
+    rejectDraftWithoutMutation,
+    defender,
+    movingSource,
+    alice,
+    aliceView,
+    customAction,
+    processReadyTurn,
+    bob,
+  })
+  const { validTargets, occupiedJourney } = createValidTargetsSetupPhase2Result
+  expect(occupiedJourney.movement?.submission).toStrictEqual({
+    id: customAction.id,
+    playerId: aliceView.player.id,
+    actionDefinitionId: RenamedComposedAssault.id,
+    selectedTargets: validTargets,
+    selectedInputs: { units: 30 },
+  })
+
+  const redirectPlanet = planets
+    .filter(({ id }) => id !== aliceHome.id && id !== bobHome.id)
+    .map((planet) => ({ planet, distance: Math.hypot(planet.x - aliceHome.x, planet.y - aliceHome.y) }))
+    .filter(({ distance }) => distance <= 5)
+    .toSorted((left, right) => left.distance - right.distance)[0]
+  Assert.isDefined(redirectPlanet)
+  return { createValidTargetsSetupPhase2Result, redirectPlanet }
+}
+
+type CreateCreateForeignFleetSetupResultSetupInput = {
+  alice: AuthenticatedApiClient
+  processReadyTurn: (gameId: number, turn: number, clients: readonly AuthenticatedApiClient[]) => Promise<void>
+  bob: AuthenticatedApiClient
+}
+
+type CreateCreateForeignFleetSetupResultSetupResult = {
+  createForeignFleetSetupPhase1Result: CreateForeignFleetSetupResult
+  gameId: GameId
+  planets: Planet[]
+  aliceHome: Planet
+  bobHome: Planet
+  source: Fleet
+  aliceView: PlayerView
+  defender: Fleet
+  movingView: PlayerView
+  movingDestination: { planet: Planet; distance: number }
+  moveAction: Action
+}
+
+type CreateCreateValidTargetsSetupResultSetupInput = {
+  createForeignFleetSetupPhase1Result: CreateForeignFleetSetupResult
+  source: Fleet
+  rejectDraftWithoutMutation: (selectedTargets: Record<string, string>, selectedInputs: Record<string, number>) => Promise<void>
+  defender: Fleet
+  movingSource: Fleet
+  alice: AuthenticatedApiClient
+  aliceView: PlayerView
+  customAction: Action
+  processReadyTurn: (gameId: number, turn: number, clients: readonly AuthenticatedApiClient[]) => Promise<void>
+  bob: AuthenticatedApiClient
+  planets: Planet[]
+  aliceHome: Planet
+  bobHome: Planet
+}
+
+type CreateCreateValidTargetsSetupResultSetupResult = {
+  createValidTargetsSetupPhase2Result: CreateValidTargetsSetupResult
+  redirectPlanet: { planet: Planet; distance: number }
 }

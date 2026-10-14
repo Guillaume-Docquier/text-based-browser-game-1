@@ -231,43 +231,12 @@ describe("TurnProcessor", () => {
           expect(movingView.fleets.find(({ id }) => id === fixture.defender.id)?.strength).toBe(20)
         }
 
-        const beforeAttack = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
-        const attackAction = beforeAttack.actions.find(({ actionDefinitionId }) => actionDefinitionId === SpeedTwoAssaultWorkerTest.id)
-        Assert.isDefined(attackAction)
-        await alice.client.gameplay.updateActionSubmission.mutate({
-          gameId: fixture.gameId,
-          turn: beforeAttack.turn,
-          submittedActionTargets: getActionToSubmintegrationTest(
-            beforeAttack,
-            SpeedTwoAssaultWorkerTest.id,
-            { source: fixture.source.id, destination: fixture.bobHome.id },
-            { force: 30 },
-          ),
-        })
-        const selectedView = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
-        const expectedInfluenceUncommitted = moveFriendlyGuard ? 82 : 85
-        const expectedFuelUncommitted = moveFriendlyGuard ? 96 : 99
-        expect(selectedView.resources[ResourceType.INFLUENCE].uncommitted).toBe(expectedInfluenceUncommitted)
-        expect(selectedView.resources[ResourceType.FUEL].uncommitted).toBe(expectedFuelUncommitted)
+        const createAttackActionSetupPhase1Result = await createAttackActionSetup({ alice, fixture, moveFriendlyGuard, processReadyTurn })
 
-        // Act: lock the exact 5/1 Attack Move and verify its persisted remainder on every worker reload.
-        await processReadyTurn(fixture.gameId, beforeAttack.turn)
-        const firstReload = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
-        const journey = firstReload.fleets.find(({ movement }) => movement?.submission.id === attackAction.id)
-        Assert.isDefined(journey)
-
-        await verifyJourney({
-          journey,
-          fixture,
-          firstReload,
-          expectedInfluenceUncommitted,
-          expectedFuelUncommitted,
-          processReadyTurn,
-          alice,
-        })
+        await verifyJourney({ ...createAttackActionSetupPhase1Result, fixture, processReadyTurn, alice })
         // Assert: arrival combat preserves the correct owner, survivor identity, resources, and next-turn release.
 
-        await verifyArrivalView({ alice, fixture, friendlyGuard, journey, attackAction, processReadyTurn })
+        await verifyArrivalView({ ...createAttackActionSetupPhase1Result, alice, fixture, friendlyGuard, processReadyTurn })
       }
 
       await runCombat(await createBuiltGame(), moveFriendlyGuard)
@@ -865,8 +834,8 @@ type VerifyJourneyInput = {
   journey: Fleet
   fixture: { gameId: number; aliceHome: Planet; bobHome: Planet; source: Fleet; defender: Fleet }
   firstReload: PlayerView
-  expectedInfluenceUncommitted: 82 | 85
-  expectedFuelUncommitted: 96 | 99
+  expectedInfluenceUncommitted: number
+  expectedFuelUncommitted: number
   processReadyTurn: (gameId: number, turn: number) => Promise<void>
   alice: AuthenticatedApiClient
 }
@@ -878,4 +847,52 @@ type VerifyArrivalViewInput = {
   journey: Fleet
   attackAction: Action
   processReadyTurn: (gameId: number, turn: number) => Promise<void>
+}
+
+async function createAttackActionSetup({
+  alice,
+  fixture,
+  moveFriendlyGuard,
+  processReadyTurn,
+}: CreateAttackActionSetupInput): Promise<CreateAttackActionSetupResult> {
+  const beforeAttack = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
+  const attackAction = beforeAttack.actions.find(({ actionDefinitionId }) => actionDefinitionId === SpeedTwoAssaultWorkerTest.id)
+  Assert.isDefined(attackAction)
+  await alice.client.gameplay.updateActionSubmission.mutate({
+    gameId: fixture.gameId,
+    turn: beforeAttack.turn,
+    submittedActionTargets: getActionToSubmintegrationTest(
+      beforeAttack,
+      SpeedTwoAssaultWorkerTest.id,
+      { source: fixture.source.id, destination: fixture.bobHome.id },
+      { force: 30 },
+    ),
+  })
+  const selectedView = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
+  const expectedInfluenceUncommitted = moveFriendlyGuard ? 82 : 85
+  const expectedFuelUncommitted = moveFriendlyGuard ? 96 : 99
+  expect(selectedView.resources[ResourceType.INFLUENCE].uncommitted).toBe(expectedInfluenceUncommitted)
+  expect(selectedView.resources[ResourceType.FUEL].uncommitted).toBe(expectedFuelUncommitted)
+
+  // Act: lock the exact 5/1 Attack Move and verify its persisted remainder on every worker reload.
+  await processReadyTurn(fixture.gameId, beforeAttack.turn)
+  const firstReload = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
+  const journey = firstReload.fleets.find(({ movement }) => movement?.submission.id === attackAction.id)
+  Assert.isDefined(journey)
+  return { attackAction, expectedInfluenceUncommitted, expectedFuelUncommitted, firstReload, journey }
+}
+
+type CreateAttackActionSetupInput = {
+  alice: AuthenticatedApiClient
+  fixture: { gameId: number; aliceHome: Planet; bobHome: Planet; source: Fleet; defender: Fleet }
+  moveFriendlyGuard: false | true
+  processReadyTurn: (gameId: number, turn: number) => Promise<void>
+}
+
+type CreateAttackActionSetupResult = {
+  attackAction: Action
+  expectedInfluenceUncommitted: number
+  expectedFuelUncommitted: number
+  firstReload: PlayerView
+  journey: Fleet
 }

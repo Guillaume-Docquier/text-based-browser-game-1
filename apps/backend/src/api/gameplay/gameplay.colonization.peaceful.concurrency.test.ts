@@ -34,7 +34,7 @@ describe("public Colonization worker companions", () => {
     const fixture = await createPublicTwoPlayerFixture(server)
     const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
 
-    const createViewsSetupPhase1Result = await createViewsSetup({
+    const createCreateViewsSetupPhase1ResultSetupPhase1Result = await createCreateViewsSetupResultSetup({
       fixture,
       alice,
       gameId,
@@ -48,14 +48,8 @@ describe("public Colonization worker companions", () => {
       clients,
       target,
     })
-    const { aliceBuildId, bobBuildId, aliceSource, bobMoveId } = createViewsSetupPhase1Result
-    let { views, stage } = createViewsSetupPhase1Result
-    views = stage.views
-    // Assert Bob captured journey follows the pinned route while the target stays unclaimed.
-    const bobJourney = required(views[1]).fleets.find(({ movement }) => movement?.submission.id === bobMoveId)
-    Assert.isDefined(bobJourney)
-    expect(bobJourney.distanceToEnd).toBeCloseTo(8.852953053708077, 12)
-    expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+    const { createViewsSetupPhase1Result } = createCreateViewsSetupPhase1ResultSetupPhase1Result
+    let { views, stage } = createCreateViewsSetupPhase1ResultSetupPhase1Result
 
     // Act: process Bob arrival Turn.
     stage = await processTurnWithReplay({
@@ -69,32 +63,22 @@ describe("public Colonization worker companions", () => {
     })
     views = stage.views
     // Assert Bob arrived at strength10 while the target remains unclaimed.
-    const persistedEnemy = getFleetAt(required(views[1]), required(views[1]).player.id, target.id, 10)
-    expect(persistedEnemy.id).toBe(bobJourney.id)
-    const bobReplayArrivalTick = stage.resolved.fleets[bobJourney.id]?.arrivedAtTick
-    expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
-    expect(getFleetAt(required(views[0]), required(views[0]).player.id, homeA.id, 35).id).toBe(aliceSource.id)
 
-    // Act: submit Alice ordinary Move35.
-    const aliceMoveId = await submitAction({
-      client: alice.client,
+    const createPersistedEnemySetupPhase2Result = await createPersistedEnemySetup({
+      ...createCreateViewsSetupPhase1ResultSetupPhase1Result,
+      views,
+      target,
+      stage,
+      homeA,
+      alice,
       gameId,
-      view: required(views[0]),
-      actionDefinitionId: MoveFleetSpeed10.id,
-      selectedTargets: { fleet: aliceSource.id, planet: target.id },
-      selectedInputs: { strength: 35 },
-    })
-    expect(MoveFleetSpeed10.effects.map(({ type }) => type)).toStrictEqual(["FLEET_MOVE"])
-    // Act: resolve Alice captured Move input through the real processor.
-    const ordinaryArrival = await processTurnWithReplay({
       server,
       clock,
       turnsRepository,
       turnProcessor,
       clients,
-      gameId,
-      turn: required(views[0]).turn,
     })
+    const { ordinaryArrival } = createPersistedEnemySetupPhase2Result
     views = ordinaryArrival.views
     // Assert copied-input replay separately from the persisted player-view read-through.
     const replayMoveFleet = findPublicFleet(Object.values(ordinaryArrival.resolved.fleets), {
@@ -105,47 +89,37 @@ describe("public Colonization worker companions", () => {
     Assert.isDefined(replayMoveFleet)
 
     verifyPublicState({
+      ...createCreateViewsSetupPhase1ResultSetupPhase1Result,
+      ...createPersistedEnemySetupPhase2Result,
+      ...createViewsSetupPhase1Result,
       replayMoveFleet,
       views,
       target,
-      bobJourney,
-      aliceMoveId,
-      ordinaryArrival,
       gameId,
       alice,
       homeA,
       bob,
       homeB,
-      bobBuildId,
-      bobMoveId,
-      aliceBuildId,
-      bobReplayArrivalTick,
-      persistedEnemy,
     })
   })
 
   it("should colonize an unclaimed Planet with an enemy Fleet present and no Assault", async () => {
     await using server = await ConcurrencyTestApiServer.create()
-    const fixture = await createPublicTwoPlayerFixture(server)
-    const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
 
-    const createViewsSetupPhase2Result = await createViewsSetup2({
-      fixture,
-      alice,
-      gameId,
-      homeA,
-      bob,
-      homeB,
-      server,
-      clock,
-      turnsRepository,
-      turnProcessor,
+    const createClientsSetupPhase3Result = await createClientsSetup({ server })
+    const {
       clients,
+      gameId,
+      clock,
+      turnProcessor,
+      turnsRepository,
+      homeB,
       target,
-    })
-    const { slowColonizeId, enemyMoveId } = createViewsSetupPhase2Result
-    let { views } = createViewsSetupPhase2Result
-    expect(Math.hypot(homeB.x - target.x, homeB.y - target.y)).toBeCloseTo(18.852953053708077, 12)
+      createViewsSetupPhase2Result,
+      slowColonizeId,
+      enemyMoveId,
+    } = createClientsSetupPhase3Result
+    let { views } = createClientsSetupPhase3Result
 
     const departed = await processTurnWithReplay({
       server,
@@ -163,32 +137,22 @@ describe("public Colonization worker companions", () => {
     Assert.isDefined(bobJourney)
 
     const updatedVerifyAliceJourney = await verifyAliceJourney({
+      ...createClientsSetupPhase3Result,
       aliceJourney,
       bobJourney,
       views,
-      target,
       server,
-      clock,
-      turnsRepository,
-      turnProcessor,
-      clients,
-      gameId,
     })
     views = updatedVerifyAliceJourney.views
     const stillMovingColonizer = required(views[0]).fleets.find(({ movement }) => movement?.submission.id === slowColonizeId)
     Assert.isDefined(stillMovingColonizer)
 
     const updatedVerifyStillMovingColonizer = await verifyStillMovingColonizer({
+      ...createClientsSetupPhase3Result,
+      ...createViewsSetupPhase2Result,
       stillMovingColonizer,
       views,
-      slowColonizeId,
       server,
-      clock,
-      turnsRepository,
-      turnProcessor,
-      clients,
-      gameId,
-      target,
     })
     views = updatedVerifyStillMovingColonizer.views
     const beforeFinalArrival = required(views[0]).fleets.find(({ movement }) => movement?.submission.id === slowColonizeId)
@@ -222,7 +186,7 @@ describe("public Colonization worker companions", () => {
     )
     Assert.isDefined(colonizeContinuation)
 
-    verifyColonizeContinuation({ colonizeContinuation, target, homeA, homeB, views, claimed })
+    verifyColonizeContinuation({ ...createClientsSetupPhase3Result, colonizeContinuation, views, claimed })
   })
 })
 
@@ -589,4 +553,187 @@ type VerifyColonizeContinuationInput = {
   homeB: Planet
   views: PlayerView[]
   claimed: Planet
+}
+
+async function createCreateViewsSetupResultSetup({
+  fixture,
+  alice,
+  gameId,
+  homeA,
+  bob,
+  homeB,
+  server,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  clients,
+  target,
+}: CreateCreateViewsSetupResultSetupInput): Promise<CreateCreateViewsSetupResultSetupResult> {
+  const createViewsSetupPhase1Result = await createViewsSetup({
+    fixture,
+    alice,
+    gameId,
+    homeA,
+    bob,
+    homeB,
+    server,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+    target,
+  })
+  const { aliceSource, bobMoveId } = createViewsSetupPhase1Result
+  let { views, stage } = createViewsSetupPhase1Result
+  views = stage.views
+  // Assert Bob captured journey follows the pinned route while the target stays unclaimed.
+  const bobJourney = required(views[1]).fleets.find(({ movement }) => movement?.submission.id === bobMoveId)
+  Assert.isDefined(bobJourney)
+  expect(bobJourney.distanceToEnd).toBeCloseTo(8.852953053708077, 12)
+  expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+  return { createViewsSetupPhase1Result, aliceSource, views, stage, bobJourney }
+}
+
+async function createPersistedEnemySetup({
+  views,
+  target,
+  bobJourney,
+  stage,
+  homeA,
+  aliceSource,
+  alice,
+  gameId,
+  server,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  clients,
+}: CreatePersistedEnemySetupInput): Promise<CreatePersistedEnemySetupResult> {
+  const persistedEnemy = getFleetAt(required(views[1]), required(views[1]).player.id, target.id, 10)
+  expect(persistedEnemy.id).toBe(bobJourney.id)
+  const bobReplayArrivalTick = stage.resolved.fleets[bobJourney.id]?.arrivedAtTick
+  expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+  expect(getFleetAt(required(views[0]), required(views[0]).player.id, homeA.id, 35).id).toBe(aliceSource.id)
+
+  // Act: submit Alice ordinary Move35.
+  const aliceMoveId = await submitAction({
+    client: alice.client,
+    gameId,
+    view: required(views[0]),
+    actionDefinitionId: MoveFleetSpeed10.id,
+    selectedTargets: { fleet: aliceSource.id, planet: target.id },
+    selectedInputs: { strength: 35 },
+  })
+  expect(MoveFleetSpeed10.effects.map(({ type }) => type)).toStrictEqual(["FLEET_MOVE"])
+  // Act: resolve Alice captured Move input through the real processor.
+  const ordinaryArrival = await processTurnWithReplay({
+    server,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+    gameId,
+    turn: required(views[0]).turn,
+  })
+  return { persistedEnemy, bobReplayArrivalTick, aliceMoveId, ordinaryArrival }
+}
+
+async function createClientsSetup({ server }: CreateClientsSetupInput): Promise<CreateClientsSetupResult> {
+  const fixture = await createPublicTwoPlayerFixture(server)
+  const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
+
+  const createViewsSetupPhase2Result = await createViewsSetup2({
+    fixture,
+    alice,
+    gameId,
+    homeA,
+    bob,
+    homeB,
+    server,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+    target,
+  })
+  const { slowColonizeId, enemyMoveId } = createViewsSetupPhase2Result
+  const { views } = createViewsSetupPhase2Result
+  expect(Math.hypot(homeB.x - target.x, homeB.y - target.y)).toBeCloseTo(18.852953053708077, 12)
+  return {
+    clients,
+    gameId,
+    clock,
+    turnProcessor,
+    turnsRepository,
+    homeA,
+    homeB,
+    target,
+    createViewsSetupPhase2Result,
+    slowColonizeId,
+    enemyMoveId,
+    views,
+  }
+}
+
+type CreateCreateViewsSetupResultSetupInput = {
+  fixture: Awaited<ReturnType<typeof CapturedcreatePublicTwoPlayerFixture>>
+  alice: AuthenticatedApiClient
+  gameId: number
+  homeA: Planet
+  bob: AuthenticatedApiClient
+  homeB: Planet
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  target: Planet
+}
+
+type CreateCreateViewsSetupResultSetupResult = {
+  createViewsSetupPhase1Result: CreateViewsSetupResult
+  aliceSource: Fleet
+  views: PlayerView[]
+  stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+  bobJourney: Fleet
+}
+
+type CreatePersistedEnemySetupInput = {
+  views: PlayerView[]
+  target: Planet
+  bobJourney: Fleet
+  stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+  homeA: Planet
+  aliceSource: Fleet
+  alice: AuthenticatedApiClient
+  gameId: number
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+}
+
+type CreatePersistedEnemySetupResult = {
+  persistedEnemy: Fleet
+  bobReplayArrivalTick: undefined | NonNegativeNumber
+  aliceMoveId: string
+  ordinaryArrival: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+}
+
+type CreateClientsSetupInput = { server: ConcurrencyTestApiServer }
+
+type CreateClientsSetupResult = {
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  gameId: number
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+  homeA: Planet
+  homeB: Planet
+  target: Planet
+  createViewsSetupPhase2Result: CreateViewsSetup2Result
+  slowColonizeId: string
+  enemyMoveId: string
+  views: PlayerView[]
 }

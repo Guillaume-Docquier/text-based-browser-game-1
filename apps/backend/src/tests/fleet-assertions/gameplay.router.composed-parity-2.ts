@@ -76,45 +76,7 @@ export type AssertBeforeRejectedDraftsInput = {
   origin: Planet
   submitSelection: (actionId: string, strength: number) => Promise<void>
   moveAction: Action
-  evaluatePublicView: (view: PlayerView) => {
-    state: Readonly<{
-      gameId: GameId
-      turn: number
-      submittingPlayerId: PlayerId
-      resources: Readonly<ReturnType<typeof createResourcesStub>>
-      players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
-      planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
-      fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
-      actions: readonly CapturedAction[]
-    }>
-    submissions: Array<
-      Readonly<{
-        id: ActionId
-        playerId: PlayerId
-        actionDefinitionId: ActionDefinitionId
-        selectedTargets: Readonly<Record<TargetTag, TargetId>>
-        selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
-      }>
-    >
-    evaluation: Readonly<{
-      status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
-      issues: ReadonlyArray<
-        Readonly<{
-          code: EligibilityIssueCode
-          actionId?: ActionId
-          targetTag?: TargetTag
-          inputTag?: InputTag
-          resourceType?: ResourceType
-          message: string
-        }>
-      >
-      missingTargets: readonly TargetTag[]
-      missingInputs: readonly InputTag[]
-      resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
-      strengthCommitments: Readonly<Record<FleetId, number>>
-      remainingStrength: Readonly<Record<FleetId, number>>
-    }>
-  }
+  evaluatePublicView: EvaluatePublicViewCallback
   extraMoveAction: Action
 }
 
@@ -197,45 +159,7 @@ export async function assertCanceledView({
 export type AssertCanceledViewInput = {
   player: AuthenticatedApiClient
   createdGameId: GameId
-  evaluatePublicView: (view: PlayerView) => {
-    state: Readonly<{
-      gameId: GameId
-      turn: number
-      submittingPlayerId: PlayerId
-      resources: Readonly<ReturnType<typeof createResourcesStub>>
-      players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
-      planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
-      fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
-      actions: readonly CapturedAction[]
-    }>
-    submissions: Array<
-      Readonly<{
-        id: ActionId
-        playerId: PlayerId
-        actionDefinitionId: ActionDefinitionId
-        selectedTargets: Readonly<Record<TargetTag, TargetId>>
-        selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
-      }>
-    >
-    evaluation: Readonly<{
-      status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
-      issues: ReadonlyArray<
-        Readonly<{
-          code: EligibilityIssueCode
-          actionId?: ActionId
-          targetTag?: TargetTag
-          inputTag?: InputTag
-          resourceType?: ResourceType
-          message: string
-        }>
-      >
-      missingTargets: readonly TargetTag[]
-      missingInputs: readonly InputTag[]
-      resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
-      strengthCommitments: Readonly<Record<FleetId, number>>
-      remainingStrength: Readonly<Record<FleetId, number>>
-    }>
-  }
+  evaluatePublicView: EvaluatePublicViewCallback
   moveAction: Action
   sourceFleet: Fleet
   submitSelection: (actionId: string, strength: number) => Promise<void>
@@ -689,45 +613,7 @@ type VerifyEditedEvaluationInput = {
   extraMoveAction: Action
   editedView: PlayerView
   destination: Planet
-  evaluatePublicView: (view: PlayerView) => {
-    state: Readonly<{
-      gameId: GameId
-      turn: number
-      submittingPlayerId: PlayerId
-      resources: Readonly<ReturnType<typeof createResourcesStub>>
-      players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
-      planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
-      fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
-      actions: readonly CapturedAction[]
-    }>
-    submissions: Array<
-      Readonly<{
-        id: ActionId
-        playerId: PlayerId
-        actionDefinitionId: ActionDefinitionId
-        selectedTargets: Readonly<Record<TargetTag, TargetId>>
-        selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
-      }>
-    >
-    evaluation: Readonly<{
-      status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
-      issues: ReadonlyArray<
-        Readonly<{
-          code: EligibilityIssueCode
-          actionId?: ActionId
-          targetTag?: TargetTag
-          inputTag?: InputTag
-          resourceType?: ResourceType
-          message: string
-        }>
-      >
-      missingTargets: readonly TargetTag[]
-      missingInputs: readonly InputTag[]
-      resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
-      strengthCommitments: Readonly<Record<FleetId, number>>
-      remainingStrength: Readonly<Record<FleetId, number>>
-    }>
-  }
+  evaluatePublicView: EvaluatePublicViewCallback
 }
 
 type VerifyBeforeResourceRejectionInput = {
@@ -768,3 +654,45 @@ type VerifyViewInput = {
   submittedView: PlayerView
   sourceFleet: Fleet
 }
+
+type EvaluatePublicViewProjection = {
+  state: Readonly<{
+    gameId: GameId
+    turn: number
+    submittingPlayerId: PlayerId
+    resources: Readonly<ReturnType<typeof createResourcesStub>>
+    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+    actions: readonly CapturedAction[]
+  }>
+  submissions: Array<
+    Readonly<{
+      id: ActionId
+      playerId: PlayerId
+      actionDefinitionId: ActionDefinitionId
+      selectedTargets: Readonly<Record<TargetTag, TargetId>>
+      selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+    }>
+  >
+  evaluation: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+}
+
+type EvaluatePublicViewCallback = (view: PlayerView) => EvaluatePublicViewProjection

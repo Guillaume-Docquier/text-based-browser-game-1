@@ -218,34 +218,6 @@ export function createStartGate(parties: number): () => Promise<void> {
   }
 }
 
-export async function submitMoveAfterGate(
-  waitAtStart: () => Promise<void>,
-  { client, gameId, turn, actionId, fleetId, destinationId, strength }: SubmitMoveAfterGateInput2,
-): Promise<void> {
-  await waitAtStart()
-  await client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn,
-    submittedActionTargets: {
-      actionId,
-      selectedTargets: { fleet: fleetId, planet: destinationId },
-      selectedInputs: { strength },
-    },
-  })
-}
-
-export async function submitBuildAfterGate(
-  waitAtStart: () => Promise<void>,
-  { client, gameId, turn, actionId, planetId }: SubmitBuildAfterGateInput2,
-): Promise<void> {
-  await waitAtStart()
-  await client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn,
-    submittedActionTargets: { actionId, selectedTargets: { planet: planetId }, selectedInputs: {} },
-  })
-}
-
 type MarkManualDeadlineDueInput = {
   clock: ControlledClock
   turnsRepository: TurnsRepository
@@ -266,20 +238,14 @@ type WaitForCollectingSuccessorInput = {
   closedTurn: number
 }
 
-type SubmitMoveAfterGateInput2 = {
+type SubmitActionAfterGateInput = {
   client: AuthenticatedApiClient["client"]
-  gameId: number
-  turn: number
-  actionId: string
-  fleetId: string
-  destinationId: string
-  strength: number
+  submission: Parameters<AuthenticatedApiClient["client"]["gameplay"]["updateActionSubmission"]["mutate"]>[0]
 }
-
-type SubmitBuildAfterGateInput2 = {
-  client: AuthenticatedApiClient["client"]
-  gameId: number
-  turn: number
-  actionId: string
-  planetId: string
+export async function submitActionAfterGate(
+  waitAtStart: () => Promise<void>,
+  { client, submission }: SubmitActionAfterGateInput,
+): Promise<void> {
+  await waitAtStart()
+  await client.gameplay.updateActionSubmission.mutate(submission)
 }

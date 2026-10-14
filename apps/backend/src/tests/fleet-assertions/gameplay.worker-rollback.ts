@@ -13,6 +13,7 @@ import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import type { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import type {
   readColonizationPersistenceSnapshot as CapturedreadColonizationPersistenceSnapshot,
+  InvalidOwnerProjectionTurnsRepository,
   InvalidOwnerProjectionTurnsRepository as CapturedInvalidOwnerProjectionTurnsRepository,
 } from "#tests/fleet-concurrency/gameplay.scenarios.ts"
 import type { RetryActionInput } from "#tests/fleet-concurrency/gameplay.ts"
@@ -187,32 +188,22 @@ export async function assertAfterReset({
   preSaveSnapshot,
   afterFailure,
 }: AssertAfterResetInput): Promise<void> {
-  expect(afterReset.turnsProcessing.find(({ turn }) => turn === failureView.turn)?.processingStartedAt).toBeNull()
-  expect(afterReset.turnsProcessing.find(({ turn }) => turn === failureView.turn)?.processingEndedAt).toBeNull()
-  const restoredFailureActionInputs = projectPersistedActionInputs(afterReset, failureView.player.id, failureView.turn)
-  expect(restoredFailureActionInputs).toStrictEqual(expectedFailureActionInputs)
-
-  turnsRepository.allowOwnershipChangesForRetry()
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-  const retryView = await player.client.gameplay.getPlayerView.query({ gameId })
-  const retryDefenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
-  const afterRetry = await readColonizationPersistenceSnapshot(server.database, gameId)
-
-  await verifyRetryView({
-    retryView,
+  const createRetryDefenderViewSetupPhase1Result = await createRetryDefenderViewSetup({
+    afterReset,
     failureView,
+    expectedFailureActionInputs,
+    turnsRepository,
+    turnProcessor,
+    player,
+    gameId,
+    defender,
+    server,
     target,
     home,
     source,
     movingFleet,
-    retryDefenderView,
-    afterRetry,
-    turnProcessor,
-    server,
-    gameId,
   })
-
-  const emptyTurn = retryView.turn
+  const { retryDefenderView, emptyTurn } = createRetryDefenderViewSetupPhase1Result
   await processManualDeadlineTurn({
     clock,
     turnProcessor,
@@ -224,7 +215,16 @@ export async function assertAfterReset({
   const emptyView = await player.client.gameplay.getPlayerView.query({ gameId })
   const afterEmptyTurn = await readColonizationPersistenceSnapshot(server.database, gameId)
 
-  assertEmptyView({ emptyView, emptyTurn, target, home, source, movingFleet, afterEmptyTurn, afterRetry, failureView })
+  assertEmptyView({
+    ...createRetryDefenderViewSetupPhase1Result,
+    emptyView,
+    target,
+    home,
+    source,
+    movingFleet,
+    afterEmptyTurn,
+    failureView,
+  })
 
   Logger.get().info("[C3-22 invalid-owner rollback and retry receipt]", {
     gameId,
@@ -363,13 +363,7 @@ export type AssertMathInput = {
   alice: AuthenticatedApiClient
   gameId: GameId
   bob: AuthenticatedApiClient
-  submit: (__0: {
-    client: AuthenticatedApiClient["client"]
-    view: PlayerView
-    actionDefinitionId: ActionDefinitionId
-    selectedTargets: DeepUnbranded<SelectedTargets>
-    selectedInputs: DeepUnbranded<SelectedInputs>
-  }) => Promise<string>
+  submit: SubmitCallback
   processDeadlineTurn: (turn: number) => Promise<void>
 }
 
@@ -461,3 +455,77 @@ type VerifyRetryViewInput = {
   server: ConcurrencyTestApiServer
   gameId: GameId
 }
+
+async function createRetryDefenderViewSetup({
+  afterReset,
+  failureView,
+  expectedFailureActionInputs,
+  turnsRepository,
+  turnProcessor,
+  player,
+  gameId,
+  defender,
+  server,
+  target,
+  home,
+  source,
+  movingFleet,
+}: CreateRetryDefenderViewSetupInput): Promise<CreateRetryDefenderViewSetupResult> {
+  expect(afterReset.turnsProcessing.find(({ turn }) => turn === failureView.turn)?.processingStartedAt).toBeNull()
+  expect(afterReset.turnsProcessing.find(({ turn }) => turn === failureView.turn)?.processingEndedAt).toBeNull()
+  const restoredFailureActionInputs = projectPersistedActionInputs(afterReset, failureView.player.id, failureView.turn)
+  expect(restoredFailureActionInputs).toStrictEqual(expectedFailureActionInputs)
+
+  turnsRepository.allowOwnershipChangesForRetry()
+  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+  const retryView = await player.client.gameplay.getPlayerView.query({ gameId })
+  const retryDefenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+  const afterRetry = await readColonizationPersistenceSnapshot(server.database, gameId)
+
+  await verifyRetryView({
+    retryView,
+    failureView,
+    target,
+    home,
+    source,
+    movingFleet,
+    retryDefenderView,
+    afterRetry,
+    turnProcessor,
+    server,
+    gameId,
+  })
+
+  const emptyTurn = retryView.turn
+  return { retryDefenderView, afterRetry, emptyTurn }
+}
+
+type CreateRetryDefenderViewSetupInput = {
+  afterReset: Awaited<ReturnType<typeof CapturedreadColonizationPersistenceSnapshot>>
+  failureView: PlayerView
+  expectedFailureActionInputs: RetryActionInput[]
+  turnsRepository: InvalidOwnerProjectionTurnsRepository
+  turnProcessor: TurnProcessor
+  player: AuthenticatedApiClient
+  gameId: GameId
+  defender: AuthenticatedApiClient
+  server: ConcurrencyTestApiServer
+  target: Planet
+  home: Planet
+  source: Fleet
+  movingFleet: Fleet
+}
+
+type CreateRetryDefenderViewSetupResult = {
+  retryDefenderView: PlayerView
+  afterRetry: Awaited<ReturnType<typeof CapturedreadColonizationPersistenceSnapshot>>
+  emptyTurn: number
+}
+
+type SubmitCallback = (__0: {
+  client: AuthenticatedApiClient["client"]
+  view: PlayerView
+  actionDefinitionId: ActionDefinitionId
+  selectedTargets: DeepUnbranded<SelectedTargets>
+  selectedInputs: DeepUnbranded<SelectedInputs>
+}) => Promise<string>
