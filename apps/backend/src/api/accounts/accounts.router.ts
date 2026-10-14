@@ -1,7 +1,7 @@
 import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
-import { AliasSchema } from "shared/domain/accounts/Alias.ts"
 import { z } from "zod"
+import { FinishOnboardingCommandSchema } from "#api/accounts/finishOnboarding.command.ts"
 import { FinishOnboardingError } from "#api/accounts/finishOnboarding.error.ts"
 import type { FinishOnboardingUseCase } from "#api/accounts/finishOnboarding.useCase.ts"
 import { NO_INPUT, NO_OUTPUT, type Trpc } from "#api/trpc.ts"
@@ -23,10 +23,10 @@ export function createAccountsRouter({ trpc, finishOnboardingUseCase }: { trpc: 
      * Use when submitting the alias selection form for an account that is not yet onboarded.
      */
     finishOnboarding: trpc.privateProcedure
-      .input(z.object({ alias: AliasSchema }))
+      .input(FinishOnboardingCommandSchema)
       .output(NO_OUTPUT)
-      .mutation(async ({ input: { alias }, ctx: { account } }) => {
-        const finishOnboardingResult = await finishOnboardingUseCase.execute({ accountId: account.id, alias })
+      .mutation(async ({ input: finishOnboardingQuery, ctx: { account } }) => {
+        const finishOnboardingResult = await finishOnboardingUseCase.execute(finishOnboardingQuery, { accountId: account.id })
         if (Result.isSuccess(finishOnboardingResult)) {
           return
         }
