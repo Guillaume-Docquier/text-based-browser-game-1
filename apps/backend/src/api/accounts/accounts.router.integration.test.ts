@@ -1,4 +1,5 @@
 import { describe, expect } from "vitest"
+import { FinishOnboardingError, FinishOnboardingErrorResponses } from "#api/accounts/finishOnboarding.error.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
@@ -79,7 +80,11 @@ describe("accounts.router", () => {
       const finishOnboarding = secondAccount.client.accounts.finishOnboarding.mutate({ alias: "nOvA" })
 
       // Assert
-      await expect(finishOnboarding).rejects.toMatchObject({ data: { code: "CONFLICT" } })
+      const expectedError = FinishOnboardingErrorResponses[FinishOnboardingError.ALIAS_ALREADY_TAKEN]
+      await expect(finishOnboarding).rejects.toMatchObject({
+        data: { code: expectedError.code },
+        message: expectedError.message,
+      })
       await expect(secondAccount.client.accounts.isOnboarded.query()).resolves.toBe(false)
     })
 
@@ -93,7 +98,11 @@ describe("accounts.router", () => {
       const finishOnboarding = account.client.accounts.finishOnboarding.mutate({ alias: "Supernova" })
 
       // Assert
-      await expect(finishOnboarding).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      const expectedError = FinishOnboardingErrorResponses[FinishOnboardingError.ALREADY_ONBOARDED]
+      await expect(finishOnboarding).rejects.toMatchObject({
+        data: { code: expectedError.code },
+        message: expectedError.message,
+      })
       await expect(account.client.accounts.isOnboarded.query()).resolves.toBe(true)
     })
   })

@@ -9,6 +9,8 @@ import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
+import { UpdateActionSubmissionError, UpdateActionSubmissionErrorResponses } from "#api/gameplay/updateActionSubmission.error.ts"
+import { UpdateReadinessError, UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
@@ -511,7 +513,11 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      await expect(invalidSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      const expectedError = UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.INVALID_SUBMISSION]
+      await expect(invalidSubmission).rejects.toMatchObject({
+        data: { code: expectedError.code },
+        message: expectedError.message,
+      })
     })
 
     integrationTest("should reject setting an action for a stale turn", async ({ db }) => {
@@ -533,7 +539,11 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      await expect(updateActionSubmission).rejects.toMatchObject({ data: { code: "CONFLICT" } })
+      const expectedError = UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.TURN_NOT_OPEN]
+      await expect(updateActionSubmission).rejects.toMatchObject({
+        data: { code: expectedError.code },
+        message: expectedError.message,
+      })
     })
 
     integrationTest("should reject setting an action after the turn deadline", async ({ db }) => {
@@ -559,7 +569,11 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      await expect(updateActionSubmission).rejects.toMatchObject({ data: { code: "CONFLICT" } })
+      const expectedError = UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.TURN_NOT_OPEN]
+      await expect(updateActionSubmission).rejects.toMatchObject({
+        data: { code: expectedError.code },
+        message: expectedError.message,
+      })
     })
 
     integrationTest("should reject an action the player cannot afford", async ({ db }) => {
@@ -580,7 +594,11 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      const expectedError = UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.INVALID_SUBMISSION]
+      await expect(setActionPromise).rejects.toMatchObject({
+        data: { code: expectedError.code },
+        message: expectedError.message,
+      })
     })
 
     integrationTest("should reject an action that is not available to the player", async ({ db }) => {
@@ -601,7 +619,11 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      const expectedError = UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.INVALID_ACTION_ID]
+      await expect(setActionPromise).rejects.toMatchObject({
+        data: { code: expectedError.code },
+        message: expectedError.message,
+      })
     })
   })
 
@@ -714,7 +736,11 @@ describe("gameplay.router", () => {
       const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
 
       // Assert
-      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "CONFLICT" } })
+      const expectedError = UpdateReadinessErrorResponses[UpdateReadinessError.TURN_NOT_OPEN]
+      await expect(updateReadiness).rejects.toMatchObject({
+        data: { code: expectedError.code },
+        message: expectedError.message,
+      })
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })
@@ -741,7 +767,11 @@ describe("gameplay.router", () => {
       const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
 
       // Assert
-      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "CONFLICT" } })
+      const expectedError = UpdateReadinessErrorResponses[UpdateReadinessError.TURN_NOT_OPEN]
+      await expect(updateReadiness).rejects.toMatchObject({
+        data: { code: expectedError.code },
+        message: expectedError.message,
+      })
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })
