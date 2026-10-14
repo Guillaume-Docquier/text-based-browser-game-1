@@ -171,13 +171,12 @@ describe("games.router", () => {
       const { createdGameId } = await player.client.games.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const startGameResult = player.client.games.startGame.mutate({ gameId: createdGameId })
-      await startGameResult
+      const startGameResult = await player.client.games.startGame.mutate({ gameId: createdGameId })
       const lobby = await player.client.games.getById.query({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      await expect(startGameResult).resolves.toBeUndefined()
+      expect(startGameResult).toBeUndefined()
       expect(lobby.status).toBe(GameStatus.IN_PROGRESS)
       expect(lobby.startedAt).toBe(clock.now().toISOString())
       expect(playerView.turnEndsAt).toBe(
@@ -604,11 +603,7 @@ describe("games.router", () => {
       })
 
       // Act
-      await Promise.all(
-        joiners.map(async (joiner) => {
-          await joiner.client.games.join.mutate({ gameId: createdGameId })
-        }),
-      )
+      await Promise.all(joiners.map(async (joiner) => await joiner.client.games.join.mutate({ gameId: createdGameId })))
 
       // Assert
       const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
@@ -626,26 +621,14 @@ describe("games.router", () => {
         configuration: createGameConfigurationStub({ nbSeats: MAX_NB_SEATS }),
       })
 
-      await Promise.all(
-        joiners.map(async (joiner) => {
-          await joiner.client.games.join.mutate({ gameId: createdGameId })
-        }),
-      )
+      await Promise.all(joiners.map(async (joiner) => await joiner.client.games.join.mutate({ gameId: createdGameId })))
 
       // Act
       const leavers = joiners.slice(joiners.length / 2)
 
-      await Promise.all(
-        leavers.map(async (leaver) => {
-          await leaver.client.games.leave.mutate({ gameId: createdGameId })
-        }),
-      )
+      await Promise.all(leavers.map(async (leaver) => await leaver.client.games.leave.mutate({ gameId: createdGameId })))
 
-      await Promise.all(
-        leavers.map(async (rejoiner) => {
-          await rejoiner.client.games.join.mutate({ gameId: createdGameId })
-        }),
-      )
+      await Promise.all(leavers.map(async (rejoiner) => await rejoiner.client.games.join.mutate({ gameId: createdGameId })))
 
       // Assert
       const lobby = await creator.client.games.getById.query({ gameId: createdGameId })

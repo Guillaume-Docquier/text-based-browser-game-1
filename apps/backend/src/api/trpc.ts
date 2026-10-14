@@ -14,7 +14,7 @@ export const NO_INPUT = z.void()
 /**
  * Explicitly declare that a procedure returns no value.
  */
-export const NO_OUTPUT = z.undefined()
+export const NO_OUTPUT = z.void()
 
 /**
  * The response code and user message for a mapped use-case failure.

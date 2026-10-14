@@ -36,7 +36,7 @@ export class UpdateReadinessUseCase {
   /**
    * Changes Readiness and checks for unanimous Readiness within one Turn transaction.
    */
-  public async execute({ gameId, turn, playerId, isReady }: UpdateReadinessDto): Promise<Result<undefined, UpdateReadinessError>> {
+  public async execute({ gameId, turn, playerId, isReady }: UpdateReadinessDto): Promise<Result<void, UpdateReadinessError>> {
     const result = await this.createTransaction(async (tx) => {
       const context = await this.gameplayRepository.getReadinessForUpdate({ gameId, playerId, turn }, tx)
 

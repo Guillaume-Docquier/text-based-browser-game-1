@@ -33,7 +33,7 @@ export class LeaveGameUseCase {
   /**
    * Leaving an already left lobby returns a success for idempotency.
    */
-  public async execute({ gameId, accountId }: LeaveGameDto): Promise<Result<undefined, LeaveGameError>> {
+  public async execute({ gameId, accountId }: LeaveGameDto): Promise<Result<void, LeaveGameError>> {
     const playerId = branded<PlayerId>(accountId)
     const leaveGameResult = await this.createTransaction(async (tx) => {
       const gameForLeave = await this.gamesRepository.getGameForLeave({ gameId }, tx)

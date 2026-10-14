@@ -26,19 +26,21 @@ export function createGameplayRouter({
     updateReadiness: trpc.inGameProcedure
       .input(UpdateReadinessDtoSchema.omit({ playerId: true }))
       .output(NO_OUTPUT)
-      .mutation(async ({ input, ctx: { playerId } }) => {
-        await toTrpcOutput(updateReadinessUseCase.execute({ ...input, playerId }), UpdateReadinessErrorResponses)
-
-        return undefined
-      }),
+      .mutation(
+        async ({ input, ctx: { playerId } }) =>
+          await toTrpcOutput(updateReadinessUseCase.execute({ ...input, playerId }), UpdateReadinessErrorResponses),
+      ),
 
     /**
      * Returns the requesting player's gameplay view, including the galaxy, resources, Actions, and Turn state.
      * Use to load or refresh the gameplay screen for a game the account has joined.
      */
-    getPlayerView: trpc.inGameProcedure.output(PlayerViewDtoSchema).query(async ({ input, ctx: { playerId } }) => {
-      return await toTrpcOutput(getPlayerViewUseCase.execute({ ...input, playerId }), GetPlayerViewErrorResponses)
-    }),
+    getPlayerView: trpc.inGameProcedure
+      .output(PlayerViewDtoSchema)
+      .query(
+        async ({ input, ctx: { playerId } }) =>
+          await toTrpcOutput(getPlayerViewUseCase.execute({ ...input, playerId }), GetPlayerViewErrorResponses),
+      ),
 
     /**
      * Submits or changes one of the requesting player's Actions for the current Turn.
@@ -47,10 +49,9 @@ export function createGameplayRouter({
     updateActionSubmission: trpc.inGameProcedure
       .input(UpdateActionSubmissionDtoSchema.omit({ playerId: true }))
       .output(NO_OUTPUT)
-      .mutation(async ({ input, ctx: { playerId } }) => {
-        await toTrpcOutput(updateActionSubmissionUseCase.execute({ ...input, playerId }), UpdateActionSubmissionErrorResponses)
-
-        return undefined
-      }),
+      .mutation(
+        async ({ input, ctx: { playerId } }) =>
+          await toTrpcOutput(updateActionSubmissionUseCase.execute({ ...input, playerId }), UpdateActionSubmissionErrorResponses),
+      ),
   })
 }

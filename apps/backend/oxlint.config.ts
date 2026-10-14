@@ -10,6 +10,13 @@ export default defineConfig({
   plugins: ["vitest"],
   overrides: [
     {
+      files: ["src/api/**/*.router.ts", "src/api/**/*.router.test.ts", "src/api/**/*.router.*.test.ts"],
+      rules: {
+        // Routers and their tests intentionally return awaited void outputs.
+        "typescript/no-confusing-void-expression": "off",
+      },
+    },
+    {
       files: ["src/**/*.test-d.ts"],
       rules: {
         // Rejected type expressions are asserted with @ts-expect-error, without an expectation call.

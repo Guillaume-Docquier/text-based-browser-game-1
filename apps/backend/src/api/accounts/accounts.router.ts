@@ -23,13 +23,12 @@ export function createAccountsRouter({ trpc, finishOnboardingUseCase }: { trpc: 
     finishOnboarding: trpc.privateProcedure
       .input(FinishOnboardingCommandSchema)
       .output(NO_OUTPUT)
-      .mutation(async ({ input: finishOnboardingCommand, ctx: { account } }) => {
-        await toTrpcOutput(
-          finishOnboardingUseCase.execute(finishOnboardingCommand, { accountId: account.id }),
-          FinishOnboardingErrorResponses,
-        )
-
-        return undefined
-      }),
+      .mutation(
+        async ({ input: finishOnboardingCommand, ctx: { account } }) =>
+          await toTrpcOutput(
+            finishOnboardingUseCase.execute(finishOnboardingCommand, { accountId: account.id }),
+            FinishOnboardingErrorResponses,
+          ),
+      ),
   })
 }

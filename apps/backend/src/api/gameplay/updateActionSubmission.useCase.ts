@@ -39,7 +39,7 @@ export class UpdateActionSubmissionUseCase {
     playerId,
     turn,
     submittedActionTargets,
-  }: UpdateActionSubmissionDto): Promise<Result<undefined, UpdateActionSubmissionError>> {
+  }: UpdateActionSubmissionDto): Promise<Result<void, UpdateActionSubmissionError>> {
     const setActionResult = await this.createTransaction(async (tx) => {
       const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn }, tx)
 

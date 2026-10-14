@@ -9,7 +9,7 @@ import { NO_INPUT, NO_OUTPUT, type Trpc } from "#api/trpc.ts"
 // Vitest analyzes type tests without executing them, so declarations and invalid calls are safe here.
 declare const trpc: Trpc
 declare const nativeTrpc: ReturnType<typeof initTRPC.create>
-type NoInput = ReturnType<() => void>
+type NoValue = ReturnType<() => void>
 
 describe("tRPC procedure schemas", () => {
   test("preserves no-input and no-output contracts and public context", () => {
@@ -17,12 +17,11 @@ describe("tRPC procedure schemas", () => {
       .input(NO_INPUT)
       .output(NO_OUTPUT)
       .mutation(({ input, ctx }) => {
-        expectTypeOf(input).toEqualTypeOf<NoInput>()
+        expectTypeOf(input).toEqualTypeOf<NoValue>()
         expectTypeOf(ctx.account).toEqualTypeOf<Account | undefined>()
-        return undefined
       })
-    expectTypeOf<inferProcedureInput<typeof noValue>>().toEqualTypeOf<NoInput>()
-    expectTypeOf<inferProcedureOutput<typeof noValue>>().toEqualTypeOf<undefined>()
+    expectTypeOf<inferProcedureInput<typeof noValue>>().toEqualTypeOf<NoValue>()
+    expectTypeOf<inferProcedureOutput<typeof noValue>>().toEqualTypeOf<NoValue>()
   })
 
   test("preserves schema transformations and authenticated context", () => {
@@ -43,10 +42,9 @@ describe("tRPC procedure schemas", () => {
       expectTypeOf(input).toEqualTypeOf<{ gameId: GameId }>()
       expectTypeOf(ctx.account).toEqualTypeOf<Account>()
       expectTypeOf(ctx.playerId).toEqualTypeOf<PlayerId>()
-      return undefined
     })
     expectTypeOf<inferProcedureInput<typeof inheritedInput>>().toEqualTypeOf<{ gameId: number }>()
-    expectTypeOf<inferProcedureOutput<typeof inheritedInput>>().toEqualTypeOf<undefined>()
+    expectTypeOf<inferProcedureOutput<typeof inheritedInput>>().toEqualTypeOf<NoValue>()
   })
 
   test("allows additional object inputs before output", () => {

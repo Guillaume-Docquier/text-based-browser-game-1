@@ -48,19 +48,21 @@ export function createGamesRouter({
     getListings: trpc.publicProcedure
       .input(NO_INPUT)
       .output(z.array(GameListingDtoSchema))
-      .query(async ({ ctx: { account } }) => {
-        return await toTrpcOutput(getGameListingsUseCase.execute({ accountId: account?.id }), GetGameListingsErrorResponses)
-      }),
+      .query(
+        async ({ ctx: { account } }) =>
+          await toTrpcOutput(getGameListingsUseCase.execute({ accountId: account?.id }), GetGameListingsErrorResponses),
+      ),
 
     /**
      * Starts a lobby and initializes its galaxy, player resources, and first Turn.
      * Use when the game creator chooses to start play from the lobby.
      */
-    startGame: trpc.inGameProcedure.output(NO_OUTPUT).mutation(async ({ input, ctx: { account } }) => {
-      await toTrpcOutput(startGameUseCase.execute({ ...input, requesterAccountId: account.id }), StartGameErrorResponses)
-
-      return undefined
-    }),
+    startGame: trpc.inGameProcedure
+      .output(NO_OUTPUT)
+      .mutation(
+        async ({ input, ctx: { account } }) =>
+          await toTrpcOutput(startGameUseCase.execute({ ...input, requesterAccountId: account.id }), StartGameErrorResponses),
+      ),
 
     /**
      * Returns the available rulesets and maximum seat count for an authenticated account.
@@ -69,9 +71,7 @@ export function createGamesRouter({
     getCreationSettings: trpc.privateProcedure
       .input(NO_INPUT)
       .output(GameCreationSettingsDtoSchema)
-      .query(async () => {
-        return await toTrpcOutput(getGameCreationSettingsUseCase.execute(), GetGameCreationSettingsErrorResponses)
-      }),
+      .query(async () => await toTrpcOutput(getGameCreationSettingsUseCase.execute(), GetGameCreationSettingsErrorResponses)),
 
     /**
      * Creates a lobby with the supplied configuration and joins the authenticated account as its creator.
@@ -80,9 +80,10 @@ export function createGamesRouter({
     create: trpc.privateProcedure
       .input(CreateGameDtoSchema.omit({ createdByAccountId: true }))
       .output(CreatedGameDtoSchema)
-      .mutation(async ({ input: newGame, ctx: { account } }) => {
-        return await toTrpcOutput(createGameUseCase.execute({ ...newGame, createdByAccountId: account.id }), CreateGameErrorResponses)
-      }),
+      .mutation(
+        async ({ input: newGame, ctx: { account } }) =>
+          await toTrpcOutput(createGameUseCase.execute({ ...newGame, createdByAccountId: account.id }), CreateGameErrorResponses),
+      ),
 
     /**
      * Returns public game details and the operations available to the requesting account.
@@ -91,15 +92,16 @@ export function createGamesRouter({
     getById: trpc.publicProcedure
       .input(z.object({ gameId: z.coerce.number().pipe(GameIdSchema) }))
       .output(GameDetailsDtoSchema)
-      .query(async ({ input: { gameId }, ctx: { account } }) => {
-        return await toTrpcOutput(
-          getGameByIdUseCase.execute({
-            gameId,
-            playerId: account === undefined ? undefined : branded(account.id),
-          }),
-          GetGameByIdErrorResponses,
-        )
-      }),
+      .query(
+        async ({ input: { gameId }, ctx: { account } }) =>
+          await toTrpcOutput(
+            getGameByIdUseCase.execute({
+              gameId,
+              playerId: account === undefined ? undefined : branded(account.id),
+            }),
+            GetGameByIdErrorResponses,
+          ),
+      ),
 
     /**
      * Joins an available lobby as the authenticated account; repeated joins succeed without changes.
@@ -108,11 +110,10 @@ export function createGamesRouter({
     join: trpc.privateProcedure
       .input(JoinGameDtoSchema.pick({ gameId: true }))
       .output(NO_OUTPUT)
-      .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        await toTrpcOutput(joinGameUseCase.execute({ gameId, accountId: account.id }), JoinGameErrorResponses)
-
-        return undefined
-      }),
+      .mutation(
+        async ({ input: { gameId }, ctx: { account } }) =>
+          await toTrpcOutput(joinGameUseCase.execute({ gameId, accountId: account.id }), JoinGameErrorResponses),
+      ),
 
     /**
      * Removes the authenticated account from a lobby and frees its seat.
@@ -121,10 +122,9 @@ export function createGamesRouter({
     leave: trpc.privateProcedure
       .input(LeaveGameDtoSchema.pick({ gameId: true }))
       .output(NO_OUTPUT)
-      .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        await toTrpcOutput(leaveGameUseCase.execute({ gameId, accountId: account.id }), LeaveGameErrorResponses)
-
-        return undefined
-      }),
+      .mutation(
+        async ({ input: { gameId }, ctx: { account } }) =>
+          await toTrpcOutput(leaveGameUseCase.execute({ gameId, accountId: account.id }), LeaveGameErrorResponses),
+      ),
   })
 }
