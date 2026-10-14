@@ -13,8 +13,10 @@ import type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
 import type { AvailableAction } from "shared/domain/turns/actions/Action.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import type { Galaxy } from "shared/domain/world/Galaxy.ts"
+import { GetGameByIdError } from "#api/games/getGameById.error.ts"
+import { GetGameCreationSettingsError } from "#api/games/getGameCreationSettings.error.ts"
+import { GetGameListingsError } from "#api/games/getGameListings.error.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
   accountsTable,
@@ -28,8 +30,11 @@ import {
   starsTable,
   planetsTable,
 } from "#lib/db/schema.ts"
-import { couldNot } from "#lib/errors.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
+import { CreateGameError } from "./createGame.error.ts"
+import { JoinGameError, JoinGameRollbackError } from "./joinGame.error.ts"
+import { LeaveGameError, LeaveGameRollbackError } from "./leaveGame.error.ts"
+import { StartGameError, StartGameRollbackError } from "./startGame.error.ts"
 
 type NewActionRow = typeof actionsTable.$inferInsert
 type NewResourceRow = typeof resourcesTable.$inferInsert
@@ -210,7 +215,7 @@ export class GamesRepository extends PostgresRepository {
   public async getPlayerId(
     { gameId, accountId }: { gameId: GameId; accountId: AccountId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<PlayerId | undefined, string>> {
+  ): Promise<Result<PlayerId | undefined, "UNKNOWN">> {
     const playerIdResult = await Result.tryCatch(async () => {
       const rows = await db
         .select({ playerId: playersTable.playerId })
@@ -223,7 +228,7 @@ export class GamesRepository extends PostgresRepository {
 
     if (Result.isFailure(playerIdResult)) {
       this.logger.error("Could not check if player joined game", { gameId, accountId, error: playerIdResult.error })
-      return Result.Failure(couldNot("check if player joined game"))
+      return Result.Failure("UNKNOWN" as const)
     }
 
     return playerIdResult
@@ -246,7 +251,7 @@ export class GamesRepository extends PostgresRepository {
 
     const gameForStart = gamesForStart[0]
     if (gameForStart === undefined) {
-      throw new TransactionRollbackError("The game does not exist.")
+      throw new StartGameRollbackError(StartGameError.GAME_NOT_FOUND)
     }
 
     const playerIdRows = await tx
@@ -259,7 +264,7 @@ export class GamesRepository extends PostgresRepository {
 
     const ruleset = await this.getRuleset({ rulesetId: gameForStart.rulesetId }, tx)
     if (ruleset === undefined) {
-      throw new TransactionRollbackError("No ruleset found for this game")
+      throw new StartGameRollbackError(StartGameError.RULESET_NOT_FOUND)
     }
 
     return branded({
@@ -342,7 +347,7 @@ export class GamesRepository extends PostgresRepository {
   public async getGameListings(
     { accountId }: { accountId: AccountId | undefined },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GameListingModel[], string>> {
+  ): Promise<Result<GameListingModel[], GetGameListingsError>> {
     const listingsResult: Result<GameListingModel[], Error> = await Result.tryCatch(
       db
         .select({
@@ -365,13 +370,15 @@ export class GamesRepository extends PostgresRepository {
     )
     if (Result.isFailure(listingsResult)) {
       this.logger.error("Failed to get game listings", { error: listingsResult.error })
-      return Result.Failure(couldNot("get game listings"))
+      return Result.Failure(GetGameListingsError.UNKNOWN)
     }
 
     return listingsResult
   }
 
-  public async getGameCreationSettings(db: PostgresRepository["db"] = this.db): Promise<Result<GameCreationSettingsModel, string>> {
+  public async getGameCreationSettings(
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<GameCreationSettingsModel, GetGameCreationSettingsError>> {
     const rulesetSummariesResult = await Result.tryCatch(
       db
         .select({
@@ -383,7 +390,7 @@ export class GamesRepository extends PostgresRepository {
     )
     if (Result.isFailure(rulesetSummariesResult)) {
       this.logger.error("Could not get ruleset summaries", { error: rulesetSummariesResult.error })
-      return Result.Failure(couldNot("get ruleset summaries"))
+      return Result.Failure(GetGameCreationSettingsError.UNKNOWN)
     }
 
     return Result.Success({
@@ -394,7 +401,7 @@ export class GamesRepository extends PostgresRepository {
   public async createGame(
     createGameModel: CreateGameModel,
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<{ createdGameId: GameId }, string>> {
+  ): Promise<Result<{ createdGameId: GameId }, CreateGameError>> {
     const createGameResult = await Result.tryCatch(
       db.transaction(async (tx) => {
         const games = await tx.insert(gamesTable).values(toCreateGameRow(createGameModel)).returning()
@@ -414,7 +421,7 @@ export class GamesRepository extends PostgresRepository {
 
     if (Result.isFailure(createGameResult)) {
       this.logger.error("Could not create game lobby", { createGameModel, error: createGameResult.error })
-      return Result.Failure(couldNot("create game lobby"))
+      return Result.Failure(CreateGameError.UNKNOWN)
     }
 
     return createGameResult
@@ -423,7 +430,7 @@ export class GamesRepository extends PostgresRepository {
   public async getGameById(
     { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GameDetailsModel | undefined, string>> {
+  ): Promise<Result<GameDetailsModel | undefined, GetGameByIdError>> {
     const gameRowResult = await Result.tryCatch(
       db
         .select({
@@ -435,18 +442,23 @@ export class GamesRepository extends PostgresRepository {
           },
         })
         .from(gamesTable)
-        .innerJoin(rulesetsTable, eq(rulesetsTable.id, gamesTable.rulesetId))
+        .leftJoin(rulesetsTable, eq(rulesetsTable.id, gamesTable.rulesetId))
         .where(eq(gamesTable.id, gameId)),
     )
     if (Result.isFailure(gameRowResult)) {
       this.logger.error("Failed to get game", { gameId, error: gameRowResult.error })
-      return Result.Failure(couldNot("get game"))
+      return Result.Failure(GetGameByIdError.UNKNOWN)
     }
     Assert.isTrue(gameRowResult.value.length <= 1)
 
     const gameWithRuleset = gameRowResult.value[0]
     if (gameWithRuleset === undefined) {
       return Result.Success(undefined)
+    }
+
+    if (gameWithRuleset.ruleset === null) {
+      this.logger.error("Missing ruleset for existing game", { gameId })
+      return Result.Failure(GetGameByIdError.RULESET_NOT_FOUND)
     }
 
     const playersResult = await Result.tryCatch(
@@ -462,7 +474,7 @@ export class GamesRepository extends PostgresRepository {
     )
     if (Result.isFailure(playersResult)) {
       this.logger.error("Failed to get players in the game", { gameId, error: playersResult.error })
-      return Result.Failure(couldNot("get players in the game"))
+      return Result.Failure(GetGameByIdError.FAILED_TO_GET_PLAYERS)
     }
 
     return Result.Success(
@@ -470,7 +482,10 @@ export class GamesRepository extends PostgresRepository {
     )
   }
 
-  public async getGameForJoin({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<GameForJoin, string>> {
+  /**
+   * @throws JoinGameRollbackError
+   */
+  public async getGameForJoin({ gameId }: { gameId: GameId }, tx: Transaction): Promise<GameForJoin> {
     const games = await tx
       .select({ gameId: gamesTable.id, status: gamesTable.status, nbSeats: gamesTable.nbSeats })
       .from(gamesTable)
@@ -480,7 +495,7 @@ export class GamesRepository extends PostgresRepository {
 
     const game = games[0]
     if (game === undefined) {
-      return Result.Failure("The lobby does not exist.")
+      throw new JoinGameRollbackError(JoinGameError.GAME_NOT_FOUND)
     }
 
     const playerRows: readonly PlayerForJoin[] = await tx
@@ -491,12 +506,10 @@ export class GamesRepository extends PostgresRepository {
       .from(playersTable)
       .where(eq(playersTable.gameId, gameId))
 
-    return Result.Success(
-      branded({
-        ...game,
-        players: playerRows,
-      }),
-    )
+    return branded({
+      ...game,
+      players: playerRows,
+    })
   }
 
   /**
@@ -512,7 +525,10 @@ export class GamesRepository extends PostgresRepository {
     }
   }
 
-  public async getGameForLeave({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<GameForLeave, string>> {
+  /**
+   * @throws LeaveGameRollbackError
+   */
+  public async getGameForLeave({ gameId }: { gameId: GameId }, tx: Transaction): Promise<GameForLeave> {
     const games = await tx
       .select({ gameId: gamesTable.id, status: gamesTable.status, createdByAccountId: gamesTable.createdByAccountId })
       .from(gamesTable)
@@ -522,17 +538,15 @@ export class GamesRepository extends PostgresRepository {
 
     const game = games[0]
     if (game === undefined) {
-      return Result.Failure("The lobby does not exist.")
+      throw new LeaveGameRollbackError(LeaveGameError.GAME_NOT_FOUND)
     }
 
     const playerRows = await tx.select({ playerId: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId))
 
-    return Result.Success(
-      branded({
-        ...game,
-        playerIds: playerRows.map(({ playerId }) => playerId),
-      }),
-    )
+    return branded({
+      ...game,
+      playerIds: playerRows.map(({ playerId }) => playerId),
+    })
   }
 
   /**

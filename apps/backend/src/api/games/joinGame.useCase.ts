@@ -6,10 +6,8 @@ import { PLAYER_COLOR_PRIORITY } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { z } from "zod"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { rollbackOnFailure } from "#lib/db/drizzle/rollbackOnFailure.ts"
-import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
-import { couldNot } from "#lib/errors.ts"
 import type { GamesRepository } from "./games.repository.ts"
+import { JoinGameError, JoinGameRollbackError } from "./joinGame.error.ts"
 
 /**
  * Joins a lobby atomically, assigning an unused player color and updating its status.
@@ -36,34 +34,40 @@ export class JoinGameUseCase {
   /**
    * Joining an already joined lobby returns a success for idempotency.
    */
-  public async execute({ gameId, accountId }: JoinGameDto): Promise<Result<void, string>> {
+  public async execute({ gameId, accountId }: JoinGameDto): Promise<Result<void, JoinGameError>> {
     const playerId = branded<PlayerId>(accountId)
     const joinGameResult = await this.createTransaction(async (tx) => {
       const gameForJoin = await this.gamesRepository.getGameForJoin({ gameId }, tx)
-      rollbackOnFailure(gameForJoin, "Failed to get lobby.")
 
-      if (gameForJoin.value.players.find((player) => player.id === playerId) !== undefined) {
+      if (gameForJoin.players.find((player) => player.id === playerId) !== undefined) {
         // Already part of the game, return a success for idempotency
         return
       }
 
-      if (gameForJoin.value.status !== GameStatus.WAITING_FOR_PLAYERS) {
-        throw new TransactionRollbackError("Cannot join lobby, it is full.")
+      if (gameForJoin.status !== GameStatus.WAITING_FOR_PLAYERS && gameForJoin.status !== GameStatus.READY_TO_START) {
+        throw new JoinGameRollbackError(JoinGameError.GAME_ALREADY_STARTED)
       }
 
-      const status =
-        gameForJoin.value.players.length + 1 >= gameForJoin.value.nbSeats ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
+      if (gameForJoin.status !== GameStatus.WAITING_FOR_PLAYERS) {
+        throw new JoinGameRollbackError(JoinGameError.LOBBY_FULL)
+      }
 
-      const usedColors = new Set(gameForJoin.value.players.map((player) => player.color))
+      const status = gameForJoin.players.length + 1 >= gameForJoin.nbSeats ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
+
+      const usedColors = new Set(gameForJoin.players.map((player) => player.color))
       const color = PLAYER_COLOR_PRIORITY.find((candidateColor) => !usedColors.has(candidateColor))
       Assert.isDefined(color)
 
-      await this.gamesRepository.joinGame({ context: gameForJoin.value, playerId, color, status }, tx)
+      await this.gamesRepository.joinGame({ context: gameForJoin, playerId, color, status }, tx)
     })
 
     if (Result.isFailure(joinGameResult)) {
       this.logger.error("Could not join game lobby", { gameId, accountId, error: joinGameResult.error })
-      return Result.Failure(couldNot("join game lobby"))
+      if (joinGameResult.error instanceof JoinGameRollbackError) {
+        return Result.Failure(joinGameResult.error.code)
+      }
+
+      return Result.Failure(JoinGameError.UNKNOWN)
     }
 
     return joinGameResult
