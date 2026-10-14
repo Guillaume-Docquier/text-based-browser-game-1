@@ -80,11 +80,7 @@ describe("accounts.router", () => {
       const finishOnboarding = secondAccount.client.accounts.finishOnboarding.mutate({ alias: "nOvA" })
 
       // Assert
-      const expectedError = FinishOnboardingErrorResponses[FinishOnboardingError.ALIAS_ALREADY_TAKEN]
-      await expect(finishOnboarding).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(finishOnboarding).rejects.toMatchErrorResponse(FinishOnboardingErrorResponses[FinishOnboardingError.ALIAS_ALREADY_TAKEN])
       await expect(secondAccount.client.accounts.isOnboarded.query()).resolves.toBe(false)
     })
 
@@ -98,11 +94,7 @@ describe("accounts.router", () => {
       const finishOnboarding = account.client.accounts.finishOnboarding.mutate({ alias: "Supernova" })
 
       // Assert
-      const expectedError = FinishOnboardingErrorResponses[FinishOnboardingError.ALREADY_ONBOARDED]
-      await expect(finishOnboarding).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(finishOnboarding).rejects.toMatchErrorResponse(FinishOnboardingErrorResponses[FinishOnboardingError.ALREADY_ONBOARDED])
       await expect(account.client.accounts.isOnboarded.query()).resolves.toBe(true)
     })
   })

@@ -513,11 +513,9 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      const expectedError = UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.INVALID_SUBMISSION]
-      await expect(invalidSubmission).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(invalidSubmission).rejects.toMatchErrorResponse(
+        UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.INVALID_SUBMISSION],
+      )
     })
 
     integrationTest("should reject setting an action for a stale turn", async ({ db }) => {
@@ -539,11 +537,9 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      const expectedError = UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.TURN_NOT_OPEN]
-      await expect(updateActionSubmission).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(updateActionSubmission).rejects.toMatchErrorResponse(
+        UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.TURN_NOT_OPEN],
+      )
     })
 
     integrationTest("should reject setting an action after the turn deadline", async ({ db }) => {
@@ -569,11 +565,9 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      const expectedError = UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.TURN_NOT_OPEN]
-      await expect(updateActionSubmission).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(updateActionSubmission).rejects.toMatchErrorResponse(
+        UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.TURN_NOT_OPEN],
+      )
     })
 
     integrationTest("should reject an action the player cannot afford", async ({ db }) => {
@@ -594,11 +588,9 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      const expectedError = UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.INVALID_SUBMISSION]
-      await expect(setActionPromise).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(setActionPromise).rejects.toMatchErrorResponse(
+        UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.INVALID_SUBMISSION],
+      )
     })
 
     integrationTest("should reject an action that is not available to the player", async ({ db }) => {
@@ -619,11 +611,9 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      const expectedError = UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.INVALID_ACTION_ID]
-      await expect(setActionPromise).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(setActionPromise).rejects.toMatchErrorResponse(
+        UpdateActionSubmissionErrorResponses[UpdateActionSubmissionError.INVALID_ACTION_ID],
+      )
     })
   })
 
@@ -736,11 +726,7 @@ describe("gameplay.router", () => {
       const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
 
       // Assert
-      const expectedError = UpdateReadinessErrorResponses[UpdateReadinessError.TURN_NOT_OPEN]
-      await expect(updateReadiness).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(updateReadiness).rejects.toMatchErrorResponse(UpdateReadinessErrorResponses[UpdateReadinessError.TURN_NOT_OPEN])
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })
@@ -767,11 +753,7 @@ describe("gameplay.router", () => {
       const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
 
       // Assert
-      const expectedError = UpdateReadinessErrorResponses[UpdateReadinessError.TURN_NOT_OPEN]
-      await expect(updateReadiness).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(updateReadiness).rejects.toMatchErrorResponse(UpdateReadinessErrorResponses[UpdateReadinessError.TURN_NOT_OPEN])
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })

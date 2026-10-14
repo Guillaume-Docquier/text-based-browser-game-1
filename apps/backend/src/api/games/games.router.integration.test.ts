@@ -230,11 +230,7 @@ describe("games.router", () => {
       const startGame = joiner.client.games.startGame.mutate({ gameId: createdGameId })
 
       // Assert
-      const expectedError = StartGameErrorResponses[StartGameError.NOT_GAME_CREATOR]
-      await expect(startGame).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(startGame).rejects.toMatchErrorResponse(StartGameErrorResponses[StartGameError.NOT_GAME_CREATOR])
     })
 
     integrationTest("should reject starting a game that has already started", async ({ db }) => {
@@ -249,11 +245,7 @@ describe("games.router", () => {
       const startGame = creator.client.games.startGame.mutate({ gameId: createdGameId })
 
       // Assert
-      const expectedError = StartGameErrorResponses[StartGameError.INVALID_GAME_STATUS]
-      await expect(startGame).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(startGame).rejects.toMatchErrorResponse(StartGameErrorResponses[StartGameError.INVALID_GAME_STATUS])
     })
 
     integrationTest("should reject anonymous game start", async ({ db }) => {
@@ -310,11 +302,7 @@ describe("games.router", () => {
       const createGame = creator.client.games.create.mutate({ configuration: createGameConfigurationStub({ mapGenerationSeed }) })
 
       // Assert
-      const expectedError = CreateGameErrorResponses[CreateGameError.INVALID_MAP_SEED]
-      await expect(createGame).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(createGame).rejects.toMatchErrorResponse(CreateGameErrorResponses[CreateGameError.INVALID_MAP_SEED])
     })
 
     integrationTest("should reject an unknown Ruleset", async ({ db }) => {
@@ -328,11 +316,7 @@ describe("games.router", () => {
       })
 
       // Assert
-      const expectedError = CreateGameErrorResponses[CreateGameError.UNKNOWN]
-      await expect(createGame).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(createGame).rejects.toMatchErrorResponse(CreateGameErrorResponses[CreateGameError.UNKNOWN])
     })
 
     integrationTest("should create a game for the authenticated player", async ({ db }) => {
@@ -418,11 +402,7 @@ describe("games.router", () => {
       })
 
       // Assert
-      const expectedError = CreateGameErrorResponses[CreateGameError.TOO_MANY_SEATS]
-      await expect(createGame).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(createGame).rejects.toMatchErrorResponse(CreateGameErrorResponses[CreateGameError.TOO_MANY_SEATS])
     })
 
     integrationTest("should reject anonymous game creation", async ({ db }) => {
@@ -557,11 +537,7 @@ describe("games.router", () => {
       const getLobby = anonymous.client.games.getById.query({ gameId: 404 })
 
       // Assert
-      const expectedError = GetGameByIdErrorResponses[GetGameByIdError.GAME_NOT_FOUND]
-      await expect(getLobby).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(getLobby).rejects.toMatchErrorResponse(GetGameByIdErrorResponses[GetGameByIdError.GAME_NOT_FOUND])
     })
   })
 
@@ -700,11 +676,7 @@ describe("games.router", () => {
       const joinGame = joiner.client.games.join.mutate({ gameId: createdGameId })
 
       // Assert
-      const expectedError = JoinGameErrorResponses[JoinGameError.LOBBY_FULL]
-      await expect(joinGame).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(joinGame).rejects.toMatchErrorResponse(JoinGameErrorResponses[JoinGameError.LOBBY_FULL])
 
       const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(2)
@@ -723,11 +695,7 @@ describe("games.router", () => {
       const joinGame = joiner.client.games.join.mutate({ gameId: createdGameId })
 
       // Assert
-      const expectedError = JoinGameErrorResponses[JoinGameError.GAME_ALREADY_STARTED]
-      await expect(joinGame).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(joinGame).rejects.toMatchErrorResponse(JoinGameErrorResponses[JoinGameError.GAME_ALREADY_STARTED])
 
       const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(1)
@@ -825,11 +793,7 @@ describe("games.router", () => {
       const leaveGame = leaver.client.games.leave.mutate({ gameId: createdGameId })
 
       // Assert
-      const expectedError = LeaveGameErrorResponses[LeaveGameError.GAME_ALREADY_STARTED]
-      await expect(leaveGame).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(leaveGame).rejects.toMatchErrorResponse(LeaveGameErrorResponses[LeaveGameError.GAME_ALREADY_STARTED])
     })
 
     integrationTest("should reject leaving a game as its creator", async ({ db }) => {
@@ -843,11 +807,7 @@ describe("games.router", () => {
       const leaveGame = player.client.games.leave.mutate({ gameId: createdGameId })
 
       // Assert
-      const expectedError = LeaveGameErrorResponses[LeaveGameError.CREATOR_CANNOT_LEAVE]
-      await expect(leaveGame).rejects.toMatchObject({
-        data: { code: expectedError.code },
-        message: expectedError.message,
-      })
+      await expect(leaveGame).rejects.toMatchErrorResponse(LeaveGameErrorResponses[LeaveGameError.CREATOR_CANNOT_LEAVE])
     })
 
     integrationTest("should successfully leave a game the player has not joined", async ({ db }) => {

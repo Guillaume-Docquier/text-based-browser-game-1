@@ -1,5 +1,8 @@
-import { beforeAll } from "vitest"
+import { beforeAll, expect } from "vitest"
 import { configureLogger } from "#lib/configureLogger.ts"
+import { errorResponseMatchers } from "#tests/toMatchErrorResponse.ts"
+
+expect.extend(errorResponseMatchers)
 
 beforeAll(async () => {
   await setupLogging()
