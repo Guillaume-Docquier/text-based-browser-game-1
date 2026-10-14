@@ -6,8 +6,8 @@ import type { SubmittedAction } from "shared/domain/turns/actions/Action.ts"
 import { z } from "zod"
 import { SubmittedActionTargetsDtoSchema } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import type { GameplayRepository } from "./gameplay.repository.ts"
+import { UpdateActionSubmissionError, UpdateActionSubmissionRollbackError } from "./updateActionSubmission.error.ts"
 
 export class UpdateActionSubmissionUseCase {
   private readonly logger: Logger
@@ -31,13 +31,18 @@ export class UpdateActionSubmissionUseCase {
   /**
    * Long term we'll probably want a batch submission
    */
-  public async execute({ gameId, playerId, turn, submittedActionTargets }: UpdateActionSubmissionDto): Promise<Result<void, string>> {
+  public async execute({
+    gameId,
+    playerId,
+    turn,
+    submittedActionTargets,
+  }: UpdateActionSubmissionDto): Promise<Result<void, UpdateActionSubmissionError>> {
     const setActionResult = await this.createTransaction(async (tx) => {
       // This locks the current turn row for the full replacement evaluation and write.
       const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn }, tx)
       const action = context.actions.find(({ id }) => id === submittedActionTargets.actionId)
       if (action === undefined) {
-        throw new TransactionRollbackError("Invalid action id")
+        throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.INVALID_ACTION_ID)
       }
 
       const state: EligibilityState = {
@@ -58,7 +63,7 @@ export class UpdateActionSubmissionUseCase {
           draft: { actionId: action.id, selectedTargets: {}, selectedInputs: {} },
         })
         if (cancellationEvaluation.issues.some(({ code }) => code === "ACTION_ALREADY_IN_PROGRESS")) {
-          throw new TransactionRollbackError("Cannot cancel an Action while it is in progress")
+          throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.ACTION_IN_PROGRESS)
         }
         await this.gameplayRepository.updateActionSubmissions(
           { context, actions: [{ id: submittedActionTargets.actionId, selectedTargets: null, selectedInputs: null }] },
@@ -76,9 +81,7 @@ export class UpdateActionSubmissionUseCase {
       } satisfies SubmittedAction
       const actionDefinition = context.ruleset.actionDefinitions[submittedAction.actionDefinitionId]
       if (actionDefinition === undefined) {
-        throw new TransactionRollbackError("No action definition found", {
-          cause: { actionDefinitionId: submittedAction.actionDefinitionId },
-        })
+        throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.ACTION_DEFINITION_NOT_FOUND)
       }
 
       const evaluation = evaluateActionSelection({
@@ -91,7 +94,11 @@ export class UpdateActionSubmissionUseCase {
         },
       })
       if (evaluation.status !== "ELIGIBLE") {
-        throw new TransactionRollbackError(evaluation.issues.map(({ message }) => message).join("\n"))
+        this.logger.error("Invalid action submission", { issues: evaluation.issues })
+        const code = evaluation.issues.some(({ code }) => code === "ACTION_ALREADY_IN_PROGRESS")
+          ? UpdateActionSubmissionError.ACTION_IN_PROGRESS
+          : UpdateActionSubmissionError.INVALID_SUBMISSION
+        throw new UpdateActionSubmissionRollbackError(code)
       }
 
       await this.gameplayRepository.updateActionSubmissions({ context, actions: [submittedAction] }, tx)
@@ -105,7 +112,11 @@ export class UpdateActionSubmissionUseCase {
         actionId: submittedActionTargets.actionId,
         error: setActionResult.error,
       })
-      return Result.Failure(setActionResult.error.message)
+      return Result.Failure(
+        setActionResult.error instanceof UpdateActionSubmissionRollbackError
+          ? setActionResult.error.code
+          : UpdateActionSubmissionError.UNKNOWN,
+      )
     }
 
     return Result.Success(undefined)

@@ -6,6 +6,7 @@ import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PLAYER_COLOR_PRIORITY } from "shared/domain/players/PlayerColor.ts"
 import { z } from "zod"
 import { UInt32 } from "#lib/UInt32.ts"
+import { CreateGameError } from "./createGame.error.ts"
 import { MAX_NB_SEATS } from "./GameLimits.ts"
 import type { GamesRepository } from "./games.repository.ts"
 
@@ -19,16 +20,17 @@ export class CreateGameUseCase {
     this.gamesRepository = gamesRepository
   }
 
-  public async execute(createGameDto: CreateGameDto): Promise<Result<CreatedGameDto, string>> {
+  public async execute(createGameDto: CreateGameDto): Promise<Result<CreatedGameDto, CreateGameError>> {
     if (createGameDto.configuration.nbSeats > MAX_NB_SEATS) {
-      return Result.Failure(`Games cannot have more than ${MAX_NB_SEATS} seats`)
+      return Result.Failure(CreateGameError.TOO_MANY_SEATS)
     }
 
     if (createGameDto.configuration.mapGenerationSeed !== undefined && !UInt32.validate(createGameDto.configuration.mapGenerationSeed)) {
-      return Result.Failure(`The seed must be an integer between 0 and ${UInt32.max}`)
+      return Result.Failure(CreateGameError.INVALID_MAP_SEED)
     }
 
     const status = createGameDto.configuration.nbSeats <= 1 ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
+
     return await this.gamesRepository.createGame({
       ...createGameDto,
       mapGenerationSeed: createGameDto.configuration.mapGenerationSeed ?? UInt32.random(),

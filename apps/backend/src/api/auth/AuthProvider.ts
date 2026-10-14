@@ -1,5 +1,6 @@
 import type { Result } from "@guillaume-docquier/tools-ts"
 import type { RequestHandler, Request } from "express"
+import type { FetchUserError } from "#api/auth/fetchUser.error.ts"
 
 export type AuthStatus =
   | {
@@ -27,5 +28,5 @@ export interface AuthProvider {
   /**
    * Gets the user data from the 3rd party auth service
    */
-  fetchUser: (args: { authId: string }) => Promise<Result<User, string>>
+  fetchUser: (args: { authId: string }) => Promise<Result<User, FetchUserError>>
 }

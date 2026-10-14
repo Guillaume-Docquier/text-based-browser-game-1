@@ -7,6 +7,8 @@
  *   this.logger.error("Could not create game", { newGame, error: createResult.error })
  *   return Result.Failure(couldNot("create game"))
  * }
+ *
+ * @deprecated Favor returning error codes instead of masking error messages.
  * ```
  */
 export function couldNot(operationName: string): string {

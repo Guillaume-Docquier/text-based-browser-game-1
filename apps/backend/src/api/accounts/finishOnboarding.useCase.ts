@@ -1,6 +1,6 @@
 import type { Result } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "shared/domain/accounts/AccountId.ts"
-import type { Alias } from "shared/domain/accounts/Alias.ts"
+import type { FinishOnboardingCommand } from "#api/accounts/finishOnboarding.command.ts"
 import type { FinishOnboardingError } from "#api/accounts/finishOnboarding.error.ts"
 import type { AccountsRepository } from "./accounts.repository.ts"
 
@@ -14,7 +14,10 @@ export class FinishOnboardingUseCase {
     this.accountsRepository = accountsRepository
   }
 
-  public async execute({ accountId, alias }: { accountId: AccountId; alias: Alias }): Promise<Result<void, FinishOnboardingError>> {
-    return await this.accountsRepository.finishOnboarding({ accountId, alias })
+  public async execute(
+    finishOnboardingCommand: FinishOnboardingCommand,
+    { accountId }: { accountId: AccountId },
+  ): Promise<Result<void, FinishOnboardingError>> {
+    return await this.accountsRepository.finishOnboarding({ accountId, alias: finishOnboardingCommand.alias })
   }
 }

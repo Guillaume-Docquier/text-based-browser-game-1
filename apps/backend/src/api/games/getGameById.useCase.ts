@@ -4,6 +4,7 @@ import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import type { GameDetailsDto } from "./GameDetailsDto.ts"
 import type { GamesRepository, GameDetailsModel } from "./games.repository.ts"
+import { GetGameByIdError } from "./getGameById.error.ts"
 
 /**
  * Gets public game details and the operations available to the requesting player.
@@ -18,21 +19,27 @@ export class GetGameByIdUseCase {
   }
 
   /**
-   * Returns undefined when the game does not exist or cannot be loaded.
+   * Distinguishes missing games from persistence failures.
    */
-  public async execute({ gameId, playerId }: { gameId: GameId; playerId: PlayerId | undefined }): Promise<GameDetailsDto | undefined> {
-    const gameResult = await this.gamesRepository.getGameById({ gameId })
-    if (Result.isFailure(gameResult)) {
-      this.logger.error("Could not get game details, returning undefined", { gameId, playerId, error: gameResult.error })
-      return undefined
+  public async execute({
+    gameId,
+    playerId,
+  }: {
+    gameId: GameId
+    playerId: PlayerId | undefined
+  }): Promise<Result<GameDetailsDto, GetGameByIdError>> {
+    const getGameByIdResult = await this.gamesRepository.getGameById({ gameId })
+    if (Result.isFailure(getGameByIdResult)) {
+      this.logger.error("Could not get game by id", { gameId, playerId, error: getGameByIdResult.error })
+      return getGameByIdResult
     }
 
-    const gameModel = gameResult.value
+    const gameModel = getGameByIdResult.value
     if (gameModel === undefined) {
-      return undefined
+      return Result.Failure(GetGameByIdError.GAME_NOT_FOUND)
     }
 
-    return toGameDetailsDto({ gameModel, playerId })
+    return Result.Success(toGameDetailsDto({ gameModel, playerId }))
   }
 }
 

@@ -896,7 +896,9 @@ describe("gameplay.router", () => {
             selectedInputs: { strength: 1 },
           }),
         })
-        await expect(exhaustedResourcesSubmission).rejects.toThrow("Missing 3 INFLUENCE\nMissing 1 FUEL")
+        await expect(exhaustedResourcesSubmission).rejects.toThrow(
+          "Invalid action submission, targets are invalid or costs cannot be paid.",
+        )
         await expect(exhaustedResourcesSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
         expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(beforeResourceRejection)
 
@@ -1032,7 +1034,7 @@ describe("gameplay.router", () => {
           selectedInputs: { strength: 30 },
         }),
       })
-      await expect(attackAfterGainAndMove).rejects.toThrow("Missing 1 INFLUENCE")
+      await expect(attackAfterGainAndMove).rejects.toThrow("Invalid action submission, targets are invalid or costs cannot be paid.")
       await expect(attackAfterGainAndMove).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
       expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(gainAndMoveView)
     })
@@ -1199,6 +1201,7 @@ describe("gameplay.router", () => {
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
       clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
       await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
       expect(await turnProcessor.processNextDueTurn()).toBe("processed")
       const sourceGameAfterTurn = await player.client.gameplay.getPlayerView.query({ gameId: sourceGameId })
       const foreignFleet = sourceGameAfterTurn.fleets[0]
@@ -1590,7 +1593,7 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      await expect(updateActionSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(updateActionSubmission).rejects.toMatchObject({ data: { code: "CONFLICT" } })
     })
 
     integrationTest("should reject setting an action after the turn deadline", async ({ db }) => {
@@ -1617,7 +1620,7 @@ describe("gameplay.router", () => {
 
       // Assert
       await expect(updateActionSubmission).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
+        data: { code: "CONFLICT" },
       })
     })
 
@@ -2017,7 +2020,7 @@ describe("gameplay.router", () => {
             expect(unchangedView.resources).toStrictEqual(firstReload.resources)
             expect(unchangedView.fleets.find(({ id }) => id === journey.id)).toStrictEqual(occupiedJourney)
           }
-          const occupiedMessage = `Action instance "${customAction.id}" is still in progress with Fleet "${journey.id}"`
+          const occupiedMessage = "An Action cannot be changed or cancelled while it is in progress."
           await rejectOccupiedAttemptWithoutMutation(
             createSubmittedActionTargetsDtoStub({
               actionId: customAction.id,
@@ -2044,7 +2047,7 @@ describe("gameplay.router", () => {
           )
           await rejectOccupiedAttemptWithoutMutation(
             { actionId: customAction.id, selectedTargets: null, selectedInputs: null },
-            "Cannot cancel an Action while it is in progress",
+            "An Action cannot be changed or cancelled while it is in progress.",
           )
         }
         await verifyRedirectedTargetsPhase12()

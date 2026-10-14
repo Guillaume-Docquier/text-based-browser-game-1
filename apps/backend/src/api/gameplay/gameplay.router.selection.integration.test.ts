@@ -119,7 +119,7 @@ describe("gameplay.router", () => {
       const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
 
       // Assert
-      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "CONFLICT" } })
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })
@@ -146,7 +146,7 @@ describe("gameplay.router", () => {
       const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
 
       // Assert
-      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "CONFLICT" } })
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })

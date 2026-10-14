@@ -1,22 +1,26 @@
-import { Result } from "@guillaume-docquier/tools-ts"
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { MAX_NB_SEATS } from "./GameLimits.ts"
 import type { GamesRepository } from "./games.repository.ts"
+import type { GetGameCreationSettingsError } from "./getGameCreationSettings.error.ts"
 import { RulesetSummaryDtoSchema } from "./RulesetSummaryDto.ts"
 
 /**
  * Gets the rulesets and seat limit available when creating a lobby.
  */
 export class GetGameCreationSettingsUseCase {
+  private readonly logger: Logger
   private readonly gamesRepository: GamesRepository
 
-  public constructor({ gamesRepository }: { gamesRepository: GamesRepository }) {
+  public constructor({ logger, gamesRepository }: { logger: Logger; gamesRepository: GamesRepository }) {
+    this.logger = logger.child({ scope: "get-game-creation-settings-use-case" })
     this.gamesRepository = gamesRepository
   }
 
-  public async execute(): Promise<Result<GameCreationSettingsDto, string>> {
+  public async execute(): Promise<Result<GameCreationSettingsDto, GetGameCreationSettingsError>> {
     const gameCreationSettingsResult = await this.gamesRepository.getGameCreationSettings()
     if (Result.isFailure(gameCreationSettingsResult)) {
+      this.logger.error("Could not get game creation settings", { error: gameCreationSettingsResult.error })
       return gameCreationSettingsResult
     }
 
