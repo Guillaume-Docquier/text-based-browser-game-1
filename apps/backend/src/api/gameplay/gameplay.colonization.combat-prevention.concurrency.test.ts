@@ -161,20 +161,7 @@ describe("public Colonization worker companions", () => {
     const fixture = await createPublicTwoPlayerFixture(server)
     const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
 
-    const viewsScenario1 = await prepareViewsScenario({
-      fixture,
-      alice,
-      homeA,
-      bob,
-      homeB,
-      gameId,
-      clock,
-      turnsRepository,
-      turnProcessor,
-      clients,
-      target,
-      server,
-    })
+    const viewsScenario1 = await prepareViewsScenario({ ...fixture, fixture, server })
     const { viewsSetup6, stagedAlice, bobColonizeId } = viewsScenario1
     let { views, stage } = viewsScenario1
     const aliceColonizeId = await submitAction({
@@ -242,16 +229,7 @@ describe("public Colonization worker companions", () => {
       turnProcessor,
     })
     const { workerInput, replay } = workerInputSetup7
-    views = await readViews(clients, gameId)
-    expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(playerIdFor(alice))
-    expect(getFleetAt(required(views[0]), playerIdFor(alice), target.id, 15).id).toBe(stagedAlice.id)
-    expect(getFleetAt(required(views[0]), playerIdFor(bob), target.id, 35).id).toBe(bobJourney.id)
-    expect(required(views[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 470, uncommitted: 470 })
-    expect(required(views[0]).resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
-    expect(required(views[1]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 473, uncommitted: 473 })
-    expect(required(views[1]).resources[ResourceType.FUEL]).toStrictEqual({ total: 100, uncommitted: 100 })
-    expect(views.map(({ resources }) => resources[ResourceType.COLONY].total)).toStrictEqual([0, 0])
-    expect(required(views[1]).actions.find(({ id }) => id === bobColonizeId)).toMatchObject({ selectedTargets: null, isInProgress: false })
+    views = await verifyClaimedArrival({ ...fixture, stagedAlice, bobJourney, bobColonizeId })
     const savedTurns = await server.database
       .select()
       .from(turnsTable)
@@ -920,5 +898,33 @@ type PrepareViewsScenarioResult = {
   stagedAlice: Fleet
   views: PlayerView[]
   stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+  bobColonizeId: string
+}
+
+async function verifyClaimedArrival(input: VerifyClaimedArrivalInput): Promise<PlayerView[]> {
+  const views = await readViews(input.clients, input.gameId)
+  expect(getPlanets(required(views[0])).find(({ id }) => id === input.target.id)?.ownerPlayerId).toBe(playerIdFor(input.alice))
+  expect(getFleetAt(required(views[0]), playerIdFor(input.alice), input.target.id, 15).id).toBe(input.stagedAlice.id)
+  expect(getFleetAt(required(views[0]), playerIdFor(input.bob), input.target.id, 35).id).toBe(input.bobJourney.id)
+  expect(required(views[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 470, uncommitted: 470 })
+  expect(required(views[0]).resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
+  expect(required(views[1]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 473, uncommitted: 473 })
+  expect(required(views[1]).resources[ResourceType.FUEL]).toStrictEqual({ total: 100, uncommitted: 100 })
+  expect(views.map(({ resources }) => resources[ResourceType.COLONY].total)).toStrictEqual([0, 0])
+  expect(required(views[1]).actions.find(({ id }) => id === input.bobColonizeId)).toMatchObject({
+    selectedTargets: null,
+    isInProgress: false,
+  })
+
+  return views
+}
+type VerifyClaimedArrivalInput = {
+  clients: readonly AuthenticatedApiClient[]
+  gameId: number
+  alice: AuthenticatedApiClient
+  bob: AuthenticatedApiClient
+  target: Planet
+  stagedAlice: Fleet
+  bobJourney: Fleet
   bobColonizeId: string
 }

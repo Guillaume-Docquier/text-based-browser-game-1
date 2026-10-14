@@ -269,56 +269,6 @@ describe("gameplay.router", () => {
       expect(playerView.resources[ResourceType.METAL].total).toBe(5)
       expect(playerView.resources[ResourceType.FUEL].total).toBe(2)
 
-      const evaluatePublicView = (view: typeof playerView): EvaluatePublicViewProjection => {
-        const actions = view.actions.map((action) =>
-          action.selectedTargets === null
-            ? createAvailableActionStub({
-                id: action.id,
-                playerId: view.player.id,
-                actionDefinitionId: action.actionDefinitionId,
-              })
-            : createSubmittedActionStub({
-                id: action.id,
-                playerId: view.player.id,
-                actionDefinitionId: action.actionDefinitionId,
-                selectedTargets: action.selectedTargets,
-                selectedInputs: action.selectedInputs ?? {},
-              }),
-        )
-        const state: EligibilityState = {
-          gameId: view.gameId,
-          turn: view.turn,
-          submittingPlayerId: view.player.id,
-          resources: createResourcesStub({
-            [ResourceType.INFLUENCE]: view.resources[ResourceType.INFLUENCE].total,
-            [ResourceType.METAL]: view.resources[ResourceType.METAL].total,
-            [ResourceType.FUEL]: view.resources[ResourceType.FUEL].total,
-            [ResourceType.ENERGY]: view.resources[ResourceType.ENERGY].total,
-            [ResourceType.COLONY]: view.resources[ResourceType.COLONY].total,
-          }),
-          players: indexBy("id", [{ id: view.player.id, ownerPlayerId: view.player.id }]),
-          planets: indexBy(
-            "id",
-            view.galaxy.systems.flatMap(({ planets: systemPlanets }) =>
-              systemPlanets.map(({ id, ownerPlayerId, x, y }) => ({ id, ownerPlayerId, x, y })),
-            ),
-          ),
-          fleets: indexBy(
-            "id",
-            view.fleets.map(({ id, name, ownerPlayerId, originPlanetId, strength }) =>
-              createFleetStub({ id, name, ownerPlayerId, originPlanetId, strength }),
-            ),
-          ),
-          actions,
-        }
-        const submissions = actions.flatMap((action) => (action.selectedTargets === null ? [] : [action]))
-        return {
-          state,
-          submissions,
-          evaluation: evaluateSubmittedActions({ state, ruleset: ComposedReservationRuleset, submissions }),
-        }
-      }
-
       const submitSelection = async (actionId: string, strength: number): Promise<void> => {
         await player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
@@ -814,3 +764,53 @@ type EvaluatePublicViewProjection2 = {
 }
 
 type EvaluatePublicViewCallback = (view: PlayerView) => EvaluatePublicViewProjection2
+
+function evaluatePublicView(view: PlayerView): EvaluatePublicViewProjection {
+  const actions = view.actions.map((action) =>
+    action.selectedTargets === null
+      ? createAvailableActionStub({
+          id: action.id,
+          playerId: view.player.id,
+          actionDefinitionId: action.actionDefinitionId,
+        })
+      : createSubmittedActionStub({
+          id: action.id,
+          playerId: view.player.id,
+          actionDefinitionId: action.actionDefinitionId,
+          selectedTargets: action.selectedTargets,
+          selectedInputs: action.selectedInputs ?? {},
+        }),
+  )
+  const state: EligibilityState = {
+    gameId: view.gameId,
+    turn: view.turn,
+    submittingPlayerId: view.player.id,
+    resources: createResourcesStub({
+      [ResourceType.INFLUENCE]: view.resources[ResourceType.INFLUENCE].total,
+      [ResourceType.METAL]: view.resources[ResourceType.METAL].total,
+      [ResourceType.FUEL]: view.resources[ResourceType.FUEL].total,
+      [ResourceType.ENERGY]: view.resources[ResourceType.ENERGY].total,
+      [ResourceType.COLONY]: view.resources[ResourceType.COLONY].total,
+    }),
+    players: indexBy("id", [{ id: view.player.id, ownerPlayerId: view.player.id }]),
+    planets: indexBy(
+      "id",
+      view.galaxy.systems.flatMap(({ planets: systemPlanets }) =>
+        systemPlanets.map(({ id, ownerPlayerId, x, y }) => ({ id, ownerPlayerId, x, y })),
+      ),
+    ),
+    fleets: indexBy(
+      "id",
+      view.fleets.map(({ id, name, ownerPlayerId, originPlanetId, strength }) =>
+        createFleetStub({ id, name, ownerPlayerId, originPlanetId, strength }),
+      ),
+    ),
+    actions,
+  }
+  const submissions = actions.flatMap((action) => (action.selectedTargets === null ? [] : [action]))
+  return {
+    state,
+    submissions,
+    evaluation: evaluateSubmittedActions({ state, ruleset: ComposedReservationRuleset, submissions }),
+  }
+}

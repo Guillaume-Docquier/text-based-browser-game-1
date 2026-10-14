@@ -458,18 +458,12 @@ export async function createOrdinaryActionSetup(input: CreateOrdinaryActionSetup
     ),
   ).toHaveLength(0)
   expect(
-    Object.values(firstArrivalForward.resolved.fleets).find(
-      ({ ownerPlayerId, originPlanetId, strength, movement }) =>
-        ownerPlayerId === input.playerAId && originPlanetId === input.fixture.aliceHome.id && strength === 20 && movement === undefined,
-    ),
+    Object.values(firstArrivalForward.resolved.fleets).find(isOrdinaryArrival(input.playerAId, input.fixture.aliceHome.id)),
   ).toBeDefined()
 
   expect(await input.fixture.turnProcessor.processNextDueTurn()).toBe("processed")
   const movingView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.fixture.gameId })
-  const ordinaryArrival = movingView.fleets.find(
-    ({ ownerPlayerId, originPlanetId, strength, movement }) =>
-      ownerPlayerId === input.playerAId && originPlanetId === input.fixture.aliceHome.id && strength === 20 && movement === undefined,
-  )
+  const ordinaryArrival = movingView.fleets.find(isOrdinaryArrival(input.playerAId, input.fixture.aliceHome.id))
   const attackJourney = movingView.fleets.find(({ movement }) => movement?.submission.id === attackAction.id)
   Assert.isDefined(ordinaryArrival)
   Assert.isDefined(attackJourney)
@@ -497,4 +491,12 @@ export type CreateOrdinaryActionSetupResult = {
   ordinaryArrival: Fleet
   attackJourney: Fleet
   attackJourneyId: FleetId
+}
+
+function isOrdinaryArrival(
+  playerId: PlayerId,
+  homeId: Fleet["originPlanetId"],
+): (fleet: Pick<Fleet, "ownerPlayerId" | "originPlanetId" | "strength"> & { movement?: unknown }) => boolean {
+  return ({ ownerPlayerId, originPlanetId, strength, movement }) =>
+    ownerPlayerId === playerId && originPlanetId === homeId && strength === 20 && movement === undefined
 }

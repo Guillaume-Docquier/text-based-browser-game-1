@@ -166,33 +166,7 @@ test("partial Attack Move survives worker turns, defeats a defender, updates the
   await expect(bobFleetsPage.rows.filter({ hasText: bobDefenderName })).toHaveCount(0)
 
   const arrivalActionsPage = await arrivalFleetsPage.openActions()
-  await expect(arrivalActionsPage.journeySummary("Attack Move", "Standard Directive")).toHaveCount(0)
-  await expect(arrivalActionsPage.selectActionButton("Attack Move", "Standard Directive")).toHaveText("Select action")
-  expect(await arrivalActionsPage.openTargetPicker("Attack Move", "Standard Directive", "Fleet")).toBe(true)
-  await arrivalActionsPage.searchTarget("Attack Move", "Standard Directive", "Fleet", { query: movingFleetName })
-  const sourceChoice = (await arrivalActionsPage.targetOptionLabels("Fleet")).find((option) => option.endsWith("(20 strength)"))
-  Assert.isDefined(sourceChoice)
-  await arrivalActionsPage.chooseTarget("Fleet", sourceChoice)
-
-  const planetPickerEnabled = await arrivalActionsPage.openTargetPicker("Attack Move", "Standard Directive", "Planet")
-  if (planetPickerEnabled) {
-    await arrivalActionsPage.searchTarget("Attack Move", "Standard Directive", "Planet", { query: bobHomeCoordinates })
-    await expect(arrivalActionsPage.targetChoices("Planet").getByRole("option").first()).toBeVisible()
-    const planetChoice = (await arrivalActionsPage.targetOptionLabels("Planet")).find((option) =>
-      option.endsWith(`(${bobHomeCoordinates})`),
-    )
-    Assert.isDefined(planetChoice)
-    await arrivalActionsPage.chooseTarget("Planet", planetChoice)
-  } else {
-    expect(await arrivalActionsPage.selectedTargetValue("Attack Move", "Standard Directive", "Planet")).toContain(bobHomeCoordinates)
-  }
-  await arrivalActionsPage.enterNumericInput("Attack Move", "Standard Directive", "Fleet strength", { value: 1 })
-  await expect(arrivalActionsPage.action("Attack Move", "Standard Directive")).toContainText(
-    "19 of 20 strength available after this allocation",
-  )
-  await expect(arrivalActionsPage.selectActionButton("Attack Move", "Standard Directive")).toBeEnabled()
-  await arrivalActionsPage.toggleActionSelection("Attack Move", "Standard Directive")
-  await expect(arrivalActionsPage.selectActionButton("Attack Move", "Standard Directive")).toHaveText("Update action")
+  await verifyReleasedAttackAction(arrivalActionsPage, bobHomeCoordinates, movingFleetName)
 
   const arrivalGalaxyPage = await bobFleetsPage.openGalaxy()
   await arrivalGalaxyPage.openStarSystem(arrivalGalaxyPage.ownStar("last"))
@@ -267,4 +241,38 @@ async function selectPartialAttackMove({
   await page.toggleActionSelection("Attack Move", "Standard Directive")
   await expect(page.selectActionButton("Attack Move", "Standard Directive")).toHaveText("Update action")
   return page
+}
+
+async function verifyReleasedAttackAction(
+  arrivalActionsPage: ActionsPage,
+  bobHomeCoordinates: string,
+  movingFleetName: string,
+): Promise<void> {
+  await expect(arrivalActionsPage.journeySummary("Attack Move", "Standard Directive")).toHaveCount(0)
+  await expect(arrivalActionsPage.selectActionButton("Attack Move", "Standard Directive")).toHaveText("Select action")
+  expect(await arrivalActionsPage.openTargetPicker("Attack Move", "Standard Directive", "Fleet")).toBe(true)
+  await arrivalActionsPage.searchTarget("Attack Move", "Standard Directive", "Fleet", { query: movingFleetName })
+  const sourceChoice = (await arrivalActionsPage.targetOptionLabels("Fleet")).find((option) => option.endsWith("(20 strength)"))
+  Assert.isDefined(sourceChoice)
+  await arrivalActionsPage.chooseTarget("Fleet", sourceChoice)
+
+  const planetPickerEnabled = await arrivalActionsPage.openTargetPicker("Attack Move", "Standard Directive", "Planet")
+  if (planetPickerEnabled) {
+    await arrivalActionsPage.searchTarget("Attack Move", "Standard Directive", "Planet", { query: bobHomeCoordinates })
+    await expect(arrivalActionsPage.targetChoices("Planet").getByRole("option").first()).toBeVisible()
+    const planetChoice = (await arrivalActionsPage.targetOptionLabels("Planet")).find((option) =>
+      option.endsWith(`(${bobHomeCoordinates})`),
+    )
+    Assert.isDefined(planetChoice)
+    await arrivalActionsPage.chooseTarget("Planet", planetChoice)
+  } else {
+    expect(await arrivalActionsPage.selectedTargetValue("Attack Move", "Standard Directive", "Planet")).toContain(bobHomeCoordinates)
+  }
+  await arrivalActionsPage.enterNumericInput("Attack Move", "Standard Directive", "Fleet strength", { value: 1 })
+  await expect(arrivalActionsPage.action("Attack Move", "Standard Directive")).toContainText(
+    "19 of 20 strength available after this allocation",
+  )
+  await expect(arrivalActionsPage.selectActionButton("Attack Move", "Standard Directive")).toBeEnabled()
+  await arrivalActionsPage.toggleActionSelection("Attack Move", "Standard Directive")
+  await expect(arrivalActionsPage.selectActionButton("Attack Move", "Standard Directive")).toHaveText("Update action")
 }

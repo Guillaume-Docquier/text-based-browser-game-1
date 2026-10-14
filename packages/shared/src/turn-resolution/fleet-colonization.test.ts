@@ -122,28 +122,7 @@ describe("Fleet Colonization", () => {
       },
       mulberry32Prng,
     )
-    const reloadTurn = (
-      previous: ResolvedTurnState,
-      turn: number,
-      submissions: Array<ReturnType<typeof createSubmittedActionStub>>,
-      rng: ReturnType<typeof createSeededRng>,
-    ): ResolvedTurnState => {
-      const reloadedFleets = Object.values(previous.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue))))
-      const result = resolveTurn(
-        createTurnStateStub({
-          gameId: previous.gameId,
-          turn,
-          submittedActions: submissions,
-          players: structuredClone(previous.players),
-          planets: structuredClone(previous.planets),
-          fleets: indexBy("id", reloadedFleets),
-        }),
-        ruleset,
-        rng,
-      )
-      Assert.isSuccess(result)
-      return result.value
-    }
+    const reloadTurn = createReloadTurn(ruleset)
     const turnTwo = reloadTurn(departure, 2, [], turnTwoRng)
     const turnThreeRng = Rng.fromState(turnTwoRng.getState(), mulberry32Prng)
     const afterArrival = reloadTurn(turnTwo, 3, [], turnThreeRng)
@@ -473,3 +452,28 @@ type ReloadTurnCallback = (
   >,
   rng: ReturnType<typeof createSeededRng>,
 ) => ResolvedTurnState
+
+function createReloadTurn(ruleset: Ruleset): ReloadTurnCallback {
+  return (
+    previous: ResolvedTurnState,
+    turn: number,
+    submissions: Array<ReturnType<typeof createSubmittedActionStub>>,
+    rng: ReturnType<typeof createSeededRng>,
+  ): ResolvedTurnState => {
+    const reloadedFleets = Object.values(previous.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue))))
+    const result = resolveTurn(
+      createTurnStateStub({
+        gameId: previous.gameId,
+        turn,
+        submittedActions: submissions,
+        players: structuredClone(previous.players),
+        planets: structuredClone(previous.planets),
+        fleets: indexBy("id", reloadedFleets),
+      }),
+      ruleset,
+      rng,
+    )
+    Assert.isSuccess(result)
+    return result.value
+  }
+}

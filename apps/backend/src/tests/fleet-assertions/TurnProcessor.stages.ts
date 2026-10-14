@@ -75,7 +75,7 @@ export async function createClientsSetup(input: CreateClientsSetupInput): Promis
   Assert.isDefined(builtFleetB)
   const builtFleets = [builtFleetA, builtFleetB] as const
   expect(builtFleets.map(({ strength }) => strength)).toStrictEqual([30, 20])
-  const targetOwnerIndex = target.id === homeA.id ? 0 : target.id === homeB.id ? 1 : -1
+  const targetOwnerIndex = [homeA.id, homeB.id].indexOf(target.id)
   expect(targetOwnerIndex).toBeGreaterThanOrEqual(0)
   const movingClient = targetOwnerIndex === 0 ? bob : input.alice
   const movingFleet = targetOwnerIndex === 0 ? builtFleetB : builtFleetA

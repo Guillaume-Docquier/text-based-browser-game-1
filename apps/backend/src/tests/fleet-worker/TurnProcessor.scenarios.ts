@@ -43,19 +43,7 @@ export async function createThreeOwnerStationedAssaultFixture(
   Assert.isDefined(homeB)
   Assert.isDefined(homeC)
   const homes = [homeA, homeB, homeC] as const
-  const routeDistances = homes.map((home) => Math.hypot(home.x - target.x, home.y - target.y))
-  expect({
-    target: { id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y },
-    homes: homes.map((home, index) => ({
-      playerId: playerIds[index],
-      id: home.id,
-      name: home.name,
-      coordinates: home.coordinates,
-      x: home.x,
-      y: home.y,
-      distance: routeDistances[index],
-    })),
-  }).toStrictEqual(expectedThreeOwnerHomes)
+  assertThreeOwnerHomes(homes, target, playerIds)
 
   // Arrange: build literal A30/B20/C10 through public Build submissions and completed actual-worker turns.
 
@@ -589,4 +577,20 @@ function findFleetAtLocation(view: PlayerView, owner: PlayerId, origin: Planet["
       fleet.originPlanetId === origin &&
       (inTransit ? fleet.movement !== undefined : fleet.movement === undefined),
   )
+}
+
+function assertThreeOwnerHomes(homes: readonly Planet[], target: Planet, playerIds: readonly PlayerId[]): void {
+  const routeDistances = homes.map((home) => Math.hypot(home.x - target.x, home.y - target.y))
+  expect({
+    target: { id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y },
+    homes: homes.map((home, index) => ({
+      playerId: playerIds[index],
+      id: home.id,
+      name: home.name,
+      coordinates: home.coordinates,
+      x: home.x,
+      y: home.y,
+      distance: routeDistances[index],
+    })),
+  }).toStrictEqual(expectedThreeOwnerHomes)
 }

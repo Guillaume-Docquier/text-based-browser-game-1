@@ -18,6 +18,7 @@ import { ControlledClock } from "#lib/ControlledClock.ts"
 import { actionsTable, fleetsTable, planetsTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
+import { submitAction } from "#tests/colonization/gameplay.colonization.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import type {
   createFailureViewSetup as CapturedcreateFailureViewSetup,
@@ -198,28 +199,7 @@ describe("gameplay submission concurrency", () => {
     await alice.client.games.startGame.mutate({ gameId })
     const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: server.database, clock })
 
-    const submit = async ({
-      client,
-      view,
-      actionDefinitionId,
-      selectedTargets,
-      selectedInputs,
-    }: {
-      client: AuthenticatedApiClient["client"]
-      view: PlayerView
-      actionDefinitionId: ActionDefinitionId
-      selectedTargets: DeepUnbranded<SubmittedActionTargetsDto["selectedTargets"]>
-      selectedInputs: DeepUnbranded<SubmittedActionTargetsDto["selectedInputs"]>
-    }): Promise<string> => {
-      const action = view.actions.find(({ actionDefinitionId: definitionId }) => definitionId === actionDefinitionId)
-      Assert.isDefined(action)
-      await client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: view.turn,
-        submittedActionTargets: { actionId: action.id, selectedTargets, selectedInputs },
-      })
-      return action.id
-    }
+    const submit: SubmitCallback = async (input) => await submitAction({ ...input, gameId })
 
     const processDeadlineTurn = async (turn: number): Promise<void> => {
       await processManualDeadlineTurn({ clock, turnProcessor, turnsRepository, client: alice.client, gameId, turn })
