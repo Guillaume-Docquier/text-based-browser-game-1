@@ -1,12 +1,11 @@
 import { Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { AccountIdSchema } from "shared/domain/accounts/AccountId.ts"
-import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PLAYER_COLOR_PRIORITY } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
-import { z } from "zod"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GamesRepository } from "./games.repository.ts"
+import type { JoinGameCommand } from "./joinGame.command.ts"
 import { JoinGameError, JoinGameRollbackError } from "./joinGame.error.ts"
 
 /**
@@ -34,7 +33,7 @@ export class JoinGameUseCase {
   /**
    * Joining an already joined lobby returns a success for idempotency.
    */
-  public async execute({ gameId, accountId }: JoinGameDto): Promise<Result<void, JoinGameError>> {
+  public async execute({ gameId }: JoinGameCommand, { accountId }: { accountId: AccountId }): Promise<Result<void, JoinGameError>> {
     const playerId = branded<PlayerId>(accountId)
     const joinGameResult = await this.createTransaction(async (tx) => {
       const gameForJoin = await this.gamesRepository.getGameForJoin({ gameId }, tx)
@@ -73,9 +72,3 @@ export class JoinGameUseCase {
     return joinGameResult
   }
 }
-
-export type JoinGameDto = z.infer<typeof JoinGameDtoSchema>
-export const JoinGameDtoSchema = z.object({
-  gameId: GameIdSchema,
-  accountId: AccountIdSchema,
-})

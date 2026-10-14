@@ -11,6 +11,7 @@ Accepted
 - 2026-06-13: Updated controller/repository responsibilities
 - 2026-09-26: Incrementally migrating towards operation-specific use cases instead of controllers.
 - 2026-10-07: Completed the controller migration to operation-specific use cases while retaining shared repositories.
+- 2026-10-14: Colocated Query/Command schemas with their use cases and separated client input from server-authoritative execution values to make ownership explicit.
 
 ## Context
 
@@ -35,8 +36,10 @@ Use cases can have access to a `tx` object through `createTransaction` but shoul
 ### Schema ownership and naming
 
 - Repositories never own Zod schemas. Repositories do not validate user input and should focus on persistence concerns.
-- At the architecture boundary, routers could own request validation schemas. In practice for this codebase, the use case that handles the operation owns its Zod schemas because it is more practical while keeping responsibilities clear. DTOs reused by multiple use cases live in dedicated DTO modules.
-- Use-case owned Zod schemas and related types should be named with the `Dto` suffix (for example: `StarSystemDto`).
+- Each use case owns its client input schema in a sibling `<useCase>.query.ts` or `<useCase>.command.ts` file. Queries read data; commands change state. Export `<UseCase>QuerySchema` / `<UseCase>CommandSchema` and infer the corresponding `<UseCase>Query` / `<UseCase>Command` type with `z.infer`.
+- The first `execute` argument is the parsed query or command. The second argument contains server-authoritative values such as authenticated `accountId` or membership-derived `playerId`; these values must not be part of the client input schema. Omit the second argument when no server values are needed.
+- Use `z.void()` for queries with no client input, keeping the first argument explicit without requiring an empty request object. Routers validate against the use case's schema directly.
+- Response schemas and reusable nested transport shapes retain the `Dto` suffix (for example: `StarSystemDto`). DTOs reused by multiple use cases live in dedicated DTO modules.
 
 Repository and database types should follow these naming conventions:
 
@@ -48,6 +51,6 @@ Repository and database types should follow these naming conventions:
 
 When the business logic is low, use cases might look like unnecessary boilerplate.
 
-Many use cases is more boilerplate than a single controller, but it makes the use case implementation more manageable for complex operations.
+Many use cases is more boilerplate than a single controller, but it makes the use case implementation more manageable for complex operations. Query/Command modules add small files, but give each input a discoverable owner and prevent authenticated identity from being mixed into client input.
 
 If we ever need to changes tech, like replace express or drizzle, the blast radius should be limited to their layers and not affect the others.

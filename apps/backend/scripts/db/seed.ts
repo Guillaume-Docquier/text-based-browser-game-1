@@ -287,7 +287,7 @@ function createGameSeeder(configuration: GameConfiguration): (input: SeedGameInp
     const creationBranch = participants.length === 0 ? "└─" : "├─"
     logger.info(`${gameBranch} ${configuration.name}`)
     logger.info(`${operationPrefix}${creationBranch} Creating lobby with ${creator.alias}`)
-    const game = assertSuccess(await createGameUseCase.execute({ createdByAccountId: creator.id, configuration }))
+    const game = assertSuccess(await createGameUseCase.execute({ configuration }, { createdByAccountId: creator.id }))
 
     if (participants.length === 0) {
       return
@@ -297,7 +297,7 @@ function createGameSeeder(configuration: GameConfiguration): (input: SeedGameInp
     for (const [index, participant] of participants.entries()) {
       const branch = index === participants.length - 1 ? "└─" : "├─"
       logger.info(`${operationPrefix}   ${branch} ${participant.alias}`)
-      assertSuccess(await joinGameUseCase.execute({ gameId: game.createdGameId, accountId: participant.id }))
+      assertSuccess(await joinGameUseCase.execute({ gameId: game.createdGameId }, { accountId: participant.id }))
     }
   }
 }

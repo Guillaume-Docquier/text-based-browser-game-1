@@ -4,6 +4,7 @@ import { getUncommittedResources } from "shared/action-submission/getUncommitted
 import { validateCosts } from "shared/action-submission/validation/costs/validateCosts.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
+import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
 import type { Resources } from "shared/domain/resources/Resources.ts"
 import type { ResourceType } from "shared/domain/resources/ResourceType.ts"
@@ -26,6 +27,7 @@ import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/Resou
 import { createTurnState } from "./createTurnState.ts"
 import type { GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
 import { GetPlayerViewError } from "./getPlayerView.error.ts"
+import type { GetPlayerViewQuery } from "./getPlayerView.query.ts"
 
 /**
  * Reads a player's gameplay view, including resource commitments and Action affordability.
@@ -37,7 +39,10 @@ export class GetPlayerViewUseCase {
     this.gameplayRepository = gameplayRepository
   }
 
-  public async execute({ gameId, playerId }: GetPlayerViewDto): Promise<Result<PlayerViewDto, GetPlayerViewError>> {
+  public async execute(
+    { gameId }: GetPlayerViewQuery,
+    { playerId }: { playerId: PlayerId },
+  ): Promise<Result<PlayerViewDto, GetPlayerViewError>> {
     const playerViewResult = await this.gameplayRepository.getPlayerView({ gameId, playerId })
     if (Result.isFailure(playerViewResult)) {
       return playerViewResult
@@ -132,12 +137,6 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
     }
   })
 }
-
-export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDtoSchema>
-export const GetPlayerViewDtoSchema = z.object({
-  gameId: z.coerce.number().pipe(GameIdSchema),
-  playerId: PlayerIdSchema,
-})
 
 export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDtoSchema>
 export const PlayerViewPlayerDtoSchema = z.object({
