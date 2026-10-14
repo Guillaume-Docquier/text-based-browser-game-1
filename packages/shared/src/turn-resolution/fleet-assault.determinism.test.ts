@@ -1,4 +1,4 @@
-import { Assert, indexBy } from "@guillaume-docquier/tools-ts"
+import { type Success, Assert, indexBy } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
 import { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
@@ -10,7 +10,9 @@ import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 import { StationaryAssaultTest } from "#shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { TestRuleset } from "#shared/testing/test-ruleset/TestRuleset.ts"
+import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnState.ts"
 import { resolveTurn } from "#shared/turn-resolution/resolveTurn.ts"
+import type { ResolutionFleet } from "#shared/turn-resolution/state/ResolutionFleet.ts"
 import { createTurnStateStub } from "#shared/turn-resolution/TurnState.stub.ts"
 import {
   PLAYER_A,
@@ -201,96 +203,12 @@ describe("Fleet Assault", () => {
 
   it("should reload the exact 5I/1F speed-two Attack Move until distance five arrives once", () => {
     // Arrange
-    const origin = planet("speed-two-origin", PLAYER_A, 0)
-    const target = planet("speed-two-target", PLAYER_B, 5)
-    const attacker = fleet("speed-two-attacker", PLAYER_A, origin, 50)
-    const defender = fleet("speed-two-defender", PLAYER_B, target, 20)
-    const actionId = SpeedTwoAttackMoveTest.id + "_1"
-    const submission = createSubmittedActionStub({
-      id: actionId,
-      playerId: PLAYER_A,
-      actionDefinitionId: SpeedTwoAttackMoveTest.id,
-      selectedTargets: { fleet: attacker.id, planet: target.id },
-      selectedInputs: { strength: 30 },
-    })
 
-    // Act
-    const first = resolve({
-      planets: [origin, target],
-      fleets: [attacker, defender],
-      submissions: [submission],
-      ruleset: SpeedTwoAttackMoveRuleset,
-    })
-    const firstJourney = Object.values(first.fleets).find(({ movement }) => movement !== undefined)
-    Assert.isDefined(firstJourney)
+    const createTargetSetupPhase1Result = createTargetSetup()
+    const { firstJourney } = createTargetSetupPhase1Result
 
-    // Continue resolving after each persisted JSON reload.
-    const second = resolveTurn(
-      createTurnStateStub({
-        turn: 2,
-        players: first.players,
-        planets: first.planets,
-        fleets: indexBy(
-          "id",
-          Object.values(first.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
-        ),
-      }),
-      SpeedTwoAttackMoveRuleset,
-      createSeededRng(),
-    )
-    Assert.isSuccess(second)
-    const secondJourney = Object.values(second.value.fleets).find(({ id }) => id === firstJourney.id)
-    Assert.isDefined(secondJourney)
-    const third = resolveTurn(
-      createTurnStateStub({
-        turn: 3,
-        players: second.value.players,
-        planets: second.value.planets,
-        fleets: indexBy(
-          "id",
-          Object.values(second.value.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
-        ),
-      }),
-      SpeedTwoAttackMoveRuleset,
-      createSeededRng(),
-    )
-    Assert.isSuccess(third)
-    const fourth = resolveTurn(
-      createTurnStateStub({
-        turn: 4,
-        players: third.value.players,
-        planets: third.value.planets,
-        fleets: indexBy(
-          "id",
-          Object.values(third.value.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
-        ),
-      }),
-      SpeedTwoAttackMoveRuleset,
-      createSeededRng(),
-    )
-    Assert.isSuccess(fourth)
-
-    // Assert
-    expect(firstJourney).toMatchObject({ strength: 30, distanceToEnd: 3, movement: { pendingArrivalEffects: [{ definitionOrdinal: 3 }] } })
-    expect(first.fleets[attacker.id]?.strength).toBe(20)
-    expect(first.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(95)
-    expect(first.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(99)
-    expect(first.resolvedContinuations).toHaveLength(0)
-    expect(secondJourney.distanceToEnd).toBe(1)
-    expect(second.value.fleets[defender.id]?.strength).toBe(20)
-    expect(second.value.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(95)
-    expect(second.value.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(99)
-    expect(second.value.resolvedContinuations).toHaveLength(1)
-    const secondContinuation = second.value.resolvedContinuations[0]
-    Assert.isDefined(secondContinuation)
-    const resolvedOutcomes = secondContinuation.actionOutcomes.filter(
-      (outcome): outcome is Extract<EffectOutcome, { type: "RESOLVED" }> => outcome.type === "RESOLVED",
-    )
-    expect(resolvedOutcomes.find(({ result }) => result.includes("exchanged"))).toBeUndefined()
-    expect(third.value.fleets[defender.id]).toBeUndefined()
-    expect(third.value.fleets[firstJourney.id]).toMatchObject({ strength: 10, originPlanetId: target.id })
-    expect(third.value.fleets[attacker.id]?.strength).toBe(20)
-    expect(third.value.resolvedContinuations).toHaveLength(1)
+    const createThirdSetupPhase2Result = createThirdSetup({ ...createTargetSetupPhase1Result })
+    const { third, fourth } = createThirdSetupPhase2Result
     expect(third.value.resolvedContinuations[0]?.actionOutcomes.at(-1)).toMatchObject({
       type: "RESOLVED",
       result: expect.stringContaining("exchanged 20 Strength with 20 enemy Strength"),
@@ -400,3 +318,131 @@ describe("Fleet Assault", () => {
     expect(rng.getState()).toStrictEqual({ generatorState: 1831567047, spareNormal: null })
   })
 })
+
+function createTargetSetup(): CreateTargetSetupResult {
+  const origin = planet("speed-two-origin", PLAYER_A, 0)
+  const target = planet("speed-two-target", PLAYER_B, 5)
+  const attacker = fleet("speed-two-attacker", PLAYER_A, origin, 50)
+  const defender = fleet("speed-two-defender", PLAYER_B, target, 20)
+  const actionId = SpeedTwoAttackMoveTest.id + "_1"
+  const submission = createSubmittedActionStub({
+    id: actionId,
+    playerId: PLAYER_A,
+    actionDefinitionId: SpeedTwoAttackMoveTest.id,
+    selectedTargets: { fleet: attacker.id, planet: target.id },
+    selectedInputs: { strength: 30 },
+  })
+
+  // Act
+  const first = resolve({
+    planets: [origin, target],
+    fleets: [attacker, defender],
+    submissions: [submission],
+    ruleset: SpeedTwoAttackMoveRuleset,
+  })
+  const firstJourney = Object.values(first.fleets).find(({ movement }) => movement !== undefined)
+  Assert.isDefined(firstJourney)
+
+  // Continue resolving after each persisted JSON reload.
+  const second = resolveTurn(
+    createTurnStateStub({
+      turn: 2,
+      players: first.players,
+      planets: first.planets,
+      fleets: indexBy(
+        "id",
+        Object.values(first.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
+      ),
+    }),
+    SpeedTwoAttackMoveRuleset,
+    createSeededRng(),
+  )
+  Assert.isSuccess(second)
+  const secondJourney = Object.values(second.value.fleets).find(({ id }) => id === firstJourney.id)
+  Assert.isDefined(secondJourney)
+  return { target, attacker, defender, first, firstJourney, second, secondJourney }
+}
+
+function createThirdSetup({
+  second,
+  firstJourney,
+  first,
+  attacker,
+  secondJourney,
+  defender,
+  target,
+}: CreateThirdSetupInput): CreateThirdSetupResult {
+  const third = resolveTurn(
+    createTurnStateStub({
+      turn: 3,
+      players: second.value.players,
+      planets: second.value.planets,
+      fleets: indexBy(
+        "id",
+        Object.values(second.value.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
+      ),
+    }),
+    SpeedTwoAttackMoveRuleset,
+    createSeededRng(),
+  )
+  Assert.isSuccess(third)
+  const fourth = resolveTurn(
+    createTurnStateStub({
+      turn: 4,
+      players: third.value.players,
+      planets: third.value.planets,
+      fleets: indexBy(
+        "id",
+        Object.values(third.value.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
+      ),
+    }),
+    SpeedTwoAttackMoveRuleset,
+    createSeededRng(),
+  )
+  Assert.isSuccess(fourth)
+
+  // Assert
+  expect(firstJourney).toMatchObject({ strength: 30, distanceToEnd: 3, movement: { pendingArrivalEffects: [{ definitionOrdinal: 3 }] } })
+  expect(first.fleets[attacker.id]?.strength).toBe(20)
+  expect(first.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(95)
+  expect(first.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(99)
+  expect(first.resolvedContinuations).toHaveLength(0)
+  expect(secondJourney.distanceToEnd).toBe(1)
+  expect(second.value.fleets[defender.id]?.strength).toBe(20)
+  expect(second.value.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(95)
+  expect(second.value.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(99)
+  expect(second.value.resolvedContinuations).toHaveLength(1)
+  const secondContinuation = second.value.resolvedContinuations[0]
+  Assert.isDefined(secondContinuation)
+  const resolvedOutcomes = secondContinuation.actionOutcomes.filter(
+    (outcome): outcome is Extract<EffectOutcome, { type: "RESOLVED" }> => outcome.type === "RESOLVED",
+  )
+  expect(resolvedOutcomes.find(({ result }) => result.includes("exchanged"))).toBeUndefined()
+  expect(third.value.fleets[defender.id]).toBeUndefined()
+  expect(third.value.fleets[firstJourney.id]).toMatchObject({ strength: 10, originPlanetId: target.id })
+  expect(third.value.fleets[attacker.id]?.strength).toBe(20)
+  expect(third.value.resolvedContinuations).toHaveLength(1)
+  return { third, fourth }
+}
+
+type CreateTargetSetupResult = {
+  target: ReturnType<typeof createPlanetStub>
+  attacker: ReturnType<typeof createFleetStub>
+  defender: ReturnType<typeof createFleetStub>
+  first: ResolvedTurnState
+  firstJourney: ResolutionFleet
+  second: Success<ResolvedTurnState>
+  secondJourney: ResolutionFleet
+}
+
+type CreateThirdSetupInput = {
+  second: Success<ResolvedTurnState>
+  firstJourney: ResolutionFleet
+  first: ResolvedTurnState
+  attacker: ReturnType<typeof createFleetStub>
+  secondJourney: ResolutionFleet
+  defender: ReturnType<typeof createFleetStub>
+  target: ReturnType<typeof createPlanetStub>
+}
+
+type CreateThirdSetupResult = { third: Success<ResolvedTurnState>; fourth: Success<ResolvedTurnState> }

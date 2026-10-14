@@ -9,8 +9,9 @@ import {
   type ActionSelectionDraft,
   type EligibilityState,
 } from "#shared/action-submission/evaluateActionSelection.ts"
+import type { EligibilityIssueCode } from "#shared/action-submission/selectionEvaluation.ts"
 import { GameIdSchema } from "#shared/domain/games/GameId.ts"
-import { PlayerIdSchema } from "#shared/domain/players/PlayerId.ts"
+import { type PlayerId, PlayerIdSchema } from "#shared/domain/players/PlayerId.ts"
 import { createResourcesStub } from "#shared/domain/resources/Resources.stub.ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
 import { ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
@@ -18,6 +19,7 @@ import type { InputTag } from "#shared/domain/ruleset/action-definitions/InputTa
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import { createRulesetStub } from "#shared/domain/ruleset/Ruleset.stub.ts"
+import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import { DifferentFromFleetOriginConstraint } from "#shared/domain/ruleset/target-definitions/DifferentFromFleetOriginTargetConstraint.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { StationaryFleetConstraint } from "#shared/domain/ruleset/target-definitions/StationaryFleetTargetConstraint.ts"
@@ -44,97 +46,12 @@ import {
 describe("evaluateActionSelection", () => {
   it("should keep an absent constructor source dependency incomplete and accept its declared value", () => {
     // Arrange
-    const ownerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000077")
-    const actionId = branded<ActionId>("ARBITRARY_MOVE_1")
-    const sourceFleetId = branded<FleetId>("00000000-0000-4000-8000-000000000078")
-    const originId = branded<PlanetId>("00000000-0000-4000-8000-000000000079")
-    const destinationId = branded<PlanetId>("00000000-0000-4000-8000-000000000080")
-    const actionDefinition = typedParse(ActionDefinitionSchema, {
-      ...MoveFleetStandard,
-      id: "ARBITRARY_TAG_MOVE",
-      name: "Arbitrary tag movement",
-      inputs: { units: { type: "POSITIVE_INTEGER", label: "Units" } },
-      targets: {
-        constructor: {
-          targetType: TargetType.FLEET,
-          constraints: [OwnedBySubmittingPlayerConstraint.create(), StationaryFleetConstraint.create()],
-        },
-        landingSite: {
-          targetType: TargetType.PLANET,
-          constraints: [
-            WithinFleetRangeConstraint.create({ sourceFleetTag: "constructor", maxDistance: 5 }),
-            DifferentFromFleetOriginConstraint.create({ sourceFleetTag: "constructor" }),
-          ],
-        },
-      },
-      effects: [
-        FleetMoveEffectDefinition.create({
-          fleetTag: "constructor",
-          planetTag: "landingSite",
-          strengthTag: "units",
-          speed: 0.1,
-        }),
-      ],
-    })
-    const ruleset = createRulesetStub({
-      actionDefinitions: indexBy("id", [actionDefinition]),
-      actionPool: [{ id: actionId, actionDefinitionId: actionDefinition.id }],
-    })
-    const origin = createPlanetStub({ id: originId, ownerPlayerId: ownerId, x: 0, y: 0 })
-    const destination = createPlanetStub({ id: destinationId, ownerPlayerId: null, x: 3, y: 4 })
-    const sourceFleet = createFleetStub({ id: sourceFleetId, ownerPlayerId: ownerId, originPlanetId: originId, strength: 50 })
-    const state: EligibilityState = {
-      gameId: typedParse(GameIdSchema, 1),
-      turn: 1,
-      submittingPlayerId: ownerId,
-      resources: createResourcesStub({ [ResourceType.INFLUENCE]: 10, [ResourceType.FUEL]: 10 }),
-      players: indexBy("id", [{ id: ownerId, ownerPlayerId: ownerId }]),
-      planets: indexBy("id", [origin, destination]),
-      fleets: indexBy("id", [sourceFleet]),
-      actions: computeAvailableActions({ playerIds: [ownerId], ruleset }),
-    }
-    const partialDraft: ActionSelectionDraft = {
-      actionId,
-      selectedTargets: { [branded<TargetTag>("landingSite")]: destinationId },
-      selectedInputs: { [branded<InputTag>("units")]: 1 },
-    }
 
-    // Act
-    const partial = evaluateActionSelection({ state, ruleset, draft: partialDraft })
-    const candidate = evaluateTargetCandidate({
-      state,
-      ruleset,
-      draft: { actionId, selectedTargets: {}, selectedInputs: { [branded<InputTag>("units")]: 1 } },
-      targetTag: branded<TargetTag>("landingSite"),
-      targetId: destinationId,
-    })
-    const complete = evaluateActionSelection({
-      state,
-      ruleset,
-      draft: {
-        actionId,
-        selectedTargets: {
-          [branded<TargetTag>("constructor")]: sourceFleetId,
-          [branded<TargetTag>("landingSite")]: destinationId,
-        },
-        selectedInputs: { [branded<InputTag>("units")]: 1 },
-      },
-    })
+    const createOwnerIdSetupPhase1Result = createOwnerIdSetup()
+    const { sourceFleetId } = createOwnerIdSetupPhase1Result
 
-    // Assert
-    expect(partial.status).toBe("INCOMPLETE")
-    expect(partial.issues).toStrictEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ code: "MISSING_TARGET", targetTag: branded<TargetTag>("constructor") }),
-        expect.objectContaining({ code: "DEPENDENCY_INCOMPLETE", targetTag: branded<TargetTag>("landingSite") }),
-      ]),
-    )
-    expect(partial.issues.map(({ code }) => code)).not.toContain("DEPENDENCY_INVALID")
-    expect(candidate.candidateStatus).toBe("INCOMPLETE")
-    expect(candidate.candidateIssues).toContainEqual(
-      expect.objectContaining({ code: "DEPENDENCY_INCOMPLETE", targetTag: branded<TargetTag>("landingSite") }),
-    )
-    expect(complete.status).toBe("ELIGIBLE")
+    const createCompleteSetupPhase2Result = createCompleteSetup({ ...createOwnerIdSetupPhase1Result })
+    const { complete } = createCompleteSetupPhase2Result
     expect(complete.strengthCommitments[sourceFleetId]).toBe(1)
     expect(complete.remainingStrength[sourceFleetId]).toBe(49)
   })
@@ -502,3 +419,154 @@ describe("evaluateActionSelection", () => {
     expect(bothAt40.resourceCommitments[ResourceType.FUEL]).toBe(0)
   })
 })
+
+function createOwnerIdSetup(): CreateOwnerIdSetupResult {
+  const ownerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000077")
+  const actionId = branded<ActionId>("ARBITRARY_MOVE_1")
+  const sourceFleetId = branded<FleetId>("00000000-0000-4000-8000-000000000078")
+  const originId = branded<PlanetId>("00000000-0000-4000-8000-000000000079")
+  const destinationId = branded<PlanetId>("00000000-0000-4000-8000-000000000080")
+  const actionDefinition = typedParse(ActionDefinitionSchema, {
+    ...MoveFleetStandard,
+    id: "ARBITRARY_TAG_MOVE",
+    name: "Arbitrary tag movement",
+    inputs: { units: { type: "POSITIVE_INTEGER", label: "Units" } },
+    targets: {
+      constructor: {
+        targetType: TargetType.FLEET,
+        constraints: [OwnedBySubmittingPlayerConstraint.create(), StationaryFleetConstraint.create()],
+      },
+      landingSite: {
+        targetType: TargetType.PLANET,
+        constraints: [
+          WithinFleetRangeConstraint.create({ sourceFleetTag: "constructor", maxDistance: 5 }),
+          DifferentFromFleetOriginConstraint.create({ sourceFleetTag: "constructor" }),
+        ],
+      },
+    },
+    effects: [
+      FleetMoveEffectDefinition.create({
+        fleetTag: "constructor",
+        planetTag: "landingSite",
+        strengthTag: "units",
+        speed: 0.1,
+      }),
+    ],
+  })
+  const ruleset = createRulesetStub({
+    actionDefinitions: indexBy("id", [actionDefinition]),
+    actionPool: [{ id: actionId, actionDefinitionId: actionDefinition.id }],
+  })
+  const origin = createPlanetStub({ id: originId, ownerPlayerId: ownerId, x: 0, y: 0 })
+  const destination = createPlanetStub({ id: destinationId, ownerPlayerId: null, x: 3, y: 4 })
+  const sourceFleet = createFleetStub({ id: sourceFleetId, ownerPlayerId: ownerId, originPlanetId: originId, strength: 50 })
+  return { ownerId, actionId, sourceFleetId, destinationId, ruleset, origin, destination, sourceFleet }
+}
+
+function createCompleteSetup({
+  ownerId,
+  origin,
+  destination,
+  sourceFleet,
+  ruleset,
+  actionId,
+  destinationId,
+  sourceFleetId,
+}: CreateCompleteSetupInput): CreateCompleteSetupResult {
+  const state: EligibilityState = {
+    gameId: typedParse(GameIdSchema, 1),
+    turn: 1,
+    submittingPlayerId: ownerId,
+    resources: createResourcesStub({ [ResourceType.INFLUENCE]: 10, [ResourceType.FUEL]: 10 }),
+    players: indexBy("id", [{ id: ownerId, ownerPlayerId: ownerId }]),
+    planets: indexBy("id", [origin, destination]),
+    fleets: indexBy("id", [sourceFleet]),
+    actions: computeAvailableActions({ playerIds: [ownerId], ruleset }),
+  }
+  const partialDraft: ActionSelectionDraft = {
+    actionId,
+    selectedTargets: { [branded<TargetTag>("landingSite")]: destinationId },
+    selectedInputs: { [branded<InputTag>("units")]: 1 },
+  }
+
+  // Act
+  const partial = evaluateActionSelection({ state, ruleset, draft: partialDraft })
+  const candidate = evaluateTargetCandidate({
+    state,
+    ruleset,
+    draft: { actionId, selectedTargets: {}, selectedInputs: { [branded<InputTag>("units")]: 1 } },
+    targetTag: branded<TargetTag>("landingSite"),
+    targetId: destinationId,
+  })
+  const complete = evaluateActionSelection({
+    state,
+    ruleset,
+    draft: {
+      actionId,
+      selectedTargets: {
+        [branded<TargetTag>("constructor")]: sourceFleetId,
+        [branded<TargetTag>("landingSite")]: destinationId,
+      },
+      selectedInputs: { [branded<InputTag>("units")]: 1 },
+    },
+  })
+
+  // Assert
+  expect(partial.status).toBe("INCOMPLETE")
+  expect(partial.issues).toStrictEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ code: "MISSING_TARGET", targetTag: branded<TargetTag>("constructor") }),
+      expect.objectContaining({ code: "DEPENDENCY_INCOMPLETE", targetTag: branded<TargetTag>("landingSite") }),
+    ]),
+  )
+  expect(partial.issues.map(({ code }) => code)).not.toContain("DEPENDENCY_INVALID")
+  expect(candidate.candidateStatus).toBe("INCOMPLETE")
+  expect(candidate.candidateIssues).toContainEqual(
+    expect.objectContaining({ code: "DEPENDENCY_INCOMPLETE", targetTag: branded<TargetTag>("landingSite") }),
+  )
+  expect(complete.status).toBe("ELIGIBLE")
+  return { complete }
+}
+
+type CreateOwnerIdSetupResult = {
+  ownerId: PlayerId
+  actionId: ActionId
+  sourceFleetId: FleetId
+  destinationId: PlanetId
+  ruleset: Ruleset
+  origin: ReturnType<typeof createPlanetStub>
+  destination: ReturnType<typeof createPlanetStub>
+  sourceFleet: ReturnType<typeof createFleetStub>
+}
+
+type CreateCompleteSetupInput = {
+  ownerId: PlayerId
+  origin: ReturnType<typeof createPlanetStub>
+  destination: ReturnType<typeof createPlanetStub>
+  sourceFleet: ReturnType<typeof createFleetStub>
+  ruleset: Ruleset
+  actionId: ActionId
+  destinationId: PlanetId
+  sourceFleetId: FleetId
+}
+
+type CreateCompleteSetupResult = {
+  complete: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+}

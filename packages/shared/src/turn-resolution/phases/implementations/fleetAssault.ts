@@ -52,10 +52,7 @@ export function resolveFleetAssaultAttempt({
   if (Result.isFailure(stationaryResult)) {
     return stationaryResult
   }
-  const stationaryFleets = stationaryResult.value
-  const defenders = stationaryFleets
-    .filter((fleet) => fleet.ownerPlayerId !== submittingPlayerId && isFleetPresentAtPlanet(fleet, planetId))
-    .toSorted((first, second) => compareOrdinalStrings(first.id, second.id))
+  const defenders = enemyDefenders(stationaryResult.value, submittingPlayerId, planetId)
   if (defenders.length === 0) {
     return Result.Success(EffectOutcome.Resolved({ result: `Fleet "${attacker.name}" found no enemy Fleets at Planet "${planet.name}"` }))
   }
@@ -75,6 +72,12 @@ export function resolveFleetAssaultAttempt({
     }),
   )
 }
+function enemyDefenders(fleets: readonly ResolutionFleet[], playerId: PlayerId, planetId: PlanetId): ResolutionFleet[] {
+  return fleets
+    .filter((fleet) => fleet.ownerPlayerId !== playerId && isFleetPresentAtPlanet(fleet, planetId))
+    .toSorted((first, second) => compareOrdinalStrings(first.id, second.id))
+}
+
 function prepareAssaultLosses(
   defenders: readonly ResolutionFleet[],
   attackingStrength: number,

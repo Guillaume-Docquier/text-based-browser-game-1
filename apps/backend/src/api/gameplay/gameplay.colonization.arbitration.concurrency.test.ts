@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { type GameId, GameIdSchema } from "shared/domain/games/GameId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import type { createSubmittedActionStub } from "shared/domain/turns/actions/Action.stub.ts"
 import type { EffectOutcome } from "shared/domain/turns/actions/EffectOutcome.ts"
 import { ColonizeHereTest } from "shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { MoveFleetStandard } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
@@ -12,11 +13,14 @@ import type { Planet, Action, Fleet, PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { turnsTable } from "#lib/db/schema.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
+import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import type { replayWorkerInputWithState as CapturedreplayWorkerInputWithState } from "#tests/colonization/gameplay.colonization.scenarios.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import type { normalizeApiDate } from "#tests/fleet-concurrency/gameplay.scenarios.ts"
 import type { reverseWorkerInputEnumeration } from "#tests/fleet-concurrency/gameplay.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
+import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import {
   getPlanets,
   getHome,
@@ -38,56 +42,11 @@ import {
 describe("public Colonization worker companions", () => {
   it("should preserve the public 15+20 stationary Colonize budget through selection, replacement, cancellation, and the exact40 boundary", async () => {
     await using server = await ConcurrencyTestApiServer.create()
-    const rulesetsRepository = new RulesetsRepository({ db: server.database, logger: Logger.get() })
-    Assert.isSuccess(await rulesetsRepository.upsertRuleset(PublicColonizationBudgetRuleset))
-    const player = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000091" })
-    const { createdGameId: gameId } = await player.client.games.create.mutate({
-      configuration: createGameConfigurationStub({
-        rulesetId: PublicColonizationBudgetRuleset.id,
-        nbSeats: 1,
-        turnIntervalSeconds: Time.in(MANUAL_TURN_INTERVAL, UnitOfTime.SECONDS),
-        mapGenerationSeed: 1234,
-      }),
-    })
-    await player.client.games.startGame.mutate({ gameId })
-    const clock = new ControlledClock({ startDate: new Date() })
-    const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: server.database, clock })
-    let view = await player.client.gameplay.getPlayerView.query({ gameId })
-    const home = getHome(view)
-    const target = getPlanets(view).find(({ coordinates }) => coordinates === "55:07:50")
-    const replacementTarget = getPlanets(view).find(({ coordinates }) => coordinates === "45:98:25")
-    Assert.isDefined(target)
-    Assert.isDefined(replacementTarget)
 
-    assertScenarioState2({ home, target, replacementTarget, view })
-
-    const buildAction = view.actions.find(({ id }) => id === "PUBLIC_BUDGET_BUILD35")
-    Assert.isDefined(buildAction)
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: view.turn,
-      submittedActionTargets: {
-        actionId: buildAction.id,
-        selectedTargets: { planet: home.id },
-        selectedInputs: {},
-      },
-    })
-    view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
-    const sourceAtHome = getFleetAt(view, view.player.id, home.id, 35)
-    const stageAction = view.actions.find(({ id }) => id === "PUBLIC_BUDGET_STAGE_FLEET")
-    Assert.isDefined(stageAction)
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: view.turn,
-      submittedActionTargets: {
-        actionId: stageAction.id,
-        selectedTargets: { fleet: sourceAtHome.id, planet: target.id },
-        selectedInputs: { strength: 35 },
-      },
-    })
-    view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
-    const stationary = getFleetAt(view, view.player.id, target.id, 35)
-    const buildThirtyAction = view.actions.find(({ id }) => id === "PUBLIC_BUDGET_BUILD30")
+    const createPlayerSetupPhase1Result = await createPlayerSetup({ server })
+    const { player, gameId, clock, turnProcessor, turnsRepository, home, target, replacementTarget, stationary, buildThirtyAction } =
+      createPlayerSetupPhase1Result
+    let { view } = createPlayerSetupPhase1Result
     Assert.isDefined(buildThirtyAction)
     await player.client.gameplay.updateActionSubmission.mutate({
       gameId,
@@ -164,41 +123,18 @@ describe("public Colonization worker companions", () => {
     }
     const currentView = async (): Promise<PlayerView> => await player.client.gameplay.getPlayerView.query({ gameId })
 
-    await assertCombinedReservation({
+    const createExact35ViewSetupPhase2Result = await createExact35ViewSetup({
+      ...createPlayerSetupPhase1Result,
       moveAction,
-      stationary,
-      home,
       colonizeAction,
-      target,
       submitMove,
       submitColonize,
       currentView,
       replacementSource,
-      replacementTarget,
       cancelAction,
       secondColonizeAction,
     })
-
-    const exact35View = await currentView()
-    expect(exact35View.actions.find(({ id }) => id === colonizeAction.id)?.selectedTargets).toStrictEqual({
-      fleet: stationary.id,
-      planet: target.id,
-    })
-    expect(exact35View.actions.find(({ id }) => id === secondColonizeAction.id)?.selectedTargets).toBeNull()
-    expect(exact35View.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 75 })
-    await cancelAction(colonizeAction.id)
-
-    const buildFiveAction = exact35View.actions.find(({ id }) => id === "PUBLIC_BUDGET_BUILD5")
-    Assert.isDefined(buildFiveAction)
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: exact35View.turn,
-      submittedActionTargets: {
-        actionId: buildFiveAction.id,
-        selectedTargets: { planet: home.id },
-        selectedInputs: {},
-      },
-    })
+    const { exact35View } = createExact35ViewSetupPhase2Result
     view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: exact35View.turn })
     const fiveStrengthFleet = getFleetAt(view, view.player.id, home.id, 5)
     const nextStageAction = view.actions.find(({ id }) => id === "PUBLIC_BUDGET_STAGE_FLEET")
@@ -213,90 +149,27 @@ describe("public Colonization worker companions", () => {
       },
     })
     view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
-    const fullForce = getFleetAt(view, view.player.id, target.id, 40)
-    expect(getPlanets(view).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
-    expect(view.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 100 })
-    expect(view.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
 
-    const currentColonizeActions = view.actions.filter((action) => isColonizeDefinitionId(action.actionDefinitionId))
-    const fullColonizeAction = currentColonizeActions.find(({ actionDefinitionId }) => actionDefinitionId === ColonizeHereTest.id)
-    const fullSecondColonizeAction = currentColonizeActions.find(
-      ({ actionDefinitionId }) => actionDefinitionId === PublicBudgetSecondColonizeHere.id,
-    )
-    Assert.isDefined(fullColonizeAction)
-    Assert.isDefined(fullSecondColonizeAction)
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: view.turn,
-      submittedActionTargets: {
-        actionId: fullColonizeAction.id,
-        selectedTargets: { fleet: fullForce.id, planet: target.id },
-        selectedInputs: {},
-      },
-    })
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: view.turn,
-      submittedActionTargets: {
-        actionId: fullSecondColonizeAction.id,
-        selectedTargets: { fleet: fullForce.id, planet: target.id },
-        selectedInputs: {},
-      },
-    })
-    const exact40View = await currentView()
-    expect(exact40View.actions.find(({ id }) => id === fullColonizeAction.id)?.selectedTargets).toStrictEqual({
-      fleet: fullForce.id,
-      planet: target.id,
-    })
-    expect(exact40View.actions.find(({ id }) => id === fullSecondColonizeAction.id)?.selectedTargets).toStrictEqual({
-      fleet: fullForce.id,
-      planet: target.id,
-    })
-    expect(exact40View.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 50 })
-    expect(exact40View.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
-    const exact40WorkerInput = await captureWorkerInput({
-      server,
-      clock,
-      turnsRepository,
-      gameId,
-      turn: exact40View.turn,
-    })
-    const exact40Replay = replayWorkerInputWithState(exact40WorkerInput)
+    const createFullForceSetupPhase3Result = await createFullForceSetup({ ...createPlayerSetupPhase1Result, view, currentView, server })
+    const { fullColonizeAction, fullSecondColonizeAction, exact40View, exact40WorkerInput, exact40Replay } =
+      createFullForceSetupPhase3Result
     Assert.isSuccess(exact40Replay.resolved)
     expect(exact40WorkerInput.submittedActions).toHaveLength(2)
+    Assert.isSuccess(exact40Replay.resolved)
     const exact40Resolved = exact40Replay.resolved.value
     const exact40Results = [fullColonizeAction.id, fullSecondColonizeAction.id].map((actionId) => {
       const result = exact40Resolved.resolvedActions.find(({ submittedAction }) => submittedAction.id === actionId)
       Assert.isDefined(result)
       return result
     })
-    const exact40ColonizeOutcomes = exact40Results.flatMap(({ actionOutcomes }) => actionOutcomes)
-    expect(exact40ColonizeOutcomes.filter((outcome) => hasResolvedResult(outcome, " colonized Planet "))).toHaveLength(1)
-    expect(exact40ColonizeOutcomes.filter((outcome) => outcome.type === "PREVENTED")).toHaveLength(1)
-    expect(exact40Replay.resolved.value.planets[target.id]?.ownerPlayerId).toBe(exact40View.player.id)
-    expect(exact40Replay.resolved.value.fleets[fullForce.id]).toMatchObject({
-      id: fullForce.id,
-      ownerPlayerId: exact40View.player.id,
-      originPlanetId: target.id,
-      strength: 20,
+
+    const createExact40ColonizeOutcomesSetupPhase4Result = await createExact40ColonizeOutcomesSetup({
+      ...createPlayerSetupPhase1Result,
+      ...createFullForceSetupPhase3Result,
+      exact40Results,
+      server,
     })
-    expect(exact40Replay.resolved.value.fleets[fullForce.id]?.movement).toBeUndefined()
-    expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-    const exact40CompletedView = await player.client.gameplay.getPlayerView.query({ gameId })
-    expect(exact40CompletedView.turn).toBe(exact40View.turn + 1)
-    expect(getPlanets(exact40CompletedView).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(exact40View.player.id)
-    expect(getFleetAt(exact40CompletedView, exact40View.player.id, target.id, 20).id).toBe(fullForce.id)
-    expect(exact40CompletedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 50 })
-    expect(exact40CompletedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
-    for (const actionId of [fullColonizeAction.id, fullSecondColonizeAction.id]) {
-      expect(exact40CompletedView.actions.find(({ id }) => id === actionId)).toMatchObject({ selectedTargets: null, isInProgress: false })
-    }
-    const exact40SavedTurns = await server.database
-      .select()
-      .from(turnsTable)
-      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
-    const exact40SavedNextTurn = exact40SavedTurns.find(({ turn: candidateTurn }) => candidateTurn === exact40WorkerInput.turn + 1)
-    Assert.isDefined(exact40SavedNextTurn)
+    const { exact40ColonizeOutcomes, exact40CompletedView, exact40SavedNextTurn } = createExact40ColonizeOutcomesSetupPhase4Result
 
     assertExact40PersistedRngState({
       exact40SavedNextTurn,
@@ -544,4 +417,308 @@ type AssertExact40PersistedRngStateInput = {
   exact40ColonizeOutcomes: EffectOutcome[]
   exact40CompletedView: PlayerView
   exact40View: PlayerView
+}
+
+async function createPlayerSetup({ server }: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
+  const rulesetsRepository = new RulesetsRepository({ db: server.database, logger: Logger.get() })
+  Assert.isSuccess(await rulesetsRepository.upsertRuleset(PublicColonizationBudgetRuleset))
+  const player = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000091" })
+  const { createdGameId: gameId } = await player.client.games.create.mutate({
+    configuration: createGameConfigurationStub({
+      rulesetId: PublicColonizationBudgetRuleset.id,
+      nbSeats: 1,
+      turnIntervalSeconds: Time.in(MANUAL_TURN_INTERVAL, UnitOfTime.SECONDS),
+      mapGenerationSeed: 1234,
+    }),
+  })
+  await player.client.games.startGame.mutate({ gameId })
+  const clock = new ControlledClock({ startDate: new Date() })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: server.database, clock })
+  let view = await player.client.gameplay.getPlayerView.query({ gameId })
+  const home = getHome(view)
+  const target = getPlanets(view).find(({ coordinates }) => coordinates === "55:07:50")
+  const replacementTarget = getPlanets(view).find(({ coordinates }) => coordinates === "45:98:25")
+  Assert.isDefined(target)
+  Assert.isDefined(replacementTarget)
+
+  assertScenarioState2({ home, target, replacementTarget, view })
+
+  const buildAction = view.actions.find(({ id }) => id === "PUBLIC_BUDGET_BUILD35")
+  Assert.isDefined(buildAction)
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: view.turn,
+    submittedActionTargets: {
+      actionId: buildAction.id,
+      selectedTargets: { planet: home.id },
+      selectedInputs: {},
+    },
+  })
+  view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
+  const sourceAtHome = getFleetAt(view, view.player.id, home.id, 35)
+  const stageAction = view.actions.find(({ id }) => id === "PUBLIC_BUDGET_STAGE_FLEET")
+  Assert.isDefined(stageAction)
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: view.turn,
+    submittedActionTargets: {
+      actionId: stageAction.id,
+      selectedTargets: { fleet: sourceAtHome.id, planet: target.id },
+      selectedInputs: { strength: 35 },
+    },
+  })
+  view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
+  const stationary = getFleetAt(view, view.player.id, target.id, 35)
+  const buildThirtyAction = view.actions.find(({ id }) => id === "PUBLIC_BUDGET_BUILD30")
+  return { player, gameId, clock, turnProcessor, turnsRepository, view, home, target, replacementTarget, stationary, buildThirtyAction }
+}
+
+async function createExact35ViewSetup({
+  moveAction,
+  stationary,
+  home,
+  colonizeAction,
+  target,
+  submitMove,
+  submitColonize,
+  currentView,
+  replacementSource,
+  replacementTarget,
+  cancelAction,
+  secondColonizeAction,
+  player,
+  gameId,
+}: CreateExact35ViewSetupInput): Promise<CreateExact35ViewSetupResult> {
+  await assertCombinedReservation({
+    moveAction,
+    stationary,
+    home,
+    colonizeAction,
+    target,
+    submitMove,
+    submitColonize,
+    currentView,
+    replacementSource,
+    replacementTarget,
+    cancelAction,
+    secondColonizeAction,
+  })
+
+  const exact35View = await currentView()
+  expect(exact35View.actions.find(({ id }) => id === colonizeAction.id)?.selectedTargets).toStrictEqual({
+    fleet: stationary.id,
+    planet: target.id,
+  })
+  expect(exact35View.actions.find(({ id }) => id === secondColonizeAction.id)?.selectedTargets).toBeNull()
+  expect(exact35View.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 75 })
+  await cancelAction(colonizeAction.id)
+
+  const buildFiveAction = exact35View.actions.find(({ id }) => id === "PUBLIC_BUDGET_BUILD5")
+  Assert.isDefined(buildFiveAction)
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: exact35View.turn,
+    submittedActionTargets: {
+      actionId: buildFiveAction.id,
+      selectedTargets: { planet: home.id },
+      selectedInputs: {},
+    },
+  })
+  return { exact35View }
+}
+
+async function createFullForceSetup({
+  view,
+  target,
+  player,
+  gameId,
+  currentView,
+  server,
+  clock,
+  turnsRepository,
+}: CreateFullForceSetupInput): Promise<CreateFullForceSetupResult> {
+  const fullForce = getFleetAt(view, view.player.id, target.id, 40)
+  expect(getPlanets(view).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+  expect(view.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 100 })
+  expect(view.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
+
+  const currentColonizeActions = view.actions.filter((action) => isColonizeDefinitionId(action.actionDefinitionId))
+  const fullColonizeAction = currentColonizeActions.find(({ actionDefinitionId }) => actionDefinitionId === ColonizeHereTest.id)
+  const fullSecondColonizeAction = currentColonizeActions.find(
+    ({ actionDefinitionId }) => actionDefinitionId === PublicBudgetSecondColonizeHere.id,
+  )
+  Assert.isDefined(fullColonizeAction)
+  Assert.isDefined(fullSecondColonizeAction)
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: view.turn,
+    submittedActionTargets: {
+      actionId: fullColonizeAction.id,
+      selectedTargets: { fleet: fullForce.id, planet: target.id },
+      selectedInputs: {},
+    },
+  })
+  await player.client.gameplay.updateActionSubmission.mutate({
+    gameId,
+    turn: view.turn,
+    submittedActionTargets: {
+      actionId: fullSecondColonizeAction.id,
+      selectedTargets: { fleet: fullForce.id, planet: target.id },
+      selectedInputs: {},
+    },
+  })
+  const exact40View = await currentView()
+  expect(exact40View.actions.find(({ id }) => id === fullColonizeAction.id)?.selectedTargets).toStrictEqual({
+    fleet: fullForce.id,
+    planet: target.id,
+  })
+  expect(exact40View.actions.find(({ id }) => id === fullSecondColonizeAction.id)?.selectedTargets).toStrictEqual({
+    fleet: fullForce.id,
+    planet: target.id,
+  })
+  expect(exact40View.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 50 })
+  expect(exact40View.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
+  const exact40WorkerInput = await captureWorkerInput({
+    server,
+    clock,
+    turnsRepository,
+    gameId,
+    turn: exact40View.turn,
+  })
+  const exact40Replay = replayWorkerInputWithState(exact40WorkerInput)
+  return { fullForce, fullColonizeAction, fullSecondColonizeAction, exact40View, exact40WorkerInput, exact40Replay }
+}
+
+async function createExact40ColonizeOutcomesSetup({
+  exact40Results,
+  exact40Replay,
+  target,
+  exact40View,
+  fullForce,
+  turnProcessor,
+  player,
+  gameId,
+  fullColonizeAction,
+  fullSecondColonizeAction,
+  server,
+  exact40WorkerInput,
+}: CreateExact40ColonizeOutcomesSetupInput): Promise<CreateExact40ColonizeOutcomesSetupResult> {
+  const exact40ColonizeOutcomes = exact40Results.flatMap(({ actionOutcomes }) => actionOutcomes)
+  expect(exact40ColonizeOutcomes.filter((outcome) => hasResolvedResult(outcome, " colonized Planet "))).toHaveLength(1)
+  expect(exact40ColonizeOutcomes.filter((outcome) => outcome.type === "PREVENTED")).toHaveLength(1)
+  Assert.isSuccess(exact40Replay.resolved)
+  expect(exact40Replay.resolved.value.planets[target.id]?.ownerPlayerId).toBe(exact40View.player.id)
+  Assert.isSuccess(exact40Replay.resolved)
+  expect(exact40Replay.resolved.value.fleets[fullForce.id]).toMatchObject({
+    id: fullForce.id,
+    ownerPlayerId: exact40View.player.id,
+    originPlanetId: target.id,
+    strength: 20,
+  })
+  Assert.isSuccess(exact40Replay.resolved)
+  expect(exact40Replay.resolved.value.fleets[fullForce.id]?.movement).toBeUndefined()
+  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+  const exact40CompletedView = await player.client.gameplay.getPlayerView.query({ gameId })
+  expect(exact40CompletedView.turn).toBe(exact40View.turn + 1)
+  expect(getPlanets(exact40CompletedView).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(exact40View.player.id)
+  expect(getFleetAt(exact40CompletedView, exact40View.player.id, target.id, 20).id).toBe(fullForce.id)
+  expect(exact40CompletedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 50 })
+  expect(exact40CompletedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
+  for (const actionId of [fullColonizeAction.id, fullSecondColonizeAction.id]) {
+    expect(exact40CompletedView.actions.find(({ id }) => id === actionId)).toMatchObject({ selectedTargets: null, isInProgress: false })
+  }
+  const exact40SavedTurns = await server.database
+    .select()
+    .from(turnsTable)
+    .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
+  const exact40SavedNextTurn = exact40SavedTurns.find(({ turn: candidateTurn }) => candidateTurn === exact40WorkerInput.turn + 1)
+  Assert.isDefined(exact40SavedNextTurn)
+  return { exact40ColonizeOutcomes, exact40CompletedView, exact40SavedNextTurn }
+}
+
+type CreatePlayerSetupInput = { server: ConcurrencyTestApiServer }
+
+type CreatePlayerSetupResult = {
+  player: AuthenticatedApiClient
+  gameId: GameId
+  clock: ControlledClock
+  turnProcessor: TurnProcessor
+  turnsRepository: TurnsRepository
+  view: PlayerView
+  home: Planet
+  target: Planet
+  replacementTarget: Planet
+  stationary: Fleet
+  buildThirtyAction: undefined | Action
+}
+
+type CreateExact35ViewSetupInput = {
+  moveAction: Action
+  stationary: Fleet
+  home: Planet
+  colonizeAction: Action
+  target: Planet
+  submitMove: (strength: number) => Promise<void>
+  submitColonize: (actionId: string, selectedFleetId?: string, selectedPlanetId?: string) => Promise<void>
+  currentView: () => Promise<PlayerView>
+  replacementSource: Fleet
+  replacementTarget: Planet
+  cancelAction: (actionId: string) => Promise<void>
+  secondColonizeAction: Action
+  player: AuthenticatedApiClient
+  gameId: GameId
+}
+
+type CreateExact35ViewSetupResult = { exact35View: PlayerView }
+
+type CreateFullForceSetupInput = {
+  view: PlayerView
+  target: Planet
+  player: AuthenticatedApiClient
+  gameId: GameId
+  currentView: () => Promise<PlayerView>
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+}
+
+type CreateFullForceSetupResult = {
+  fullForce: Fleet
+  fullColonizeAction: Action
+  fullSecondColonizeAction: Action
+  exact40View: PlayerView
+  exact40WorkerInput: ReturnType<typeof reverseWorkerInputEnumeration>
+  exact40Replay: ReturnType<typeof CapturedreplayWorkerInputWithState>
+}
+
+type CreateExact40ColonizeOutcomesSetupInput = {
+  exact40Results: Array<
+    Readonly<{ submittedAction: ReturnType<typeof createSubmittedActionStub>; actionOutcomes: readonly EffectOutcome[] }>
+  >
+  exact40Replay: ReturnType<typeof CapturedreplayWorkerInputWithState>
+  target: Planet
+  exact40View: PlayerView
+  fullForce: Fleet
+  turnProcessor: TurnProcessor
+  player: AuthenticatedApiClient
+  gameId: GameId
+  fullColonizeAction: Action
+  fullSecondColonizeAction: Action
+  server: ConcurrencyTestApiServer
+  exact40WorkerInput: ReturnType<typeof reverseWorkerInputEnumeration>
+}
+
+type CreateExact40ColonizeOutcomesSetupResult = {
+  exact40ColonizeOutcomes: EffectOutcome[]
+  exact40CompletedView: PlayerView
+  exact40SavedNextTurn: {
+    gameId: GameId
+    turn: number
+    status: "COLLECTING_ACTIONS" | "AWAITING_PROCESSING" | "PROCESSING" | "COMPLETED"
+    startedAt: ReturnType<typeof normalizeApiDate>
+    endsAt: ReturnType<typeof normalizeApiDate>
+    closedAt: null | ReturnType<typeof normalizeApiDate>
+    rngGeneratorState: number
+    rngSpareNormal: null | number
+  }
 }

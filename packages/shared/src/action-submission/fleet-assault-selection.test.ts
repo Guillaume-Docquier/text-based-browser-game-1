@@ -30,95 +30,12 @@ import { TestRuleset } from "#shared/testing/test-ruleset/TestRuleset.ts"
 describe("Move and Assault action selection", () => {
   it("should share current resource and Strength commitments across Move, Attack Move, edit, cancel, and gain effects", () => {
     expect.hasAssertions()
-    // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000021")
-    const origin = createPlanetStub({ id: "reservation-origin", ownerPlayerId: playerId, x: 0, y: 0 })
-    const destination = createPlanetStub({ id: "reservation-destination", ownerPlayerId: null, x: 1, y: 0 })
-    const fleet = createFleetStub({
-      id: "reservation-fleet",
-      ownerPlayerId: playerId,
-      originPlanetId: origin.id,
-      strength: 50,
-    })
-    const extraOrigin = createPlanetStub({ id: "extra-reservation-origin", ownerPlayerId: playerId, x: 20, y: 0 })
-    const extraDestination = createPlanetStub({ id: "extra-reservation-destination", ownerPlayerId: null, x: 21, y: 0 })
-    const extraFleet = createFleetStub({
-      id: "extra-reservation-fleet",
-      ownerPlayerId: playerId,
-      originPlanetId: extraOrigin.id,
-      strength: 10,
-    })
-    const move = createSubmittedActionStub({
-      id: MoveFleetStandard.id + "_1",
-      playerId,
-      actionDefinitionId: MoveFleetStandard.id,
-      selectedTargets: { fleet: fleet.id, planet: destination.id },
-      selectedInputs: { strength: 20 },
-    })
-    const attack = createSubmittedActionStub({
-      id: AttackMoveTest.id + "_1",
-      playerId,
-      actionDefinitionId: AttackMoveTest.id,
-      selectedTargets: { fleet: fleet.id, planet: destination.id },
-      selectedInputs: { strength: 30 },
-    })
-    const gain = createSubmittedActionStub({
-      id: GainInfluence.id + "_1",
-      playerId,
-      actionDefinitionId: GainInfluence.id,
-    })
-    const extraAttack = createAvailableActionStub({
-      id: AttackMoveTest.id + "_2",
-      playerId,
-      actionDefinitionId: AttackMoveTest.id,
-    })
-    const baseState: EligibilityState = {
-      gameId: typedParse(GameIdSchema, 1),
-      turn: 1,
-      submittingPlayerId: playerId,
-      resources: createResourcesStub({
-        [ResourceType.INFLUENCE]: 8,
-        [ResourceType.FUEL]: 2,
-      }),
-      players: indexBy("id", [{ id: playerId, ownerPlayerId: playerId }]),
-      planets: indexBy("id", [origin, destination, extraOrigin, extraDestination]),
-      fleets: indexBy("id", [fleet, extraFleet]),
-      actions: [...computeAvailableActions({ playerIds: [playerId], ruleset: TestRuleset }), extraAttack],
-    }
-    const submissions = [move, attack, gain]
-    const currentState = withSubmissions(baseState, submissions)
-    const underfundedState: EligibilityState = {
-      ...baseState,
-      resources: createResourcesStub({
-        [ResourceType.INFLUENCE]: 7,
-        [ResourceType.FUEL]: 2,
-      }),
-    }
 
-    // Act
-    const submitted = evaluateSubmittedActions({
-      state: baseState,
-      ruleset: TestRuleset,
-      submissions,
-    })
-    const editedAttack = evaluateActionSelection({
-      state: currentState,
-      ruleset: TestRuleset,
-      draft: {
-        actionId: attack.id,
-        selectedTargets: attack.selectedTargets,
-        selectedInputs: { ...attack.selectedInputs, [branded<InputTag>("strength")]: 31 },
-      },
-    })
-    const editedMove = evaluateActionSelection({
-      state: currentState,
-      ruleset: TestRuleset,
-      draft: {
-        actionId: move.id,
-        selectedTargets: move.selectedTargets,
-        selectedInputs: { ...move.selectedInputs, [branded<InputTag>("strength")]: 19 },
-      },
-    })
+    const createPlayerIdSetupPhase1Result = createPlayerIdSetup()
+    const { fleet, extraDestination, extraFleet, attack, gain, extraAttack } = createPlayerIdSetupPhase1Result
+
+    const createBaseStateSetupPhase2Result = createBaseStateSetup({ ...createPlayerIdSetupPhase1Result })
+    const { baseState, submissions, currentState, underfundedState, submitted, editedAttack, editedMove } = createBaseStateSetupPhase2Result
     const canceledMove = evaluateSubmittedActions({
       state: baseState,
       ruleset: TestRuleset,
@@ -521,6 +438,232 @@ type AssertExtraCostAttemptInput = {
   fleet: ReturnType<typeof createFleetStub>
   extraFleet: ReturnType<typeof createFleetStub>
   gainCannotFund: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+}
+
+function createPlayerIdSetup(): CreatePlayerIdSetupResult {
+  expect.hasAssertions()
+  // Arrange
+  const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000021")
+  const origin = createPlanetStub({ id: "reservation-origin", ownerPlayerId: playerId, x: 0, y: 0 })
+  const destination = createPlanetStub({ id: "reservation-destination", ownerPlayerId: null, x: 1, y: 0 })
+  const fleet = createFleetStub({
+    id: "reservation-fleet",
+    ownerPlayerId: playerId,
+    originPlanetId: origin.id,
+    strength: 50,
+  })
+  const extraOrigin = createPlanetStub({ id: "extra-reservation-origin", ownerPlayerId: playerId, x: 20, y: 0 })
+  const extraDestination = createPlanetStub({ id: "extra-reservation-destination", ownerPlayerId: null, x: 21, y: 0 })
+  const extraFleet = createFleetStub({
+    id: "extra-reservation-fleet",
+    ownerPlayerId: playerId,
+    originPlanetId: extraOrigin.id,
+    strength: 10,
+  })
+  const move = createSubmittedActionStub({
+    id: MoveFleetStandard.id + "_1",
+    playerId,
+    actionDefinitionId: MoveFleetStandard.id,
+    selectedTargets: { fleet: fleet.id, planet: destination.id },
+    selectedInputs: { strength: 20 },
+  })
+  const attack = createSubmittedActionStub({
+    id: AttackMoveTest.id + "_1",
+    playerId,
+    actionDefinitionId: AttackMoveTest.id,
+    selectedTargets: { fleet: fleet.id, planet: destination.id },
+    selectedInputs: { strength: 30 },
+  })
+  const gain = createSubmittedActionStub({
+    id: GainInfluence.id + "_1",
+    playerId,
+    actionDefinitionId: GainInfluence.id,
+  })
+  const extraAttack = createAvailableActionStub({
+    id: AttackMoveTest.id + "_2",
+    playerId,
+    actionDefinitionId: AttackMoveTest.id,
+  })
+  return { playerId, origin, destination, fleet, extraOrigin, extraDestination, extraFleet, move, attack, gain, extraAttack }
+}
+
+function createBaseStateSetup({
+  playerId,
+  origin,
+  destination,
+  extraOrigin,
+  extraDestination,
+  fleet,
+  extraFleet,
+  extraAttack,
+  move,
+  attack,
+  gain,
+}: CreateBaseStateSetupInput): CreateBaseStateSetupResult {
+  const baseState: EligibilityState = {
+    gameId: typedParse(GameIdSchema, 1),
+    turn: 1,
+    submittingPlayerId: playerId,
+    resources: createResourcesStub({
+      [ResourceType.INFLUENCE]: 8,
+      [ResourceType.FUEL]: 2,
+    }),
+    players: indexBy("id", [{ id: playerId, ownerPlayerId: playerId }]),
+    planets: indexBy("id", [origin, destination, extraOrigin, extraDestination]),
+    fleets: indexBy("id", [fleet, extraFleet]),
+    actions: [...computeAvailableActions({ playerIds: [playerId], ruleset: TestRuleset }), extraAttack],
+  }
+  const submissions = [move, attack, gain]
+  const currentState = withSubmissions(baseState, submissions)
+  const underfundedState: EligibilityState = {
+    ...baseState,
+    resources: createResourcesStub({
+      [ResourceType.INFLUENCE]: 7,
+      [ResourceType.FUEL]: 2,
+    }),
+  }
+
+  // Act
+  const submitted = evaluateSubmittedActions({
+    state: baseState,
+    ruleset: TestRuleset,
+    submissions,
+  })
+  const editedAttack = evaluateActionSelection({
+    state: currentState,
+    ruleset: TestRuleset,
+    draft: {
+      actionId: attack.id,
+      selectedTargets: attack.selectedTargets,
+      selectedInputs: { ...attack.selectedInputs, [branded<InputTag>("strength")]: 31 },
+    },
+  })
+  const editedMove = evaluateActionSelection({
+    state: currentState,
+    ruleset: TestRuleset,
+    draft: {
+      actionId: move.id,
+      selectedTargets: move.selectedTargets,
+      selectedInputs: { ...move.selectedInputs, [branded<InputTag>("strength")]: 19 },
+    },
+  })
+  return { baseState, submissions, currentState, underfundedState, submitted, editedAttack, editedMove }
+}
+
+type CreatePlayerIdSetupResult = {
+  playerId: PlayerId
+  origin: ReturnType<typeof createPlanetStub>
+  destination: ReturnType<typeof createPlanetStub>
+  fleet: ReturnType<typeof createFleetStub>
+  extraOrigin: ReturnType<typeof createPlanetStub>
+  extraDestination: ReturnType<typeof createPlanetStub>
+  extraFleet: ReturnType<typeof createFleetStub>
+  move: ReturnType<typeof createSubmittedActionStub>
+  attack: ReturnType<typeof createSubmittedActionStub>
+  gain: ReturnType<typeof createSubmittedActionStub>
+  extraAttack: ReturnType<typeof createAvailableActionStub>
+}
+
+type CreateBaseStateSetupInput = {
+  playerId: PlayerId
+  origin: ReturnType<typeof createPlanetStub>
+  destination: ReturnType<typeof createPlanetStub>
+  extraOrigin: ReturnType<typeof createPlanetStub>
+  extraDestination: ReturnType<typeof createPlanetStub>
+  fleet: ReturnType<typeof createFleetStub>
+  extraFleet: ReturnType<typeof createFleetStub>
+  extraAttack: ReturnType<typeof createAvailableActionStub>
+  move: ReturnType<typeof createSubmittedActionStub>
+  attack: ReturnType<typeof createSubmittedActionStub>
+  gain: ReturnType<typeof createSubmittedActionStub>
+}
+
+type CreateBaseStateSetupResult = {
+  baseState: Readonly<{
+    gameId: GameId
+    turn: number
+    submittingPlayerId: PlayerId
+    resources: Readonly<ReturnType<typeof createResourcesStub>>
+    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+    actions: readonly Action[]
+  }>
+  submissions: Array<ReturnType<typeof createSubmittedActionStub>>
+  currentState: Readonly<{
+    gameId: GameId
+    turn: number
+    submittingPlayerId: PlayerId
+    resources: Readonly<ReturnType<typeof createResourcesStub>>
+    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+    actions: readonly Action[]
+  }>
+  underfundedState: Readonly<{
+    gameId: GameId
+    turn: number
+    submittingPlayerId: PlayerId
+    resources: Readonly<ReturnType<typeof createResourcesStub>>
+    players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+    planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+    fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+    actions: readonly Action[]
+  }>
+  submitted: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  editedAttack: Readonly<{
+    status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
+    issues: ReadonlyArray<
+      Readonly<{
+        code: EligibilityIssueCode
+        actionId?: ActionId
+        targetTag?: TargetTag
+        inputTag?: InputTag
+        resourceType?: ResourceType
+        message: string
+      }>
+    >
+    missingTargets: readonly TargetTag[]
+    missingInputs: readonly InputTag[]
+    resourceCommitments: Readonly<ReturnType<typeof createResourcesStub>>
+    strengthCommitments: Readonly<Record<FleetId, number>>
+    remainingStrength: Readonly<Record<FleetId, number>>
+  }>
+  editedMove: Readonly<{
     status: "ELIGIBLE" | "INCOMPLETE" | "INELIGIBLE"
     issues: ReadonlyArray<
       Readonly<{

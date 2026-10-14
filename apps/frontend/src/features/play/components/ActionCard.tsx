@@ -284,10 +284,7 @@ function getJourneySummary(action: Action, eligibilityState: EligibilityState, p
   const inProgressFleet = Object.values(eligibilityState.fleets).find(
     (fleet) => fleet.ownerPlayerId === eligibilityState.submittingPlayerId && fleet.movement?.submission.id === action.id,
   )
-  const inProgressDestination =
-    inProgressFleet?.destinationPlanetId !== undefined
-      ? playerView.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === inProgressFleet.destinationPlanetId)
-      : undefined
+  const inProgressDestination = journeyDestination(inProgressFleet, playerView)
   return inProgressFleet === undefined
     ? "Fleet journey in progress"
     : [
@@ -300,6 +297,15 @@ function getJourneySummary(action: Action, eligibilityState: EligibilityState, p
       ]
         .filter((part): part is string => part !== undefined)
         .join(" · ")
+}
+function journeyDestination(
+  fleet: Fleet | undefined,
+  playerView: PlayerView,
+): PlayerView["galaxy"]["systems"][number]["planets"][number] | undefined {
+  if (fleet?.destinationPlanetId === undefined) {
+    return undefined
+  }
+  return playerView.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === fleet.destinationPlanetId)
 }
 
 function getSourceStrength(

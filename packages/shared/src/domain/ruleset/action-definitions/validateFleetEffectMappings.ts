@@ -30,7 +30,7 @@ export function validateFleetEffectMappings(actionDefinition: ActionDefinition, 
 
   const movementEffect = movementEffects[0]?.effect
   for (const { effect, effectIndex } of assaultEffects) {
-    validateAssaultMapping({ actionDefinition, context, effect, effectIndex, movementEffect })
+    validateAssaultSourceAndArrival({ actionDefinition, context, effect, effectIndex, movementEffect, label: "Assault" })
   }
 
   for (const { effect, effectIndex } of colonizeEffects) {
@@ -134,46 +134,6 @@ export function validateMovementMapping({
   }
 }
 
-export function validateAssaultMapping({
-  actionDefinition,
-  context,
-  effect,
-  effectIndex,
-  movementEffect,
-}: {
-  actionDefinition: ActionDefinition
-  context: z.RefinementCtx
-  effect: FleetAssaultEffectDefinition
-  effectIndex: number
-  movementEffect: FleetMoveEffectDefinition | undefined
-}): void {
-  const fleetTag = effect.targets.fleet.actionTargetTag
-  validateFleetSource({ actionDefinition, context, effectIndex, fleetTag, label: "Assault" })
-  const planetTag = effect.targets.planet.actionTargetTag
-  const planetDefinition = actionDefinition.targets[planetTag]
-  const planetConstraints = planetDefinition?.constraints ?? []
-
-  if (movementEffect !== undefined) {
-    if (movementEffect.targets.fleet.actionTargetTag !== fleetTag || movementEffect.targets.planet.actionTargetTag !== planetTag) {
-      context.addIssue({
-        code: "custom",
-        path: ["effects", effectIndex, "targets"],
-        message: `Action Definition "${actionDefinition.name}" FLEET_ASSAULT must use the same source and destination target tags as FLEET_MOVE`,
-      })
-    }
-  } else if (
-    !planetConstraints.some(
-      (constraint) => constraint.type === AtFleetPlanetConstraint.type && constraint.references.sourceFleetTag === fleetTag,
-    )
-  ) {
-    context.addIssue({
-      code: "custom",
-      path: ["targets", planetTag],
-      message: `Action Definition "${actionDefinition.name}" standalone Assault target slot "${planetTag}" must require the selected Fleet's stationary Planet`,
-    })
-  }
-}
-
 export function validateColonizationMapping({
   actionDefinition,
   context,
@@ -201,25 +161,7 @@ export function validateColonizationMapping({
     })
   }
 
-  if (movementEffect !== undefined) {
-    if (movementEffect.targets.fleet.actionTargetTag !== fleetTag || movementEffect.targets.planet.actionTargetTag !== planetTag) {
-      context.addIssue({
-        code: "custom",
-        path: ["effects", effectIndex, "targets"],
-        message: `Action Definition "${actionDefinition.name}" FLEET_COLONIZE must use the same source and destination target tags as FLEET_MOVE`,
-      })
-    }
-  } else if (
-    !planetConstraints.some(
-      (constraint) => constraint.type === AtFleetPlanetConstraint.type && constraint.references.sourceFleetTag === fleetTag,
-    )
-  ) {
-    context.addIssue({
-      code: "custom",
-      path: ["targets", planetTag],
-      message: `Action Definition "${actionDefinition.name}" standalone Colonize target slot "${planetTag}" must require the selected Fleet's stationary Planet`,
-    })
-  }
+  validateArrivalMapping({ actionDefinition, context, effect, effectIndex, movementEffect, label: "Colonize" })
 }
 
 export function validateReferencedInputs({
@@ -293,4 +235,55 @@ function validateFleetSource({
       })
     }
   }
+}
+
+function validateArrivalMapping({
+  actionDefinition,
+  context,
+  effect,
+  effectIndex,
+  movementEffect,
+  label,
+}: {
+  actionDefinition: ActionDefinition
+  context: z.RefinementCtx
+  effect: FleetAssaultEffectDefinition | FleetColonizeEffectDefinition
+  effectIndex: number
+  movementEffect: FleetMoveEffectDefinition | undefined
+  label: "Assault" | "Colonize"
+}): void {
+  const fleetTag = effect.targets.fleet.actionTargetTag
+  const planetTag = effect.targets.planet.actionTargetTag
+  const planetDefinition = actionDefinition.targets[planetTag]
+  const planetConstraints = planetDefinition?.constraints ?? []
+
+  if (movementEffect !== undefined) {
+    if (movementEffect.targets.fleet.actionTargetTag !== fleetTag || movementEffect.targets.planet.actionTargetTag !== planetTag) {
+      context.addIssue({
+        code: "custom",
+        path: ["effects", effectIndex, "targets"],
+        message: `Action Definition "${actionDefinition.name}" ${effect.type} must use the same source and destination target tags as FLEET_MOVE`,
+      })
+    }
+  } else if (
+    !planetConstraints.some(
+      (constraint) => constraint.type === AtFleetPlanetConstraint.type && constraint.references.sourceFleetTag === fleetTag,
+    )
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["targets", planetTag],
+      message: `Action Definition "${actionDefinition.name}" standalone ${label} target slot "${planetTag}" must require the selected Fleet's stationary Planet`,
+    })
+  }
+}
+function validateAssaultSourceAndArrival(options: Parameters<typeof validateArrivalMapping>[0]): void {
+  validateFleetSource({
+    actionDefinition: options.actionDefinition,
+    context: options.context,
+    effectIndex: options.effectIndex,
+    fleetTag: options.effect.targets.fleet.actionTargetTag,
+    label: options.label,
+  })
+  validateArrivalMapping(options)
 }

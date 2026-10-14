@@ -68,17 +68,13 @@ export const colonizeThresholdPlayerView = {
 
 export const colonizeThresholdProjection = requireEligibilityProjection(colonizeThresholdPlayerView)
 
-export function ColonizeThresholdCard(): ReactElement {
-  return (
-    <ProjectedActionCard
-      initialAction={toActionDto(colonizeThresholdAction, false)}
-      playerView={colonizeThresholdPlayerView}
-      definition={ColonizePlanetTest}
-      players={players}
-      outputLabel="colonize-threshold-selection"
-    />
-  )
-}
+export const ColonizeThresholdCard: () => ReactElement = ProjectedActionCard.bind(null, {
+  initialAction: toActionDto(colonizeThresholdAction, false),
+  playerView: colonizeThresholdPlayerView,
+  definition: ColonizePlanetTest,
+  players,
+  outputLabel: "colonize-threshold-selection",
+})
 
 export const stationaryColonizeFleet = createFleetStub({
   id: "fleet-stationary-colonize",
@@ -283,14 +279,10 @@ export const seedOutpostPlayerView = {
 
 export const seedOutpostProjection = requireEligibilityProjection(seedOutpostPlayerView)
 
-export function SeedOutpostCard(): ReactElement {
-  return (
-    <ProjectedActionCard
-      initialAction={toActionDto(seedOutpostAction, false)}
-      playerView={seedOutpostPlayerView}
-      definition={SeedOutpostDefinition}
-      players={players}
-      outputLabel="seed-outpost-selection"
-    />
-  )
-}
+export const SeedOutpostCard: () => ReactElement = ProjectedActionCard.bind(null, {
+  initialAction: toActionDto(seedOutpostAction, false),
+  playerView: seedOutpostPlayerView,
+  definition: SeedOutpostDefinition,
+  players,
+  outputLabel: "seed-outpost-selection",
+})

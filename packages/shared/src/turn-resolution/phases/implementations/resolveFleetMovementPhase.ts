@@ -30,52 +30,52 @@ type JourneyAdvance = {
  * Allocates every new departure first, then advances and resolves all journeys once.
  */
 export function resolveFleetMovementPhase(context: TurnContext): Result<TurnContext, ResolvePhaseError> {
-  const departureEffects = context.effectPool.getEffectsOfType(FleetMoveEffectDefinition.type).toSorted(compareEffects)
-
-  for (const effect of departureEffects) {
+  const departures = resolveDepartures(context)
+  if (Result.isFailure(departures)) {
+    return departures
+  }
+  const advances = advanceJourneys(context)
+  if (Result.isFailure(advances)) {
+    return advances
+  }
+  const arrivals = advances.value.filter((advance) => advance.fleet.distanceToEnd === 0).toSorted(compareArrivals)
+  const settled = resolveArrivals(context, arrivals)
+  if (Result.isFailure(settled)) {
+    return settled
+  }
+  for (const advance of advances.value) {
+    recordAdvance(context, advance, advance.movement)
+  }
+  context.resolvedContinuations.sort(compareContinuations)
+  return Result.Success(context)
+}
+function resolveDepartures(context: TurnContext): Result<void, ResolvePhaseError> {
+  for (const effect of context.effectPool.getEffectsOfType(FleetMoveEffectDefinition.type).toSorted(compareEffects)) {
     const result = effect.resolve(context)
     if (Result.isFailure(result)) {
       return Result.Failure(ResolvePhaseError.FailedEffect({ error: result.error }))
     }
   }
-
-  const previousJourneys = new Set(context.previousJourneyFleetIds)
-  const journeyIds = [...new Set([...context.previousJourneyFleetIds, ...context.newDepartureFleetIds])].toSorted((first, second) =>
-    compareOrdinalStrings(first, second),
-  )
+  return Result.Success(undefined)
+}
+function advanceJourneys(context: TurnContext): Result<JourneyAdvance[], ResolvePhaseError> {
+  const previous = new Set(context.previousJourneyFleetIds)
+  const journeyIds = [...new Set([...previous, ...context.newDepartureFleetIds])].toSorted(compareOrdinalStrings)
   const advances: JourneyAdvance[] = []
-  const arrivals: JourneyAdvance[] = []
-
-  for (const fleetId of journeyIds) {
-    const result = advanceJourney(context, fleetId, previousJourneys.has(fleetId))
+  for (const id of journeyIds) {
+    const result = advanceJourney(context, id, previous.has(id))
     if (Result.isFailure(result)) {
       return result
     }
     advances.push(result.value)
-    if (result.value.fleet.distanceToEnd === 0) {
-      arrivals.push(result.value)
-    }
   }
-  arrivals.sort((first, second) => {
-    const tickOrder = (first.fleet.arrivedAtTick ?? 0) - (second.fleet.arrivedAtTick ?? 0)
-    if (tickOrder !== 0) {
-      return tickOrder
-    }
-    return compareOrdinalStrings(first.fleet.id, second.fleet.id)
-  })
-  const arrivalsResult = resolveArrivals(context, arrivals)
-  if (Result.isFailure(arrivalsResult)) {
-    return arrivalsResult
-  }
-
-  for (const advance of advances) {
-    recordAdvance(context, advance, advance.movement)
-  }
-
-  context.resolvedContinuations.sort(compareContinuations)
-
-  return Result.Success(context)
+  return Result.Success(advances)
 }
+function compareArrivals(first: JourneyAdvance, second: JourneyAdvance): number {
+  const tickOrder = (first.fleet.arrivedAtTick ?? 0) - (second.fleet.arrivedAtTick ?? 0)
+  return tickOrder !== 0 ? tickOrder : compareOrdinalStrings(first.fleet.id, second.fleet.id)
+}
+
 function compareContinuations(
   first: TurnContext["resolvedContinuations"][number],
   second: TurnContext["resolvedContinuations"][number],

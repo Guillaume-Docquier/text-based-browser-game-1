@@ -1,7 +1,14 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { describe, expect, it } from "vitest"
+import type { PlayerView, Fleet, Planet } from "#api/types.ts"
+import type { ControlledClock } from "#lib/ControlledClock.ts"
+import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
+import type { processTurnWithReplay as CapturedprocessTurnWithReplay } from "#tests/colonization/gameplay.colonization.scenarios.ts"
+import type { createPublicTwoPlayerFixture as CapturedcreatePublicTwoPlayerFixture } from "#tests/colonization/gameplay.colonization.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
+import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import { getPlanets, getFleetAt, processTurnWithReplay } from "../../tests/colonization/gameplay.colonization.scenarios.ts"
 import {
   BuildFleet10ForStaging,
@@ -23,60 +30,23 @@ describe("public Colonization worker companions", () => {
     await using server = await ConcurrencyTestApiServer.create()
     const fixture = await createPublicTwoPlayerFixture(server)
     const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
-    let views = fixture.views
 
-    const aliceBuildId = await submitAction({
-      client: alice.client,
+    const createViewsSetupPhase1Result = await createViewsSetup({
+      fixture,
+      alice,
       gameId,
-      view: required(views[0]),
-      actionDefinitionId: BuildFleet35.id,
-      selectedTargets: { planet: homeA.id },
-      selectedInputs: {},
-    })
-    const bobBuildId = await submitAction({
-      client: bob.client,
-      gameId,
-      view: required(views[1]),
-      actionDefinitionId: BuildFleet10ForStaging.id,
-      selectedTargets: { planet: homeB.id },
-      selectedInputs: {},
-    })
-    // Act: process the public Build submissions.
-    let stage = await processTurnWithReplay({
+      homeA,
+      bob,
+      homeB,
       server,
       clock,
       turnsRepository,
       turnProcessor,
       clients,
-      gameId,
-      turn: required(views[0]).turn,
+      target,
     })
-    views = stage.views
-    // Assert both public Builds created the expected forces.
-    const aliceSource = getFleetAt(required(views[0]), required(views[0]).player.id, homeA.id, 35)
-    const bobSource = getFleetAt(required(views[1]), required(views[1]).player.id, homeB.id, 10)
-    expect(required(views[0]).actions.find(({ id }) => id === aliceBuildId)).toMatchObject({ selectedTargets: null, isInProgress: false })
-    expect(required(views[1]).actions.find(({ id }) => id === bobBuildId)).toMatchObject({ selectedTargets: null, isInProgress: false })
-
-    // Act: submit Bob ordinary Move.
-    const bobMoveId = await submitAction({
-      client: bob.client,
-      gameId,
-      view: required(views[1]),
-      actionDefinitionId: MoveFleetSpeed10.id,
-      selectedTargets: { fleet: bobSource.id, planet: target.id },
-      selectedInputs: { strength: 10 },
-    })
-    // Act: process Bob Move departure Turn.
-    stage = await processTurnWithReplay({
-      server,
-      clock,
-      turnsRepository,
-      turnProcessor,
-      clients,
-      gameId,
-      turn: required(views[0]).turn,
-    })
+    const { aliceBuildId, bobBuildId, aliceSource, bobMoveId } = createViewsSetupPhase1Result
+    let { views, stage } = createViewsSetupPhase1Result
     views = stage.views
     // Assert Bob captured journey follows the pinned route while the target stays unclaimed.
     const bobJourney = required(views[1]).fleets.find(({ movement }) => movement?.submission.id === bobMoveId)
@@ -155,55 +125,23 @@ describe("public Colonization worker companions", () => {
     await using server = await ConcurrencyTestApiServer.create()
     const fixture = await createPublicTwoPlayerFixture(server)
     const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
-    let views = fixture.views
-    const aliceBuildId = await submitAction({
-      client: alice.client,
+
+    const createViewsSetupPhase2Result = await createViewsSetup2({
+      fixture,
+      alice,
       gameId,
-      view: required(views[0]),
-      actionDefinitionId: BuildFleet35.id,
-      selectedTargets: { planet: homeA.id },
-      selectedInputs: {},
-    })
-    const bobBuildId = await submitAction({
-      client: bob.client,
-      gameId,
-      view: required(views[1]),
-      actionDefinitionId: BuildFleet35.id,
-      selectedTargets: { planet: homeB.id },
-      selectedInputs: {},
-    })
-    const built = await processTurnWithReplay({
+      homeA,
+      bob,
+      homeB,
       server,
       clock,
       turnsRepository,
       turnProcessor,
       clients,
-      gameId,
-      turn: required(views[0]).turn,
+      target,
     })
-    views = built.views
-    const aliceSource = getFleetAt(required(views[0]), required(views[0]).player.id, homeA.id, 35)
-    const bobSource = getFleetAt(required(views[1]), required(views[1]).player.id, homeB.id, 35)
-    expect(required(views[0]).actions.find(({ id }) => id === aliceBuildId)).toMatchObject({ selectedTargets: null, isInProgress: false })
-    expect(required(views[1]).actions.find(({ id }) => id === bobBuildId)).toMatchObject({ selectedTargets: null, isInProgress: false })
-
-    const slowColonizeId = await submitAction({
-      client: alice.client,
-      gameId,
-      view: required(views[0]),
-      actionDefinitionId: ColonizeFleetSpeed01.id,
-      selectedTargets: { fleet: aliceSource.id, planet: target.id },
-      selectedInputs: { strength: 35 },
-    })
-    const enemyMoveId = await submitAction({
-      client: bob.client,
-      gameId,
-      view: required(views[1]),
-      actionDefinitionId: MoveFleetSpeed10.id,
-      selectedTargets: { fleet: bobSource.id, planet: target.id },
-      selectedInputs: { strength: 10 },
-    })
-    expect(Math.hypot(homeA.x - target.x, homeA.y - target.y)).toBeCloseTo(1.2645395167985714, 12)
+    const { slowColonizeId, enemyMoveId } = createViewsSetupPhase2Result
+    let { views } = createViewsSetupPhase2Result
     expect(Math.hypot(homeB.x - target.x, homeB.y - target.y)).toBeCloseTo(18.852953053708077, 12)
 
     const departed = await processTurnWithReplay({
@@ -310,3 +248,181 @@ describe("public Colonization worker companions", () => {
     })
   })
 })
+
+async function createViewsSetup({
+  fixture,
+  alice,
+  gameId,
+  homeA,
+  bob,
+  homeB,
+  server,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  clients,
+  target,
+}: CreateViewsSetupInput): Promise<CreateViewsSetupResult> {
+  let views = fixture.views
+
+  const aliceBuildId = await submitAction({
+    client: alice.client,
+    gameId,
+    view: required(views[0]),
+    actionDefinitionId: BuildFleet35.id,
+    selectedTargets: { planet: homeA.id },
+    selectedInputs: {},
+  })
+  const bobBuildId = await submitAction({
+    client: bob.client,
+    gameId,
+    view: required(views[1]),
+    actionDefinitionId: BuildFleet10ForStaging.id,
+    selectedTargets: { planet: homeB.id },
+    selectedInputs: {},
+  })
+  // Act: process the public Build submissions.
+  let stage = await processTurnWithReplay({
+    server,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+    gameId,
+    turn: required(views[0]).turn,
+  })
+  views = stage.views
+  // Assert both public Builds created the expected forces.
+  const aliceSource = getFleetAt(required(views[0]), required(views[0]).player.id, homeA.id, 35)
+  const bobSource = getFleetAt(required(views[1]), required(views[1]).player.id, homeB.id, 10)
+  expect(required(views[0]).actions.find(({ id }) => id === aliceBuildId)).toMatchObject({ selectedTargets: null, isInProgress: false })
+  expect(required(views[1]).actions.find(({ id }) => id === bobBuildId)).toMatchObject({ selectedTargets: null, isInProgress: false })
+
+  // Act: submit Bob ordinary Move.
+  const bobMoveId = await submitAction({
+    client: bob.client,
+    gameId,
+    view: required(views[1]),
+    actionDefinitionId: MoveFleetSpeed10.id,
+    selectedTargets: { fleet: bobSource.id, planet: target.id },
+    selectedInputs: { strength: 10 },
+  })
+  // Act: process Bob Move departure Turn.
+  stage = await processTurnWithReplay({
+    server,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+    gameId,
+    turn: required(views[0]).turn,
+  })
+  return { views, aliceBuildId, bobBuildId, stage, aliceSource, bobMoveId }
+}
+
+async function createViewsSetup2({
+  fixture,
+  alice,
+  gameId,
+  homeA,
+  bob,
+  homeB,
+  server,
+  clock,
+  turnsRepository,
+  turnProcessor,
+  clients,
+  target,
+}: CreateViewsSetup2Input): Promise<CreateViewsSetup2Result> {
+  let views = fixture.views
+  const aliceBuildId = await submitAction({
+    client: alice.client,
+    gameId,
+    view: required(views[0]),
+    actionDefinitionId: BuildFleet35.id,
+    selectedTargets: { planet: homeA.id },
+    selectedInputs: {},
+  })
+  const bobBuildId = await submitAction({
+    client: bob.client,
+    gameId,
+    view: required(views[1]),
+    actionDefinitionId: BuildFleet35.id,
+    selectedTargets: { planet: homeB.id },
+    selectedInputs: {},
+  })
+  const built = await processTurnWithReplay({
+    server,
+    clock,
+    turnsRepository,
+    turnProcessor,
+    clients,
+    gameId,
+    turn: required(views[0]).turn,
+  })
+  views = built.views
+  const aliceSource = getFleetAt(required(views[0]), required(views[0]).player.id, homeA.id, 35)
+  const bobSource = getFleetAt(required(views[1]), required(views[1]).player.id, homeB.id, 35)
+  expect(required(views[0]).actions.find(({ id }) => id === aliceBuildId)).toMatchObject({ selectedTargets: null, isInProgress: false })
+  expect(required(views[1]).actions.find(({ id }) => id === bobBuildId)).toMatchObject({ selectedTargets: null, isInProgress: false })
+
+  const slowColonizeId = await submitAction({
+    client: alice.client,
+    gameId,
+    view: required(views[0]),
+    actionDefinitionId: ColonizeFleetSpeed01.id,
+    selectedTargets: { fleet: aliceSource.id, planet: target.id },
+    selectedInputs: { strength: 35 },
+  })
+  const enemyMoveId = await submitAction({
+    client: bob.client,
+    gameId,
+    view: required(views[1]),
+    actionDefinitionId: MoveFleetSpeed10.id,
+    selectedTargets: { fleet: bobSource.id, planet: target.id },
+    selectedInputs: { strength: 10 },
+  })
+  expect(Math.hypot(homeA.x - target.x, homeA.y - target.y)).toBeCloseTo(1.2645395167985714, 12)
+  return { views, slowColonizeId, enemyMoveId }
+}
+
+type CreateViewsSetupInput = {
+  fixture: Awaited<ReturnType<typeof CapturedcreatePublicTwoPlayerFixture>>
+  alice: AuthenticatedApiClient
+  gameId: number
+  homeA: Planet
+  bob: AuthenticatedApiClient
+  homeB: Planet
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  target: Planet
+}
+
+type CreateViewsSetupResult = {
+  views: PlayerView[]
+  aliceBuildId: string
+  bobBuildId: string
+  stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
+  aliceSource: Fleet
+  bobMoveId: string
+}
+
+type CreateViewsSetup2Input = {
+  fixture: Awaited<ReturnType<typeof CapturedcreatePublicTwoPlayerFixture>>
+  alice: AuthenticatedApiClient
+  gameId: number
+  homeA: Planet
+  bob: AuthenticatedApiClient
+  homeB: Planet
+  server: ConcurrencyTestApiServer
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+  turnProcessor: TurnProcessor
+  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  target: Planet
+}
+
+type CreateViewsSetup2Result = { views: PlayerView[]; slowColonizeId: string; enemyMoveId: string }

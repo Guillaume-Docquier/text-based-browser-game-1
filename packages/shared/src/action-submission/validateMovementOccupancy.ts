@@ -41,6 +41,9 @@ export function validateMovementOccupancy({
     }
     occupancy.set(fleet.movement.submission.id, [...(occupancy.get(fleet.movement.submission.id) ?? []), fleet])
   }
+  validateDuplicateOccupancy(occupancy, evaluation)
+}
+function validateDuplicateOccupancy(occupancy: ReadonlyMap<ActionId, readonly Fleet[]>, evaluation: MutableEvaluation): void {
   for (const [actionId, fleets] of occupancy) {
     if (fleets.length > 1) {
       addIssue(evaluation, {

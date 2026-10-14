@@ -79,13 +79,11 @@ export function resolveColonizationPhase(context: TurnContext): Result<TurnConte
   return Result.Success(context)
 }
 function resolveColonizationGroup(context: TurnContext, group: readonly ScheduledColonization[]): Result<void, ResolvePhaseError> {
-  const eligible: ScheduledColonization[] = []
-  for (const candidate of group) {
-    const result = prepareColonizationCandidate(context, candidate, eligible)
-    if (Result.isFailure(result)) {
-      return result
-    }
+  const prepared = prepareColonizationGroup(context, group)
+  if (Result.isFailure(prepared)) {
+    return prepared
   }
+  const eligible = prepared.value
   const canonicalEligible = eligible.toSorted(compareArrivalProvenance)
   const orderedEligible = canonicalEligible.length > 1 ? context.rng.shuffle(canonicalEligible) : canonicalEligible
   for (const candidate of orderedEligible) {
@@ -97,6 +95,20 @@ function resolveColonizationGroup(context: TurnContext, group: readonly Schedule
 
   return Result.Success(undefined)
 }
+function prepareColonizationGroup(
+  context: TurnContext,
+  group: readonly ScheduledColonization[],
+): Result<ScheduledColonization[], ResolvePhaseError> {
+  const eligible: ScheduledColonization[] = []
+  for (const candidate of group) {
+    const result = prepareColonizationCandidate(context, candidate, eligible)
+    if (Result.isFailure(result)) {
+      return result
+    }
+  }
+  return Result.Success(eligible)
+}
+
 function prepareColonizationCandidate(
   context: TurnContext,
   candidate: ScheduledColonization,

@@ -23,24 +23,24 @@ import {
   RULESET_ID_FOR_STRENGTH_RACES,
   RULESET_ID_FOR_RESOURCE_RACE,
   WorkerBuildFleetForty,
-  sortGameplayRows,
-  type ColonizationPersistenceSnapshot,
-  type WorkerTieFundingRound,
-} from "./gameplay.ts"
+} from "./gameplay.rulesets.ts"
+import { sortGameplayRows, type ColonizationPersistenceSnapshot, type WorkerTieFundingRound } from "./gameplay.ts"
 
-export const workerTieFundingRounds: readonly WorkerTieFundingRound[] = [
-  { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 8 },
-  { actionDefinitionIds: [GainInfluence.id, WorkerBuildFleetForty.id, GainMetal.id], expectedInfluence: 10 },
-  { actionDefinitionIds: [GainInfluence.id, GainFuel.id], expectedInfluence: 13 },
-  { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 18 },
-  { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 23 },
-  { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 28 },
-  { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 33 },
-  { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 38 },
-  { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 43 },
-  { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 48 },
-  { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 53 },
-]
+export function getWorkerTieFundingRounds(): readonly WorkerTieFundingRound[] {
+  return [
+    { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 8 },
+    { actionDefinitionIds: [GainInfluence.id, WorkerBuildFleetForty.id, GainMetal.id], expectedInfluence: 10 },
+    { actionDefinitionIds: [GainInfluence.id, GainFuel.id], expectedInfluence: 13 },
+    { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 18 },
+    { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 23 },
+    { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 28 },
+    { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 33 },
+    { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 38 },
+    { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 43 },
+    { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 48 },
+    { actionDefinitionIds: [GainInfluence.id], expectedInfluence: 53 },
+  ]
+}
 
 export async function readColonizationPersistenceSnapshot(db: Database, gameId: GameId): Promise<ColonizationPersistenceSnapshot> {
   const [actions, fleets, games, planets, resources, turns, turnsProcessing] = await Promise.all([

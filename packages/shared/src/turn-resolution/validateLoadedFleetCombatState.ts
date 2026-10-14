@@ -79,30 +79,21 @@ function collectSubmittedAssaultOwners(
   addAssaultTarget: (playerId: PlayerId, planetId: unknown) => void,
 ): void {
   for (const submittedAction of turnState.submittedActions) {
-    if (!Object.hasOwn(ruleset.actionDefinitions, submittedAction.actionDefinitionId)) {
-      continue
-    }
-    const actionDefinition = ruleset.actionDefinitions[submittedAction.actionDefinitionId]
-    if (actionDefinition === undefined) {
-      continue
-    }
-    for (const effectDefinition of actionDefinition.effects) {
-      if (effectDefinition.type === FleetAssaultEffectDefinition.type) {
-        addAssaultTarget(submittedAction.playerId, submittedAction.selectedTargets[effectDefinition.targets.planet.actionTargetTag])
-      }
+    const actionDefinition = Object.hasOwn(ruleset.actionDefinitions, submittedAction.actionDefinitionId)
+      ? ruleset.actionDefinitions[submittedAction.actionDefinitionId]
+      : undefined
+    const assaultEffects = actionDefinition?.effects.filter((effect) => effect.type === FleetAssaultEffectDefinition.type) ?? []
+    for (const effectDefinition of assaultEffects) {
+      addAssaultTarget(submittedAction.playerId, submittedAction.selectedTargets[effectDefinition.targets.planet.actionTargetTag])
     }
   }
 }
 function collectJourneyAssaultOwners(turnState: TurnState, addAssaultTarget: (playerId: PlayerId, planetId: unknown) => void): void {
-  for (const fleet of Object.values(turnState.fleets)) {
-    const movement = fleet.movement
-    if (movement === undefined) {
-      continue
-    }
-    for (const pendingArrival of movement.pendingArrivalEffects) {
-      if (pendingArrival.effectDefinition.type !== FleetAssaultEffectDefinition.type) {
-        continue
-      }
+  const journeys = Object.values(turnState.fleets).flatMap(({ movement }) => (movement === undefined ? [] : [movement]))
+  for (const movement of journeys) {
+    for (const pendingArrival of movement.pendingArrivalEffects.filter(
+      (pending) => pending.effectDefinition.type === FleetAssaultEffectDefinition.type,
+    )) {
       addAssaultTarget(
         movement.submission.playerId,
         movement.submission.selectedTargets[pendingArrival.effectDefinition.targets.planet.actionTargetTag],

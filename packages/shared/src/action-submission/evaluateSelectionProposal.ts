@@ -71,51 +71,42 @@ export function evaluateProposal({
   evaluateColonizationEligibility({ state, proposal, actionDefinition, evaluation })
 }
 
-export function evaluateSelectionFields({
-  state,
-  proposal,
-  actionDefinition,
-  evaluation,
-}: {
-  state: EligibilityState
-  proposal: ProposedSelection
-  actionDefinition: ActionDefinition
-  evaluation: MutableEvaluation
-}): void {
-  evaluateTargetFields({ state, proposal, actionDefinition, evaluation })
-  evaluateInputFields({ state, proposal, actionDefinition, evaluation })
-}
-
-export function evaluateTargetFields({
-  state,
-  proposal,
-  actionDefinition,
-  evaluation,
-}: {
-  state: EligibilityState
-  proposal: ProposedSelection
-  actionDefinition: ActionDefinition
-  evaluation: MutableEvaluation
-}): void {
-  evaluateMissingTargets({ state, proposal, actionDefinition, evaluation })
-  for (const targetTag of Object.keys(proposal.selectedTargets)) {
-    evaluateSelectedTarget({ state, proposal, actionDefinition, evaluation }, targetTag)
+export function evaluateSelectionFields(context: ProposalContext): void {
+  evaluateMissingFields(context, "target")
+  for (const tag of Object.keys(context.proposal.selectedTargets)) {
+    evaluateSelectedTarget(context, tag)
+  }
+  evaluateMissingFields(context, "input")
+  for (const tag of Object.keys(context.proposal.selectedInputs)) {
+    evaluateSelectedInput(context, tag)
   }
 }
-function evaluateMissingTargets({ proposal, actionDefinition, evaluation }: ProposalContext): void {
-  for (const targetTag of Object.keys(actionDefinition.targets)) {
-    const brandedTargetTag = branded<TargetTag>(targetTag)
-    if (getOwnRecordValue(proposal.selectedTargets, targetTag) === undefined) {
-      evaluation.missingTargets.push(brandedTargetTag)
-      addIssue(evaluation, {
-        code: "MISSING_TARGET",
-        actionId: proposal.actionId,
-        targetTag: brandedTargetTag,
-        message: `Choose a value for the "${targetTag}" target`,
-      })
+function evaluateMissingFields(context: ProposalContext, kind: "target" | "input"): void {
+  const fields = kind === "target" ? context.actionDefinition.targets : context.actionDefinition.inputs
+  const selected = kind === "target" ? context.proposal.selectedTargets : context.proposal.selectedInputs
+  for (const tag of Object.keys(fields)) {
+    if (getOwnRecordValue<string, unknown>(selected, tag) === undefined) {
+      reportMissingField(context, kind, tag)
     }
   }
 }
+function reportMissingField({ proposal, evaluation }: ProposalContext, kind: "target" | "input", tag: string): void {
+  if (kind === "target") {
+    const targetTag = branded<TargetTag>(tag)
+    evaluation.missingTargets.push(targetTag)
+    addIssue(evaluation, {
+      code: "MISSING_TARGET",
+      actionId: proposal.actionId,
+      targetTag,
+      message: `Choose a value for the "${tag}" target`,
+    })
+    return
+  }
+  const inputTag = branded<InputTag>(tag)
+  evaluation.missingInputs.push(inputTag)
+  addIssue(evaluation, { code: "MISSING_INPUT", actionId: proposal.actionId, inputTag, message: `Enter a value for the "${tag}" input` })
+}
+
 function evaluateSelectedTarget({ state, proposal, actionDefinition, evaluation }: ProposalContext, targetTag: string): void {
   const brandedTargetTag = branded<TargetTag>(targetTag)
   const targetId = getOwnRecordValue(proposal.selectedTargets, targetTag)
@@ -144,36 +135,6 @@ function evaluateSelectedTarget({ state, proposal, actionDefinition, evaluation 
   })
 }
 
-export function evaluateInputFields({
-  state,
-  proposal,
-  actionDefinition,
-  evaluation,
-}: {
-  state: EligibilityState
-  proposal: ProposedSelection
-  actionDefinition: ActionDefinition
-  evaluation: MutableEvaluation
-}): void {
-  evaluateMissingInputs({ state, proposal, actionDefinition, evaluation })
-  for (const inputTag of Object.keys(proposal.selectedInputs)) {
-    evaluateSelectedInput({ state, proposal, actionDefinition, evaluation }, inputTag)
-  }
-}
-function evaluateMissingInputs({ proposal, actionDefinition, evaluation }: ProposalContext): void {
-  for (const inputTag of Object.keys(actionDefinition.inputs)) {
-    const brandedInputTag = branded<InputTag>(inputTag)
-    if (getOwnRecordValue(proposal.selectedInputs, inputTag) === undefined) {
-      evaluation.missingInputs.push(brandedInputTag)
-      addIssue(evaluation, {
-        code: "MISSING_INPUT",
-        actionId: proposal.actionId,
-        inputTag: brandedInputTag,
-        message: `Enter a value for the "${inputTag}" input`,
-      })
-    }
-  }
-}
 function evaluateSelectedInput({ proposal, actionDefinition, evaluation }: ProposalContext, inputTag: string): void {
   const brandedInputTag = branded<InputTag>(inputTag)
   const inputDefinition = getOwnRecordValue(actionDefinition.inputs, inputTag)

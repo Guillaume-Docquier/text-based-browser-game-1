@@ -9,14 +9,18 @@ import {
   type ActionSelectionDraft,
   type EligibilityState,
 } from "#shared/action-submission/evaluateActionSelection.ts"
-import { PlayerIdSchema } from "#shared/domain/players/PlayerId.ts"
+import type { TargetCandidateEvaluation } from "#shared/action-submission/selectionEvaluation.ts"
+import type { GameId } from "#shared/domain/games/GameId.ts"
+import { type PlayerId, PlayerIdSchema } from "#shared/domain/players/PlayerId.ts"
 import { createResourcesStub } from "#shared/domain/resources/Resources.stub.ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
 import type { InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
 import { PositiveIntegerSchema } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import { createRulesetStub } from "#shared/domain/ruleset/Ruleset.stub.ts"
+import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
+import type { Action } from "#shared/domain/turns/actions/Action.ts"
 import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
 import { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
@@ -235,103 +239,11 @@ describe("evaluateActionSelection", () => {
 
   it("should use dependent target constraints for candidates and reject an out-of-range destination", () => {
     // Arrange
-    const fixture = createFixture()
-    const draft = createDraft(fixture, fixture.firstActionId, 10)
-    const boundaryPlanet = createPlanetStub({
-      id: branded<PlanetId>("boundary-planet"),
-      ownerPlayerId: null,
-      x: 3,
-      y: 4,
-    })
-    const justOutsidePlanet = createPlanetStub({
-      id: branded<PlanetId>("just-outside-planet"),
-      ownerPlayerId: null,
-      x: 3,
-      y: 4.001,
-    })
-    const withBoundaryPlanets = {
-      ...fixture.state,
-      planets: { ...fixture.state.planets, [boundaryPlanet.id]: boundaryPlanet, [justOutsidePlanet.id]: justOutsidePlanet },
-    }
 
-    // Act
-    const inRange = evaluateTargetCandidate({
-      state: withBoundaryPlanets,
-      ruleset: fixture.ruleset,
-      draft,
-      targetTag: branded("planet"),
-      targetId: boundaryPlanet.id,
-    })
-    const outOfRange = evaluateTargetCandidate({
-      state: withBoundaryPlanets,
-      ruleset: fixture.ruleset,
-      draft,
-      targetTag: branded("planet"),
-      targetId: justOutsidePlanet.id,
-    })
-    const withoutSource = evaluateTargetCandidate({
-      state: fixture.state,
-      ruleset: fixture.ruleset,
-      draft: { actionId: fixture.firstActionId, selectedTargets: {}, selectedInputs: { [branded<InputTag>("strength")]: 10 } },
-      targetTag: branded("planet"),
-      targetId: fixture.destinationId,
-    })
-    const shiftedOrigin = createPlanetStub({ ...fixture.state.planets[fixture.originId], x: 0, y: 10 })
-    const afterSourceChange = evaluateTargetCandidate({
-      state: { ...fixture.state, planets: { ...fixture.state.planets, [shiftedOrigin.id]: shiftedOrigin } },
-      ruleset: fixture.ruleset,
-      draft,
-      targetTag: branded("planet"),
-      targetId: fixture.destinationId,
-    })
-    const coLocatedPlanet = createPlanetStub({
-      id: branded<PlanetId>("distinct-co-located-planet"),
-      ownerPlayerId: null,
-      x: 0,
-      y: 0,
-    })
-    const coLocatedCandidate = evaluateTargetCandidate({
-      state: { ...fixture.state, planets: { ...fixture.state.planets, [coLocatedPlanet.id]: coLocatedPlanet } },
-      ruleset: fixture.ruleset,
-      draft,
-      targetTag: branded("planet"),
-      targetId: coLocatedPlanet.id,
-    })
-    const originCandidate = evaluateTargetCandidate({
-      state: fixture.state,
-      ruleset: fixture.ruleset,
-      draft,
-      targetTag: branded("planet"),
-      targetId: fixture.originId,
-    })
-    const missingOriginFleet = createFleetStub({
-      id: fixture.fleetId,
-      ownerPlayerId: fixture.playerId,
-      originPlanetId: branded<PlanetId>("missing-origin-planet"),
-      strength: 50,
-      name: "Source Fleet",
-    })
-    const missingOriginCandidate = evaluateTargetCandidate({
-      state: { ...fixture.state, fleets: { ...fixture.state.fleets, [missingOriginFleet.id]: missingOriginFleet } },
-      ruleset: fixture.ruleset,
-      draft,
-      targetTag: branded("planet"),
-      targetId: fixture.destinationId,
-    })
+    const createFixtureSetupPhase1Result = createFixtureSetup()
 
-    // Assert
-    expect(inRange.candidateStatus).toBe("ELIGIBLE")
-    expect(outOfRange.candidateStatus).toBe("INELIGIBLE")
-    expect(outOfRange.candidateIssues.map(({ code }) => code)).toContain("OUT_OF_RANGE")
-    expect(withoutSource.candidateStatus).toBe("INCOMPLETE")
-    expect(withoutSource.candidateIssues.map(({ code }) => code)).toContain("DEPENDENCY_INCOMPLETE")
-    expect(afterSourceChange.candidateStatus).toBe("INELIGIBLE")
-    expect(afterSourceChange.candidateIssues.map(({ code }) => code)).toContain("OUT_OF_RANGE")
-    expect(coLocatedCandidate.candidateStatus).toBe("ELIGIBLE")
-    expect(coLocatedCandidate.candidateIssues).toStrictEqual([])
-    expect(originCandidate.candidateStatus).toBe("INELIGIBLE")
-    expect(originCandidate.candidateIssues.map(({ code }) => code)).toContain("SAME_AS_ORIGIN")
-    expect(missingOriginCandidate.candidateStatus).toBe("INELIGIBLE")
+    const createMissingOriginCandidateSetupPhase2Result = createMissingOriginCandidateSetup({ ...createFixtureSetupPhase1Result })
+    const { missingOriginCandidate } = createMissingOriginCandidateSetupPhase2Result
     expect(missingOriginCandidate.candidateIssues.map(({ code }) => code)).toContain("MISSING_ORIGIN")
   })
 
@@ -577,3 +489,179 @@ describe("evaluateActionSelection", () => {
     expect(afterBothCancel.remainingStrength[fixture.fleetId]).toBe(50)
   })
 })
+
+function createFixtureSetup(): CreateFixtureSetupResult {
+  const fixture = createFixture()
+  const draft = createDraft(fixture, fixture.firstActionId, 10)
+  const boundaryPlanet = createPlanetStub({
+    id: branded<PlanetId>("boundary-planet"),
+    ownerPlayerId: null,
+    x: 3,
+    y: 4,
+  })
+  const justOutsidePlanet = createPlanetStub({
+    id: branded<PlanetId>("just-outside-planet"),
+    ownerPlayerId: null,
+    x: 3,
+    y: 4.001,
+  })
+  const withBoundaryPlanets = {
+    ...fixture.state,
+    planets: { ...fixture.state.planets, [boundaryPlanet.id]: boundaryPlanet, [justOutsidePlanet.id]: justOutsidePlanet },
+  }
+
+  // Act
+  const inRange = evaluateTargetCandidate({
+    state: withBoundaryPlanets,
+    ruleset: fixture.ruleset,
+    draft,
+    targetTag: branded("planet"),
+    targetId: boundaryPlanet.id,
+  })
+  const outOfRange = evaluateTargetCandidate({
+    state: withBoundaryPlanets,
+    ruleset: fixture.ruleset,
+    draft,
+    targetTag: branded("planet"),
+    targetId: justOutsidePlanet.id,
+  })
+  const withoutSource = evaluateTargetCandidate({
+    state: fixture.state,
+    ruleset: fixture.ruleset,
+    draft: { actionId: fixture.firstActionId, selectedTargets: {}, selectedInputs: { [branded<InputTag>("strength")]: 10 } },
+    targetTag: branded("planet"),
+    targetId: fixture.destinationId,
+  })
+  const shiftedOrigin = createPlanetStub({ ...fixture.state.planets[fixture.originId], x: 0, y: 10 })
+  const afterSourceChange = evaluateTargetCandidate({
+    state: { ...fixture.state, planets: { ...fixture.state.planets, [shiftedOrigin.id]: shiftedOrigin } },
+    ruleset: fixture.ruleset,
+    draft,
+    targetTag: branded("planet"),
+    targetId: fixture.destinationId,
+  })
+  return { fixture, draft, inRange, outOfRange, withoutSource, afterSourceChange }
+}
+
+function createMissingOriginCandidateSetup({
+  fixture,
+  draft,
+  inRange,
+  outOfRange,
+  withoutSource,
+  afterSourceChange,
+}: CreateMissingOriginCandidateSetupInput): CreateMissingOriginCandidateSetupResult {
+  const coLocatedPlanet = createPlanetStub({
+    id: branded<PlanetId>("distinct-co-located-planet"),
+    ownerPlayerId: null,
+    x: 0,
+    y: 0,
+  })
+  const coLocatedCandidate = evaluateTargetCandidate({
+    state: { ...fixture.state, planets: { ...fixture.state.planets, [coLocatedPlanet.id]: coLocatedPlanet } },
+    ruleset: fixture.ruleset,
+    draft,
+    targetTag: branded("planet"),
+    targetId: coLocatedPlanet.id,
+  })
+  const originCandidate = evaluateTargetCandidate({
+    state: fixture.state,
+    ruleset: fixture.ruleset,
+    draft,
+    targetTag: branded("planet"),
+    targetId: fixture.originId,
+  })
+  const missingOriginFleet = createFleetStub({
+    id: fixture.fleetId,
+    ownerPlayerId: fixture.playerId,
+    originPlanetId: branded<PlanetId>("missing-origin-planet"),
+    strength: 50,
+    name: "Source Fleet",
+  })
+  const missingOriginCandidate = evaluateTargetCandidate({
+    state: { ...fixture.state, fleets: { ...fixture.state.fleets, [missingOriginFleet.id]: missingOriginFleet } },
+    ruleset: fixture.ruleset,
+    draft,
+    targetTag: branded("planet"),
+    targetId: fixture.destinationId,
+  })
+
+  // Assert
+  expect(inRange.candidateStatus).toBe("ELIGIBLE")
+  expect(outOfRange.candidateStatus).toBe("INELIGIBLE")
+  expect(outOfRange.candidateIssues.map(({ code }) => code)).toContain("OUT_OF_RANGE")
+  expect(withoutSource.candidateStatus).toBe("INCOMPLETE")
+  expect(withoutSource.candidateIssues.map(({ code }) => code)).toContain("DEPENDENCY_INCOMPLETE")
+  expect(afterSourceChange.candidateStatus).toBe("INELIGIBLE")
+  expect(afterSourceChange.candidateIssues.map(({ code }) => code)).toContain("OUT_OF_RANGE")
+  expect(coLocatedCandidate.candidateStatus).toBe("ELIGIBLE")
+  expect(coLocatedCandidate.candidateIssues).toStrictEqual([])
+  expect(originCandidate.candidateStatus).toBe("INELIGIBLE")
+  expect(originCandidate.candidateIssues.map(({ code }) => code)).toContain("SAME_AS_ORIGIN")
+  expect(missingOriginCandidate.candidateStatus).toBe("INELIGIBLE")
+  return { missingOriginCandidate }
+}
+
+type CreateFixtureSetupResult = {
+  fixture: {
+    playerId: PlayerId
+    firstActionId: ActionId
+    secondActionId: ActionId
+    fleetId: FleetId
+    originId: PlanetId
+    destinationId: PlanetId
+    ruleset: Ruleset
+    state: Readonly<{
+      gameId: GameId
+      turn: number
+      submittingPlayerId: PlayerId
+      resources: Readonly<ReturnType<typeof createResourcesStub>>
+      players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+      planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+      fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+      actions: readonly Action[]
+    }>
+  }
+  draft: Readonly<{
+    actionId: ActionId
+    selectedTargets: Readonly<Record<TargetTag, undefined | PlayerId | FleetId | PlanetId>>
+    selectedInputs: Readonly<Record<InputTag, undefined | number>>
+  }>
+  inRange: TargetCandidateEvaluation
+  outOfRange: TargetCandidateEvaluation
+  withoutSource: TargetCandidateEvaluation
+  afterSourceChange: TargetCandidateEvaluation
+}
+
+type CreateMissingOriginCandidateSetupInput = {
+  fixture: {
+    playerId: PlayerId
+    firstActionId: ActionId
+    secondActionId: ActionId
+    fleetId: FleetId
+    originId: PlanetId
+    destinationId: PlanetId
+    ruleset: Ruleset
+    state: Readonly<{
+      gameId: GameId
+      turn: number
+      submittingPlayerId: PlayerId
+      resources: Readonly<ReturnType<typeof createResourcesStub>>
+      players: Readonly<Record<PlayerId, Readonly<{ id: PlayerId; ownerPlayerId: PlayerId }>>>
+      planets: Readonly<Record<PlanetId, Readonly<{ id: PlanetId; ownerPlayerId: null | PlayerId; x: number; y: number }>>>
+      fleets: Readonly<Record<FleetId, ReturnType<typeof createFleetStub>>>
+      actions: readonly Action[]
+    }>
+  }
+  draft: Readonly<{
+    actionId: ActionId
+    selectedTargets: Readonly<Record<TargetTag, undefined | PlayerId | FleetId | PlanetId>>
+    selectedInputs: Readonly<Record<InputTag, undefined | number>>
+  }>
+  inRange: TargetCandidateEvaluation
+  outOfRange: TargetCandidateEvaluation
+  withoutSource: TargetCandidateEvaluation
+  afterSourceChange: TargetCandidateEvaluation
+}
+
+type CreateMissingOriginCandidateSetupResult = { missingOriginCandidate: TargetCandidateEvaluation }

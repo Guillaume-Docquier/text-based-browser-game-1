@@ -1,22 +1,36 @@
 import { Assert, branded, indexBy, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import type { PositiveNumber } from "@guillaume-docquier/tools-ts/schemas"
 import { evaluateSubmittedActions, type EligibilityState } from "shared/action-submission/evaluateActionSelection.ts"
 import { compareOrdinalStrings } from "shared/domain/compareOrdinalStrings.ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
+import type { GameId } from "shared/domain/games/GameId.ts"
+import type { NonNegativeSafeInteger } from "shared/domain/NonNegativeSafeInteger.ts"
+import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { createResourcesStub } from "shared/domain/resources/Resources.stub.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
+import type { InputTag } from "shared/domain/ruleset/action-definitions/InputTag.ts"
+import type { PositiveInteger } from "shared/domain/ruleset/action-definitions/PositiveInteger.ts"
+import type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
+import type { EffectDefinitionTargetDefinition } from "shared/domain/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
 import { createAvailableActionStub, createSubmittedActionStub } from "shared/domain/turns/actions/Action.stub.ts"
+import type { ActionId } from "shared/domain/turns/actions/ActionId.ts"
 import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
+import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
+import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import { FleetActionSelectionParity } from "shared/testing/FleetActionSelectionParity.ts"
 import { AttackMoveTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { describe, expect, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
+import type { Fleet, Action, Planet, PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
+import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
-import type { TurnToProcessModel } from "#turn-processing/turns.repository.ts"
+import type { TurnsRepository, TurnToProcessModel } from "#turn-processing/turns.repository.ts"
 import { assertBeforeRejectedDrafts, assertCanceledView } from "../../tests/fleet-assertions/gameplay.router.composed-parity-2.ts"
 import {
   assertOutOfRangeSubmission,
@@ -105,108 +119,27 @@ describe("gameplay.router", () => {
         playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       }
 
-      const sourceFleet = playerView.fleets[0]
-      const standardAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_1")
-      const secondStandardAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_2")
-      const improvedAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_IMPROVED_1")
-      Assert.isDefined(sourceFleet)
-      Assert.isDefined(standardAction)
-      Assert.isDefined(secondStandardAction)
-      Assert.isDefined(improvedAction)
-      expect(sourceFleet.strength).toBe(FleetActionSelectionParity.sourceStrength)
-      expect(playerView.resources[ResourceType.INFLUENCE].total).toBe(FleetActionSelectionParity.totalResources.INFLUENCE)
-      expect(playerView.resources[ResourceType.FUEL].total).toBe(FleetActionSelectionParity.totalResources.FUEL)
-
-      // A partial API draft and a destination beyond Standard range cannot be persisted.
-      const partialSubmission = player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: playerView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
-          actionId: standardAction.id,
-          selectedTargets: { fleet: sourceFleet.id },
-          selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
-        }),
-      })
-      await expect(partialSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-      const outsideStandardRange = planets.find(
-        (planet) => planet.ownerPlayerId === null && planet.id !== origin.id && Math.hypot(planet.x - origin.x, planet.y - origin.y) > 5,
-      )
-      Assert.isDefined(outsideStandardRange)
-
-      await assertOutOfRangeSubmission({
+      const createSourceFleetSetupPhase1Result = await createSourceFleetSetup({
+        playerView,
         player,
         createdGameId,
-        playerView,
-        standardAction,
-        sourceFleet,
-        outsideStandardRange,
-        destination,
-      })
-
-      await assertAfterFullForceCancel({
-        player,
-        createdGameId,
-        playerView,
-        standardAction,
-        improvedAction,
-        sourceFleet,
-        destination,
-        secondStandardAction,
-      })
-
-      // A candidate beyond Standard's five-light-year range but within Improved's ten-light-year range is legal.
-      const improvedOnlyDestination = planets.find((planet) => {
-        const distance = Math.hypot(planet.x - origin.x, planet.y - origin.y)
-        return planet.ownerPlayerId === null && distance > 5 && distance <= 10
-      })
-      Assert.isDefined(improvedOnlyDestination)
-
-      await assertImprovedRangeView({
-        player,
-        createdGameId,
-        playerView,
-        improvedAction,
-        sourceFleet,
-        improvedOnlyDestination,
-        destination,
-      })
-      const retainedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const retainedSource = retainedView.fleets.find(({ id }) => id === sourceFleet.id)
-      Assert.isDefined(retainedSource)
-
-      await assertNormalizedInput({
-        retainedView,
-        retainedSource,
+        planets,
         origin,
         destination,
-        standardAction,
+      })
+      const { sourceFleet, improvedOnlyDestination } = createSourceFleetSetupPhase1Result
+      Assert.isDefined(improvedOnlyDestination)
+
+      const createSelectedViewSetupPhase2Result = await createSelectedViewSetup({
+        ...createSourceFleetSetupPhase1Result,
         player,
         createdGameId,
         playerView,
-        sourceFleet,
+        improvedOnlyDestination,
+        destination,
+        origin,
       })
-
-      // Assert
-      const selectedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(selectedView.actions.find(({ id }) => id === standardAction.id)).toMatchObject({
-        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-        selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
-      })
-      expect(selectedView.actions.find(({ id }) => id === improvedAction.id)).toMatchObject({
-        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
-        selectedInputs: { strength: FleetActionSelectionParity.improvedStrength },
-      })
-      expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 0 })
-      expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 4, uncommitted: 0 })
-      expect(selectedView.fleets.find(({ id }) => id === sourceFleet.id)?.strength).toBe(FleetActionSelectionParity.sourceStrength)
-
-      const selectedSource = selectedView.fleets.find(({ id }) => id === sourceFleet.id)
-      const selectedPlanets = selectedView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
-      const selectedOrigin = selectedPlanets.find(({ id }) => id === origin.id)
-      const selectedDestination = selectedPlanets.find(({ id }) => id === destination.id)
-      Assert.isDefined(selectedSource)
-      Assert.isDefined(selectedOrigin)
-      Assert.isDefined(selectedDestination)
+      const { selectedView } = createSelectedViewSetupPhase2Result
 
       const isStringRecord = (value: unknown): value is Record<string, string> =>
         typeof value === "object" &&
@@ -249,47 +182,14 @@ describe("gameplay.router", () => {
         }
       }
 
-      const normalizedSelectedView = {
-        resources: {
-          total: Object.fromEntries(
-            Object.values(ResourceType).map((resourceType) => [resourceType, selectedView.resources[resourceType].total]),
-          ),
-          uncommitted: Object.fromEntries(
-            Object.values(ResourceType).map((resourceType) => [resourceType, selectedView.resources[resourceType].uncommitted]),
-          ),
-        },
-        source: {
-          role: "source",
-          owner: selectedSource.ownerPlayerId === selectedView.player.id ? "player" : "other",
-          strength: selectedSource.strength,
-          origin: selectedSource.originPlanetId === origin.id ? "origin" : "other",
-          movement: selectedSource.movement ?? null,
-        },
-        planets: [
-          {
-            role: "origin",
-            owner: selectedOrigin.ownerPlayerId === selectedView.player.id ? "player" : selectedOrigin.ownerPlayerId,
-            x: selectedOrigin.x,
-            y: selectedOrigin.y,
-          },
-          {
-            role: "destination",
-            owner: selectedDestination.ownerPlayerId === null ? null : "other",
-            x: selectedDestination.x,
-            y: selectedDestination.y,
-          },
-        ],
-        authorizedActions: selectedView.ruleset.actionPool
-          .map(({ id, actionDefinitionId }) => ({ id, actionDefinitionId }))
-          .toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
-        currentActions: selectedView.actions.map(normalizeAction).toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
-      }
-      expect(normalizedSelectedView).toStrictEqual(FleetActionSelectionParity.lockedNormalizedInput)
-
-      // Observe the exact production-loaded worker input inside the real worker call.
-      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-      const delegateStartTurnProcessing = turnsRepository.startTurnProcessing.bind(turnsRepository)
+      const createNormalizedSelectedViewSetupPhase3Result = await createNormalizedSelectedViewSetup({
+        ...createSelectedViewSetupPhase2Result,
+        origin,
+        normalizeAction,
+        clock,
+        turnsRepository,
+      })
+      const { normalizedSelectedView, delegateStartTurnProcessing } = createNormalizedSelectedViewSetupPhase3Result
       const lockedInputObserver = vi.spyOn(turnsRepository, "startTurnProcessing").mockImplementation(async (startModel, tx) => {
         expect(startModel.turn.gameId).toBe(createdGameId)
         expect(startModel.turn.turn).toBe(selectedView.turn)
@@ -559,3 +459,291 @@ describe("gameplay.router", () => {
     })
   })
 })
+
+async function createSourceFleetSetup({
+  playerView,
+  player,
+  createdGameId,
+  planets,
+  origin,
+  destination,
+}: CreateSourceFleetSetupInput): Promise<CreateSourceFleetSetupResult> {
+  const sourceFleet = playerView.fleets[0]
+  const standardAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_1")
+  const secondStandardAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_2")
+  const improvedAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_IMPROVED_1")
+  Assert.isDefined(sourceFleet)
+  Assert.isDefined(standardAction)
+  Assert.isDefined(secondStandardAction)
+  Assert.isDefined(improvedAction)
+  expect(sourceFleet.strength).toBe(FleetActionSelectionParity.sourceStrength)
+  expect(playerView.resources[ResourceType.INFLUENCE].total).toBe(FleetActionSelectionParity.totalResources.INFLUENCE)
+  expect(playerView.resources[ResourceType.FUEL].total).toBe(FleetActionSelectionParity.totalResources.FUEL)
+
+  // A partial API draft and a destination beyond Standard range cannot be persisted.
+  const partialSubmission = player.client.gameplay.updateActionSubmission.mutate({
+    gameId: createdGameId,
+    turn: playerView.turn,
+    submittedActionTargets: createSubmittedActionTargetsDtoStub({
+      actionId: standardAction.id,
+      selectedTargets: { fleet: sourceFleet.id },
+      selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
+    }),
+  })
+  await expect(partialSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  const outsideStandardRange = planets.find(
+    (planet) => planet.ownerPlayerId === null && planet.id !== origin.id && Math.hypot(planet.x - origin.x, planet.y - origin.y) > 5,
+  )
+  Assert.isDefined(outsideStandardRange)
+
+  await assertOutOfRangeSubmission({
+    player,
+    createdGameId,
+    playerView,
+    standardAction,
+    sourceFleet,
+    outsideStandardRange,
+    destination,
+  })
+
+  await assertAfterFullForceCancel({
+    player,
+    createdGameId,
+    playerView,
+    standardAction,
+    improvedAction,
+    sourceFleet,
+    destination,
+    secondStandardAction,
+  })
+
+  // A candidate beyond Standard's five-light-year range but within Improved's ten-light-year range is legal.
+  const improvedOnlyDestination = planets.find((planet) => {
+    const distance = Math.hypot(planet.x - origin.x, planet.y - origin.y)
+    return planet.ownerPlayerId === null && distance > 5 && distance <= 10
+  })
+  return { sourceFleet, standardAction, improvedAction, improvedOnlyDestination }
+}
+
+async function createSelectedViewSetup({
+  player,
+  createdGameId,
+  playerView,
+  improvedAction,
+  sourceFleet,
+  improvedOnlyDestination,
+  destination,
+  origin,
+  standardAction,
+}: CreateSelectedViewSetupInput): Promise<CreateSelectedViewSetupResult> {
+  await assertImprovedRangeView({
+    player,
+    createdGameId,
+    playerView,
+    improvedAction,
+    sourceFleet,
+    improvedOnlyDestination,
+    destination,
+  })
+  const retainedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  const retainedSource = retainedView.fleets.find(({ id }) => id === sourceFleet.id)
+  Assert.isDefined(retainedSource)
+
+  await assertNormalizedInput({
+    retainedView,
+    retainedSource,
+    origin,
+    destination,
+    standardAction,
+    player,
+    createdGameId,
+    playerView,
+    sourceFleet,
+  })
+
+  // Assert
+  const selectedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  expect(selectedView.actions.find(({ id }) => id === standardAction.id)).toMatchObject({
+    selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+    selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
+  })
+  expect(selectedView.actions.find(({ id }) => id === improvedAction.id)).toMatchObject({
+    selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+    selectedInputs: { strength: FleetActionSelectionParity.improvedStrength },
+  })
+  expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 0 })
+  expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 4, uncommitted: 0 })
+  expect(selectedView.fleets.find(({ id }) => id === sourceFleet.id)?.strength).toBe(FleetActionSelectionParity.sourceStrength)
+
+  const selectedSource = selectedView.fleets.find(({ id }) => id === sourceFleet.id)
+  const selectedPlanets = selectedView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
+  const selectedOrigin = selectedPlanets.find(({ id }) => id === origin.id)
+  const selectedDestination = selectedPlanets.find(({ id }) => id === destination.id)
+  Assert.isDefined(selectedSource)
+  Assert.isDefined(selectedOrigin)
+  Assert.isDefined(selectedDestination)
+  return { selectedView, selectedSource, selectedOrigin, selectedDestination }
+}
+
+async function createNormalizedSelectedViewSetup({
+  selectedView,
+  selectedSource,
+  origin,
+  selectedOrigin,
+  selectedDestination,
+  normalizeAction,
+  clock,
+  turnsRepository,
+}: CreateNormalizedSelectedViewSetupInput): Promise<CreateNormalizedSelectedViewSetupResult> {
+  const normalizedSelectedView = {
+    resources: {
+      total: Object.fromEntries(
+        Object.values(ResourceType).map((resourceType) => [resourceType, selectedView.resources[resourceType].total]),
+      ),
+      uncommitted: Object.fromEntries(
+        Object.values(ResourceType).map((resourceType) => [resourceType, selectedView.resources[resourceType].uncommitted]),
+      ),
+    },
+    source: {
+      role: "source",
+      owner: selectedSource.ownerPlayerId === selectedView.player.id ? "player" : "other",
+      strength: selectedSource.strength,
+      origin: selectedSource.originPlanetId === origin.id ? "origin" : "other",
+      movement: selectedSource.movement ?? null,
+    },
+    planets: [
+      {
+        role: "origin",
+        owner: selectedOrigin.ownerPlayerId === selectedView.player.id ? "player" : selectedOrigin.ownerPlayerId,
+        x: selectedOrigin.x,
+        y: selectedOrigin.y,
+      },
+      {
+        role: "destination",
+        owner: selectedDestination.ownerPlayerId === null ? null : "other",
+        x: selectedDestination.x,
+        y: selectedDestination.y,
+      },
+    ],
+    authorizedActions: selectedView.ruleset.actionPool
+      .map(({ id, actionDefinitionId }) => ({ id, actionDefinitionId }))
+      .toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
+    currentActions: selectedView.actions.map(normalizeAction).toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
+  }
+  expect(normalizedSelectedView).toStrictEqual(FleetActionSelectionParity.lockedNormalizedInput)
+
+  // Observe the exact production-loaded worker input inside the real worker call.
+  clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
+  await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+  const delegateStartTurnProcessing = turnsRepository.startTurnProcessing.bind(turnsRepository)
+  return { normalizedSelectedView, delegateStartTurnProcessing }
+}
+
+type CreateSourceFleetSetupInput = {
+  playerView: PlayerView
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  planets: Planet[]
+  origin: Planet
+  destination: Planet
+}
+
+type CreateSourceFleetSetupResult = {
+  sourceFleet: Fleet
+  standardAction: Action
+  improvedAction: Action
+  improvedOnlyDestination: undefined | Planet
+}
+
+type CreateSelectedViewSetupInput = {
+  player: AuthenticatedApiClient
+  createdGameId: GameId
+  playerView: PlayerView
+  improvedAction: Action
+  sourceFleet: Fleet
+  improvedOnlyDestination: Planet
+  destination: Planet
+  origin: Planet
+  standardAction: Action
+}
+
+type CreateSelectedViewSetupResult = {
+  selectedView: PlayerView
+  selectedSource: Fleet
+  selectedOrigin: Planet
+  selectedDestination: Planet
+}
+
+type CreateNormalizedSelectedViewSetupInput = {
+  selectedView: PlayerView
+  selectedSource: Fleet
+  origin: Planet
+  selectedOrigin: Planet
+  selectedDestination: Planet
+  normalizeAction: (action: {
+    id: string
+    actionDefinitionId: string
+    selectedTargets: unknown
+    selectedInputs: unknown
+    isInProgress: false | true
+  }) => {
+    id: string
+    actionDefinitionId: string
+    selectedTargets: null | { fleet: undefined | string; planet: undefined | string }
+    selectedInputs: unknown
+    isInProgress: false | true
+  }
+  clock: ControlledClock
+  turnsRepository: TurnsRepository
+}
+
+type CreateNormalizedSelectedViewSetupResult = {
+  normalizedSelectedView: {
+    resources: { total: Record<string, number>; uncommitted: Record<string, number> }
+    source: {
+      role: string
+      owner: string
+      strength: number
+      origin: string
+      movement: null | {
+        speed: PositiveNumber
+        departureTurn: PositiveInteger
+        submission: {
+          id: ActionId
+          playerId: PlayerId
+          actionDefinitionId: ActionDefinitionId
+          selectedTargets: Readonly<Record<TargetTag, PlayerId | PlanetId | FleetId>>
+          selectedInputs: Readonly<Record<InputTag, PositiveInteger>>
+        }
+        pendingArrivalEffects: ReadonlyArray<
+          | {
+              effectDefinition: {
+                type: "FLEET_ASSAULT"
+                targets: { fleet: EffectDefinitionTargetDefinition<"FLEET">; planet: EffectDefinitionTargetDefinition<"PLANET"> }
+                parameters: Record<string, never>
+              }
+              definitionOrdinal: NonNegativeSafeInteger
+            }
+          | {
+              effectDefinition: {
+                type: "FLEET_COLONIZE"
+                targets: { fleet: EffectDefinitionTargetDefinition<"FLEET">; planet: EffectDefinitionTargetDefinition<"PLANET"> }
+                parameters: { strengthRequirement: PositiveInteger }
+              }
+              definitionOrdinal: NonNegativeSafeInteger
+            }
+        >
+      }
+    }
+    planets: Array<{ role: string; owner: null | string | PlayerId; x: number; y: number }>
+    authorizedActions: Array<{ id: ActionId; actionDefinitionId: ActionDefinitionId }>
+    currentActions: Array<{
+      id: string
+      actionDefinitionId: string
+      selectedTargets: null | { fleet: undefined | string; planet: undefined | string }
+      selectedInputs: unknown
+      isInProgress: false | true
+    }>
+  }
+  delegateStartTurnProcessing: TurnsRepository["startTurnProcessing"]
+}

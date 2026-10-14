@@ -14,7 +14,7 @@ import type {
   reverseWorkerInputEnumeration as CapturedreverseWorkerInputEnumeration,
   replayWorkerInput as CapturedreplayWorkerInput,
 } from "#tests/fleet-concurrency/gameplay.ts"
-import { workerTieFundingRounds } from "../fleet-concurrency/gameplay.scenarios.ts"
+import { getWorkerTieFundingRounds } from "../fleet-concurrency/gameplay.scenarios.ts"
 import {
   PostgresColonizeWorkerRuleset,
   PostgresColonizeTickZeroPriorityRuleset,
@@ -38,7 +38,7 @@ export async function assertUntouchedTarget({
   expect(untouchedInitialView.turn).toBe(1)
 
   // Public funding: ship40 costs2I/1M; the single GainMetal and GainFuel actions cover the supported movement costs.
-  for (const fundingRound of workerTieFundingRounds) {
+  for (const fundingRound of getWorkerTieFundingRounds()) {
     const views = await readViews()
     for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
       const client = clients[ownerIndex]
