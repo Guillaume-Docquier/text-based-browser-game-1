@@ -1,15 +1,13 @@
 import { branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { validateSubmittedActions } from "shared/action-submission/validation/validateSubmittedActions.ts"
-import { GameIdSchema } from "shared/domain/games/GameId.ts"
-import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
+import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
 import type { SubmittedAction } from "shared/domain/turns/actions/Action.ts"
 import { safeResolveTargetId } from "shared/turn-resolution/effects/resolveTargetId.ts"
-import { z } from "zod"
-import { SubmittedActionTargetsDtoSchema } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { createTurnState } from "./createTurnState.ts"
 import type { GameplayRepository } from "./gameplay.repository.ts"
+import type { UpdateActionSubmissionCommand } from "./updateActionSubmission.command.ts"
 import { UpdateActionSubmissionError, UpdateActionSubmissionRollbackError } from "./updateActionSubmission.error.ts"
 
 export class UpdateActionSubmissionUseCase {
@@ -34,12 +32,10 @@ export class UpdateActionSubmissionUseCase {
   /**
    * Long term we'll probably want a batch submission
    */
-  public async execute({
-    gameId,
-    playerId,
-    turn,
-    submittedActionTargets,
-  }: UpdateActionSubmissionDto): Promise<Result<void, UpdateActionSubmissionError>> {
+  public async execute(
+    { gameId, turn, submittedActionTargets }: UpdateActionSubmissionCommand,
+    { playerId }: { playerId: PlayerId },
+  ): Promise<Result<void, UpdateActionSubmissionError>> {
     const setActionResult = await this.createTransaction(async (tx) => {
       const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn }, tx)
 
@@ -144,11 +140,3 @@ export class UpdateActionSubmissionUseCase {
     return Result.Success(undefined)
   }
 }
-
-export type UpdateActionSubmissionDto = z.infer<typeof UpdateActionSubmissionDtoSchema>
-export const UpdateActionSubmissionDtoSchema = z.object({
-  gameId: z.coerce.number().pipe(GameIdSchema),
-  playerId: PlayerIdSchema,
-  turn: z.coerce.number(),
-  submittedActionTargets: SubmittedActionTargetsDtoSchema,
-})

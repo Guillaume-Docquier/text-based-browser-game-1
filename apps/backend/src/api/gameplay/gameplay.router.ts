@@ -1,10 +1,13 @@
 import { UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
 import { NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
 import { GetPlayerViewErrorResponses } from "./getPlayerView.error.ts"
+import { GetPlayerViewQuerySchema } from "./getPlayerView.query.ts"
 import { type GetPlayerViewUseCase, PlayerViewDtoSchema } from "./getPlayerView.useCase.ts"
+import { UpdateActionSubmissionCommandSchema } from "./updateActionSubmission.command.ts"
 import { UpdateActionSubmissionErrorResponses } from "./updateActionSubmission.error.ts"
-import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./updateActionSubmission.useCase.ts"
-import { type UpdateReadinessUseCase, UpdateReadinessDtoSchema } from "./updateReadiness.useCase.ts"
+import type { UpdateActionSubmissionUseCase } from "./updateActionSubmission.useCase.ts"
+import { UpdateReadinessCommandSchema } from "./updateReadiness.command.ts"
+import type { UpdateReadinessUseCase } from "./updateReadiness.useCase.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createGameplayRouter({
@@ -24,11 +27,11 @@ export function createGameplayRouter({
      * Use to lock in Actions or cancel Readiness while the current Turn is still collecting Actions.
      */
     updateReadiness: trpc.inGameProcedure
-      .input(UpdateReadinessDtoSchema.omit({ playerId: true }))
+      .input(UpdateReadinessCommandSchema)
       .output(NO_OUTPUT)
       .mutation(
         async ({ input, ctx: { playerId } }) =>
-          await toTrpcOutput(updateReadinessUseCase.execute({ ...input, playerId }), UpdateReadinessErrorResponses),
+          await toTrpcOutput(updateReadinessUseCase.execute(input, { playerId }), UpdateReadinessErrorResponses),
       ),
 
     /**
@@ -36,10 +39,11 @@ export function createGameplayRouter({
      * Use to load or refresh the gameplay screen for a game the account has joined.
      */
     getPlayerView: trpc.inGameProcedure
+      .input(GetPlayerViewQuerySchema)
       .output(PlayerViewDtoSchema)
       .query(
         async ({ input, ctx: { playerId } }) =>
-          await toTrpcOutput(getPlayerViewUseCase.execute({ ...input, playerId }), GetPlayerViewErrorResponses),
+          await toTrpcOutput(getPlayerViewUseCase.execute(input, { playerId }), GetPlayerViewErrorResponses),
       ),
 
     /**
@@ -47,11 +51,11 @@ export function createGameplayRouter({
      * Use while the player is not Ready to select targets, or pass null selectedTargets to cancel the submission.
      */
     updateActionSubmission: trpc.inGameProcedure
-      .input(UpdateActionSubmissionDtoSchema.omit({ playerId: true }))
+      .input(UpdateActionSubmissionCommandSchema)
       .output(NO_OUTPUT)
       .mutation(
         async ({ input, ctx: { playerId } }) =>
-          await toTrpcOutput(updateActionSubmissionUseCase.execute({ ...input, playerId }), UpdateActionSubmissionErrorResponses),
+          await toTrpcOutput(updateActionSubmissionUseCase.execute(input, { playerId }), UpdateActionSubmissionErrorResponses),
       ),
   })
 }

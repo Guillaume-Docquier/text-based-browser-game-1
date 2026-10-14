@@ -1,11 +1,10 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { GameIdSchema } from "shared/domain/games/GameId.ts"
-import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
-import { z } from "zod"
+import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { UpdateReadinessError, UpdateReadinessRollbackError } from "#api/gameplay/updateReadiness.error.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GameplayRepository } from "./gameplay.repository.ts"
+import type { UpdateReadinessCommand } from "./updateReadiness.command.ts"
 
 /**
  * Updates a player's Readiness and closes the Turn when all players are Ready.
@@ -36,7 +35,10 @@ export class UpdateReadinessUseCase {
   /**
    * Changes Readiness and checks for unanimous Readiness within one Turn transaction.
    */
-  public async execute({ gameId, turn, playerId, isReady }: UpdateReadinessDto): Promise<Result<void, UpdateReadinessError>> {
+  public async execute(
+    { gameId, turn, isReady }: UpdateReadinessCommand,
+    { playerId }: { playerId: PlayerId },
+  ): Promise<Result<void, UpdateReadinessError>> {
     const result = await this.createTransaction(async (tx) => {
       const context = await this.gameplayRepository.getReadinessForUpdate({ gameId, playerId, turn }, tx)
 
@@ -60,11 +62,3 @@ export class UpdateReadinessUseCase {
     return Result.Success(undefined)
   }
 }
-
-export type UpdateReadinessDto = z.infer<typeof UpdateReadinessDtoSchema>
-export const UpdateReadinessDtoSchema = z.object({
-  gameId: z.coerce.number().pipe(GameIdSchema),
-  turn: z.coerce.number(),
-  playerId: PlayerIdSchema,
-  isReady: z.boolean(),
-})

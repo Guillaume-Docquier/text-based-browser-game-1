@@ -1,16 +1,15 @@
 import { Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } from "@guillaume-docquier/tools-ts"
 import { computeAvailableActions } from "shared/action-submission/computeAvailableActions.ts"
-import { AccountIdSchema } from "shared/domain/accounts/AccountId.ts"
-import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { createGalaxy } from "shared/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "shared/galaxy-creation/GalaxyCreationSettings.ts"
-import { z } from "zod"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import type { GamesRepository } from "./games.repository.ts"
+import type { StartGameCommand } from "./startGame.command.ts"
 import { StartGameError, StartGameRollbackError } from "./startGame.error.ts"
 
 /**
@@ -39,7 +38,10 @@ export class StartGameUseCase {
     this.createTransaction = createTransaction
   }
 
-  public async execute({ gameId, requesterAccountId }: StartGameDto): Promise<Result<void, StartGameError>> {
+  public async execute(
+    { gameId }: StartGameCommand,
+    { requesterAccountId }: { requesterAccountId: AccountId },
+  ): Promise<Result<void, StartGameError>> {
     const startGameResult = await this.createTransaction(async (tx) => {
       const gameForStart = await this.gamesRepository.getGameForStart({ gameId }, tx)
 
@@ -96,9 +98,3 @@ export class StartGameUseCase {
     return startGameResult
   }
 }
-
-export type StartGameDto = z.infer<typeof StartGameDtoSchema>
-export const StartGameDtoSchema = z.object({
-  gameId: z.coerce.number().pipe(GameIdSchema),
-  requesterAccountId: AccountIdSchema,
-})
