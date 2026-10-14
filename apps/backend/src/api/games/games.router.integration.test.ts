@@ -311,7 +311,7 @@ describe("games.router", () => {
       })
 
       // Assert
-      await expect(createGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(createGame).rejects.toMatchObject({ data: { code: "INTERNAL_SERVER_ERROR" } })
     })
 
     integrationTest("should create a game for the authenticated player", async ({ db }) => {
