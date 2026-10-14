@@ -1,10 +1,8 @@
-import { Assert, Result } from "@guillaume-docquier/tools-ts"
-import { TRPCError } from "@trpc/server"
-import { UpdateReadinessError } from "#api/gameplay/updateReadiness.error.ts"
-import { NO_OUTPUT, type Trpc } from "#api/trpc.ts"
-import { GetPlayerViewError } from "./getPlayerView.error.ts"
+import { UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
+import { NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
+import { GetPlayerViewErrorResponses } from "./getPlayerView.error.ts"
 import { type GetPlayerViewUseCase, PlayerViewDtoSchema } from "./getPlayerView.useCase.ts"
-import { UpdateActionSubmissionError } from "./updateActionSubmission.error.ts"
+import { UpdateActionSubmissionErrorResponses } from "./updateActionSubmission.error.ts"
 import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./updateActionSubmission.useCase.ts"
 import { type UpdateReadinessUseCase, UpdateReadinessDtoSchema } from "./updateReadiness.useCase.ts"
 
@@ -28,39 +26,21 @@ export function createGameplayRouter({
     updateReadiness: trpc.inGameProcedure
       .input(UpdateReadinessDtoSchema.omit({ playerId: true }))
       .output(NO_OUTPUT)
-      .mutation(async ({ input, ctx: { playerId } }) => {
-        const updateReadinessResult = await updateReadinessUseCase.execute({ ...input, playerId })
-        if (Result.isSuccess(updateReadinessResult)) {
-          return
-        }
-
-        switch (updateReadinessResult.error) {
-          case UpdateReadinessError.TURN_NOT_OPEN:
-            throw new TRPCError({ code: "CONFLICT", message: "Readiness cannot be changed: the turn is not open." })
-          case UpdateReadinessError.UNKNOWN:
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Readiness could not be updated." })
-          default:
-            Assert.isExhausted(updateReadinessResult.error)
-        }
-      }),
+      .mutation(
+        async ({ input, ctx: { playerId } }) =>
+          await toTrpcOutput(updateReadinessUseCase.execute({ ...input, playerId }), UpdateReadinessErrorResponses),
+      ),
 
     /**
      * Returns the requesting player's gameplay view, including the galaxy, resources, Actions, and Turn state.
      * Use to load or refresh the gameplay screen for a game the account has joined.
      */
-    getPlayerView: trpc.inGameProcedure.output(PlayerViewDtoSchema).query(async ({ input, ctx: { playerId } }) => {
-      const getPlayerViewResult = await getPlayerViewUseCase.execute({ ...input, playerId })
-      if (Result.isSuccess(getPlayerViewResult)) {
-        return getPlayerViewResult.value
-      }
-
-      switch (getPlayerViewResult.error) {
-        case GetPlayerViewError.VIEW_NOT_FOUND:
-          throw new TRPCError({ code: "NOT_FOUND", message: "Player view could not be found." })
-        case GetPlayerViewError.UNKNOWN:
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Player view could not be loaded." })
-      }
-    }),
+    getPlayerView: trpc.inGameProcedure
+      .output(PlayerViewDtoSchema)
+      .query(
+        async ({ input, ctx: { playerId } }) =>
+          await toTrpcOutput(getPlayerViewUseCase.execute({ ...input, playerId }), GetPlayerViewErrorResponses),
+      ),
 
     /**
      * Submits or changes one of the requesting player's Actions for the current Turn.
@@ -69,28 +49,9 @@ export function createGameplayRouter({
     updateActionSubmission: trpc.inGameProcedure
       .input(UpdateActionSubmissionDtoSchema.omit({ playerId: true }))
       .output(NO_OUTPUT)
-      .mutation(async ({ input, ctx: { playerId } }) => {
-        const updateActionSubmissionResult = await updateActionSubmissionUseCase.execute({ ...input, playerId })
-        if (Result.isSuccess(updateActionSubmissionResult)) {
-          return
-        }
-
-        switch (updateActionSubmissionResult.error) {
-          case UpdateActionSubmissionError.TURN_NOT_OPEN:
-            throw new TRPCError({ code: "CONFLICT", message: "Actions cannot be changed: the turn is not open." })
-          case UpdateActionSubmissionError.PLAYER_READY:
-            throw new TRPCError({ code: "CONFLICT", message: "You must cancel readiness before changing actions." })
-          case UpdateActionSubmissionError.INVALID_ACTION_ID:
-            throw new TRPCError({ code: "BAD_REQUEST", message: "This action is not available." })
-          case UpdateActionSubmissionError.ACTION_DEFINITION_NOT_FOUND:
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Could not find a definition for this action." })
-          case UpdateActionSubmissionError.INVALID_SUBMISSION:
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid action submission, targets are invalid or costs cannot be paid." })
-          case UpdateActionSubmissionError.UNKNOWN:
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Action submission could not be updated." })
-          default:
-            Assert.isExhausted(updateActionSubmissionResult.error)
-        }
-      }),
+      .mutation(
+        async ({ input, ctx: { playerId } }) =>
+          await toTrpcOutput(updateActionSubmissionUseCase.execute({ ...input, playerId }), UpdateActionSubmissionErrorResponses),
+      ),
   })
 }
