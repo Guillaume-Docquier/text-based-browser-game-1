@@ -1,10 +1,8 @@
-import { Result } from "@guillaume-docquier/tools-ts"
-import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import { FinishOnboardingCommandSchema } from "#api/accounts/finishOnboarding.command.ts"
 import { FinishOnboardingErrorResponses } from "#api/accounts/finishOnboarding.error.ts"
 import type { FinishOnboardingUseCase } from "#api/accounts/finishOnboarding.useCase.ts"
-import { NO_INPUT, NO_OUTPUT, type Trpc } from "#api/trpc.ts"
+import { NO_INPUT, NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tRPC inference do the work
 export function createAccountsRouter({ trpc, finishOnboardingUseCase }: { trpc: Trpc; finishOnboardingUseCase: FinishOnboardingUseCase }) {
@@ -26,12 +24,11 @@ export function createAccountsRouter({ trpc, finishOnboardingUseCase }: { trpc: 
       .input(FinishOnboardingCommandSchema)
       .output(NO_OUTPUT)
       .mutation(async ({ input: finishOnboardingCommand, ctx: { account } }) => {
-        const finishOnboardingResult = await finishOnboardingUseCase.execute(finishOnboardingCommand, { accountId: account.id })
-        if (Result.isFailure(finishOnboardingResult)) {
-          throw new TRPCError(FinishOnboardingErrorResponses[finishOnboardingResult.error])
-        }
-
-        return finishOnboardingResult.value
+        // oxlint-disable-next-line typescript/no-confusing-void-expression -- Return the helper's void output to keep router handlers consistent.
+        return await toTrpcOutput(
+          finishOnboardingUseCase.execute(finishOnboardingCommand, { accountId: account.id }),
+          FinishOnboardingErrorResponses,
+        )
       }),
   })
 }

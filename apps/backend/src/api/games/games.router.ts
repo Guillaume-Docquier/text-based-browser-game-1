@@ -1,8 +1,7 @@
-import { type Logger, Result, branded } from "@guillaume-docquier/tools-ts"
-import { TRPCError } from "@trpc/server"
+import { type Logger, branded } from "@guillaume-docquier/tools-ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { z } from "zod"
-import { NO_INPUT, NO_OUTPUT, type Trpc } from "#api/trpc.ts"
+import { NO_INPUT, NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
 import { CreateGameErrorResponses } from "./createGame.error.ts"
 import { CreatedGameDtoSchema, CreateGameDtoSchema, type CreateGameUseCase } from "./createGame.useCase.ts"
 import { GameDetailsDtoSchema } from "./GameDetailsDto.ts"
@@ -50,12 +49,7 @@ export function createGamesRouter({
       .input(NO_INPUT)
       .output(z.array(GameListingDtoSchema))
       .query(async ({ ctx: { account } }) => {
-        const result = await getGameListingsUseCase.execute({ accountId: account?.id })
-        if (Result.isFailure(result)) {
-          throw new TRPCError(GetGameListingsErrorResponses[result.error])
-        }
-
-        return result.value
+        return await toTrpcOutput(getGameListingsUseCase.execute({ accountId: account?.id }), GetGameListingsErrorResponses)
       }),
 
     /**
@@ -63,12 +57,8 @@ export function createGamesRouter({
      * Use when the game creator chooses to start play from the lobby.
      */
     startGame: trpc.inGameProcedure.output(NO_OUTPUT).mutation(async ({ input, ctx: { account } }) => {
-      const startGameResult = await startGameUseCase.execute({ ...input, requesterAccountId: account.id })
-      if (Result.isFailure(startGameResult)) {
-        throw new TRPCError(StartGameErrorResponses[startGameResult.error])
-      }
-
-      return startGameResult.value
+      // oxlint-disable-next-line typescript/no-confusing-void-expression -- Return the helper's void output to keep router handlers consistent.
+      return await toTrpcOutput(startGameUseCase.execute({ ...input, requesterAccountId: account.id }), StartGameErrorResponses)
     }),
 
     /**
@@ -79,12 +69,7 @@ export function createGamesRouter({
       .input(NO_INPUT)
       .output(GameCreationSettingsDtoSchema)
       .query(async () => {
-        const creationSettingsResult = await getGameCreationSettingsUseCase.execute()
-        if (Result.isFailure(creationSettingsResult)) {
-          throw new TRPCError(GetGameCreationSettingsErrorResponses[creationSettingsResult.error])
-        }
-
-        return creationSettingsResult.value
+        return await toTrpcOutput(getGameCreationSettingsUseCase.execute(), GetGameCreationSettingsErrorResponses)
       }),
 
     /**
@@ -95,12 +80,7 @@ export function createGamesRouter({
       .input(CreateGameDtoSchema.omit({ createdByAccountId: true }))
       .output(CreatedGameDtoSchema)
       .mutation(async ({ input: newGame, ctx: { account } }) => {
-        const createResult = await createGameUseCase.execute({ ...newGame, createdByAccountId: account.id })
-        if (Result.isFailure(createResult)) {
-          throw new TRPCError(CreateGameErrorResponses[createResult.error])
-        }
-
-        return createResult.value
+        return await toTrpcOutput(createGameUseCase.execute({ ...newGame, createdByAccountId: account.id }), CreateGameErrorResponses)
       }),
 
     /**
@@ -111,15 +91,13 @@ export function createGamesRouter({
       .input(z.object({ gameId: z.coerce.number().pipe(GameIdSchema) }))
       .output(GameDetailsDtoSchema)
       .query(async ({ input: { gameId }, ctx: { account } }) => {
-        const getGameResult = await getGameByIdUseCase.execute({
-          gameId,
-          playerId: account === undefined ? undefined : branded(account.id),
-        })
-        if (Result.isFailure(getGameResult)) {
-          throw new TRPCError(GetGameByIdErrorResponses[getGameResult.error])
-        }
-
-        return getGameResult.value
+        return await toTrpcOutput(
+          getGameByIdUseCase.execute({
+            gameId,
+            playerId: account === undefined ? undefined : branded(account.id),
+          }),
+          GetGameByIdErrorResponses,
+        )
       }),
 
     /**
@@ -130,12 +108,8 @@ export function createGamesRouter({
       .input(JoinGameDtoSchema.pick({ gameId: true }))
       .output(NO_OUTPUT)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const joinGameResult = await joinGameUseCase.execute({ gameId, accountId: account.id })
-        if (Result.isFailure(joinGameResult)) {
-          throw new TRPCError(JoinGameErrorResponses[joinGameResult.error])
-        }
-
-        return joinGameResult.value
+        // oxlint-disable-next-line typescript/no-confusing-void-expression -- Return the helper's void output to keep router handlers consistent.
+        return await toTrpcOutput(joinGameUseCase.execute({ gameId, accountId: account.id }), JoinGameErrorResponses)
       }),
 
     /**
@@ -146,12 +120,8 @@ export function createGamesRouter({
       .input(LeaveGameDtoSchema.pick({ gameId: true }))
       .output(NO_OUTPUT)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const leaveGameResult = await leaveGameUseCase.execute({ gameId, accountId: account.id })
-        if (Result.isFailure(leaveGameResult)) {
-          throw new TRPCError(LeaveGameErrorResponses[leaveGameResult.error])
-        }
-
-        return leaveGameResult.value
+        // oxlint-disable-next-line typescript/no-confusing-void-expression -- Return the helper's void output to keep router handlers consistent.
+        return await toTrpcOutput(leaveGameUseCase.execute({ gameId, accountId: account.id }), LeaveGameErrorResponses)
       }),
   })
 }

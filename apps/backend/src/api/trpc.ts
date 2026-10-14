@@ -16,6 +16,21 @@ export const NO_INPUT = z.void()
  */
 export const NO_OUTPUT = z.void()
 
+/**
+ * Resolves a use-case Result into a tRPC output or mapped API error.
+ */
+export async function toTrpcOutput<TValue, TError extends string>(
+  pendingResult: Promise<Result<TValue, TError>>,
+  errorResponses: Record<NoInfer<TError>, { code: TRPCError["code"]; message: string }>,
+): Promise<TValue> {
+  const result = await pendingResult
+  if (Result.isFailure(result)) {
+    throw new TRPCError(errorResponses[result.error])
+  }
+
+  return result.value
+}
+
 type ExpressContextOptions = Pick<CreateExpressContextOptions, "req" | "res">
 
 export type TrpcContext = Awaited<ReturnType<typeof createTrpcContext>>
