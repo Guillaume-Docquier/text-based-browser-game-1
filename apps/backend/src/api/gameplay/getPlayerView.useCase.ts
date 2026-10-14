@@ -37,9 +37,6 @@ export class GetPlayerViewUseCase {
     this.gameplayRepository = gameplayRepository
   }
 
-  /**
-   * Returns the player's view or a typed missing-view or unexpected failure.
-   */
   public async execute({ gameId, playerId }: GetPlayerViewDto): Promise<Result<PlayerViewDto, GetPlayerViewError>> {
     const playerViewResult = await this.gameplayRepository.getPlayerView({ gameId, playerId })
     if (Result.isFailure(playerViewResult)) {
