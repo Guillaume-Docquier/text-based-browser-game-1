@@ -1,4 +1,5 @@
 import { Result } from "@guillaume-docquier/tools-ts"
+import type { PositiveInteger } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import type { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import type { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
@@ -13,7 +14,7 @@ import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 export class FleetColonizeEffect extends Effect {
   public readonly initiatingFleetId: FleetId
   public readonly targetPlanetId: PlanetId
-  public readonly strengthRequirement: number
+  public readonly strengthRequirement: PositiveInteger
 
   public constructor(
     id: number,

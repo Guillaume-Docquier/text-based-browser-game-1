@@ -42,8 +42,10 @@ import {
 
 describe("public Colonization worker companions", () => {
   it("should preserve the public 15+20 stationary Colonize budget through selection, replacement, cancellation, and the exact40 boundary", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const playerScenario1 = await preparePlayerScenario({ server })
     const { playerSetup1, player, gameId, clock, turnProcessor, turnsRepository, home, target, replacementTarget, stationary } =
       playerScenario1

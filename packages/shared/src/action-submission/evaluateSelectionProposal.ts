@@ -71,7 +71,7 @@ export function evaluateProposal({
   evaluateColonizationEligibility({ state, proposal, actionDefinition, evaluation })
 }
 
-export function evaluateSelectionFields(context: ProposalContext): void {
+function evaluateSelectionFields(context: ProposalContext): void {
   evaluateMissingFields(context, "target")
   for (const tag of Object.keys(context.proposal.selectedTargets)) {
     evaluateSelectedTarget(context, tag)
@@ -161,7 +161,7 @@ function evaluateSelectedInput({ proposal, actionDefinition, evaluation }: Propo
   }
 }
 
-export function reserveProposalStrength({
+function reserveProposalStrength({
   state,
   proposal,
   actionDefinition,
@@ -177,7 +177,7 @@ export function reserveProposalStrength({
   }
 }
 
-export function evaluateColonizationEligibility({
+function evaluateColonizationEligibility({
   state,
   proposal,
   actionDefinition,
@@ -195,7 +195,7 @@ export function evaluateColonizationEligibility({
   }
 }
 
-export function evaluateColonizationEffect({
+function evaluateColonizationEffect({
   state,
   proposal,
   actionDefinition,

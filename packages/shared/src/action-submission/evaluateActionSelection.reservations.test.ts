@@ -52,6 +52,7 @@ describe("evaluateActionSelection", () => {
 
     const completeSetup2 = createCompleteSetup({ ...ownerIdSetup1 })
     const { complete } = completeSetup2
+    // Act & Assert
     expect(complete.strengthCommitments[sourceFleetId]).toBe(1)
     expect(complete.remainingStrength[sourceFleetId]).toBe(49)
   })
@@ -142,6 +143,7 @@ describe("evaluateActionSelection", () => {
   })
 
   it("should reserve standalone Colonize Strength in the shared movement budget without double-counting Move+Colonize", () => {
+    // Arrange
     const fixture = createColonizationBudgetFixture(35)
     const moveSubmission = createSubmittedActionStub({
       id: fixture.moveActionId,
@@ -154,6 +156,7 @@ describe("evaluateActionSelection", () => {
       ...fixture.state,
       actions: [...fixture.state.actions.filter(({ id }) => id !== fixture.moveActionId), moveSubmission],
     }
+    // Act
     const stationaryEvaluation = evaluateActionSelection({
       state: stateWithMove,
       ruleset: fixture.ruleset,
@@ -164,6 +167,7 @@ describe("evaluateActionSelection", () => {
       },
     })
 
+    // Assert
     expect(stationaryEvaluation.status).toBe("ELIGIBLE")
     expect(stationaryEvaluation.strengthCommitments[fixture.fleetId]).toBe(35)
     expect(stationaryEvaluation.remainingStrength[fixture.fleetId]).toBe(0)
@@ -198,6 +202,7 @@ describe("evaluateActionSelection", () => {
   })
 
   it("should reject Move+Colonize below the configured requirement and accept the exact threshold", () => {
+    // Arrange
     const fixture = createColonizationBudgetFixture(100)
     const ruleset = createRulesetStub({
       actionDefinitions: indexBy("id", [ColonizePlanetTest]),
@@ -208,6 +213,7 @@ describe("evaluateActionSelection", () => {
       resources: createResourcesStub({ [ResourceType.INFLUENCE]: 25 }),
       actions: computeAvailableActions({ playerIds: [fixture.playerId], ruleset }),
     }
+    // Act
     const evaluate = (strength: number): ReturnType<typeof evaluateActionSelection> =>
       evaluateActionSelection({
         state,
@@ -219,6 +225,7 @@ describe("evaluateActionSelection", () => {
         },
       })
 
+    // Assert
     expect(evaluate(19).issues).toContainEqual(expect.objectContaining({ code: "INSUFFICIENT_STRENGTH" }))
     expect(evaluate(20).status).toBe("ELIGIBLE")
     expect(evaluate(35).status).toBe("ELIGIBLE")
@@ -227,6 +234,7 @@ describe("evaluateActionSelection", () => {
 
   it("should evaluate renamed Seed Outpost threshold and range from its configured tags and costs", () => {
     expect.hasAssertions()
+    // Arrange
     const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000051")
     const actionId = branded<ActionId>("TEST_SEED_OUTPOST_1")
     const origin = createPlanetStub({
@@ -266,11 +274,13 @@ describe("evaluateActionSelection", () => {
       actions: computeAvailableActions({ playerIds: [playerId], ruleset }),
     }
 
+    // Act & Assert
     assertEvaluate({ state, ruleset, actionId, force, playerId, site, beyondRange })
   })
 
   it("should preserve exact aggregate Move and stationary Colonize budgets through replace, cancel, and source changes", () => {
     expect.hasAssertions()
+    // Arrange
     const fixture = createColonizationBudgetFixture(35)
     const moveSubmission = (strength: number): ReturnType<typeof createSubmittedActionStub> =>
       createSubmittedActionStub({
@@ -300,10 +310,12 @@ describe("evaluateActionSelection", () => {
       selectedInputs: { [branded<InputTag>("strength")]: strength },
     })
 
+    // Act & Assert
     assertEitherUpdateOrder({ fixture, move15, colonize20, moveSubmission, occupied, moveDraft })
   })
 
   it("should reserve Move+Colonize only once and reject a competing Move against its reserved remainder", () => {
+    // Arrange
     const fixture = createColonizationBudgetFixture(35)
     const pairedRuleset = createRulesetStub({
       actionDefinitions: indexBy("id", [ColonizePlanetTest, MoveFleetStandard]),
@@ -316,6 +328,7 @@ describe("evaluateActionSelection", () => {
       ...fixture.state,
       actions: computeAvailableActions({ playerIds: [fixture.playerId], ruleset: pairedRuleset }),
     }
+    // Act
     const paired = evaluateActionSelection({
       state: pairedState,
       ruleset: pairedRuleset,
@@ -352,6 +365,7 @@ describe("evaluateActionSelection", () => {
       },
     })
 
+    // Assert
     expect(paired.status).toBe("ELIGIBLE")
     expect(paired.strengthCommitments[fixture.fleetId]).toBe(35)
     expect(paired.remainingStrength[fixture.fleetId]).toBe(0)
@@ -363,6 +377,7 @@ describe("evaluateActionSelection", () => {
   })
 
   it("should enforce aggregate reservations for two stationary Colonize instances at the exact40 boundary", () => {
+    // Arrange
     const fixture = createColonizationBudgetFixture(35)
     const state = fixture.state
     const draft = (actionId: ActionId): ActionSelectionDraft => ({
@@ -385,6 +400,7 @@ describe("evaluateActionSelection", () => {
       actionDefinitionId: ColonizeHereTest.id,
       selectedTargets: { fleet: fixture.fleetId, planet: fixture.originId },
     })
+    // Act
     const individualFirst = evaluateActionSelection({ state, ruleset: fixture.ruleset, draft: draft(fixture.colonizeActionId) })
     const individualSecond = evaluateActionSelection({
       state: withSubmissions(state, [first]),
@@ -406,6 +422,7 @@ describe("evaluateActionSelection", () => {
     }
     const bothAt40 = evaluateSubmittedActions({ state: stateAt40, ruleset: fixture.ruleset, submissions: [first, second] })
 
+    // Assert
     expect(individualFirst.status).toBe("ELIGIBLE")
     expect(individualSecond.status).toBe("INELIGIBLE")
     expect(individualSecond.strengthCommitments[fixture.fleetId]).toBe(40)

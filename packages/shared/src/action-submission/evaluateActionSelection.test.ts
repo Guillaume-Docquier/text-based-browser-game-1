@@ -244,6 +244,7 @@ describe("evaluateActionSelection", () => {
 
     const missingOriginCandidateSetup2 = createMissingOriginCandidateSetup({ ...fixtureSetup1 })
     const { missingOriginCandidate } = missingOriginCandidateSetup2
+    // Act & Assert
     expect(missingOriginCandidate.candidateIssues.map(({ code }) => code)).toContain("MISSING_ORIGIN")
   })
 

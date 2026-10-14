@@ -70,10 +70,12 @@ import {
 
 describe("public Colonization worker companions", () => {
   it("should preserve composed Move, Assault, and Colonize phase order through public worker turns", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
     const fixture = await createPublicTwoPlayerFixture(server)
     const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
 
+    // Act & Assert
     const viewsScenario12 = await prepareViewsScenario({
       fixture,
       homeA,
@@ -192,6 +194,7 @@ describe("public Colonization worker companions", () => {
       // Arrange
       await using server = await ConcurrencyTestApiServer.create()
 
+      // Act & Assert
       const aliceScenario2 = await prepareAliceScenario({
         server,
         attackerBuildDefinitionId,
@@ -201,7 +204,6 @@ describe("public Colonization worker companions", () => {
       })
       const { aliceSetup3, alice, clients, gameId, clock, turnProcessor, turnsRepository, target, attacker } = aliceScenario2
       let { views, stage } = aliceScenario2
-      // Act & Assert
       const composedActionId = await submitAction({
         client: alice.client,
         gameId,

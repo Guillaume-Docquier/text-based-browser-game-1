@@ -267,6 +267,7 @@ describe("TurnProcessor", () => {
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(AssaultWorkerRuleset))
       using apiServer = new ApiServer(apiServices)
 
+      // Act & Assert
       const clientsSetup1 = await createClientsSetup({ apiServer, db, clock })
       const { fixture, actionIds, forward, firstFleet } = clientsSetup1
       const laterFleet = fixture.stationed[1]
@@ -304,6 +305,7 @@ describe("TurnProcessor", () => {
     { timeout: 120_000 },
     async ({ db }) => {
       // Arrange: create three public owners at fixed seed147 homes and stage their literal 10/30/20 forces.
+      // Act
       const clock = new ControlledClock()
       const apiServices = await createApiStub({ db, clock })
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(AssaultWorkerRuleset))
@@ -486,6 +488,7 @@ describe("TurnProcessor", () => {
         clock,
       })
       const { emptyObserved } = emptyObservedSetup7
+      // Assert
       expect(emptyObserved.submittedActions).toStrictEqual([])
       expect(emptyObserved.rngState).toStrictEqual(forward.rngState)
       logWorkerObservation(

@@ -49,8 +49,10 @@ import {
 
 describe("gameplay submission concurrency", () => {
   it("should persist a natural tick-zero Colonize tie through the public worker and reload", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const clockSetup1 = await createClockSetup({ server })
     const { clock, alice, bob, gameId, turnProcessor, turnsRepository, clients } = clockSetup1
     const readViews = async (): Promise<[PlayerView, PlayerView]> =>
@@ -190,6 +192,7 @@ describe("gameplay submission concurrency", () => {
         return action.id
       }
 
+      // Act & Assert
       const viewsScenario2 = await prepareViewsScenario({
         readViews,
         alice,

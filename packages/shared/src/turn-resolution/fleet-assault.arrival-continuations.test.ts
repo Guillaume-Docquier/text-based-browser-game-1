@@ -44,6 +44,7 @@ describe("Fleet Assault", () => {
     const firstTurnSetup2 = createFirstTurnSetup({ ...originSetup1 })
     const { firstTurn } = firstTurnSetup2
     let { reloadedFleets } = firstTurnSetup2
+    // Act
     const secondTurn = resolveTurn(
       createTurnStateStub({
         turn: 2,
@@ -93,6 +94,7 @@ describe("Fleet Assault", () => {
       selectedTargets: { source: attacker.id, destination: target.id },
       selectedInputs: { force: 30 },
     })
+    // Act
     const firstTurn = resolveTurn(
       createTurnStateStub({
         submittedActions: [submission],
@@ -119,6 +121,7 @@ describe("Fleet Assault", () => {
     const pendingAssault = journey.movement.pendingArrivalEffects[0]
     Assert.isDefined(pendingAssault)
 
+    // Assert
     verifyCorruptPendingAssault({ pendingAssault, journey, firstTurn })
   })
 
@@ -153,6 +156,7 @@ describe("Fleet Assault", () => {
     const forwardRng = createSeededRng(1234)
     const reversedRng = createSeededRng(1234)
 
+    // Assert
     verifyForward({ alicePlanetB, alicePlanetA, bobPlanetB, bobPlanetA, submissions, forwardRng, ruleset, reversedRng })
     expect(reversedRng.getState()).toStrictEqual({ generatorState: 3031297190, spareNormal: null })
   })
@@ -202,6 +206,7 @@ describe("Fleet Assault", () => {
       assault(PLAYER_B, attackerB, { battlePlanet: battle.id, station: attackerB.id }),
     ]
 
+    // Act & Assert
     verifyReversedSubmissions({
       assault,
       attackerB,

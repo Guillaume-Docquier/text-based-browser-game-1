@@ -29,6 +29,7 @@ describe("Colonize API boundary", () => {
   integrationTest("should reject strength19 and Influence24 without mutation, then accept strength20 at Influence25", async ({ db }) => {
     // Arrange
 
+    // Act & Assert
     const clockSetup1 = await createClockSetup({ db })
     const { apiServices } = clockSetup1
     using apiServer = new ApiServer(apiServices)

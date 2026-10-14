@@ -1,4 +1,5 @@
 import type { PlayerView } from "@api-types"
+import { Assert } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { type ReactElement, useState } from "react"
@@ -45,6 +46,7 @@ import {
   composedMoveAction,
   composedReservationPlayerView,
   ComposedReservationCards,
+  DraftReservationRecoveryCards,
 } from "./ActionCard.selection-fixture.tsx"
 import { ActionCard } from "./ActionCard.tsx"
 
@@ -635,5 +637,37 @@ export const ExceptionalRangeBoundary: Story = {
     await userEvent.click(selectButton)
     await expect(canvas.getByRole("button", { name: "Update action" })).toBeVisible()
     await expect(destinationPicker).toHaveValue("Range Edge (25:0:0)")
+  },
+}
+
+/**
+ * A draft recovers to the sole remaining Fleet when another Action fully reserves its original source.
+ */
+export const DraftRecoversAfterReservation: Story = {
+  render: (): ReactElement => <DraftReservationRecoveryCards />,
+  play: async ({ canvas, canvasElement, userEvent }): Promise<void> => {
+    const cards = canvas.getAllByRole("group", { name: "Move Fleet action" })
+    const draftCard = cards[0]
+    const reservedCard = cards[1]
+    Assert.isDefined(draftCard)
+    Assert.isDefined(reservedCard)
+    const draft = within(draftCard)
+    const reservation = within(reservedCard)
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(draft.getByRole("combobox", { name: "Fleet target" }))
+    await userEvent.click(body.getByRole("option", { name: "Home Guard (50 strength)" }))
+    await userEvent.type(draft.getByRole("spinbutton", { name: "Fleet strength" }), "1")
+
+    const reservedStrength = reservation.getByRole("spinbutton", { name: "Fleet strength" })
+    await userEvent.clear(reservedStrength)
+    await userEvent.type(reservedStrength, "50")
+    await userEvent.click(reservation.getByRole("button", { name: "Update action" }))
+
+    await expect(draft.getByRole("combobox", { name: "Fleet target" })).toHaveValue("Northern Guard (30 strength)")
+    await expect(draft.getByRole("combobox", { name: "Fleet target" })).toBeDisabled()
+    await expect(draft.getByRole("combobox", { name: "Planet target" })).toHaveValue("Far Reach (14:0:0)")
+    await expect(draft.getByText("29 of 30 strength available after this allocation")).toBeVisible()
+    await userEvent.click(draft.getByRole("button", { name: "Select action" }))
+    await expect(draft.getByRole("button", { name: "Update action" })).toBeVisible()
   },
 }

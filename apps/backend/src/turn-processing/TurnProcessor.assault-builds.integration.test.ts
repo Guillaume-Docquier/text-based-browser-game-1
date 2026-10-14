@@ -39,6 +39,7 @@ describe("TurnProcessor", () => {
     Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(HomeArrivalMergeRuleset))
     using apiServer = new ApiServer(apiServices)
 
+    // Act & Assert
     const fixtureSetup1 = await createFixtureSetup({ db, clock, apiServer })
 
     const attackJourneySetup2 = await createAttackJourneySetup({ ...fixtureSetup1 })
@@ -62,6 +63,7 @@ describe("TurnProcessor", () => {
     { timeout: 180_000 },
     async ({ db }) => {
       // Arrange: build and publicly stage Alice40 against Bob10 at Alice's home on the fixed seed-147 map.
+      // Act
       const clock = new ControlledClock()
       const apiServices = await createApiStub({ db, clock })
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(HomeArrivalMergeRuleset))
@@ -165,6 +167,7 @@ describe("TurnProcessor", () => {
     Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(HomeArrivalMergeRuleset))
     using apiServer = new ApiServer(apiServices)
 
+    // Act & Assert
     const fixtureSetup7 = await createFixtureSetup3({ db, clock, apiServer })
     const { departureViews } = fixtureSetup7
     const beforeResourcesByOwner = departureViews.map((view) => {
@@ -225,6 +228,7 @@ describe("TurnProcessor", () => {
       ({ ownerPlayerId, originPlanetId, movement }) =>
         ownerPlayerId === playerIds[1] && originPlanetId === bobHome.id && movement === undefined,
     )
+    // Assert
     expect(afterSplit.fleets.find(({ id }) => id === aliceInitial.id)?.strength).toBe(30)
     Assert.isDefined(aliceAtStaging)
     Assert.isDefined(bobStagingFleet)

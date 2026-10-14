@@ -10,7 +10,6 @@ import type { EffectDefinition } from "#shared/domain/ruleset/effect-definitions
 import { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
-import type { TargetId } from "#shared/domain/ruleset/target-definitions/TargetId.ts"
 import type { Action } from "#shared/domain/turns/actions/Action.ts"
 import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
 import type { Fleet } from "#shared/domain/world/fleets/Fleet.ts"
@@ -89,19 +88,6 @@ function reportStrengthBudget(fleet: Fleet | undefined, allocations: readonly St
   }
 }
 
-export function addStrengthAllocation(
-  state: EligibilityState,
-  allocationsByFleet: Map<FleetId, Array<{ actionId: ActionId; targetTag: TargetTag; inputTag?: InputTag; strength: number }>>,
-  fleetId: TargetId,
-  allocation: { actionId: ActionId; targetTag: TargetTag; inputTag?: InputTag; strength: number },
-): void {
-  const brandedFleetId = branded<FleetId>(fleetId)
-  if (getOwnRecordValue(state.fleets, brandedFleetId) === undefined) {
-    return
-  }
-  allocationsByFleet.set(brandedFleetId, [...(allocationsByFleet.get(brandedFleetId) ?? []), allocation])
-}
-
 type BudgetContext = {
   state: EligibilityState
   proposals: readonly ProposedSelection[]
@@ -111,7 +97,9 @@ type BudgetContext = {
 }
 
 type StrengthAllocation = { fleetId: FleetId; actionId: ActionId; targetTag: TargetTag; inputTag?: InputTag; strength: number }
-/** Returns configured movement or stationary Colonize reservations for one proposal. */
+/**
+ * Returns configured movement or stationary Colonize reservations for one proposal.
+ */
 export function proposalStrengthAllocations(
   state: EligibilityState,
   proposal: ProposedSelection,
@@ -157,8 +145,10 @@ function movementStrengthAllocation(
   }
   return [{ ...common, inputTag: effect.inputs.strength.actionInputTag, strength }]
 }
-/** Identifies a movement that carries this deferred arrival effect. */
-export function hasPairedMove(definition: ActionDefinition, effect: FleetColonizeEffectDefinition): boolean {
+/**
+ * Identifies a movement that carries this deferred arrival effect.
+ */
+function hasPairedMove(definition: ActionDefinition, effect: FleetColonizeEffectDefinition): boolean {
   return definition.effects.some(
     (candidate) =>
       candidate.type === FleetMoveEffectDefinition.type &&

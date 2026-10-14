@@ -414,6 +414,7 @@ describe("Ruleset.safeCreate", () => {
   it.each([0, -1, 1.5, Number.POSITIVE_INFINITY])(
     "should reject an invalid Colonize strength requirement at its parameter field",
     (strengthRequirement) => {
+      // Arrange
       const effect = ColonizeHereTest.effects[0]
       Assert.isDefined(effect)
       const invalidAction = {
@@ -422,11 +423,13 @@ describe("Ruleset.safeCreate", () => {
         effects: [{ ...effect, parameters: { strengthRequirement } }],
       }
 
+      // Act & Assert
       expectActionIssue(invalidAction, ["effects", 0, "parameters", "strengthRequirement"])
     },
   )
 
   it("should reject missing, mismatched, or incorrectly typed Colonize role mappings at their effect fields", () => {
+    // Arrange
     const effect = ColonizeHereTest.effects.find(isColonizeEffect)
     Assert.isDefined(effect)
     const missingFleetSlot = {
@@ -466,6 +469,7 @@ describe("Ruleset.safeCreate", () => {
       ],
     }
 
+    // Act & Assert
     expectActionIssue(missingFleetSlot, ["effects", 0, "targets", "fleet"], 'missing target slot tagged "missingFleet"')
     expectActionIssue(missingPlanetSlot, ["effects", 0, "targets", "planet"], 'missing target slot tagged "missingPlanet"')
     expectActionIssue(wrongFleetSlot, ["effects", 0, "targets", "fleet"], 'target slot tagged "planet" has type "PLANET"')
@@ -473,6 +477,7 @@ describe("Ruleset.safeCreate", () => {
   })
 
   it("should require owned stationary source, unclaimed destination, and the selected Fleet's current Planet", () => {
+    // Arrange
     const fleetTag = branded<TargetTag>("fleet")
     const planetTag = branded<TargetTag>("planet")
     const fleetTarget = ColonizeHereTest.targets[fleetTag]
@@ -520,6 +525,7 @@ describe("Ruleset.safeCreate", () => {
       },
     }
 
+    // Act & Assert
     expect(ActionDefinitionSchema.safeParse(missingOwnership).success).toBe(false)
     expect(ActionDefinitionSchema.safeParse(missingStationary).success).toBe(false)
     expect(ActionDefinitionSchema.safeParse(missingUnclaimed).success).toBe(false)
@@ -531,6 +537,7 @@ describe("Ruleset.safeCreate", () => {
   })
 
   it("should retain the original Move effect index after a Colonize effect", () => {
+    // Arrange
     const colonizeEffect = ColonizePlanetTest.effects.find((effect) => effect.type === FleetColonizeEffectDefinition.type)
     const movementEffect = ColonizePlanetTest.effects.find((effect) => effect.type === "FLEET_MOVE")
     Assert.isDefined(colonizeEffect)
@@ -548,10 +555,12 @@ describe("Ruleset.safeCreate", () => {
       ],
     }
 
+    // Act & Assert
     expectActionIssue(invalidAction, ["effects", 1, "inputs", "strength"], 'is missing input slot "missingStrength" required by FLEET_MOVE')
   })
 
   it("should reject mismatched Move, Assault, and Colonize mappings, duplicate Colonize effects, and unused inputs", () => {
+    // Arrange
     const colonizeEffect = ColonizePlanetTest.effects.find(isColonizeEffect)
     Assert.isDefined(colonizeEffect)
     const mismatchedColonizeEffects = [...ColonizePlanetTest.effects]
@@ -580,6 +589,7 @@ describe("Ruleset.safeCreate", () => {
       inputs: { quota: { type: "POSITIVE_INTEGER", label: "Quota" } },
     }
 
+    // Act & Assert
     expectActionIssue(mismatchedColonize, ["effects", 1, "targets"], "FLEET_COLONIZE must use the same source and destination target tags")
     expectActionIssue(mismatchedAssault, ["effects", 2, "targets"], "FLEET_ASSAULT must use the same source and destination target tags")
     expectActionIssue(duplicateColonize, ["effects"], "may contain only one FLEET_COLONIZE effect")

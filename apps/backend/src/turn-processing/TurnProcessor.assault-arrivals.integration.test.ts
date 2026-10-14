@@ -51,6 +51,7 @@ describe("TurnProcessor", () => {
       Assert.isDefined(target)
       Assert.isDefined(bobHome)
 
+      // Act & Assert
       await verifyBuildRound({ clients, gameId, target, bobHome, turnProcessor })
       const builtView = await alice.client.gameplay.getPlayerView.query({ gameId })
       const defender = builtView.fleets.find(
@@ -99,6 +100,7 @@ describe("TurnProcessor", () => {
     const bobHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === bobPlayerId)
     Assert.isDefined(aliceHome)
     Assert.isDefined(bobHome)
+    // Act & Assert
     expect([aliceHome.coordinates, bobHome.coordinates].toSorted()).toStrictEqual(["44:98:05", "45:83:40"])
     expect(Math.hypot(bobHome.x - aliceHome.x, bobHome.y - aliceHome.y)).toBe(4.418312565270031)
 

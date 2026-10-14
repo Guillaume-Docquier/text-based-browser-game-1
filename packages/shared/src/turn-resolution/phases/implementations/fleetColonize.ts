@@ -2,6 +2,7 @@ import { Result } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { NonNegativeSafeIntegerSchema } from "#shared/domain/NonNegativeSafeInteger.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
+import type { PositiveInteger } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
 import { getFleetColonizationEligibility } from "#shared/domain/world/fleets/fleetColonizationEligibility.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
@@ -13,7 +14,9 @@ import { TurnState } from "#shared/turn-resolution/TurnState.ts"
 
 export type FleetColonizeAttemptEvaluation = Readonly<{ eligible: true }> | Readonly<{ eligible: false; outcome: EffectOutcome }>
 
-/** Performs the shared, side-effect-free current-state check used by filtering and application. */
+/**
+ * Performs the shared, side-effect-free current-state check used by filtering and application.
+ */
 export function evaluateFleetColonizeAttempt({
   context,
   submittingPlayerId,
@@ -25,7 +28,7 @@ export function evaluateFleetColonizeAttempt({
   submittingPlayerId: PlayerId
   fleetId: FleetId
   planetId: PlanetId
-  strengthRequirement: number
+  strengthRequirement: PositiveInteger
 }): Result<FleetColonizeAttemptEvaluation, EffectError> {
   const planet = TurnState.getPlanet(context.turnState, planetId)
   if (planet === undefined) {
@@ -74,7 +77,7 @@ export function resolveFleetColonizeAttempt({
   submittingPlayerId: PlayerId
   fleetId: FleetId
   planetId: PlanetId
-  strengthRequirement: number
+  strengthRequirement: PositiveInteger
 }): Result<EffectOutcome, EffectError> {
   const eligibility = evaluateFleetColonizeAttempt({ context, submittingPlayerId, fleetId, planetId, strengthRequirement })
   if (Result.isFailure(eligibility)) {

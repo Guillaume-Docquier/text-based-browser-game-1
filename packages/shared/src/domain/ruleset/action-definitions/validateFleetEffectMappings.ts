@@ -40,7 +40,7 @@ export function validateFleetEffectMappings(actionDefinition: ActionDefinition, 
   validateReferencedInputs({ actionDefinition, context, referencedInputTags })
 }
 
-export function validateTargetConstraintSources({
+function validateTargetConstraintSources({
   actionDefinition,
   context,
 }: {
@@ -72,7 +72,7 @@ export function validateTargetConstraintSources({
   }
 }
 
-export function validateMovementMapping({
+function validateMovementMapping({
   actionDefinition,
   context,
   effect,
@@ -139,7 +139,7 @@ function validateMovementStrengthInput({
   }
 }
 
-export function validateColonizationMapping({
+function validateColonizationMapping({
   actionDefinition,
   context,
   effect,
@@ -169,7 +169,7 @@ export function validateColonizationMapping({
   validateArrivalMapping({ actionDefinition, context, effect, effectIndex, movementEffect, label: "Colonize" })
 }
 
-export function validateReferencedInputs({
+function validateReferencedInputs({
   actionDefinition,
   context,
   referencedInputTags,

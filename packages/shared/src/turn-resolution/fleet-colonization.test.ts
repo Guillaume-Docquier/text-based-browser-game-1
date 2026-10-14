@@ -67,6 +67,7 @@ describe("Fleet Colonization", () => {
   it("should resolve the complete three-player fleet-operations vector across reloaded Turns and reuse released Actions", () => {
     expect.hasAssertions()
 
+    // Arrange
     const colonizeSetup1 = createColonizeSetup()
     const { attackMove, attackActionId, ruleset, gameId, playerIds } = colonizeSetup1
 
@@ -141,6 +142,7 @@ describe("Fleet Colonization", () => {
     })
     const { aColonizeJourneySetup4, aAtPSetup5 } = aColonizeJourneyScenario1
 
+    // Act & Assert
     verifyPublicState2({
       ...aColonizeJourneyScenario1,
       ...colonizeSetup1,
@@ -156,6 +158,7 @@ describe("Fleet Colonization", () => {
   })
 
   it("should persist a 35-Strength arrival through JSON reloads, consume20 once, and preserve the source remainder", () => {
+    // Arrange
     const origin = planet("arrival-origin", PLAYER_A, 0)
     const target = planet("arrival-neutral", null, 2.5)
     const source = fleet("arrival-source", PLAYER_A, origin, 50)
@@ -169,9 +172,11 @@ describe("Fleet Colonization", () => {
     })
     const rng = createSeededRng(987)
 
+    // Act
     const departure = resolve({ planets: [origin, target], fleets: [source], submissions: [action], rng })
     const journey = Object.values(departure.fleets).find(({ movement }) => movement !== undefined)
     Assert.isDefined(journey)
+    // Assert
     expect(required(departure.planets[target.id]).ownerPlayerId).toBeNull()
     expect(required(departure.fleets[source.id]).strength).toBe(15)
     expect(journey).toMatchObject({ strength: 35, distanceToEnd: 1.5, movement: { departureTurn: 1 } })
@@ -209,11 +214,13 @@ describe("Fleet Colonization", () => {
   })
 
   it("should resolve renamed Seed Outpost at its exact threshold and range edge with speed2 and one-time costs", () => {
+    // Arrange
     const rulesetSetup6 = createRulesetSetup()
     const { edgeSite, edgeJourney } = rulesetSetup6
 
     const edgeArrivalSetup7 = createEdgeArrivalSetup({ ...rulesetSetup6 })
     const { edgeArrival } = edgeArrivalSetup7
+    // Act & Assert
     expect(edgeArrival.planets[edgeSite.id]?.ownerPlayerId).toBe(PLAYER_A)
     expect(edgeArrival.fleets[edgeJourney.id]).toBeUndefined()
     expect(edgeArrival.removedFleetIds).toContain(edgeJourney.id)
@@ -224,6 +231,7 @@ describe("Fleet Colonization", () => {
   })
 
   it("should delete an exact20 arrival, report its removed id, and publish only the changed owner", () => {
+    // Arrange
     const origin = planet("exact-origin", PLAYER_A, 0)
     const target = planet("exact-target", null, 2)
     const source = fleet("exact-source", PLAYER_A, origin, 20)
@@ -236,11 +244,13 @@ describe("Fleet Colonization", () => {
       strength: 20,
     })
 
+    // Act
     const resolved = resolve({ planets: [origin, target], fleets: [source], submissions: [action] })
     const journeyId = Object.values(resolved.fleets).find(({ movement }) => movement !== undefined)?.id
     Assert.isDefined(journeyId)
     const arrival = resolveContinuation(resolved, 2)
 
+    // Assert
     expect(arrival.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
     expect(arrival.fleets[journeyId]).toBeUndefined()
     expect(arrival.removedFleetIds).toContain(journeyId)
@@ -254,9 +264,11 @@ describe("Fleet Colonization", () => {
   })
 
   it("should resolve earliest valid Colonization first and make reversed collections equivalent", () => {
+    // Arrange
     const scenario = createArrivalRace({ firstDistance: 0.2, secondDistance: 0.4 })
     const forwardRng = createSeededRng(0)
     const forwardRngBefore = forwardRng.getState()
+    // Act
     const forward = resolve({ ...scenario, rng: forwardRng })
     const reversedRng = createSeededRng(0)
     const reversedRngBefore = reversedRng.getState()
@@ -268,6 +280,7 @@ describe("Fleet Colonization", () => {
       rng: reversedRng,
     })
 
+    // Assert
     expect(forward.planets[scenario.target.id]?.ownerPlayerId).toBe(PLAYER_A)
     expect(fleetAtPlanetForOwner(forward, scenario.target.id, PLAYER_A)).toMatchObject({ arrivedAtTick: 4 })
     expect(fleetAtPlanetForOwner(forward, scenario.target.id, PLAYER_B)).toMatchObject({ arrivedAtTick: 8 })
@@ -303,10 +316,13 @@ describe("Fleet Colonization", () => {
     { seed: 0, owner: PLAYER_B, aStrength: 35, bStrength: 15, generatorState: 1831565813 },
     { seed: 1, owner: PLAYER_A, aStrength: 15, bStrength: 35, generatorState: 1831565814 },
   ])("should shuffle only eligible same-tick contenders with seed $seed", ({ seed, owner, aStrength, bStrength, generatorState }) => {
+    // Arrange
     const scenario = createArrivalRace({ firstDistance: 0.2, secondDistance: 0.2 })
     const rng = createSeededRng(seed)
+    // Act
     const resolved = resolve({ ...scenario, rng })
 
+    // Assert
     expect(resolved.planets[scenario.target.id]?.ownerPlayerId).toBe(owner)
     expect(fleetAtPlanetForOwner(resolved, scenario.target.id, PLAYER_A)).toMatchObject({ arrivedAtTick: 4 })
     expect(fleetAtPlanetForOwner(resolved, scenario.target.id, PLAYER_B)).toMatchObject({ arrivedAtTick: 4 })
@@ -334,6 +350,8 @@ describe("Fleet Colonization", () => {
   })
 
   it("should treat only a null Planet owner as unclaimed", () => {
+    // Arrange
+    // Act & Assert
     expect(isPlanetUnclaimed(null)).toBe(true)
     expect(isPlanetUnclaimed(PLAYER_A)).toBe(false)
   })

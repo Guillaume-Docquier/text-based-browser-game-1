@@ -56,8 +56,10 @@ import {
 
 describe("public Colonization worker companions", () => {
   it("should publicly prevent a dead earlier claimant and let the arriving Assault colonize", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const aliceSetup1 = await createAliceSetup({ server })
 
     const bobSetup1 = await createBobSetup({ aliceSetup1, server })
@@ -117,10 +119,12 @@ describe("public Colonization worker companions", () => {
   })
 
   it("should preserve arrival provenance while public ordinary and colonization arrivals merge", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
     const fixture = await createPublicTwoPlayerFixture(server)
     const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
 
+    // Act & Assert
     const viewsScenario2 = await prepareViewsScenario({
       fixture,
       target,
@@ -198,8 +202,10 @@ describe("public Colonization worker companions", () => {
   it("should let the earlier speed-2 claimant beat a later speed-1 arrival on the next Turn", async () => {
     expect.hasAssertions()
 
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const clientsSetup7 = await createClientsSetup({ server })
     const { clients, gameId } = clientsSetup7
     let { views } = clientsSetup7

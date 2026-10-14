@@ -82,6 +82,7 @@ describe("TurnProcessor", () => {
 
   integrationTest("should persist multi-owner Build names and Assault permutations through the public worker", async ({ db }) => {
     // Arrange: stage the same public seed-147 stationary A30/B20/C10 vector for both tie scenarios.
+    // Act
     const clock = new ControlledClock()
     const apiServices = await createApiStub({ db, clock })
     Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(AssaultWorkerRuleset))
@@ -176,6 +177,7 @@ describe("TurnProcessor", () => {
 
   integrationTest("should persist the three-owner Assault-only tie through public arrivals and worker reloads", async ({ db }) => {
     // Arrange: stage the same public seed-147 stationary A30/B20/C10 vector for both tie scenarios.
+    // Act
     const clock = new ControlledClock()
     const apiServices = await createApiStub({ db, clock })
     Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(AssaultWorkerRuleset))

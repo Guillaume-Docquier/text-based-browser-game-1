@@ -54,6 +54,7 @@ describe("TurnProcessor", () => {
       Assert.isDefined(nearbyPlanet)
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
+      // Act & Assert
       await assertTurnProcessor2({ player, gameId, initialView, clock, turnInterval, turnsRepository, turnProcessor, homePlanet })
       const builtView = await player.client.gameplay.getPlayerView.query({ gameId })
       const movingFleet = builtView.fleets[0]

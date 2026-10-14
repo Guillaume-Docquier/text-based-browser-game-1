@@ -68,8 +68,10 @@ describe("public Colonization worker companions", () => {
   it("should preserve the public natural-route cost and locked intent across reloads", async () => {
     expect.hasAssertions()
 
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const playerSetup1 = await createPlayerSetup({ server })
 
     const moveFixtureSetup2 = await createMoveFixtureSetup({ ...playerSetup1, server })
@@ -80,6 +82,7 @@ describe("public Colonization worker companions", () => {
   })
 
   it("should resolve the renamed Seed Outpost content using its public tags and exact costs", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
     const fixture = await createPublicNaturalRouteFixture(server, "00000000-0000-4000-8000-000000000033")
     const { player, gameId, clock, turnProcessor, turnsRepository, home, target } = fixture
@@ -89,6 +92,7 @@ describe("public Colonization worker companions", () => {
     const outOfRangeTarget = getPlanets(builtView).find(({ id }) => id === "72f899ea-98e3-5c0e-b896-f41c0b3bf6c5")
     Assert.isDefined(outOfRangeTarget)
 
+    // Act & Assert
     await assertOutOfRangeDistance({ outOfRangeTarget, home, player, gameId, builtView, seedOutpostAction, sourceFleet, target })
 
     const selectedView = await player.client.gameplay.getPlayerView.query({ gameId })
@@ -136,8 +140,10 @@ describe("public Colonization worker companions", () => {
   })
 
   it("should claim a stationary public Seed Outpost with exactly30 Strength after worker arrival", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const playerSetup4 = await createPlayerSetup2({ server })
     const { player, gameId, clock, turnProcessor, turnsRepository, home, target, routeDistance } = playerSetup4
     let { view } = playerSetup4
@@ -196,8 +202,10 @@ describe("public Colonization worker companions", () => {
   })
 
   it("should let the later surviving public claimant succeed after a third-owner Assault weakens the earlier force", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const clockScenario1 = await prepareClockScenario({ server })
     const { clockSetup6, clients, gameId, turnProcessor, homeIdsByPlayer, target, stagedAliceJourneyIdSetup7 } = clockScenario1
     let { views } = clockScenario1

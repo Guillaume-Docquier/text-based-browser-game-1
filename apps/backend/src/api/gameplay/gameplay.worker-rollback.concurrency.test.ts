@@ -69,8 +69,10 @@ import {
 
 describe("gameplay submission concurrency", () => {
   it("should restore and retry the real worker save exactly once after an invalid ownership projection", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const clockSetup1 = await createClockSetup({ server })
     const { clock, player, defender, gameId, invalidOwnerPlayerId, expectedProjection } = clockSetup1
     const turnsRepository = new InvalidOwnerProjectionTurnsRepository({
@@ -205,6 +207,7 @@ describe("gameplay submission concurrency", () => {
       await processManualDeadlineTurn({ clock, turnProcessor, turnsRepository, client: alice.client, gameId, turn })
     }
 
+    // Act & Assert
     const aliceHomeScenario3 = await prepareAliceHomeScenario({
       alice,
       gameId,
@@ -276,12 +279,14 @@ describe("gameplay submission concurrency", () => {
   it.each(pendingColonizeCorruptions)(
     "should reject a persisted captured Colonize $label before gameplay mutation on fresh PostgreSQL",
     async ({ corruptMovement }) => {
+      // Arrange
       await using server = await ConcurrencyTestApiServer.create()
       const fixture = await createPublicPendingColonizeFixture(server)
       const { playerId, gameId, pendingView, journey, turnProcessor, turnsRepository, clock } = fixture
       const persistedJourney = (await server.database.select().from(fleetsTable).where(eq(fleetsTable.id, journey.id)))[0]
       Assert.isDefined(persistedJourney)
       Assert.isDefined(persistedJourney.movement)
+      // Act & Assert
       expect(persistedJourney.movement).toStrictEqual(journey.movement)
       expect(persistedJourney.ownerPlayerId).toBe(playerId)
       expect(persistedJourney.movement.pendingArrivalEffects).toHaveLength(1)

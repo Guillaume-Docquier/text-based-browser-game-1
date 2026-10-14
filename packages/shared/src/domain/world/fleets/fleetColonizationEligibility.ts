@@ -1,4 +1,5 @@
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
+import type { PositiveInteger } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import { isPlanetUnclaimed } from "#shared/domain/world/planets/isPlanetUnclaimed.ts"
 
 export type FleetColonizationFailure = Readonly<{
@@ -22,7 +23,7 @@ export function getFleetColonizationEligibility({
   fleetOwnerPlayerId: PlayerId | undefined
   submittingPlayerId: PlayerId
   fleetStrength: number | undefined
-  strengthRequirement: number
+  strengthRequirement: PositiveInteger
 }): FleetColonizationEligibility {
   if (!isPlanetUnclaimed(planetOwnerPlayerId)) {
     return { eligible: false, reason: { code: "PLANET_ALREADY_CLAIMED", message: "Planet is already claimed" } }

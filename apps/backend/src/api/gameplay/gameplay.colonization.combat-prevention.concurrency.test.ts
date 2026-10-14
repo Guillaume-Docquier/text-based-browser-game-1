@@ -55,8 +55,10 @@ describe("public Colonization worker companions", () => {
   it("should persist exact20 Colonization as an owned Planet with no surviving Fleet row", async () => {
     expect.hasAssertions()
 
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const playerSetup1 = await createPlayerSetup({ server })
 
     const arrivedViewSetup2 = await createArrivedViewSetup({ ...playerSetup1, server })
@@ -65,10 +67,12 @@ describe("public Colonization worker companions", () => {
   })
 
   it("should prevent both exact20 public claimants after their Assaults destroy both Fleets", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
     const fixture = await createPublicTwoPlayerFixture(server)
     const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
 
+    // Act & Assert
     const viewsSetup3 = await createViewsSetup({
       fixture,
       alice,
@@ -157,10 +161,12 @@ describe("public Colonization worker companions", () => {
   })
 
   it("should prevent a captured Colonize intent after its target is claimed while the Fleet is in transit", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
     const fixture = await createPublicTwoPlayerFixture(server)
     const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
 
+    // Act & Assert
     const viewsScenario1 = await prepareViewsScenario({ ...fixture, fixture, server })
     const { viewsSetup6, stagedAlice, bobColonizeId } = viewsScenario1
     let { views, stage } = viewsScenario1

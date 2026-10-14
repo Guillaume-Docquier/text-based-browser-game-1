@@ -47,8 +47,10 @@ describe("public Colonization worker companions", () => {
   it("should resolve duplicate public colonization arrivals once after merging and preserve order invariance", async () => {
     expect.hasAssertions()
 
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const clientsSetup1 = await createClientsSetup({ server })
     const { gameId, selectedViews } = clientsSetup1
     let { views } = clientsSetup1
@@ -70,8 +72,10 @@ describe("public Colonization worker companions", () => {
   it("should serialize aggregate Move and stationary Colonize reservations against PostgreSQL and Turn closure", async () => {
     expect.hasAssertions()
 
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const aliceSetup3 = await createAliceSetup({ server })
 
     const raceSetup4 = await createRaceSetup({ ...aliceSetup3 })

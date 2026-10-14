@@ -86,6 +86,7 @@ describe("Fleet Colonization", () => {
 
     // Arrange the successful colonization case.
 
+    // Act & Assert
     verifySuccessPlanet()
 
     // Arrange the prevented colonization case.
@@ -98,6 +99,7 @@ describe("Fleet Colonization", () => {
   })
 
   it("should allow Colonization beside an enemy Fleet without implicit combat", () => {
+    // Arrange
     const origin = planet("no-auto-combat-origin", PLAYER_A, 0)
     const target = planet("no-auto-combat-target", null, 1)
     const source = fleet("no-auto-combat-source", PLAYER_A, origin, 35)
@@ -111,7 +113,9 @@ describe("Fleet Colonization", () => {
       strength: 35,
     })
 
+    // Act
     const colonization = resolve({ planets: [origin, target], fleets: [source, defender], submissions: [action] })
+    // Assert
     expect(colonization.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
     expect(fleetStrengthForOwner(colonization, PLAYER_A)).toBe(15)
     expect(required(colonization.fleets[defender.id]).strength).toBe(10)
@@ -132,6 +136,7 @@ describe("Fleet Colonization", () => {
       colonizeType: "PREVENTED",
     },
   ])("should apply explicitly configured Assault before Colonization ($attacker vs $defender)", (scenario) => {
+    // Arrange
     const actionDefinition = createColonizeMoveAction({ id: "TEST_COMPOSED_COLONIZE_ASSAULT", speed: 1, withAssault: true })
     const ruleset = createRuleset([actionDefinition], [{ id: "COMPOSED_1", actionDefinitionId: actionDefinition.id }])
     const origin = planet("composed-origin", PLAYER_A, 0)
@@ -146,8 +151,10 @@ describe("Fleet Colonization", () => {
       target,
       strength: scenario.attacker,
     })
+    // Act
     const resolved = resolve({ planets: [origin, target], fleets: [attacker, defender], submissions: [action], ruleset })
 
+    // Assert
     expect(resolved.planets[target.id]?.ownerPlayerId).toBe(scenario.expectedOwner)
     expect(resolved.fleets[defender.id]).toBeUndefined()
     expect(resolved.fleets[attacker.id]).toBeUndefined()
@@ -156,6 +163,7 @@ describe("Fleet Colonization", () => {
   })
 
   it("should resolve stationary Colonize Here at tick0 without a journey and remove exact20", () => {
+    // Arrange
     const origin = planet("stationary-origin", null, 0)
     const fleet35 = fleet("stationary-colonizer-35", PLAYER_A, origin, 35)
     const action35 = createSubmittedActionStub({
@@ -164,7 +172,9 @@ describe("Fleet Colonization", () => {
       actionDefinitionId: ColonizeHereTest.id,
       selectedTargets: { fleet: fleet35.id, planet: origin.id },
     })
+    // Act
     const resolved35 = resolve({ planets: [origin], fleets: [fleet35], submissions: [action35] })
+    // Assert
     expect(resolved35.planets[origin.id]?.ownerPlayerId).toBe(PLAYER_A)
     expect(required(resolved35.fleets[fleet35.id]).strength).toBe(15)
     expect(Object.values(resolved35.fleets).some(({ movement }) => movement !== undefined)).toBe(false)
@@ -184,9 +194,11 @@ describe("Fleet Colonization", () => {
   })
 
   it("should resolve standalone Colonize against the post-Move and post-Assault current force", () => {
+    // Arrange
     const uncontested = runStandaloneColonizeWithMove(false)
     const uncontestedJourney = journeyTo(uncontested.resolved, uncontested.destination.id)
     Assert.isDefined(uncontestedJourney)
+    // Act & Assert
     expect(uncontested.resolved.planets[uncontested.origin.id]?.ownerPlayerId).toBe(PLAYER_A)
     expect(uncontested.resolved.fleets[uncontested.source.id]).toBeUndefined()
     expect(uncontestedJourney.strength).toBe(15)
@@ -214,6 +226,7 @@ describe("Fleet Colonization", () => {
   it("should reject an earlier invalid current force and still let a later eligible arrival claim", () => {
     expect.hasAssertions()
 
+    // Arrange
     const target = planet("phase-target", null, 0)
     const originA = planet("phase-origin-a", PLAYER_A, -1)
     const originB = planet("phase-origin-b", PLAYER_B, 1)
@@ -241,12 +254,14 @@ describe("Fleet Colonization", () => {
     const rng = createSeededRng(0)
     const before = rng.getState()
 
+    // Act & Assert
     verifyResult({ target, originA, originB, fleetA, fleetB, intents, rng, before, actionA, colonizeDefinition, actionB })
   })
 
   it("should remove invalid same-tick candidates before arbitration and preserve eligible-only RNG draws", () => {
     expect.hasAssertions()
 
+    // Arrange
     const target = planet("invalid-tie-target", null, 0)
     const fleetA = fleet("invalid-tie-a", PLAYER_A, target, 35)
     const fleetB = fleet("invalid-tie-b", PLAYER_B, target, 35)
@@ -265,16 +280,19 @@ describe("Fleet Colonization", () => {
     ]
     const rng = createSeededRng(0)
 
+    // Act & Assert
     verifyCase({ target, fleetA, fleetB, fleetC, intents, rng })
 
     verifySingletonRng({ deadAction, colonizeDefinition, actionC, actionB })
   })
 
   it("should keep a legal Colonize journey moving after another player claims its target", () => {
+    // Arrange
     const originA = planet("claim-transit-origin-a", PLAYER_A, 0)
     const target = planet("claim-transit-target", null, 3.5)
     const fleetA = fleet("claim-transit-fleet-a", PLAYER_A, originA, 50)
     const fleetB = fleet("claim-transit-fleet-b", PLAYER_B, target, 35)
+    // Act
     const departure = resolve({
       planets: [originA, target],
       fleets: [fleetA, fleetB],
@@ -313,6 +331,7 @@ describe("Fleet Colonization", () => {
     )
     Assert.isSuccess(claimantResult)
     const claimantTurn = claimantResult.value
+    // Assert
     expect(claimantTurn.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
     expect(required(claimantTurn.players[PLAYER_A]).resources[ResourceType.INFLUENCE]).toBe(25)
 
@@ -324,6 +343,7 @@ describe("Fleet Colonization", () => {
   })
 
   it("should use current post-Combat force for a tick4/tick8 full-Turn claimant race", () => {
+    // Arrange
     const secondColonize = createColonizeMoveAction({ id: "TEST_COLONIZE_SPEED_ONE", speed: 1 })
     const ruleset = createRuleset([secondColonize], [{ id: "SLOW_COLONIZE_1", actionDefinitionId: secondColonize.id }])
     const originA = planet("combat-priority-origin-a", PLAYER_A, 0)
@@ -355,6 +375,7 @@ describe("Fleet Colonization", () => {
       selectedTargets: { station: attacker.id, battlePlanet: target.id },
     })
     const rng = createSeededRng(0)
+    // Act
     const resolved = resolve({
       planets: [originA, target, originB],
       fleets: [fleetA, fleetB, attacker],
@@ -363,6 +384,7 @@ describe("Fleet Colonization", () => {
       rng,
     })
 
+    // Assert
     expect(resolved.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
     expect(fleetStrengthForOwner(resolved, PLAYER_A)).toBe(19)
     expect(fleetStrengthForOwner(resolved, PLAYER_B)).toBe(18)
@@ -373,6 +395,7 @@ describe("Fleet Colonization", () => {
 
   it("should keep earlier merged arrival provenance and consume only one merged Colonize reservation", () => {
     expect.hasAssertions()
+    // Arrange
     const ordinary = createMovementAction({ id: "TEST_ORDINARY_SPEED_TEN", speed: 10 })
     const early = createColonizeMoveAction({ id: "TEST_COLONIZE_SPEED_FOUR", speed: 4 })
     const late = createColonizeMoveAction({ id: "TEST_COLONIZE_SPEED_TWO", speed: 2 })
@@ -398,6 +421,7 @@ describe("Fleet Colonization", () => {
       submit({ id: "EARLY_1", playerId: PLAYER_B, actionDefinitionId: early.id, source: earlySource, target, strength: 35 }),
     ]
 
+    // Act & Assert
     verify({
       target,
       originOrdinary,
@@ -418,6 +442,7 @@ describe("Fleet Colonization", () => {
   it("should merge both friendly Colonize arrivals before applying one shared survivor reservation", () => {
     expect.hasAssertions()
 
+    // Arrange
     const early = createColonizeMoveAction({ id: "TEST_DUPLICATE_SPEED_FOUR", speed: 4 })
     const late = createColonizeMoveAction({ id: "TEST_DUPLICATE_SPEED_TWO", speed: 2 })
     const ruleset = createRuleset(
@@ -438,6 +463,7 @@ describe("Fleet Colonization", () => {
       submit({ id: "DUPLICATE_LATE_1", playerId: PLAYER_A, actionDefinitionId: late.id, source: sourceLate, target, strength: 20 }),
     ]
 
+    // Act & Assert
     verify2({ target, originEarly, originLate, survivor, sourceEarly, sourceLate, submissions, ruleset })
 
     verifyLateTickTarget({ late })

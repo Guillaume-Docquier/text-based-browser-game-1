@@ -136,6 +136,7 @@ describe("gameplay.router", () => {
         clock,
       })
       const { normalizedSelectedView, delegateStartTurnProcessing } = normalizedSelectedViewSetup3
+      // Act
       const lockedInputObserver = vi.spyOn(turnsRepository, "startTurnProcessing").mockImplementation(async (startModel, tx) => {
         expect(startModel.turn.gameId).toBe(createdGameId)
         expect(startModel.turn.turn).toBe(selectedView.turn)
@@ -239,6 +240,7 @@ describe("gameplay.router", () => {
 
         return lockedInput
       })
+      // Assert
       expect(await turnProcessor.processNextDueTurn()).toBe("processed")
       expect(lockedInputObserver).toHaveBeenCalledTimes(1)
     })
@@ -250,6 +252,7 @@ describe("gameplay.router", () => {
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(ComposedReservationRuleset))
       using apiServer = new ApiServer(apiServices)
 
+      // Act & Assert
       const playerSetup3 = await createPlayerSetup2({ apiServer, db, clock })
       const { player, createdGameId, destination, sourceFleet } = playerSetup3
       const { playerView } = playerSetup3

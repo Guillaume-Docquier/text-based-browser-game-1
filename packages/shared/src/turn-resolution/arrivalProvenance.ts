@@ -9,7 +9,9 @@ export type ArrivalProvenance = Readonly<{
   definitionOrdinal: number
 }>
 
-/** Orders effects by their stable submitted-action and journey provenance. */
+/**
+ * Orders effects by their stable submitted-action and journey provenance.
+ */
 export function compareArrivalProvenance(first: ArrivalProvenance, second: ArrivalProvenance): number {
   const playerOrder = compareOrdinalStrings(first.playerId, second.playerId)
   if (playerOrder !== 0) {
@@ -27,7 +29,9 @@ export function compareArrivalProvenance(first: ArrivalProvenance, second: Arriv
   return journeyOrder !== 0 ? journeyOrder : first.definitionOrdinal - second.definitionOrdinal
 }
 
-/** Follows fleet-merge identities until the current surviving Fleet is reached. */
+/**
+ * Follows fleet-merge identities until the current surviving Fleet is reached.
+ */
 export function resolveFleetRebinding(rebindings: ReadonlyMap<FleetId, FleetId>, fleetId: FleetId): FleetId {
   let resolvedFleetId = fleetId
   let nextFleetId = rebindings.get(resolvedFleetId)

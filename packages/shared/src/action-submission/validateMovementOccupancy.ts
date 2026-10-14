@@ -20,7 +20,9 @@ import {
   type EligibilityIssue,
 } from "./selectionEvaluation.ts"
 
-/** Checks persisted journeys and per-player occupancy before evaluating new proposals. */
+/**
+ * Checks persisted journeys and per-player occupancy before evaluating new proposals.
+ */
 export function validateMovementOccupancy({
   state,
   ruleset,

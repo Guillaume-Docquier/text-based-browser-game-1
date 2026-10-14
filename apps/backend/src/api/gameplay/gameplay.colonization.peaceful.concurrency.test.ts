@@ -104,8 +104,10 @@ describe("public Colonization worker companions", () => {
   })
 
   it("should colonize an unclaimed Planet with an enemy Fleet present and no Assault", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const clientsSetup3 = await createClientsSetup({ server })
     const { clients, gameId, clock, turnProcessor, turnsRepository, homeB, target, viewsSetup2, slowColonizeId, enemyMoveId } =
       clientsSetup3

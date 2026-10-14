@@ -51,6 +51,7 @@ describe("Seed Outpost API boundary", () => {
         return distanceOrder === 0 ? compareOrdinalStrings(first.site.coordinates, second.site.coordinates) : distanceOrder
       })
     const sites = routeCandidates.filter(({ distance }) => distance > 2 && distance <= 3).slice(0, 2)
+    // Act & Assert
     expect(sites.map(({ site, distance }) => ({ coordinates: site.coordinates, x: site.x, y: site.y, distance }))).toStrictEqual([
       { coordinates: "45:79:30", x: 59.794915548941574, y: 47.76114389615654, distance: 2.3005120328043422 },
       { coordinates: "45:79:25", x: 59.79537121117998, y: 47.76141021536587, distance: 2.300565677262062 },

@@ -17,7 +17,9 @@ import type { ResolutionPlanet } from "#shared/turn-resolution/state/ResolutionP
 import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 import { TurnState } from "#shared/turn-resolution/TurnState.ts"
 
-/** Reserved UUID namespace for deterministic fleet departure identities. */
+/**
+ * Reserved UUID namespace for deterministic fleet departure identities.
+ */
 const FLEET_DEPARTURE_NAMESPACE = "3ac0b19b-e901-4bbf-a1dd-4ed71f73c136"
 
 export class FleetMoveEffect extends Effect {

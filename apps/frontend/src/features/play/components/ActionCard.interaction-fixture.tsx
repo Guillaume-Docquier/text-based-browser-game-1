@@ -3,7 +3,9 @@ import { useState, type ComponentProps, type ReactElement } from "react"
 import { requireEligibilityProjection } from "./ActionCard.selection-fixture.tsx"
 import { ActionCard } from "./ActionCard.tsx"
 
-/** Keeps the card's submitted selection observable through its rendered state. */
+/**
+ * Keeps the card's submitted selection observable through its rendered state.
+ */
 export function StatefulActionCard(props: ComponentProps<typeof ActionCard>): ReactElement {
   const [action, setAction] = useState(props.action)
   return (
@@ -18,7 +20,9 @@ export function StatefulActionCard(props: ComponentProps<typeof ActionCard>): Re
     </div>
   )
 }
-/** Reprojects selected inputs through the public selector before displaying the next interaction. */
+/**
+ * Reprojects selected inputs through the public selector before displaying the next interaction.
+ */
 export function ProjectedActionCard({
   initialAction,
   playerView,

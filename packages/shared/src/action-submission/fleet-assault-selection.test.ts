@@ -31,11 +31,13 @@ describe("Move and Assault action selection", () => {
   it("should share current resource and Strength commitments across Move, Attack Move, edit, cancel, and gain effects", () => {
     expect.hasAssertions()
 
+    // Arrange
     const playerIdSetup1 = createPlayerIdSetup()
     const { fleet, extraDestination, extraFleet, attack, gain, extraAttack } = playerIdSetup1
 
     const baseStateSetup2 = createBaseStateSetup({ ...playerIdSetup1 })
     const { baseState, currentState } = baseStateSetup2
+    // Act
     const canceledMove = evaluateSubmittedActions({
       state: baseState,
       ruleset: TestRuleset,
@@ -61,6 +63,7 @@ describe("Move and Assault action selection", () => {
       },
     })
 
+    // Assert
     assertGainCannotFund({
       ...playerIdSetup1,
       ...baseStateSetup2,

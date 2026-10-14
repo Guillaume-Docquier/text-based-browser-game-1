@@ -91,7 +91,7 @@ function evaluateTargetConstraints({
   }
 }
 
-export function getTargetEntity(
+function getTargetEntity(
   state: EligibilityState,
   targetType: TargetType,
   targetId: TargetId,
@@ -113,7 +113,7 @@ export function getTargetEntity(
   }
 }
 
-export function getTargetType(state: EligibilityState, targetId: TargetId): TargetType | undefined {
+function getTargetType(state: EligibilityState, targetId: TargetId): TargetType | undefined {
   if (getOwnRecordValue(state.planets, branded<PlanetId>(targetId)) !== undefined) {
     return TargetType.PLANET
   }

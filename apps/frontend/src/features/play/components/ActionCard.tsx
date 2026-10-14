@@ -6,6 +6,11 @@ import type {
   InputTag,
   Players,
   PlayerView,
+  Planet,
+  ActionTier,
+  ActionType,
+  ActionDefinitionCosts,
+  PlayerResources,
   SelectedInputs,
   SelectedTargets,
   TargetId,
@@ -59,13 +64,13 @@ const ACTION_TIER_STYLES = {
     card: "border-orange-400/80 bg-linear-to-b from-orange-500/20 via-card to-card",
     icon: "border-orange-200 bg-orange-500 text-orange-950 shadow-orange-500/30",
   },
-} as const satisfies Record<ActionDefinition["tier"], { card: string; icon: string }>
+} as const satisfies Record<ActionTier, { card: string; icon: string }>
 
 const ACTION_TYPE_ICONS = {
   AGENDA: Compass,
   DIRECTIVE: Crosshair,
   PROGRAM: Landmark,
-} as const satisfies Record<ActionDefinition["type"], LucideIcon>
+} as const satisfies Record<ActionType, LucideIcon>
 
 /**
  * Displays a selectable Action Definition using the shared eligibility evaluator.
@@ -189,8 +194,8 @@ function ActionCosts({
   resources,
   canAfford,
 }: {
-  costs: ActionDefinition["costs"]
-  resources: PlayerView["resources"]
+  costs: ActionDefinitionCosts
+  resources: PlayerResources
   canAfford: boolean
 }): ReactElement {
   const costsByResource = Map.groupBy(sortCostsByResource(costs.map((cost) => cost.parameters)), ({ resourceType }) => resourceType)
@@ -260,9 +265,6 @@ function defaultSingleChoiceTarget(
   const { playerView, players, ruleset, eligibilityState } = props
   const { tag, targetDefinition } = slot
   const selectedTargets: Record<TargetTag, TargetId | undefined> = selectionDraft.selectedTargets
-  if (getOwnRecordValue(selectedTargets, tag) !== undefined) {
-    return
-  }
   const options = getTargetOptions({
     targetTag: tag,
     targetDefinition,
@@ -298,10 +300,7 @@ function getJourneySummary(action: Action, eligibilityState: EligibilityState, p
         .filter((part): part is string => part !== undefined)
         .join(" · ")
 }
-function journeyDestination(
-  fleet: Fleet | undefined,
-  playerView: PlayerView,
-): PlayerView["galaxy"]["systems"][number]["planets"][number] | undefined {
+function journeyDestination(fleet: Fleet | undefined, playerView: PlayerView): Planet | undefined {
   if (fleet?.destinationPlanetId === undefined) {
     return undefined
   }

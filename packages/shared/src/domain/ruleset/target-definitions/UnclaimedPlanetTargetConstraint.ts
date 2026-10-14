@@ -7,7 +7,9 @@ import type {
 } from "#shared/domain/ruleset/target-definitions/AbstractTargetConstraint.ts"
 import { TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
 
-/** Requires a Planet whose owner is null. */
+/**
+ * Requires a Planet whose owner is null.
+ */
 export interface UnclaimedPlanetConstraint extends AbstractTargetConstraint {
   readonly type: "UNCLAIMED_PLANET"
   readonly references: NoTargetReferences

@@ -1,4 +1,4 @@
-import type { Action, PlayerView, Players } from "@api-types"
+import type { Action, ActionId, SelectedTargets, SelectedInputs, PlayerView, Players } from "@api-types"
 import { Assert, branded } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { type ReactElement, useState } from "react"
@@ -315,11 +315,7 @@ export function ComposedReservationCards(): ReactElement {
   const playerView = { ...composedReservationPlayerView, actions }
   const projection = requireEligibilityProjection(playerView)
 
-  function updateSelection(
-    actionId: Action["id"],
-    selectedTargets: Action["selectedTargets"],
-    selectedInputs: Action["selectedInputs"],
-  ): void {
+  function updateSelection(actionId: ActionId, selectedTargets: SelectedTargets, selectedInputs: SelectedInputs): void {
     setActions((currentActions) =>
       currentActions.map((action) => {
         return replaceStorySelection(action, actionId, selectedTargets, selectedInputs)
@@ -384,9 +380,9 @@ export function ComposedReservationCards(): ReactElement {
 }
 function replaceStorySelection(
   action: Action,
-  actionId: Action["id"],
-  selectedTargets: Action["selectedTargets"],
-  selectedInputs: Action["selectedInputs"],
+  actionId: ActionId,
+  selectedTargets: SelectedTargets,
+  selectedInputs: SelectedInputs,
 ): Action {
   if (action.id !== actionId) {
     return action
@@ -423,7 +419,9 @@ export const attackMoveProjection = requireEligibilityProjection(attackMovePlaye
 export function toActionDto(action: Omit<Action, "canAfford" | "isInProgress">, isInProgress: boolean): Action {
   return { ...action, canAfford: true, isInProgress }
 }
-/** Parses the same frontend projection used by the public Action selector. */
+/**
+ * Parses the same frontend projection used by the public Action selector.
+ */
 export function requireEligibilityProjection(view: PlayerView): Extract<ReturnType<typeof createEligibilityState>, { success: true }> {
   const projection = createEligibilityState(view)
   if (!projection.success) {
@@ -434,4 +432,32 @@ export function requireEligibilityProjection(view: PlayerView): Extract<ReturnTy
 function requiredStoryValue<T>(value: T | undefined): T {
   Assert.isDefined(value)
   return value
+}
+
+/**
+ * Keeps an unsubmitted draft mounted while another Action consumes its selected Fleet.
+ */
+export function DraftReservationRecoveryCards(): ReactElement {
+  const [actions, setActions] = useState<Action[]>(apiActions)
+  const currentView = { ...playerView, actions }
+  const projection = requireEligibilityProjection(currentView)
+  return (
+    <div className="flex flex-wrap gap-4">
+      {actions.map((action) => (
+        <ActionCard
+          key={action.id}
+          actionDefinition={MoveFleetStandard}
+          action={action}
+          playerView={currentView}
+          players={players}
+          ruleset={projection.ruleset}
+          eligibilityState={projection.eligibilityState}
+          disabled={false}
+          onSelect={(selectedTargets, selectedInputs) => {
+            setActions((current) => current.map((entry) => replaceStorySelection(entry, action.id, selectedTargets, selectedInputs)))
+          }}
+        />
+      ))}
+    </div>
+  )
 }

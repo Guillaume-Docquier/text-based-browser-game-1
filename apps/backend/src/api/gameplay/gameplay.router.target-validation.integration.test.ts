@@ -141,6 +141,7 @@ describe("gameplay.router", () => {
           expect(await turnProcessor.processNextDueTurn()).toBe("processed")
         }
 
+        // Act & Assert
         const foreignFleetScenario1 = await prepareForeignFleetScenario({
           alice,
           processReadyTurn,

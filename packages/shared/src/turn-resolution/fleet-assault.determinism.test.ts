@@ -209,6 +209,7 @@ describe("Fleet Assault", () => {
 
     const thirdSetup2 = createThirdSetup({ ...targetSetup1 })
     const { third, fourth } = thirdSetup2
+    // Act & Assert
     expect(third.value.resolvedContinuations[0]?.actionOutcomes.at(-1)).toMatchObject({
       type: "RESOLVED",
       result: expect.stringContaining("exchanged 20 Strength with 20 enemy Strength"),

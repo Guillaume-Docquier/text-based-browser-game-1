@@ -66,6 +66,7 @@ describe("gameplay submission concurrency", () => {
       ...resourceGameIdSetup4,
     })
     const { resourceResults, firstBuildAfterRace, secondBuildAfterRace, expectedBuildSelectionByStatus } = resourceResultsSetup5
+    // Assert
     for (const [index, action] of [firstBuildAfterRace, secondBuildAfterRace].entries()) {
       const submission = resourceResults[index]
       Assert.isDefined(submission)

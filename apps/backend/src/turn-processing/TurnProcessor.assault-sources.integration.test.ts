@@ -202,6 +202,7 @@ describe("TurnProcessor", () => {
 
       // Earn enough resources to build a fleet and refine its fuel next turn.
 
+      // Assert
       await assertTurnProcessor({ player, gameId, initialView, clock, turnInterval, turnsRepository, turnProcessor, origin })
       const builtView = await player.client.gameplay.getPlayerView.query({ gameId })
       const fleet = builtView.fleets[0]
@@ -252,6 +253,7 @@ describe("TurnProcessor", () => {
 
     integrationTest("should persist one movement payment through two no-submission continuations", async ({ db }) => {
       // Arrange
+      // Act
       const clock = new ControlledClock()
       const apiServices = await createApiStub({ db, clock })
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(SlowContinuationRuleset))
@@ -312,6 +314,7 @@ describe("TurnProcessor", () => {
       })
       clock.increment({ time: turnInterval })
       await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      // Act & Assert
       expect(await turnProcessor.processNextDueTurn()).toBe("processed")
       const builtView = await player.client.gameplay.getPlayerView.query({ gameId })
       const sourceFleet = builtView.fleets.find(({ originPlanetId }) => originPlanetId === origin.id)
@@ -366,6 +369,7 @@ describe("TurnProcessor", () => {
       Assert.isDefined(origin)
       Assert.isDefined(destination)
       Assert.isDefined(quickDestination)
+      // Act & Assert
       expect(quickDestination.id).not.toBe(origin.id)
       expect(Math.hypot(quickDestination.x - origin.x, quickDestination.y - origin.y)).toBeLessThan(1)
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })

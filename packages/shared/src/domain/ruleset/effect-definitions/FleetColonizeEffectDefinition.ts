@@ -5,7 +5,9 @@ import type { AbstractEffectDefinition } from "#shared/domain/ruleset/effect-def
 import { EffectDefinitionTargetDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
 import { TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
 
-/** Claims an unowned Planet when the selected Fleet has the configured Strength. */
+/**
+ * Claims an unowned Planet when the selected Fleet has the configured Strength.
+ */
 export interface FleetColonizeEffectDefinition extends AbstractEffectDefinition {
   readonly type: "FLEET_COLONIZE"
   readonly targets: {

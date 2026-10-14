@@ -33,6 +33,7 @@ describe("resolveTurn", () => {
   const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
 
   it("should reject unsafe loaded Fleet combat state before cost mutation or RNG use", () => {
+    // Arrange
     const defenderPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000002")
     const secondDefenderPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000003")
     const origin = createPlanetStub({ id: "unsafe-combat-origin", ownerPlayerId: playerId, x: 0, y: 0 })
@@ -71,6 +72,7 @@ describe("resolveTurn", () => {
     const overflowStateSetup1 = createOverflowStateSetup({ defenderPlayerId, target, createState, secondDefenderPlayerId })
     const { overflowState, overflowStateBefore, overflowRng, overflowRngBefore } = overflowStateSetup1
 
+    // Act & Assert
     expect(resolveTurn(overflowState, TestRuleset, overflowRng)).toStrictEqual(
       Result.Failure(
         ResolveTurnError.InvalidTurnState({

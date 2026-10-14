@@ -190,8 +190,6 @@ export class GameplayRepository extends PostgresRepository {
             .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn.turn)))
             .orderBy(actionsTable.id)
 
-          const playerIds = await tx.select({ id: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId))
-
           const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
           const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
           const fleetRows = await tx.select().from(fleetsTable).where(eq(fleetsTable.gameId, gameId)).orderBy(fleetsTable.id)
@@ -207,7 +205,6 @@ export class GameplayRepository extends PostgresRepository {
             turnEndsAt: turn.endsAt,
             resources: toResourceBag(playerResources),
             actions: availableActionRows.map((action) => toPlayerViewAction({ ...action, playerId })),
-            playerIds: playerIds.map(({ id }) => id),
             ruleset,
           }
         },

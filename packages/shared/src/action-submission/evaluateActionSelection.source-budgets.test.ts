@@ -256,6 +256,7 @@ describe("evaluateActionSelection", () => {
       actions: replaceActionById(computeAvailableActions({ playerIds: [fixture.playerId], ruleset }), improvedSubmission),
     }
 
+    // Act & Assert
     assertStandardSubmission({ firstActionId, fixture, state, ruleset, improvedOnlyPlanetId, secondActionId, improvedSubmission })
   })
 

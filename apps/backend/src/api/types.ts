@@ -58,5 +58,13 @@ export type PlanetSize = Planet["size"]
 // Account
 export type FinishOnboardingRequest = TrpcRouterInput["accounts"]["finishOnboarding"]
 
-/** The configured input slot returned in an Action Definition. */
+/**
+ * The configured input slot returned in an Action Definition.
+ */
 export type ActionInputDefinition = ActionDefinition["inputs"][keyof ActionDefinition["inputs"]]
+
+export type { ActionId } from "shared/domain/turns/actions/ActionId.ts"
+
+export type ActionType = ActionDefinition["type"]
+export type ActionDefinitionCosts = ActionDefinition["costs"]
+export type PlayerResources = PlayerView["resources"]

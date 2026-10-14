@@ -54,21 +54,33 @@ export type TurnContext = Readonly<{
    * The rules for this turn.
    */
   ruleset: Ruleset
-  /** Fleet ids that were already in transit before this turn's departures. */
+  /**
+   * Fleet ids that were already in transit before this turn's departures.
+   */
   previousJourneyFleetIds: readonly FleetId[]
-  /** Fleet ids created by movement effects during this turn. */
+  /**
+   * Fleet ids created by movement effects during this turn.
+   */
   newDepartureFleetIds: Set<FleetId>
-  /** Fleet ids removed during this turn and explicitly carried to persistence. */
+  /**
+   * Fleet ids removed during this turn and explicitly carried to persistence.
+   */
   removedFleetIds: Set<FleetId>
-  /** Planet ids whose owner changed during this turn. */
+  /**
+   * Planet ids whose owner changed during this turn.
+   */
   changedPlanetIds: Set<PlanetId>
-  /** Transient continuation outcomes; never stored as action history. */
+  /**
+   * Transient continuation outcomes; never stored as action history.
+   */
   resolvedContinuations: ResolvedContinuation[]
   /**
    * Captured arrival Assault intents, rebound to merged survivors before combat.
    */
   pendingArrivalAssaults: PendingArrivalAssaultIntent[]
-  /** Captured arrival Colonize intents, rebound to merged survivors before the Colonization phase. */
+  /**
+   * Captured arrival Colonize intents, rebound to merged survivors before the Colonization phase.
+   */
   pendingArrivalColonizations: PendingArrivalColonizationIntent[]
   /**
    * Fleet ids retired by arrival merges and their surviving identities.

@@ -16,7 +16,9 @@ type MoveSelection = Readonly<{ strength: number }>
 type ColonizeSelection = Readonly<{ actionId: string; selectedFleetId?: string; selectedPlanetId?: string }>
 type CancelSelection = Readonly<{ actionId: string }>
 
-/** Submits budget scenario edits against the current public Turn. */
+/**
+ * Submits budget scenario edits against the current public Turn.
+ */
 export class BudgetSelectionHarness {
   private readonly context: BudgetSelectionContext
   public constructor(context: BudgetSelectionContext) {

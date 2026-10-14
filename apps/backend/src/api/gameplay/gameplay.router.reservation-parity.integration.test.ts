@@ -77,6 +77,7 @@ describe("gameplay.router", () => {
       Assert.isDefined(moveAction)
       Assert.isDefined(attackAction)
 
+      // Act & Assert
       await verifySourceFleet({ sourceFleet, playerView, player, createdGameId, gainAction, moveAction, destination })
 
       await verifyGainAndMoveView({ player, createdGameId, gainAction, moveAction, sourceFleet, destination, attackAction })
@@ -125,6 +126,7 @@ describe("gameplay.router", () => {
 
       // Act
 
+      // Assert
       await verifyPublicState({
         ...standardDestinationSetup1,
         player,
@@ -245,6 +247,7 @@ describe("gameplay.router", () => {
 
     integrationTest("should submit and deselect multiple actions", async ({ db }) => {
       // Arrange
+      // Act
       using apiServer = new ApiServer(await createApiStub({ db }))
 
       const selectedPlayerViewSetup2 = await createSelectedPlayerViewSetup({ apiServer })

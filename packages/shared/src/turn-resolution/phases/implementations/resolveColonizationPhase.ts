@@ -1,6 +1,7 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { compareOrdinalStrings } from "#shared/domain/compareOrdinalStrings.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
+import type { PositiveInteger } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import type { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
@@ -38,7 +39,9 @@ type ScheduledColonization =
       definitionOrdinal: number
     }>
 
-/** Resolves tick-ordered stationary and arrival Colonize intents after Combat and Planet phases. */
+/**
+ * Resolves tick-ordered stationary and arrival Colonize intents after Combat and Planet phases.
+ */
 export function resolveColonizationPhase(context: TurnContext): Result<TurnContext, ResolvePhaseError> {
   const standalone = context.effectPool
     .getEffectsOfType(FleetColonizeEffectDefinition.type)
@@ -140,7 +143,7 @@ function getCandidateEligibility(
   return Result.isFailure(eligibility) ? eligibility : Result.Success(eligibility.value.eligible)
 }
 
-function getStrengthRequirement(candidate: ScheduledColonization): number {
+function getStrengthRequirement(candidate: ScheduledColonization): PositiveInteger {
   return candidate.kind === "standalone"
     ? candidate.effect.strengthRequirement
     : candidate.intent.effectDefinition.parameters.strengthRequirement

@@ -62,10 +62,12 @@ import { assertRequired, assertPersistedJourney, assertPersistedNextRngState2 } 
 
 describe("public Colonization worker companions", () => {
   it("should use the current public stationary force after Move and Assault before Colonization", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
     const fixture = await createPublicTwoPlayerFixture(server)
     const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
 
+    // Act & Assert
     const viewsScenario12 = await prepareViewsScenario({
       fixture,
       homeA,
@@ -156,8 +158,10 @@ describe("public Colonization worker companions", () => {
   })
 
   it("should claim a public35-force source after Move15 while preserving the Q-bound remainder15", async () => {
+    // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
+    // Act & Assert
     const playerSetup4 = await createPlayerSetup({ server })
     const { player, gameId, clock, turnProcessor, turnsRepository, home, target, routeDistance, buildActionId, stageActionId } =
       playerSetup4

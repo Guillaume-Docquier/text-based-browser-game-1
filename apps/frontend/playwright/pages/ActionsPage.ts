@@ -27,9 +27,11 @@ export class ActionsPage extends GamePage {
     const updateButton = action.getByRole("button", { name: "Update action", exact: true })
     if ((await updateButton.count()) > 0) {
       await action.getByRole("button", { name: "Cancel", exact: true }).click()
+      await updateButton.waitFor({ state: "hidden" })
       return
     }
     await this.selectActionButton(name, identifyingText, instanceIndex).click()
+    await updateButton.waitFor({ state: "visible" })
   }
 
   public targetPicker(actionName: string, identifyingText: string, targetName: string, instanceIndex?: number): Locator {
