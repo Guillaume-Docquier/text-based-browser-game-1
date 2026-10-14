@@ -13,23 +13,8 @@ export function effectDefinitionToRulesText(effectDefinition: EffectDefinition, 
       return "Win the game"
     case "FLEET_BUILD":
       return `Build a fleet with ${effectDefinition.parameters.strength} strength on target planet`
-    case "FLEET_MOVE": {
-      const planetTarget = actionDefinition.targets[effectDefinition.targets.planet.actionTargetTag]
-      const maximumReach = planetTarget?.constraints
-        .filter(
-          (constraint) =>
-            constraint.type === "WITHIN_FLEET_RANGE" &&
-            constraint.references.sourceFleetTag === effectDefinition.targets.fleet.actionTargetTag,
-        )
-        .reduce<number | undefined>(
-          (minimum, constraint) =>
-            minimum === undefined ? constraint.parameters.maxDistance : Math.min(minimum, constraint.parameters.maxDistance),
-          undefined,
-        )
-      const rangeText = maximumReach === undefined ? "" : `, within a range of ${formatDistance(maximumReach)}`
-
-      return `Move a fleet to the target planet at ${formatDistance(effectDefinition.parameters.speed)} per turn${rangeText}`
-    }
+    case "FLEET_MOVE":
+      return movementRulesText(effectDefinition, actionDefinition)
     case "FLEET_ASSAULT":
       return actionDefinition.effects.some((effect) => effect.type === "FLEET_MOVE")
         ? "On arrival, join friendly fleets at the target, then attack all enemy fleets there in one simultaneous exchange"
@@ -39,6 +24,25 @@ export function effectDefinitionToRulesText(effectDefinition: EffectDefinition, 
         ? `On arrival, claim the unclaimed target planet; success consumes ${effectDefinition.parameters.strengthRequirement} fleet strength`
         : `Claim the unclaimed planet at the selected fleet's current location; success consumes ${effectDefinition.parameters.strengthRequirement} fleet strength`
   }
+}
+function movementRulesText(
+  effectDefinition: Extract<EffectDefinition, { type: "FLEET_MOVE" }>,
+  actionDefinition: ActionDefinition,
+): string {
+  const planetTarget = actionDefinition.targets[effectDefinition.targets.planet.actionTargetTag]
+  const maximumReach = planetTarget?.constraints
+    .filter(
+      (constraint) =>
+        constraint.type === "WITHIN_FLEET_RANGE" && constraint.references.sourceFleetTag === effectDefinition.targets.fleet.actionTargetTag,
+    )
+    .reduce<number | undefined>(
+      (minimum, constraint) =>
+        minimum === undefined ? constraint.parameters.maxDistance : Math.min(minimum, constraint.parameters.maxDistance),
+      undefined,
+    )
+  const rangeText = maximumReach === undefined ? "" : `, within a range of ${formatDistance(maximumReach)}`
+
+  return `Move a fleet to the target planet at ${formatDistance(effectDefinition.parameters.speed)} per turn${rangeText}`
 }
 
 /**

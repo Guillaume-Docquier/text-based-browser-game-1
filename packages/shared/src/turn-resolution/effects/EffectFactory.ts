@@ -88,7 +88,7 @@ export const EffectFactory = {
       case FleetBuildEffectDefinition.type:
         return new FleetBuildEffect(id, effectDefinition, submittedAction, definitionOrdinal)
       case FleetMoveEffectDefinition.type:
-        return new FleetMoveEffect(id, effectDefinition, submittedAction, pendingArrivalEffects, definitionOrdinal)
+        return new FleetMoveEffect(id, effectDefinition, submittedAction, { pendingArrivalEffects, definitionOrdinal })
       case FleetAssaultEffectDefinition.type:
         return new FleetAssaultEffect(id, effectDefinition, submittedAction, definitionOrdinal)
       case FleetColonizeEffectDefinition.type:

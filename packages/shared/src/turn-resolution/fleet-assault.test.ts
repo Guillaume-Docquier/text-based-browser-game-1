@@ -2,51 +2,42 @@ import { Assert, branded, indexBy, Result } from "@guillaume-docquier/tools-ts"
 import { NonNegativeNumberSchema, PositiveNumberSchema, typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { describe, expect, it } from "vitest"
 import { compareOrdinalStrings } from "#shared/domain/compareOrdinalStrings.ts"
-import { PlayerIdSchema, type PlayerId } from "#shared/domain/players/PlayerId.ts"
+import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { createResourcesStub } from "#shared/domain/resources/Resources.stub.ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
-import { ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
 import { PositiveIntegerSchema } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
-import { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
-import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
 import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
-import type { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
 import { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
-import { FleetSchema } from "#shared/domain/world/fleets/Fleet.ts"
-import type { Fleet } from "#shared/domain/world/fleets/Fleet.ts"
-import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
+import { FleetSchema, type Fleet } from "#shared/domain/world/fleets/Fleet.ts"
 import type { Planet } from "#shared/domain/world/planets/Planet.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
-import { AttackMoveTest, FlexibleAssaultTest, StationaryAssaultTest } from "#shared/testing/test-ruleset/action-definitions/attack-move.ts"
+import { FlexibleAssaultTest, StationaryAssaultTest } from "#shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { BuildFleetStandard } from "#shared/testing/test-ruleset/action-definitions/build-fleet.ts"
 import { MoveFleetImproved, MoveFleetStandard } from "#shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 import { TestRuleset } from "#shared/testing/test-ruleset/TestRuleset.ts"
 import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnState.ts"
 import { resolveTurn } from "#shared/turn-resolution/resolveTurn.ts"
 import { createTurnStateStub } from "#shared/turn-resolution/TurnState.stub.ts"
-
-const PLAYER_A = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
-const PLAYER_B = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000002")
-const PLAYER_C = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000003")
-const SpeedTwoAttackMoveTest = typedParse(ActionDefinitionSchema, {
-  ...AttackMoveTest,
-  id: "TEST_SPEED_TWO_ATTACK_MOVE",
-  name: "Speed Two Attack Move",
-  effects: [
-    FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthTag: "strength", speed: 2 }),
-    FleetAssaultEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet" }),
-  ],
-})
-const SpeedTwoAttackMoveRuleset = Ruleset.create({
-  ...TestRuleset,
-  actionDefinitions: {
-    ...TestRuleset.actionDefinitions,
-    [SpeedTwoAttackMoveTest.id]: SpeedTwoAttackMoveTest,
-  },
-  actionPool: [...TestRuleset.actionPool, { id: SpeedTwoAttackMoveTest.id + "_1", actionDefinitionId: SpeedTwoAttackMoveTest.id }],
-})
+import {
+  PLAYER_A,
+  PLAYER_B,
+  PLAYER_C,
+  resolve,
+  planet,
+  fleet,
+  moveSubmission,
+  buildSubmission,
+  attackMove,
+  stationaryAssault,
+  assaultOutcomesFor,
+  isAssaultOutcome,
+  compareNormalizedOutcome,
+  ownerStrengths,
+  outcomeText,
+  lastOutcome,
+} from "./fleet-assault.test-support.ts"
 
 describe("Fleet Assault", () => {
   it.each([
@@ -66,7 +57,7 @@ describe("Fleet Assault", () => {
       const result = resolve({
         planets: [origin, target],
         fleets: [attacker, defender],
-        submissions: [attackMove(PLAYER_A, attacker, origin, target, attackerStrength)],
+        submissions: [attackMove(PLAYER_A, attacker, target, attackerStrength)],
       })
 
       // Assert
@@ -89,7 +80,7 @@ describe("Fleet Assault", () => {
     const proportional = resolve({
       planets: [origin, target],
       fleets: [attacker, defenderC, defenderB],
-      submissions: [attackMove(PLAYER_A, attacker, origin, target, 20)],
+      submissions: [attackMove(PLAYER_A, attacker, target, 20)],
     })
 
     // Assert
@@ -110,7 +101,7 @@ describe("Fleet Assault", () => {
     const tie = resolve({
       planets: [origin, target],
       fleets: [tieAttacker, tieHigh, tieLow],
-      submissions: [attackMove(PLAYER_A, tieAttacker, origin, target, 1)],
+      submissions: [attackMove(PLAYER_A, tieAttacker, target, 1)],
     })
 
     expect(tie.fleets[tieLow.id]).toBeUndefined()
@@ -123,7 +114,7 @@ describe("Fleet Assault", () => {
     const reversedTie = resolve({
       planets: [target, origin],
       fleets: [reversedTieLow, reversedTieAttacker, reversedTieHigh],
-      submissions: [attackMove(PLAYER_A, reversedTieAttacker, origin, target, 1)],
+      submissions: [attackMove(PLAYER_A, reversedTieAttacker, target, 1)],
     })
     expect(reversedTie.fleets[reversedTieLow.id]).toBeUndefined()
     expect(reversedTie.fleets[reversedTieAttacker.id]).toBeUndefined()
@@ -135,7 +126,7 @@ describe("Fleet Assault", () => {
     const completeExchange = resolve({
       planets: [origin, target],
       fleets: [completeHigh, completeAttacker, completeLow],
-      submissions: [attackMove(PLAYER_A, completeAttacker, origin, target, 30)],
+      submissions: [attackMove(PLAYER_A, completeAttacker, target, 30)],
     })
     expect(completeExchange.fleets[completeAttacker.id]).toBeUndefined()
     expect(completeExchange.fleets[completeLow.id]).toBeUndefined()
@@ -187,51 +178,54 @@ describe("Fleet Assault", () => {
     })
 
     // Assert
-    expect(lastOutcome(noDefender, PLAYER_A)).toMatchObject({
-      type: "RESOLVED",
-      result: expect.stringContaining("found no enemy Fleets"),
-    })
-    expect(lastOutcome(transitOnly, PLAYER_A)).toMatchObject({
-      type: "RESOLVED",
-      result: expect.stringContaining("found no enemy Fleets"),
-    })
-    expect(noDefender.fleets[noDefenderAttacker.id]).toMatchObject({
-      id: noDefenderAttacker.id,
-      ownerPlayerId: PLAYER_A,
-      name: noDefenderAttacker.name,
-      originPlanetId: noDefenderBattle.id,
-      strength: 30,
-    })
-    expect(noDefender.fleets[noDefenderAttacker.id]?.movement).toBeUndefined()
-    expect(transitOnly.fleets[transitAttacker.id]).toMatchObject({
-      id: transitAttacker.id,
-      ownerPlayerId: PLAYER_A,
-      name: transitAttacker.name,
-      originPlanetId: transitBattle.id,
-      strength: 30,
-    })
-    expect(transitOnly.fleets[transitAttacker.id]?.movement).toBeUndefined()
-    expect(Object.values(transitOnly.fleets).some(({ id }) => id === departedSourceId)).toBe(false)
-    expect(transitOnly.fleets[transitEnemy.id]).toMatchObject({
-      id: transitEnemy.id,
-      ownerPlayerId: PLAYER_B,
-      name: transitEnemy.name,
-      originPlanetId: transitBattle.id,
-      destinationPlanetId: transitOther.id,
-      distanceToEnd: 2,
-      strength: 20,
-      movement: {
-        speed: 1,
-        departureTurn: 1,
-        submission: transitSubmission,
-        pendingArrivalEffects: [],
-      },
-    })
-    expect(noDefender.planets[noDefenderBattle.id]?.ownerPlayerId).toBe(PLAYER_A)
-    expect(transitOnly.planets[transitBattle.id]?.ownerPlayerId).toBe(PLAYER_A)
-    expect(transitOnly.planets[transitOther.id]?.ownerPlayerId).toBe(PLAYER_B)
-    expect(noDefender.removedFleetIds).toStrictEqual([])
-    expect(transitOnly.removedFleetIds).toStrictEqual([])
+    const assertLastOutcomeState1 = (): void => {
+      expect(lastOutcome(noDefender, PLAYER_A)).toMatchObject({
+        type: "RESOLVED",
+        result: expect.stringContaining("found no enemy Fleets"),
+      })
+      expect(lastOutcome(transitOnly, PLAYER_A)).toMatchObject({
+        type: "RESOLVED",
+        result: expect.stringContaining("found no enemy Fleets"),
+      })
+      expect(noDefender.fleets[noDefenderAttacker.id]).toMatchObject({
+        id: noDefenderAttacker.id,
+        ownerPlayerId: PLAYER_A,
+        name: noDefenderAttacker.name,
+        originPlanetId: noDefenderBattle.id,
+        strength: 30,
+      })
+      expect(noDefender.fleets[noDefenderAttacker.id]?.movement).toBeUndefined()
+      expect(transitOnly.fleets[transitAttacker.id]).toMatchObject({
+        id: transitAttacker.id,
+        ownerPlayerId: PLAYER_A,
+        name: transitAttacker.name,
+        originPlanetId: transitBattle.id,
+        strength: 30,
+      })
+      expect(transitOnly.fleets[transitAttacker.id]?.movement).toBeUndefined()
+      expect(Object.values(transitOnly.fleets).some(({ id }) => id === departedSourceId)).toBe(false)
+      expect(transitOnly.fleets[transitEnemy.id]).toMatchObject({
+        id: transitEnemy.id,
+        ownerPlayerId: PLAYER_B,
+        name: transitEnemy.name,
+        originPlanetId: transitBattle.id,
+        destinationPlanetId: transitOther.id,
+        distanceToEnd: 2,
+        strength: 20,
+        movement: {
+          speed: 1,
+          departureTurn: 1,
+          submission: transitSubmission,
+          pendingArrivalEffects: [],
+        },
+      })
+      expect(noDefender.planets[noDefenderBattle.id]?.ownerPlayerId).toBe(PLAYER_A)
+      expect(transitOnly.planets[transitBattle.id]?.ownerPlayerId).toBe(PLAYER_A)
+      expect(transitOnly.planets[transitOther.id]?.ownerPlayerId).toBe(PLAYER_B)
+      expect(noDefender.removedFleetIds).toStrictEqual([])
+      expect(transitOnly.removedFleetIds).toStrictEqual([])
+    }
+    assertLastOutcomeState1()
   })
 
   it("should let an ordinary Move arrive without fighting", () => {
@@ -244,7 +238,7 @@ describe("Fleet Assault", () => {
     const result = resolve({
       planets: [origin, target],
       fleets: [mover, defender],
-      submissions: [moveSubmission(PLAYER_A, mover, target, 20, MoveFleetImproved.id)],
+      submissions: [moveSubmission(PLAYER_A, mover, target, { strength: 20, actionDefinitionId: MoveFleetImproved.id })],
     })
 
     // Assert
@@ -267,7 +261,7 @@ describe("Fleet Assault", () => {
     const result = resolve({
       planets: [originA, originB, target],
       fleets: [attackerA, attackerB],
-      submissions: [attackMove(PLAYER_A, attackerA, originA, target, 30), attackMove(PLAYER_B, attackerB, originB, target, 20)],
+      submissions: [attackMove(PLAYER_A, attackerA, target, 30), attackMove(PLAYER_B, attackerB, target, 20)],
     })
 
     // Assert
@@ -291,9 +285,9 @@ describe("Fleet Assault", () => {
       planets: [originA, originB, originC, target],
       fleets: [attackerA, attackerB, attackerC],
       submissions: [
-        attackMove(PLAYER_A, attackerA, originA, target, 10),
-        attackMove(PLAYER_B, attackerB, originB, target, 30),
-        attackMove(PLAYER_C, attackerC, originC, target, 20),
+        attackMove(PLAYER_A, attackerA, target, 10),
+        attackMove(PLAYER_B, attackerB, target, 30),
+        attackMove(PLAYER_C, attackerC, target, 20),
       ],
     })
 
@@ -320,7 +314,7 @@ describe("Fleet Assault", () => {
     const result = resolve({
       planets: [origin, target],
       fleets: [attacker, defenderB, defenderC],
-      submissions: [attackMove(PLAYER_A, attacker, origin, target, 10)],
+      submissions: [attackMove(PLAYER_A, attacker, target, 10)],
     })
 
     // Assert
@@ -344,10 +338,10 @@ describe("Fleet Assault", () => {
       planets: [home, departure, opponentOrigin, outboundDestination],
       fleets: [defender, friendlyArrival, opponentArrival],
       submissions: [
-        moveSubmission(PLAYER_A, defender, outboundDestination, 20, MoveFleetStandard.id),
-        moveSubmission(PLAYER_A, friendlyArrival, home, 10, MoveFleetImproved.id),
+        moveSubmission(PLAYER_A, defender, outboundDestination, { strength: 20, actionDefinitionId: MoveFleetStandard.id }),
+        moveSubmission(PLAYER_A, friendlyArrival, home, { strength: 10, actionDefinitionId: MoveFleetImproved.id }),
         buildSubmission(PLAYER_A, home),
-        attackMove(PLAYER_B, opponentArrival, opponentOrigin, home, 20),
+        attackMove(PLAYER_B, opponentArrival, home, 20),
       ],
     })
 
@@ -377,10 +371,10 @@ describe("Fleet Assault", () => {
       planets: [home, departure, opponentOrigin, outboundDestination],
       fleets: [defender, friendlyArrival, opponentArrival],
       submissions: [
-        moveSubmission(PLAYER_A, defender, outboundDestination, 20, MoveFleetStandard.id),
-        moveSubmission(PLAYER_A, friendlyArrival, home, 5, MoveFleetImproved.id),
+        moveSubmission(PLAYER_A, defender, outboundDestination, { strength: 20, actionDefinitionId: MoveFleetStandard.id }),
+        moveSubmission(PLAYER_A, friendlyArrival, home, { strength: 5, actionDefinitionId: MoveFleetImproved.id }),
         buildSubmission(PLAYER_A, home),
-        attackMove(PLAYER_B, opponentArrival, opponentOrigin, home, 20),
+        attackMove(PLAYER_B, opponentArrival, home, 20),
       ],
     })
 
@@ -406,8 +400,8 @@ describe("Fleet Assault", () => {
       planets: [home, opponentOrigin, outboundDestination],
       fleets: [defender, opponentArrival],
       submissions: [
-        moveSubmission(PLAYER_A, defender, outboundDestination, 30, MoveFleetImproved.id),
-        attackMove(PLAYER_B, opponentArrival, opponentOrigin, home, 20),
+        moveSubmission(PLAYER_A, defender, outboundDestination, { strength: 30, actionDefinitionId: MoveFleetImproved.id }),
+        attackMove(PLAYER_B, opponentArrival, home, 20),
       ],
     })
 
@@ -436,8 +430,8 @@ describe("Fleet Assault", () => {
       planets: [home, attackOrigin, moveOrigin],
       fleets: [base, attacker, mover, enemy],
       submissions: [
-        attackMove(PLAYER_A, attacker, attackOrigin, home, 20),
-        moveSubmission(PLAYER_A, mover, home, 5, MoveFleetImproved.id),
+        attackMove(PLAYER_A, attacker, home, 20),
+        moveSubmission(PLAYER_A, mover, home, { strength: 5, actionDefinitionId: MoveFleetImproved.id }),
         buildSubmission(PLAYER_A, home),
       ],
     })
@@ -459,7 +453,7 @@ describe("Fleet Assault", () => {
     const result = resolve({
       planets: [origin, target],
       fleets: [attacker, defender],
-      submissions: [attackMove(PLAYER_A, attacker, origin, target, 30), buildSubmission(PLAYER_B, target)],
+      submissions: [attackMove(PLAYER_A, attacker, target, 30), buildSubmission(PLAYER_B, target)],
     })
 
     // Assert
@@ -475,7 +469,7 @@ describe("Fleet Assault", () => {
     const slowerAttacker = fleet("provenance-slower", PLAYER_A, origin, 20)
     const fasterAttacker = fleet("provenance-faster", PLAYER_A, origin, 15)
     const defender = fleet("provenance-defender", PLAYER_B, target, 10)
-    const slowerSubmission = attackMove(PLAYER_A, slowerAttacker, origin, target, 20)
+    const slowerSubmission = attackMove(PLAYER_A, slowerAttacker, target, 20)
     const fasterSubmission = createSubmittedActionStub({
       id: FlexibleAssaultTest.id + "_1",
       playerId: PLAYER_A,
@@ -543,7 +537,7 @@ describe("Fleet Assault", () => {
         selectedTargets: { source: earlierTwenty.id, destination: target.id },
         selectedInputs: { force: 20 },
       })
-      const laterSubmission = attackMove(PLAYER_A, laterFifteen, origin, target, 15)
+      const laterSubmission = attackMove(PLAYER_A, laterFifteen, target, 15)
       return { origin, target, earlierTwenty, laterFifteen, defender, earlierSubmission, laterSubmission }
     }
     const fixture = createFixture()
@@ -573,30 +567,33 @@ describe("Fleet Assault", () => {
     const permutedSurvivor = Object.values(permuted.fleets).find(({ ownerPlayerId }) => ownerPlayerId === PLAYER_A)
     Assert.isDefined(survivor)
     Assert.isDefined(permutedSurvivor)
-    expect(survivor).toMatchObject({
-      ownerPlayerId: PLAYER_A,
-      name: fixture.earlierTwenty.name,
-      strength: 25,
-      originPlanetId: fixture.target.id,
-    })
-    expect(survivor.movement).toBeUndefined()
-    expect(permutedSurvivor).toMatchObject({
-      id: survivor.id,
-      ownerPlayerId: PLAYER_A,
-      name: fixture.earlierTwenty.name,
-      strength: 25,
-      originPlanetId: fixture.target.id,
-    })
-    expect(permutedSurvivor.movement).toBeUndefined()
-    expect(permuted.fleets[permutedFixture.defender.id]).toBeUndefined()
-    expect(permuted.removedFleetIds).toHaveLength(4)
-    expect(permuted.removedFleetIds).toStrictEqual(
-      expect.arrayContaining([permutedFixture.earlierTwenty.id, permutedFixture.laterFifteen.id, permutedFixture.defender.id]),
-    )
-    expect(permuted.removedFleetIds).toStrictEqual(result.removedFleetIds)
-    expect(Object.values(permuted.fleets).toSorted((first, second) => compareOrdinalStrings(first.id, second.id))).toStrictEqual(
-      Object.values(result.fleets).toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
-    )
+    const assertSurvivorState1 = (): void => {
+      expect(survivor).toMatchObject({
+        ownerPlayerId: PLAYER_A,
+        name: fixture.earlierTwenty.name,
+        strength: 25,
+        originPlanetId: fixture.target.id,
+      })
+      expect(survivor.movement).toBeUndefined()
+      expect(permutedSurvivor).toMatchObject({
+        id: survivor.id,
+        ownerPlayerId: PLAYER_A,
+        name: fixture.earlierTwenty.name,
+        strength: 25,
+        originPlanetId: fixture.target.id,
+      })
+      expect(permutedSurvivor.movement).toBeUndefined()
+      expect(permuted.fleets[permutedFixture.defender.id]).toBeUndefined()
+      expect(permuted.removedFleetIds).toHaveLength(4)
+      expect(permuted.removedFleetIds).toStrictEqual(
+        expect.arrayContaining([permutedFixture.earlierTwenty.id, permutedFixture.laterFifteen.id, permutedFixture.defender.id]),
+      )
+      expect(permuted.removedFleetIds).toStrictEqual(result.removedFleetIds)
+      expect(Object.values(permuted.fleets).toSorted((first, second) => compareOrdinalStrings(first.id, second.id))).toStrictEqual(
+        Object.values(result.fleets).toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
+      )
+    }
+    assertSurvivorState1()
 
     const earlierAssaults = assaultOutcomesFor(result, PLAYER_A, fixture.earlierSubmission.id)
     const laterAssaults = assaultOutcomesFor(result, PLAYER_A, fixture.laterSubmission.id)
@@ -622,8 +619,8 @@ describe("Fleet Assault", () => {
     const ordinaryArrival = fleet("ordinary-first-arrival", PLAYER_A, ordinaryOrigin, 20)
     const assaultArrival = fleet("ordinary-first-assault", PLAYER_A, assaultOrigin, 15)
     const defender = fleet("ordinary-first-defender", PLAYER_B, target, 10)
-    const ordinarySubmission = moveSubmission(PLAYER_A, ordinaryArrival, target, 20, MoveFleetImproved.id)
-    const assaultSubmission = attackMove(PLAYER_A, assaultArrival, assaultOrigin, target, 15)
+    const ordinarySubmission = moveSubmission(PLAYER_A, ordinaryArrival, target, { strength: 20, actionDefinitionId: MoveFleetImproved.id })
+    const assaultSubmission = attackMove(PLAYER_A, assaultArrival, target, 15)
 
     // Act
     const result = resolve({
@@ -906,630 +903,98 @@ describe("Fleet Assault", () => {
     ]
     const planets = [aliceBuildB, aliceBuildA, bobBuildB, bobBuildA, battle]
     const fleets = [attackerA, attackerB, defenderC]
-    expect(attackerA).toMatchObject({ strength: 30, ownerPlayerId: PLAYER_A, originPlanetId: battle.id })
-    expect(attackerB).toMatchObject({ strength: 20, ownerPlayerId: PLAYER_B, originPlanetId: battle.id })
+    const verifyAttackerAPhase1 = (): void => {
+      expect(attackerA).toMatchObject({ strength: 30, ownerPlayerId: PLAYER_A, originPlanetId: battle.id })
+      expect(attackerB).toMatchObject({ strength: 20, ownerPlayerId: PLAYER_B, originPlanetId: battle.id })
 
-    const run = ({
-      orderedPlanets,
-      orderedFleets,
-      orderedSubmissions,
-      orderedActionPool,
-    }: {
-      orderedPlanets: Planet[]
-      orderedFleets: Fleet[]
-      orderedSubmissions: Array<ReturnType<typeof createSubmittedActionStub>>
-      orderedActionPool: ReturnType<typeof Ruleset.create>["actionPool"]
-    }): { resolved: ResolvedTurnState; rng: ReturnType<typeof createSeededRng> } => {
-      const ruleset = Ruleset.create({ ...TestRuleset, actionPool: orderedActionPool })
-      const rng = createSeededRng(1234)
-      const resolved = resolve({
-        planets: structuredClone(orderedPlanets),
-        fleets: structuredClone(orderedFleets),
-        submissions: orderedSubmissions,
-        rng,
-        ruleset,
-      })
-      return { resolved, rng }
-    }
-
-    // Act
-    const forward = run({
-      orderedPlanets: planets,
-      orderedFleets: fleets,
-      orderedSubmissions: forwardSubmissions,
-      orderedActionPool: actionPool,
-    })
-    const reversed = run({
-      orderedPlanets: planets.toReversed(),
-      orderedFleets: fleets.toReversed(),
-      orderedSubmissions: reversedSubmissions,
-      orderedActionPool: actionPool.toReversed(),
-    })
-
-    // Assert
-    for (const { resolved, rng } of [forward, reversed]) {
-      expect(resolved.fleets[attackerA.id]).toMatchObject({ strength: 10, originPlanetId: battle.id, name: attackerA.name })
-      expect(resolved.fleets[attackerB.id]).toBeUndefined()
-      expect(resolved.fleets[defenderC.id]).toBeUndefined()
-      expect(resolved.planets[battle.id]?.ownerPlayerId).toBe(PLAYER_C)
-      const expectedBuilds = [
-        [aliceBuildB.id, "fleet 74220"],
-        [aliceBuildA.id, "fleet 703708"],
-        [bobBuildB.id, "fleet 902953"],
-        [bobBuildA.id, "fleet 970578"],
-      ] as const
-      for (const [planetId, expectedName] of expectedBuilds) {
-        const builtFleet = Object.values(resolved.fleets).find(({ originPlanetId }) => originPlanetId === planetId)
-        Assert.isDefined(builtFleet)
-        expect(builtFleet.name).toBe(expectedName)
-        expect(builtFleet.strength).toBe(10)
+      const run = ({
+        orderedPlanets,
+        orderedFleets,
+        orderedSubmissions,
+        orderedActionPool,
+      }: {
+        orderedPlanets: Planet[]
+        orderedFleets: Fleet[]
+        orderedSubmissions: Array<ReturnType<typeof createSubmittedActionStub>>
+        orderedActionPool: ReturnType<typeof Ruleset.create>["actionPool"]
+      }): { resolved: ResolvedTurnState; rng: ReturnType<typeof createSeededRng> } => {
+        const ruleset = Ruleset.create({ ...TestRuleset, actionPool: orderedActionPool })
+        const rng = createSeededRng(1234)
+        const resolved = resolve({
+          planets: structuredClone(orderedPlanets),
+          fleets: structuredClone(orderedFleets),
+          submissions: orderedSubmissions,
+          rng,
+          ruleset,
+        })
+        return { resolved, rng }
       }
-      expect(resolved.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(96)
-      expect(resolved.players[PLAYER_A]?.resources[ResourceType.METAL]).toBe(98)
-      expect(resolved.players[PLAYER_B]?.resources[ResourceType.INFLUENCE]).toBe(96)
-      expect(resolved.players[PLAYER_B]?.resources[ResourceType.METAL]).toBe(98)
-      expect(lastOutcome(resolved, PLAYER_B, StationaryAssaultTest.id + "_1")).toMatchObject({
-        type: "RESOLVED",
-        result: expect.stringContaining("exchanged 20 Strength with 40 enemy Strength"),
+
+      // Act
+      const forward = run({
+        orderedPlanets: planets,
+        orderedFleets: fleets,
+        orderedSubmissions: forwardSubmissions,
+        orderedActionPool: actionPool,
       })
-      expect(lastOutcome(resolved, PLAYER_A, StationaryAssaultTest.id + "_1")).toMatchObject({
-        type: "RESOLVED",
-        result: expect.stringContaining("exchanged 5 Strength with 5 enemy Strength"),
+      const reversed = run({
+        orderedPlanets: planets.toReversed(),
+        orderedFleets: fleets.toReversed(),
+        orderedSubmissions: reversedSubmissions,
+        orderedActionPool: actionPool.toReversed(),
       })
-      expect(rng.getState()).toStrictEqual({ generatorState: 567895707, spareNormal: null })
+
+      // Assert
+      for (const { resolved, rng } of [forward, reversed]) {
+        expect(resolved.fleets[attackerA.id]).toMatchObject({ strength: 10, originPlanetId: battle.id, name: attackerA.name })
+        expect(resolved.fleets[attackerB.id]).toBeUndefined()
+        expect(resolved.fleets[defenderC.id]).toBeUndefined()
+        expect(resolved.planets[battle.id]?.ownerPlayerId).toBe(PLAYER_C)
+        const expectedBuilds = [
+          [aliceBuildB.id, "fleet 74220"],
+          [aliceBuildA.id, "fleet 703708"],
+          [bobBuildB.id, "fleet 902953"],
+          [bobBuildA.id, "fleet 970578"],
+        ] as const
+        for (const [planetId, expectedName] of expectedBuilds) {
+          const builtFleet = Object.values(resolved.fleets).find(({ originPlanetId }) => originPlanetId === planetId)
+          Assert.isDefined(builtFleet)
+          expect(builtFleet.name).toBe(expectedName)
+          expect(builtFleet.strength).toBe(10)
+        }
+        expect(resolved.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(96)
+        expect(resolved.players[PLAYER_A]?.resources[ResourceType.METAL]).toBe(98)
+        expect(resolved.players[PLAYER_B]?.resources[ResourceType.INFLUENCE]).toBe(96)
+        expect(resolved.players[PLAYER_B]?.resources[ResourceType.METAL]).toBe(98)
+        expect(lastOutcome(resolved, PLAYER_B, StationaryAssaultTest.id + "_1")).toMatchObject({
+          type: "RESOLVED",
+          result: expect.stringContaining("exchanged 20 Strength with 40 enemy Strength"),
+        })
+        expect(lastOutcome(resolved, PLAYER_A, StationaryAssaultTest.id + "_1")).toMatchObject({
+          type: "RESOLVED",
+          result: expect.stringContaining("exchanged 5 Strength with 5 enemy Strength"),
+        })
+        expect(rng.getState()).toStrictEqual({ generatorState: 567895707, spareNormal: null })
+      }
+      const normalize = ({ resolved, rng }: ReturnType<typeof run>): object => ({
+        fleets: Object.values(resolved.fleets)
+          .map(({ id, name, ownerPlayerId, strength, originPlanetId }) => ({ id, name, ownerPlayerId, strength, originPlanetId }))
+          .toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
+        resources: Object.entries(resolved.players)
+          .map(([playerId, player]) => ({ playerId, ...player.resources }))
+          .toSorted((first, second) => compareOrdinalStrings(first.playerId, second.playerId)),
+        outcomes: resolved.resolvedActions
+          .map(({ submittedAction, actionOutcomes }) => ({
+            playerId: submittedAction.playerId,
+            actionId: submittedAction.id,
+            outcomes: actionOutcomes,
+          }))
+          .toSorted(compareNormalizedOutcome),
+        removedFleetIds: resolved.removedFleetIds.toSorted(compareOrdinalStrings),
+        rngState: rng.getState(),
+      })
+      expect(normalize(forward)).toStrictEqual(normalize(reversed))
     }
-    const normalize = ({ resolved, rng }: ReturnType<typeof run>): object => ({
-      fleets: Object.values(resolved.fleets)
-        .map(({ id, name, ownerPlayerId, strength, originPlanetId }) => ({ id, name, ownerPlayerId, strength, originPlanetId }))
-        .toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
-      resources: Object.entries(resolved.players)
-        .map(([playerId, player]) => ({ playerId, ...player.resources }))
-        .toSorted((first, second) => compareOrdinalStrings(first.playerId, second.playerId)),
-      outcomes: resolved.resolvedActions
-        .map(({ submittedAction, actionOutcomes }) => ({
-          playerId: submittedAction.playerId,
-          actionId: submittedAction.id,
-          outcomes: actionOutcomes,
-        }))
-        .toSorted(compareNormalizedOutcome),
-      removedFleetIds: resolved.removedFleetIds.toSorted(compareOrdinalStrings),
-      rngState: rng.getState(),
-    })
-    expect(normalize(forward)).toStrictEqual(normalize(reversed))
-  })
-
-  it("should use ordinal ordering for mixed-case and punctuation pooled IDs before the seeded Assault shuffle", () => {
-    // Arrange
-    const battle = createPlanetStub({
-      id: "mixed-case-battle",
-      ownerPlayerId: PLAYER_A,
-      name: "Canonical Battle",
-      x: 0,
-      y: 0,
-    })
-    const forwardAttacker = fleet("mixed-attacker", PLAYER_A, battle, 30)
-    const forwardDefender = fleet("mixed-defender", PLAYER_B, battle, 20)
-    const reversedAttacker = fleet("mixed-attacker", PLAYER_A, battle, 30)
-    const reversedDefender = fleet("mixed-defender", PLAYER_B, battle, 20)
-    const ruleset = Ruleset.create({
-      ...TestRuleset,
-      actionPool: [
-        ...TestRuleset.actionPool,
-        { id: "B!", actionDefinitionId: StationaryAssaultTest.id },
-        { id: "a:", actionDefinitionId: StationaryAssaultTest.id },
-      ],
-    })
-    const bSubmission = createSubmittedActionStub({
-      id: "B!",
-      playerId: PLAYER_A,
-      actionDefinitionId: StationaryAssaultTest.id,
-      selectedTargets: { station: "mixed-attacker", battlePlanet: battle.id },
-    })
-    const aSubmission = createSubmittedActionStub({
-      id: "a:",
-      playerId: PLAYER_A,
-      actionDefinitionId: StationaryAssaultTest.id,
-      selectedTargets: { station: "mixed-attacker", battlePlanet: battle.id },
-    })
-    // Act
-    const forwardRng = createSeededRng(1234)
-    const reversedRng = createSeededRng(1234)
-    const forward = resolve({
-      planets: [battle],
-      fleets: [forwardAttacker, forwardDefender],
-      submissions: [bSubmission, aSubmission],
-      rng: forwardRng,
-      ruleset,
-    })
-    const reversed = resolve({
-      planets: [battle],
-      fleets: [reversedDefender, reversedAttacker],
-      submissions: [aSubmission, bSubmission],
-      rng: reversedRng,
-      ruleset,
-    })
-
-    // Assert
-    for (const { result, attacker, defender } of [
-      { result: forward, attacker: forwardAttacker, defender: forwardDefender },
-      { result: reversed, attacker: reversedAttacker, defender: reversedDefender },
-    ]) {
-      expect(result.fleets[attacker.id]?.strength).toBe(10)
-      expect(result.fleets[defender.id]).toBeUndefined()
-      expect(lastOutcome(result, PLAYER_A, "a:")).toMatchObject({
-        type: "RESOLVED",
-        result: 'Fleet "mixed-attacker-name" exchanged 20 Strength with 20 enemy Strength at Planet "Canonical Battle"',
-      })
-      expect(lastOutcome(result, PLAYER_A, "B!")).toMatchObject({
-        type: "RESOLVED",
-        result: 'Fleet "mixed-attacker-name" found no enemy Fleets at Planet "Canonical Battle"',
-      })
-      expect(result.removedFleetIds).toStrictEqual([defender.id])
-    }
-    expect(forwardRng.getState()).toStrictEqual({ generatorState: 1831567047, spareNormal: null })
-    expect(reversedRng.getState()).toStrictEqual({ generatorState: 1831567047, spareNormal: null })
-  })
-
-  it("should resolve same pooled Action IDs in the literal seeded A30/B20 order under row and Fleet permutations", () => {
-    // Arrange
-    const originA = planet("pooled-origin-a", PLAYER_A, 0)
-    const originB = planet("pooled-origin-b", PLAYER_B, 0)
-    const target = planet("pooled-target", PLAYER_C, 0.25)
-    const attackerA = fleet("pooled-attacker-a", PLAYER_A, originA, 30)
-    const attackerB = fleet("pooled-attacker-b", PLAYER_B, originB, 20)
-    const submissionA = attackMove(PLAYER_A, attackerA, originA, target, 30)
-    const submissionB = attackMove(PLAYER_B, attackerB, originB, target, 20)
-    const firstDraw = createSeededRng(1234).float()
-    const forwardRng = createSeededRng(1234)
-    const reversedRng = createSeededRng(1234)
-
-    // Act
-    const forward = resolve({
-      planets: [originA, originB, target],
-      fleets: [attackerA, attackerB],
-      submissions: [submissionA, submissionB],
-      rng: forwardRng,
-    })
-    const reversed = resolve({
-      planets: [target, originB, originA],
-      fleets: [attackerB, attackerA],
-      submissions: [submissionB, submissionA],
-      rng: reversedRng,
-    })
-
-    // Assert
-    expect(submissionA.id).toBe(submissionB.id)
-    expect(firstDraw).toBe(0.07329497812315822)
-    for (const result of [forward, reversed]) {
-      expect(ownerStrengths(result.fleets, PLAYER_A)).toStrictEqual([10])
-      expect(ownerStrengths(result.fleets, PLAYER_B)).toStrictEqual([])
-      expect(result.resolvedActions).toHaveLength(2)
-      expect(lastOutcome(result, PLAYER_B, submissionB.id)).toMatchObject({
-        type: "RESOLVED",
-        result: 'Fleet "pooled-attacker-b-name" exchanged 20 Strength with 30 enemy Strength at Planet "planet-pooled-t"',
-      })
-      expect(lastOutcome(result, PLAYER_A, submissionA.id)).toMatchObject({
-        type: "RESOLVED",
-        result: 'Fleet "pooled-attacker-a-name" found no enemy Fleets at Planet "planet-pooled-t"',
-      })
-      expect(result.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(95)
-      expect(result.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(99)
-      expect(result.players[PLAYER_B]?.resources[ResourceType.INFLUENCE]).toBe(95)
-      expect(result.players[PLAYER_B]?.resources[ResourceType.FUEL]).toBe(99)
-    }
-    expect(forwardRng.getState()).toStrictEqual({ generatorState: 1831567047, spareNormal: null })
-    expect(reversedRng.getState()).toStrictEqual({ generatorState: 1831567047, spareNormal: null })
-  })
-
-  it("should resolve stationary A30/B20 pooled Assaults in the literal seed1234 tick-zero order", () => {
-    // Arrange
-    const firstDraw = createSeededRng(1234).float()
-    const forwardRng = createSeededRng(1234)
-    const reversedRng = createSeededRng(1234)
-    const forwardFixture = createPooledAssaultScenario()
-    const reversedFixture = createPooledAssaultScenario()
-
-    // Act: preserve identical content while permuting both persisted row and submission order.
-    const forward = resolve({
-      planets: [forwardFixture.target],
-      fleets: [forwardFixture.attackerA, forwardFixture.attackerB],
-      submissions: [forwardFixture.submissionA, forwardFixture.submissionB],
-      rng: forwardRng,
-    })
-    const reversed = resolve({
-      planets: [reversedFixture.target],
-      fleets: [reversedFixture.attackerB, reversedFixture.attackerA],
-      submissions: [reversedFixture.submissionB, reversedFixture.submissionA],
-      rng: reversedRng,
-    })
-
-    // Assert
-    expect(forwardFixture.submissionA.id).toBe(forwardFixture.submissionB.id)
-    expect(reversedFixture.submissionA.id).toBe(reversedFixture.submissionB.id)
-    expect(firstDraw).toBe(0.07329497812315822)
-    for (const { result, fixture } of [
-      { result: forward, fixture: forwardFixture },
-      { result: reversed, fixture: reversedFixture },
-    ]) {
-      expect(ownerStrengths(result.fleets, PLAYER_A)).toStrictEqual([10])
-      expect(ownerStrengths(result.fleets, PLAYER_B)).toStrictEqual([])
-      expect(result.resolvedActions).toHaveLength(2)
-      expect(lastOutcome(result, PLAYER_B, fixture.submissionB.id)).toStrictEqual({
-        type: "RESOLVED",
-        result: 'Fleet "pooled-attacker-b-name" exchanged 20 Strength with 30 enemy Strength at Planet "planet-pooled-t"',
-      })
-      expect(lastOutcome(result, PLAYER_A, fixture.submissionA.id)).toStrictEqual({
-        type: "RESOLVED",
-        result: 'Fleet "pooled-attacker-a-name" found no enemy Fleets at Planet "planet-pooled-t"',
-      })
-      expect(result.removedFleetIds).toContain(fixture.attackerB.id)
-      expect(result.removedFleetIds).not.toContain(fixture.attackerA.id)
-    }
-    expect(forwardRng.getState()).toStrictEqual({ generatorState: 1831567047, spareNormal: null })
-    expect(reversedRng.getState()).toStrictEqual({ generatorState: 1831567047, spareNormal: null })
-  })
-
-  it("should reload the exact 5I/1F speed-two Attack Move until distance five arrives once", () => {
-    // Arrange
-    const origin = planet("speed-two-origin", PLAYER_A, 0)
-    const target = planet("speed-two-target", PLAYER_B, 5)
-    const attacker = fleet("speed-two-attacker", PLAYER_A, origin, 50)
-    const defender = fleet("speed-two-defender", PLAYER_B, target, 20)
-    const actionId = SpeedTwoAttackMoveTest.id + "_1"
-    const submission = createSubmittedActionStub({
-      id: actionId,
-      playerId: PLAYER_A,
-      actionDefinitionId: SpeedTwoAttackMoveTest.id,
-      selectedTargets: { fleet: attacker.id, planet: target.id },
-      selectedInputs: { strength: 30 },
-    })
-
-    // Act
-    const first = resolve({
-      planets: [origin, target],
-      fleets: [attacker, defender],
-      submissions: [submission],
-      ruleset: SpeedTwoAttackMoveRuleset,
-    })
-    const firstJourney = Object.values(first.fleets).find(({ movement }) => movement !== undefined)
-    Assert.isDefined(firstJourney)
-
-    // Continue resolving after each persisted JSON reload.
-    const second = resolveTurn(
-      createTurnStateStub({
-        turn: 2,
-        players: first.players,
-        planets: first.planets,
-        fleets: indexBy(
-          "id",
-          Object.values(first.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
-        ),
-      }),
-      SpeedTwoAttackMoveRuleset,
-      createSeededRng(),
-    )
-    Assert.isSuccess(second)
-    const secondJourney = Object.values(second.value.fleets).find(({ id }) => id === firstJourney.id)
-    Assert.isDefined(secondJourney)
-    const third = resolveTurn(
-      createTurnStateStub({
-        turn: 3,
-        players: second.value.players,
-        planets: second.value.planets,
-        fleets: indexBy(
-          "id",
-          Object.values(second.value.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
-        ),
-      }),
-      SpeedTwoAttackMoveRuleset,
-      createSeededRng(),
-    )
-    Assert.isSuccess(third)
-    const fourth = resolveTurn(
-      createTurnStateStub({
-        turn: 4,
-        players: third.value.players,
-        planets: third.value.planets,
-        fleets: indexBy(
-          "id",
-          Object.values(third.value.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
-        ),
-      }),
-      SpeedTwoAttackMoveRuleset,
-      createSeededRng(),
-    )
-    Assert.isSuccess(fourth)
-
-    // Assert
-    expect(firstJourney).toMatchObject({ strength: 30, distanceToEnd: 3, movement: { pendingArrivalEffects: [{ definitionOrdinal: 3 }] } })
-    expect(first.fleets[attacker.id]?.strength).toBe(20)
-    expect(first.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(95)
-    expect(first.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(99)
-    expect(first.resolvedContinuations).toHaveLength(0)
-    expect(secondJourney.distanceToEnd).toBe(1)
-    expect(second.value.fleets[defender.id]?.strength).toBe(20)
-    expect(second.value.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(95)
-    expect(second.value.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(99)
-    expect(second.value.resolvedContinuations).toHaveLength(1)
-    const secondContinuation = second.value.resolvedContinuations[0]
-    Assert.isDefined(secondContinuation)
-    const resolvedOutcomes = secondContinuation.actionOutcomes.filter(
-      (outcome): outcome is Extract<EffectOutcome, { type: "RESOLVED" }> => outcome.type === "RESOLVED",
-    )
-    expect(resolvedOutcomes.find(({ result }) => result.includes("exchanged"))).toBeUndefined()
-    expect(third.value.fleets[defender.id]).toBeUndefined()
-    expect(third.value.fleets[firstJourney.id]).toMatchObject({ strength: 10, originPlanetId: target.id })
-    expect(third.value.fleets[attacker.id]?.strength).toBe(20)
-    expect(third.value.resolvedContinuations).toHaveLength(1)
-    expect(third.value.resolvedContinuations[0]?.actionOutcomes.at(-1)).toMatchObject({
-      type: "RESOLVED",
-      result: expect.stringContaining("exchanged 20 Strength with 20 enemy Strength"),
-    })
-    expect(fourth.value.fleets[firstJourney.id]?.strength).toBe(10)
-    expect(fourth.value.fleets[firstJourney.id]?.movement).toBeUndefined()
-    expect(fourth.value.resolvedContinuations).toHaveLength(0)
-  })
-
-  it("should merge the exact speed-two 5I/1F Assault into its named friendly survivor", () => {
-    // Arrange
-    const origin = planet("friendly-speed-two-origin", PLAYER_A, 0)
-    const target = planet("friendly-speed-two-target", PLAYER_B, 5)
-    const attacker = fleet("friendly-speed-two-attacker", PLAYER_A, origin, 50)
-    const defender = fleet("friendly-speed-two-defender", PLAYER_B, target, 20)
-    const friendly = createFleetStub({
-      id: "friendly-speed-two-survivor",
-      ownerPlayerId: PLAYER_A,
-      originPlanetId: target.id,
-      name: "Home Guard",
-      strength: 7,
-    })
-    const submission = createSubmittedActionStub({
-      id: SpeedTwoAttackMoveTest.id + "_1",
-      playerId: PLAYER_A,
-      actionDefinitionId: SpeedTwoAttackMoveTest.id,
-      selectedTargets: { fleet: attacker.id, planet: target.id },
-      selectedInputs: { strength: 30 },
-    })
-
-    // Act
-    const first = resolve({
-      planets: [origin, target],
-      fleets: [attacker, defender, friendly],
-      submissions: [submission],
-      ruleset: SpeedTwoAttackMoveRuleset,
-    })
-    const firstJourney = Object.values(first.fleets).find(({ movement }) => movement !== undefined)
-    Assert.isDefined(firstJourney)
-
-    // Continue resolving after each persisted JSON reload.
-    const second = resolveTurn(
-      createTurnStateStub({
-        turn: 2,
-        players: first.players,
-        planets: first.planets,
-        fleets: indexBy(
-          "id",
-          Object.values(first.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
-        ),
-      }),
-      SpeedTwoAttackMoveRuleset,
-      createSeededRng(),
-    )
-    Assert.isSuccess(second)
-    const third = resolveTurn(
-      createTurnStateStub({
-        turn: 3,
-        players: second.value.players,
-        planets: second.value.planets,
-        fleets: indexBy(
-          "id",
-          Object.values(second.value.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
-        ),
-      }),
-      SpeedTwoAttackMoveRuleset,
-      createSeededRng(),
-    )
-    Assert.isSuccess(third)
-
-    // Assert
-    expect(firstJourney).toMatchObject({ strength: 30, distanceToEnd: 3 })
-    expect(second.value.fleets[defender.id]?.strength).toBe(20)
-    expect(third.value.fleets[defender.id]).toBeUndefined()
-    expect(third.value.fleets[friendly.id]).toMatchObject({
-      id: friendly.id,
-      name: "Home Guard",
-      strength: 17,
-      originPlanetId: target.id,
-    })
-    expect(third.value.fleets[firstJourney.id]).toBeUndefined()
-    expect(third.value.removedFleetIds).toContain(firstJourney.id)
-    expect(third.value.resolvedContinuations).toHaveLength(1)
-  })
-
-  it("should replay canonical pooled Action Id ties through the seeded shuffle", () => {
-    // Arrange
-    const originA = planet("rng-origin-a", PLAYER_A, 0)
-    const originB = planet("rng-origin-b", PLAYER_B, 0)
-    const target = planet("rng-target", PLAYER_C, 0.25)
-    const attackerA = fleet("rng-attacker-a", PLAYER_A, originA, 10)
-    const attackerB = fleet("rng-attacker-b", PLAYER_B, originB, 20)
-    // Act
-    const rng = createSeededRng(1234)
-    const result = resolve({
-      planets: [originA, originB, target],
-      fleets: [attackerA, attackerB],
-      submissions: [attackMove(PLAYER_A, attackerA, originA, target, 10), attackMove(PLAYER_B, attackerB, originB, target, 20)],
-      rng,
-    })
-
-    // Assert
-    expect(ownerStrengths(result.fleets, PLAYER_A)).toStrictEqual([])
-    expect(ownerStrengths(result.fleets, PLAYER_B)).toStrictEqual([10])
-    expect(lastOutcome(result, PLAYER_A).type).toBe("PREVENTED")
-    expect(lastOutcome(result, PLAYER_B).type).toBe("RESOLVED")
-    expect(rng.getState()).toStrictEqual({ generatorState: 1831567047, spareNormal: null })
+    verifyAttackerAPhase1()
   })
 })
-
-type ResolveOptions = Readonly<{
-  ruleset?: Ruleset
-  turn?: number
-  planets: readonly Planet[]
-  fleets: readonly Fleet[]
-  submissions: ReadonlyArray<ReturnType<typeof createSubmittedActionStub>>
-  rng?: ReturnType<typeof createSeededRng>
-}>
-
-function createPooledAssaultScenario(): {
-  target: Planet
-  attackerA: Fleet
-  attackerB: Fleet
-  submissionA: ReturnType<typeof stationaryAssault>
-  submissionB: ReturnType<typeof stationaryAssault>
-} {
-  const target = planet("pooled-target", PLAYER_C, 0)
-  const attackerA = fleet("pooled-attacker-a", PLAYER_A, target, 30)
-  const attackerB = fleet("pooled-attacker-b", PLAYER_B, target, 20)
-  const submissionA = stationaryAssault(PLAYER_A, attackerA, target)
-  const submissionB = stationaryAssault(PLAYER_B, attackerB, target)
-  return { target, attackerA, attackerB, submissionA, submissionB }
-}
-
-function resolve({
-  turn = 1,
-  planets,
-  fleets,
-  submissions,
-  rng = createSeededRng(),
-  ruleset = TestRuleset,
-}: ResolveOptions): ResolvedTurnState {
-  const result = resolveTurn(
-    createTurnStateStub({
-      turn,
-      submittedActions: submissions,
-      planets: indexBy("id", planets),
-      fleets: indexBy("id", fleets),
-      players: indexBy(
-        "id",
-        [PLAYER_A, PLAYER_B, PLAYER_C].map((id) => ({
-          id,
-          resources: createResourcesStub({
-            [ResourceType.INFLUENCE]: 100,
-            [ResourceType.METAL]: 100,
-            [ResourceType.FUEL]: 100,
-          }),
-        })),
-      ),
-    }),
-    ruleset,
-    rng,
-  )
-  Assert.isSuccess(result)
-  return result.value
-}
-
-function planet(id: string, ownerPlayerId: PlayerId, x: number): Planet {
-  return createPlanetStub({ id, ownerPlayerId, x, y: 0 })
-}
-
-function fleet(id: string, ownerPlayerId: PlayerId, home: Planet, strength: number): Fleet {
-  return createFleetStub({
-    id,
-    ownerPlayerId,
-    originPlanetId: home.id,
-    strength,
-    name: id + "-name",
-  })
-}
-
-function moveSubmission(
-  playerId: PlayerId,
-  source: Fleet,
-  target: Planet,
-  strength: number,
-  actionDefinitionId: string,
-): ReturnType<typeof createSubmittedActionStub> {
-  return createSubmittedActionStub({
-    id: actionDefinitionId + "_1",
-    playerId,
-    actionDefinitionId,
-    selectedTargets: { fleet: source.id, planet: target.id },
-    selectedInputs: { strength },
-  })
-}
-
-function buildSubmission(playerId: PlayerId, target: Planet): ReturnType<typeof createSubmittedActionStub> {
-  return createSubmittedActionStub({
-    id: "BUILD_FLEET_STANDARD_1",
-    playerId,
-    actionDefinitionId: "BUILD_FLEET_STANDARD",
-    selectedTargets: { planet: target.id },
-    selectedInputs: {},
-  })
-}
-function attackMove(
-  playerId: PlayerId,
-  source: Fleet,
-  origin: Planet,
-  target: Planet,
-  strength: number,
-): ReturnType<typeof createSubmittedActionStub> {
-  return createSubmittedActionStub({
-    id: AttackMoveTest.id + "_1",
-    playerId,
-    actionDefinitionId: AttackMoveTest.id,
-    selectedTargets: { fleet: source.id, planet: target.id },
-    selectedInputs: { strength },
-  })
-}
-
-function stationaryAssault(playerId: PlayerId, source: Fleet, target: Planet): ReturnType<typeof createSubmittedActionStub> {
-  return createSubmittedActionStub({
-    id: StationaryAssaultTest.id + "_1",
-    playerId,
-    actionDefinitionId: StationaryAssaultTest.id,
-    selectedTargets: { station: source.id, battlePlanet: target.id },
-  })
-}
-
-function assaultOutcomesFor(result: ResolvedTurnState, playerId: PlayerId, submittedActionId: string): EffectOutcome[] {
-  const action = result.resolvedActions.find(
-    ({ submittedAction }) => submittedAction.playerId === playerId && submittedAction.id === submittedActionId,
-  )
-  return action?.actionOutcomes.filter(isAssaultOutcome) ?? []
-}
-function isAssaultOutcome(outcome: EffectOutcome): boolean {
-  return outcome.type === "RESOLVED" && (outcome.result.includes("exchanged") || outcome.result.includes("found no enemy Fleets"))
-}
-
-function compareNormalizedOutcome(first: { playerId: string; actionId: string }, second: { playerId: string; actionId: string }): number {
-  const playerOrder = compareOrdinalStrings(first.playerId, second.playerId)
-  if (playerOrder !== 0) {
-    return playerOrder
-  }
-  return compareOrdinalStrings(first.actionId, second.actionId)
-}
-function ownerStrengths(fleets: Readonly<Record<string, Fleet>>, ownerPlayerId: PlayerId): number[] {
-  return Object.values(fleets)
-    .filter((candidate) => candidate.ownerPlayerId === ownerPlayerId)
-    .map((candidate) => candidate.strength)
-    .toSorted((first, second) => first - second)
-}
-
-function outcomeText(result: ReturnType<typeof resolve>, playerId: PlayerId, submittedActionId?: string): string {
-  const outcome = lastOutcome(result, playerId, submittedActionId)
-  return outcome.type === "RESOLVED" ? outcome.result : outcome.reason
-}
-
-function lastOutcome(result: ReturnType<typeof resolve>, playerId: PlayerId, submittedActionId?: string): EffectOutcome {
-  const action = result.resolvedActions.find(
-    (candidate) =>
-      candidate.submittedAction.playerId === playerId &&
-      (submittedActionId === undefined || candidate.submittedAction.id === submittedActionId),
-  )
-  const outcome = action?.actionOutcomes.at(-1)
-  if (outcome === undefined) {
-    throw new Error("Expected the player's submitted order to have an outcome")
-  }
-  return outcome
-}

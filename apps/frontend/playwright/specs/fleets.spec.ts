@@ -80,7 +80,7 @@ test("fleet origin and destination links open their planets in the galaxy view",
     expect(await moverActionsPage.targetOptionLabels("Planet")).toContain(destinationChoice)
     await moverActionsPage.chooseTarget("Planet", destinationChoice)
     destinationPlanetName = "planet 15029"
-    await moverActionsPage.enterNumericInput("Move Fleet", "Standard Directive", "Fleet strength", 5)
+    await moverActionsPage.enterNumericInput("Move Fleet", "Standard Directive", "Fleet strength", { value: 5 })
     await moverActionsPage.toggleActionSelection("Move Fleet", "Standard Directive")
     await expect(moverActionsPage.selectActionButton("Move Fleet", "Standard Directive")).toHaveText("Update action")
     const playersPage = await moverActionsPage.openPlayers()
@@ -174,7 +174,7 @@ test("a moving fleet keeps its Action bound through continuation and releases it
   expect(await actionsPage.targetOptionLabels("Planet")).toContain(destinationChoice)
   await actionsPage.chooseTarget("Planet", destinationChoice)
   const destinationPlanetName = destinationChoice.replace(/ \([^()]+\)$/, "")
-  await actionsPage.enterNumericInput(actionName, actionTier, "Fleet strength", 4)
+  await actionsPage.enterNumericInput(actionName, actionTier, "Fleet strength", { value: 4 })
   await actionsPage.toggleActionSelection(actionName, actionTier)
   await expect(actionsPage.selectActionButton(actionName, actionTier)).toHaveText("Update action")
   await actionsPage.toggleActionSelection("Refine Fuel")
@@ -292,7 +292,7 @@ test("a moving fleet keeps its Action bound through continuation and releases it
       targetsFromDestination = [await actionsPage.selectedTargetValue(actionName, actionTier, "Planet")]
     } else {
       expect(await actionsPage.openTargetPicker(actionName, actionTier, "Planet")).toBe(true)
-      await actionsPage.searchTarget(actionName, actionTier, "Planet", originCoordinates)
+      await actionsPage.searchTarget(actionName, actionTier, "Planet", { query: originCoordinates })
       targetsFromDestination = await actionsPage.targetOptionLabels("Planet")
     }
     const originTarget = targetsFromDestination.find((label) => label.endsWith(`(${originCoordinates})`))
@@ -306,7 +306,7 @@ test("a moving fleet keeps its Action bound through continuation and releases it
     if (!(await actionsPage.isTargetPickerDisabled(actionName, actionTier, "Planet"))) {
       await actionsPage.chooseTarget("Planet", originTarget)
     }
-    await actionsPage.enterNumericInput(actionName, actionTier, "Fleet strength", 1)
+    await actionsPage.enterNumericInput(actionName, actionTier, "Fleet strength", { value: 1 })
     await expect(actionsPage.selectActionButton(actionName, actionTier)).toBeEnabled()
   })
 })

@@ -1,10 +1,10 @@
-/**
- * Exports API types for the frontend
- */
-
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import type { TrpcRouter } from "./createApi.ts"
+
+/**
+ * Exports API types for the frontend
+ */
 
 type TrpcRouterInput = inferRouterInputs<TrpcRouter>
 type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
@@ -57,3 +57,6 @@ export type PlanetSize = Planet["size"]
 
 // Account
 export type FinishOnboardingRequest = TrpcRouterInput["accounts"]["finishOnboarding"]
+
+/** The configured input slot returned in an Action Definition. */
+export type ActionInputDefinition = ActionDefinition["inputs"][keyof ActionDefinition["inputs"]]

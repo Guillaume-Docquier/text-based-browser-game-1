@@ -62,8 +62,7 @@ export class ActionsPage extends GamePage {
     actionName: string,
     identifyingText: string,
     targetName: string,
-    query: string,
-    instanceIndex?: number,
+    { query, instanceIndex }: { query: string; instanceIndex?: number },
   ): Promise<void> {
     await this.targetPicker(actionName, identifyingText, targetName, instanceIndex).fill(query)
   }
@@ -85,8 +84,7 @@ export class ActionsPage extends GamePage {
     actionName: string,
     identifyingText: string,
     label: string,
-    value: number,
-    instanceIndex?: number,
+    { value, instanceIndex }: { value: number; instanceIndex?: number },
   ): Promise<void> {
     await this.action(actionName, identifyingText, instanceIndex).getByRole("spinbutton", { name: label }).fill(value.toString())
   }

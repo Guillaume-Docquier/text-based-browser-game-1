@@ -1,7 +1,7 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { NonNegativeNumberSchema, safeTypedParse, typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { v5 } from "uuid"
-import { NonNegativeSafeIntegerSchema } from "#shared/domain/NonNegativeSafeInteger.ts"
+import { type NonNegativeSafeInteger, NonNegativeSafeIntegerSchema } from "#shared/domain/NonNegativeSafeInteger.ts"
 import { PositiveIntegerSchema } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import type { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
@@ -12,6 +12,8 @@ import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { Effect } from "#shared/turn-resolution/effects/Effect.ts"
 import { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
 import { resolveTargetId } from "#shared/turn-resolution/effects/resolveTargetId.ts"
+import type { ResolutionFleet } from "#shared/turn-resolution/state/ResolutionFleet.ts"
+import type { ResolutionPlanet } from "#shared/turn-resolution/state/ResolutionPlanet.ts"
 import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 import { TurnState } from "#shared/turn-resolution/TurnState.ts"
 
@@ -28,8 +30,10 @@ export class FleetMoveEffect extends Effect {
     id: number,
     effectDefinition: FleetMoveEffectDefinition,
     submittedAction: SubmittedAction,
-    pendingArrivalEffects: readonly PendingArrivalEffect[] = [],
-    definitionOrdinal: number = id,
+    {
+      pendingArrivalEffects = [],
+      definitionOrdinal = id,
+    }: { pendingArrivalEffects?: readonly PendingArrivalEffect[]; definitionOrdinal?: number } = {},
   ) {
     super(id, effectDefinition.type, submittedAction, definitionOrdinal)
     this.effectDefinition = effectDefinition
@@ -87,6 +91,29 @@ export class FleetMoveEffect extends Effect {
       return Result.Failure(EffectError.Failed({ error: `Deterministic departure Fleet "${departureId}" already exists` }))
     }
 
+    this.depart(context, { fleet, strength, departureId, originPlanet, destinationPlanet })
+    return Result.Success([
+      EffectOutcome.Resolved({
+        result: `Fleet "${fleet.name}" sent ${strength} Strength from Planet "${originPlanet.name}" towards Planet "${destinationPlanet.name}"`,
+      }),
+    ])
+  }
+  private depart(
+    context: TurnContext,
+    {
+      fleet,
+      strength,
+      departureId,
+      originPlanet,
+      destinationPlanet,
+    }: {
+      fleet: ResolutionFleet
+      strength: NonNegativeSafeInteger
+      departureId: FleetId
+      originPlanet: ResolutionPlanet
+      destinationPlanet: ResolutionPlanet
+    },
+  ): void {
     const remainingStrength = typedParse(NonNegativeSafeIntegerSchema, fleet.strength - strength)
     if (remainingStrength === 0) {
       TurnState.removeFleet(context.turnState, fleet.id)
@@ -116,11 +143,5 @@ export class FleetMoveEffect extends Effect {
     }
     context.turnState.fleets[departureId] = departureFleet
     context.newDepartureFleetIds.add(departureId)
-
-    return Result.Success([
-      EffectOutcome.Resolved({
-        result: `Fleet "${fleet.name}" sent ${strength} Strength from Planet "${originPlanet.name}" towards Planet "${destinationPlanet.name}"`,
-      }),
-    ])
   }
 }

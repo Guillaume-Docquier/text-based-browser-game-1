@@ -16,8 +16,7 @@ import type { ReactElement } from "react"
 import type { EligibilityState } from "shared/action-submission/evaluateActionSelection.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { RulesetSchema, type Ruleset as SharedRuleset } from "shared/domain/ruleset/Ruleset.ts"
-import { AvailableActionSchema, SubmittedActionSchema } from "shared/domain/turns/actions/Action.ts"
-import type { Action as SharedAction } from "shared/domain/turns/actions/Action.ts"
+import { AvailableActionSchema, SubmittedActionSchema, type Action as SharedAction } from "shared/domain/turns/actions/Action.ts"
 import { FleetSchema } from "shared/domain/world/fleets/Fleet.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { ActionCard } from "@/features/play/components/ActionCard.tsx"
@@ -132,26 +131,7 @@ export function createEligibilityState(
     return { success: false, message: rulesetResult.error.message }
   }
 
-  const actions: Array<{ success: true; action: SharedAction } | { success: false; message: string }> = playerView.actions.map((action) => {
-    const common = {
-      id: action.id,
-      playerId: playerView.player.id,
-      actionDefinitionId: action.actionDefinitionId,
-    }
-    if (action.selectedTargets === null && action.selectedInputs === null) {
-      const parsed = safeTypedParse(AvailableActionSchema, { ...common, selectedTargets: null, selectedInputs: null })
-      return parsed.success ? { success: true as const, action: parsed.data } : { success: false as const, message: parsed.error.message }
-    }
-    if (action.selectedTargets !== null && action.selectedInputs !== null) {
-      const parsed = safeTypedParse(SubmittedActionSchema, {
-        ...common,
-        selectedTargets: action.selectedTargets,
-        selectedInputs: action.selectedInputs,
-      })
-      return parsed.success ? { success: true as const, action: parsed.data } : { success: false as const, message: parsed.error.message }
-    }
-    return { success: false as const, message: `Action ${action.id} has incomplete target and input selections.` }
-  })
+  const actions = playerView.actions.map((action) => parsePlayerAction(action, playerView))
   const invalidAction = actions.find((result): result is { success: false; message: string } => !result.success)
   if (invalidAction !== undefined) {
     return { success: false, message: invalidAction.message }
@@ -187,4 +167,27 @@ export function createEligibilityState(
       actions: actions.flatMap((result) => (result.success ? [result.action] : [])),
     },
   }
+}
+function parsePlayerAction(
+  action: Action,
+  playerView: PlayerView,
+): { success: true; action: SharedAction } | { success: false; message: string } {
+  const common = {
+    id: action.id,
+    playerId: playerView.player.id,
+    actionDefinitionId: action.actionDefinitionId,
+  }
+  if (action.selectedTargets === null && action.selectedInputs === null) {
+    const parsed = safeTypedParse(AvailableActionSchema, { ...common, selectedTargets: null, selectedInputs: null })
+    return parsed.success ? { success: true as const, action: parsed.data } : { success: false as const, message: parsed.error.message }
+  }
+  if (action.selectedTargets !== null && action.selectedInputs !== null) {
+    const parsed = safeTypedParse(SubmittedActionSchema, {
+      ...common,
+      selectedTargets: action.selectedTargets,
+      selectedInputs: action.selectedInputs,
+    })
+    return parsed.success ? { success: true as const, action: parsed.data } : { success: false as const, message: parsed.error.message }
+  }
+  return { success: false as const, message: `Action ${action.id} has incomplete target and input selections.` }
 }

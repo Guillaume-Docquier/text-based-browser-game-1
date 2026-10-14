@@ -79,34 +79,43 @@ export function resolveColonizationPhase(context: TurnContext): Result<TurnConte
       end += 1
     }
     const group = candidates.slice(first, end)
-    const eligible: ScheduledColonization[] = []
-    for (const candidate of group) {
-      const candidateEligibility = getCandidateEligibility(context, candidate)
-      if (Result.isFailure(candidateEligibility)) {
-        return Result.Failure(ResolvePhaseError.FailedEffect({ error: candidateEligibility.error }))
-      }
-      if (candidateEligibility.value) {
-        eligible.push(candidate)
-      } else {
-        const result = resolveCandidate(context, candidate)
-        if (Result.isFailure(result)) {
-          return Result.Failure(ResolvePhaseError.FailedEffect({ error: result.error }))
-        }
-      }
-    }
-
-    const canonicalEligible = eligible.toSorted(compareArrivalProvenance)
-    const orderedEligible = canonicalEligible.length > 1 ? context.rng.shuffle(canonicalEligible) : canonicalEligible
-    for (const candidate of orderedEligible) {
-      const result = resolveCandidate(context, candidate)
-      if (Result.isFailure(result)) {
-        return Result.Failure(ResolvePhaseError.FailedEffect({ error: result.error }))
-      }
-    }
+    const result = resolveColonizationGroup(context, group)
+    if (Result.isFailure(result)) return result
     first = end
   }
 
   return Result.Success(context)
+}
+function resolveColonizationGroup(context: TurnContext, group: readonly ScheduledColonization[]): Result<void, ResolvePhaseError> {
+  const eligible: ScheduledColonization[] = []
+  for (const candidate of group) {
+    const result = prepareColonizationCandidate(context, candidate, eligible)
+    if (Result.isFailure(result)) return result
+  }
+  const canonicalEligible = eligible.toSorted(compareArrivalProvenance)
+  const orderedEligible = canonicalEligible.length > 1 ? context.rng.shuffle(canonicalEligible) : canonicalEligible
+  for (const candidate of orderedEligible) {
+    const result = resolveCandidate(context, candidate)
+    if (Result.isFailure(result)) {
+      return Result.Failure(ResolvePhaseError.FailedEffect({ error: result.error }))
+    }
+  }
+
+  return Result.Success(undefined)
+}
+function prepareColonizationCandidate(
+  context: TurnContext,
+  candidate: ScheduledColonization,
+  eligible: ScheduledColonization[],
+): Result<void, ResolvePhaseError> {
+  const result = getCandidateEligibility(context, candidate)
+  if (Result.isFailure(result)) return Result.Failure(ResolvePhaseError.FailedEffect({ error: result.error }))
+  if (result.value) {
+    eligible.push(candidate)
+    return Result.Success(undefined)
+  }
+  const resolved = resolveCandidate(context, candidate)
+  return Result.isFailure(resolved) ? Result.Failure(ResolvePhaseError.FailedEffect({ error: resolved.error })) : Result.Success(undefined)
 }
 
 function getCandidateEligibility(

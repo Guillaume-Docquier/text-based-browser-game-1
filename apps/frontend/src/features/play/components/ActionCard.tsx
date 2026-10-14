@@ -1,4 +1,6 @@
 import type {
+  TargetDefinition,
+  ActionInputDefinition,
   Action,
   ActionDefinition,
   InputTag,
@@ -14,6 +16,8 @@ import { safeTypedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import {
+  type SelectionEvaluation,
+  type EligibilityIssue,
   evaluateActionSelection,
   evaluateTargetCandidate,
   type ActionSelectionDraft,
@@ -24,6 +28,7 @@ import { FleetMoveEffectDefinition } from "shared/domain/ruleset/effect-definiti
 import type { Ruleset as SharedRuleset } from "shared/domain/ruleset/Ruleset.ts"
 import { SelectedInputsSchema } from "shared/domain/turns/actions/SelectedInputs.ts"
 import { SelectedTargetsSchema } from "shared/domain/turns/actions/SelectedTargets.ts"
+import type { Fleet } from "shared/domain/world/fleets/Fleet.ts"
 import { FleetIdSchema } from "shared/domain/world/fleets/FleetId.ts"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
@@ -74,118 +79,26 @@ export function ActionCard({
   eligibilityState,
   disabled,
   onSelect,
-}: {
-  actionDefinition: ActionDefinition
-  action: Action
-  playerView: PlayerView
-  players: Players
-  ruleset: SharedRuleset
-  eligibilityState: EligibilityState
-  disabled: boolean
-  onSelect: (selectedTargets: SelectedTargets | null, selectedInputs: SelectedInputs | null) => void
-}): ReactElement {
+}: ActionCardProps): ReactElement {
   const tierStyle = ACTION_TIER_STYLES[actionDefinition.tier]
   const ActionIcon = ACTION_TYPE_ICONS[actionDefinition.type]
-  const [draftTargets, setDraftTargets] = useState<Record<TargetTag, TargetId | undefined>>({})
-  const [draftInputs, setDraftInputs] = useState<Record<InputTag, number | undefined>>({})
-  const selectedTargets: Record<TargetTag, TargetId | undefined> = action.isInProgress ? {} : { ...action.selectedTargets, ...draftTargets }
-  const selectedInputs: Record<InputTag, number | undefined> = action.isInProgress ? {} : { ...action.selectedInputs, ...draftInputs }
-  const selectionDraft: ActionSelectionDraft = { actionId: action.id, selectedTargets, selectedInputs }
-  const targetDefinitions = Object.entries(actionDefinition.targets).map(([tag, targetDefinition]) => ({
-    tag: branded<TargetTag>(tag),
-    targetDefinition,
-  }))
-
-  // Apply single-choice defaults to the same draft used for evaluation and submission.
-  for (let pass = 0; !action.isInProgress && pass < targetDefinitions.length; pass += 1) {
-    for (const { tag, targetDefinition } of targetDefinitions) {
-      if (getOwnRecordValue(selectedTargets, tag) !== undefined) {
-        continue
-      }
-      const options = getTargetOptions({
-        targetTag: tag,
-        targetDefinition,
-        playerView,
-        players,
-        state: eligibilityState,
-        ruleset,
-        draft: selectionDraft,
-      })
-      if (options.length === 1) {
-        const onlyOption = options[0]
-        if (onlyOption !== undefined) {
-          selectedTargets[tag] = onlyOption.id
-        }
-      }
-    }
-  }
-
-  const evaluation = action.isInProgress ? undefined : evaluateActionSelection({ state: eligibilityState, ruleset, draft: selectionDraft })
-  const canAfford = evaluation === undefined || !evaluation.issues.some(({ code }) => code === "INSUFFICIENT_RESOURCES")
-  const isSelected = !action.isInProgress && action.selectedTargets !== null
-  const targetSlots = action.isInProgress
-    ? []
-    : targetDefinitions.map(({ tag, targetDefinition }) => ({
-        tag,
-        targetDefinition,
-        options: getTargetOptions({
-          targetTag: tag,
-          targetDefinition,
-          playerView,
-          players,
-          state: eligibilityState,
-          ruleset,
-          draft: selectionDraft,
-        }),
-      }))
-  const inputSlots = action.isInProgress
-    ? []
-    : Object.entries(actionDefinition.inputs).map(([tag, inputDefinition]) => ({
-        tag: branded<InputTag>(tag),
-        inputDefinition,
-      }))
-
-  const fleetStrengthEffect = actionDefinition.effects.find(
-    (effect): effect is FleetMoveEffectDefinition | FleetColonizeEffectDefinition =>
-      effect.type === FleetMoveEffectDefinition.type || effect.type === FleetColonizeEffectDefinition.type,
-  )
-  const sourceFleetTargetId =
-    fleetStrengthEffect === undefined ? undefined : getOwnRecordValue(selectedTargets, fleetStrengthEffect.targets.fleet.actionTargetTag)
-  const sourceFleetId = sourceFleetTargetId === undefined ? undefined : safeTypedParse(FleetIdSchema, sourceFleetTargetId)
-  const sourceFleet = sourceFleetId?.success === true ? eligibilityState.fleets[sourceFleetId.data] : undefined
-  const remainingSourceStrength =
-    sourceFleet === undefined ? undefined : (evaluation?.remainingStrength[sourceFleet.id] ?? sourceFleet.strength)
-  const inProgressFleet = Object.values(eligibilityState.fleets).find(
-    (fleet) => fleet.ownerPlayerId === eligibilityState.submittingPlayerId && fleet.movement?.submission.id === action.id,
-  )
-  const inProgressDestination =
-    inProgressFleet?.destinationPlanetId !== undefined
-      ? playerView.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === inProgressFleet.destinationPlanetId)
-      : undefined
-  const actionIssues = evaluation?.issues.filter((issue) => issue.actionId === action.id || issue.actionId === undefined) ?? []
-  const inProgressSummary =
-    inProgressFleet === undefined
-      ? "Fleet journey in progress"
-      : [
-          inProgressFleet.name,
-          `${inProgressFleet.strength.toLocaleString()} strength`,
-          inProgressDestination === undefined ? undefined : `to ${inProgressDestination.name}`,
-          inProgressFleet.distanceToEnd === undefined
-            ? undefined
-            : `${inProgressFleet.distanceToEnd.toLocaleString(undefined, { maximumFractionDigits: 2 })} ly remaining`,
-        ]
-          .filter((part): part is string => part !== undefined)
-          .join(" · ")
-
-  function submitSelection(): void {
-    const targetEntries = Object.entries(selectedTargets).filter((entry): entry is [string, TargetId] => entry[1] !== undefined)
-    const inputEntries = Object.entries(selectedInputs).filter((entry): entry is [string, number] => entry[1] !== undefined)
-    const parsedTargets = safeTypedParse(SelectedTargetsSchema, Object.fromEntries(targetEntries))
-    const parsedInputs = safeTypedParse(SelectedInputsSchema, Object.fromEntries(inputEntries))
-    if (evaluation?.status === "ELIGIBLE" && parsedTargets.success && parsedInputs.success) {
-      onSelect(parsedTargets.data, parsedInputs.data)
-    }
-  }
+  const {
+    targetSlots,
+    inputSlots,
+    selectedTargets,
+    selectedInputs,
+    evaluation,
+    canAfford,
+    isSelected,
+    sourceFleet,
+    fleetStrengthEffect,
+    remainingSourceStrength,
+    inProgressSummary,
+    actionIssues,
+    submitSelection,
+    setDraftTargets,
+    setDraftInputs,
+  } = useActionCardSelection({ actionDefinition, action, playerView, players, ruleset, eligibilityState, disabled, onSelect })
 
   return (
     <Card
@@ -228,70 +141,23 @@ export function ActionCard({
             {inProgressSummary}
           </p>
         ) : null}
-        {targetSlots.map(({ tag, targetDefinition, options }) => {
-          const issue = actionIssues.find(({ targetTag }) => targetTag === tag)
-          return (
-            <TargetPicker
-              key={tag}
-              targetTag={tag}
-              targetDefinition={targetDefinition}
-              options={options}
-              value={getOwnRecordValue(selectedTargets, tag)}
-              disabled={disabled}
-              issue={issue?.message}
-              onChange={(targetId) => {
-                const nextTargets: Record<TargetTag, TargetId | undefined> = { ...selectedTargets, [tag]: targetId }
-                for (const otherTag of Object.keys(actionDefinition.targets).map((value) => branded<TargetTag>(value))) {
-                  if (otherTag === tag) {
-                    continue
-                  }
-                  const otherTargetId = getOwnRecordValue(nextTargets, otherTag)
-                  if (otherTargetId === undefined) {
-                    continue
-                  }
-                  const candidateEvaluation = evaluateTargetCandidate({
-                    state: eligibilityState,
-                    ruleset,
-                    draft: { actionId: action.id, selectedTargets: nextTargets, selectedInputs },
-                    targetTag: otherTag,
-                    targetId: otherTargetId,
-                  })
-                  if (candidateEvaluation.candidateStatus === "INELIGIBLE") {
-                    nextTargets[otherTag] = undefined
-                  }
-                }
-                setDraftTargets(nextTargets)
-              }}
-            />
-          )
-        })}
-        {inputSlots.map(({ tag, inputDefinition }) => {
-          const issue = actionIssues.find(({ inputTag }) => inputTag === tag)
-          return (
-            <label key={tag} className="flex flex-col gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
-              {inputDefinition.label}
-              <Input
-                type="number"
-                min={1}
-                step={1}
-                inputMode="numeric"
-                aria-label={inputDefinition.label}
-                aria-invalid={issue !== undefined}
-                disabled={disabled}
-                value={getOwnRecordValue(selectedInputs, tag) ?? ""}
-                onChange={(event) => {
-                  const rawValue = event.currentTarget.value
-                  setDraftInputs({ ...selectedInputs, [tag]: rawValue === "" ? undefined : Number(rawValue) })
-                }}
-              />
-              {issue === undefined ? null : (
-                <span role="alert" className="text-xs text-destructive">
-                  {issue.message}
-                </span>
-              )}
-            </label>
-          )
-        })}
+        <ActionSelectionFields
+          actionDefinition={actionDefinition}
+          action={action}
+          playerView={playerView}
+          players={players}
+          ruleset={ruleset}
+          eligibilityState={eligibilityState}
+          disabled={disabled}
+          onSelect={onSelect}
+          targetSlots={targetSlots}
+          inputSlots={inputSlots}
+          selectedTargets={selectedTargets}
+          selectedInputs={selectedInputs}
+          actionIssues={actionIssues}
+          setDraftTargets={setDraftTargets}
+          setDraftInputs={setDraftInputs}
+        />
         {sourceFleet !== undefined && fleetStrengthEffect !== undefined ? (
           <p className="text-xs text-muted-foreground">
             {remainingSourceStrength?.toLocaleString()} of {sourceFleet.strength.toLocaleString()} strength available after this allocation
@@ -412,5 +278,343 @@ function ActionCosts({
         )
       })}
     </div>
+  )
+}
+
+type ActionCardProps = {
+  actionDefinition: ActionDefinition
+  action: Action
+  playerView: PlayerView
+  players: Players
+  ruleset: SharedRuleset
+  eligibilityState: EligibilityState
+  disabled: boolean
+  onSelect: (selectedTargets: SelectedTargets | null, selectedInputs: SelectedInputs | null) => void
+}
+
+function applySingleChoiceDefaults(
+  {
+    action,
+    actionDefinition,
+    playerView,
+    players,
+    ruleset,
+    eligibilityState,
+  }: Pick<ActionCardProps, "action" | "actionDefinition" | "playerView" | "players" | "ruleset" | "eligibilityState">,
+  selectionDraft: ActionSelectionDraft,
+): void {
+  const selectedTargets: Record<TargetTag, TargetId | undefined> = selectionDraft.selectedTargets
+  const targetDefinitions = Object.entries(actionDefinition.targets).map(([tag, targetDefinition]) => ({
+    tag: branded<TargetTag>(tag),
+    targetDefinition,
+  }))
+  // Apply single-choice defaults to the same draft used for evaluation and submission.
+  for (let pass = 0; !action.isInProgress && pass < targetDefinitions.length; pass += 1) {
+    for (const { tag, targetDefinition } of targetDefinitions) {
+      if (getOwnRecordValue(selectedTargets, tag) !== undefined) {
+        continue
+      }
+      const options = getTargetOptions({
+        targetTag: tag,
+        targetDefinition,
+        playerView,
+        players,
+        state: eligibilityState,
+        ruleset,
+        draft: selectionDraft,
+      })
+      if (options.length === 1) {
+        const onlyOption = options[0]
+        if (onlyOption !== undefined) {
+          selectedTargets[tag] = onlyOption.id
+        }
+      }
+    }
+  }
+}
+
+function getJourneySummary(action: Action, eligibilityState: EligibilityState, playerView: PlayerView): string {
+  const inProgressFleet = Object.values(eligibilityState.fleets).find(
+    (fleet) => fleet.ownerPlayerId === eligibilityState.submittingPlayerId && fleet.movement?.submission.id === action.id,
+  )
+  const inProgressDestination =
+    inProgressFleet?.destinationPlanetId !== undefined
+      ? playerView.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === inProgressFleet.destinationPlanetId)
+      : undefined
+  return inProgressFleet === undefined
+    ? "Fleet journey in progress"
+    : [
+        inProgressFleet.name,
+        `${inProgressFleet.strength.toLocaleString()} strength`,
+        inProgressDestination === undefined ? undefined : `to ${inProgressDestination.name}`,
+        inProgressFleet.distanceToEnd === undefined
+          ? undefined
+          : `${inProgressFleet.distanceToEnd.toLocaleString(undefined, { maximumFractionDigits: 2 })} ly remaining`,
+      ]
+        .filter((part): part is string => part !== undefined)
+        .join(" · ")
+}
+
+function getSourceStrength(
+  actionDefinition: ActionDefinition,
+  selectedTargets: Readonly<Record<TargetTag, TargetId | undefined>>,
+  eligibilityState: EligibilityState,
+  evaluation: SelectionEvaluation | undefined,
+): {
+  sourceFleet: Fleet | undefined
+  fleetStrengthEffect: FleetMoveEffectDefinition | FleetColonizeEffectDefinition | undefined
+  remainingSourceStrength: number | undefined
+} {
+  const fleetStrengthEffect = actionDefinition.effects.find(
+    (effect): effect is FleetMoveEffectDefinition | FleetColonizeEffectDefinition =>
+      effect.type === FleetMoveEffectDefinition.type || effect.type === FleetColonizeEffectDefinition.type,
+  )
+  const sourceFleetTargetId =
+    fleetStrengthEffect === undefined ? undefined : getOwnRecordValue(selectedTargets, fleetStrengthEffect.targets.fleet.actionTargetTag)
+  const sourceFleetId = sourceFleetTargetId === undefined ? undefined : safeTypedParse(FleetIdSchema, sourceFleetTargetId)
+  const sourceFleet = sourceFleetId?.success === true ? eligibilityState.fleets[sourceFleetId.data] : undefined
+  const remainingSourceStrength =
+    sourceFleet === undefined ? undefined : (evaluation?.remainingStrength[sourceFleet.id] ?? sourceFleet.strength)
+  return { sourceFleet, fleetStrengthEffect, remainingSourceStrength }
+}
+
+function replaceTarget(
+  {
+    actionDefinition,
+    eligibilityState,
+    ruleset,
+    action,
+  }: Pick<ActionCardProps, "actionDefinition" | "eligibilityState" | "ruleset" | "action">,
+  selectedTargets: Record<TargetTag, TargetId | undefined>,
+  selectedInputs: Record<InputTag, number | undefined>,
+  tag: TargetTag,
+  targetId: TargetId | undefined,
+): Record<TargetTag, TargetId | undefined> {
+  const nextTargets: Record<TargetTag, TargetId | undefined> = { ...selectedTargets, [tag]: targetId }
+  for (const otherTag of Object.keys(actionDefinition.targets).map((value) => branded<TargetTag>(value))) {
+    if (otherTag === tag) {
+      continue
+    }
+    const otherTargetId = getOwnRecordValue(nextTargets, otherTag)
+    if (otherTargetId === undefined) {
+      continue
+    }
+    const candidateEvaluation = evaluateTargetCandidate({
+      state: eligibilityState,
+      ruleset,
+      draft: { actionId: action.id, selectedTargets: nextTargets, selectedInputs },
+      targetTag: otherTag,
+      targetId: otherTargetId,
+    })
+    if (candidateEvaluation.candidateStatus === "INELIGIBLE") {
+      nextTargets[otherTag] = undefined
+    }
+  }
+  return nextTargets
+}
+
+function ActionSelectionFields({
+  actionDefinition,
+  action,
+  ruleset,
+  eligibilityState,
+  disabled,
+  targetSlots,
+  inputSlots,
+  selectedTargets,
+  selectedInputs,
+  actionIssues,
+  setDraftTargets,
+  setDraftInputs,
+}: ActionCardProps & {
+  targetSlots: TargetSlot[]
+  inputSlots: InputSlot[]
+  selectedTargets: Record<TargetTag, TargetId | undefined>
+  selectedInputs: Record<InputTag, number | undefined>
+  actionIssues: readonly EligibilityIssue[]
+  setDraftTargets: (targets: Record<TargetTag, TargetId | undefined>) => void
+  setDraftInputs: (inputs: Record<InputTag, number | undefined>) => void
+}): ReactElement {
+  return (
+    <>
+      {targetSlots.map(({ tag, targetDefinition, options }) => {
+        const issue = actionIssues.find(({ targetTag }) => targetTag === tag)
+        return (
+          <TargetPicker
+            key={tag}
+            targetTag={tag}
+            targetDefinition={targetDefinition}
+            options={options}
+            value={getOwnRecordValue(selectedTargets, tag)}
+            disabled={disabled}
+            issue={issue?.message}
+            onChange={(targetId) => {
+              const nextTargets = replaceTarget(
+                { actionDefinition, eligibilityState, ruleset, action },
+                selectedTargets,
+                selectedInputs,
+                tag,
+                targetId,
+              )
+              setDraftTargets(nextTargets)
+            }}
+          />
+        )
+      })}
+      <ActionInputFields
+        inputSlots={inputSlots}
+        selectedInputs={selectedInputs}
+        actionIssues={actionIssues}
+        setDraftInputs={setDraftInputs}
+        disabled={disabled}
+      />
+    </>
+  )
+}
+type TargetSlot = { tag: TargetTag; targetDefinition: TargetDefinition; options: ReturnType<typeof getTargetOptions> }
+type InputSlot = { tag: InputTag; inputDefinition: ActionInputDefinition }
+
+function useActionCardSelection({
+  actionDefinition,
+  action,
+  playerView,
+  players,
+  ruleset,
+  eligibilityState,
+  onSelect,
+}: ActionCardProps): ActionCardSelection {
+  const [draftTargets, setDraftTargets] = useState<Record<TargetTag, TargetId | undefined>>({})
+  const [draftInputs, setDraftInputs] = useState<Record<InputTag, number | undefined>>({})
+  const selectedTargets: Record<TargetTag, TargetId | undefined> = action.isInProgress ? {} : { ...action.selectedTargets, ...draftTargets }
+  const selectedInputs: Record<InputTag, number | undefined> = action.isInProgress ? {} : { ...action.selectedInputs, ...draftInputs }
+  const selectionDraft: ActionSelectionDraft = { actionId: action.id, selectedTargets, selectedInputs }
+  const targetDefinitions = Object.entries(actionDefinition.targets).map(([tag, targetDefinition]) => ({
+    tag: branded<TargetTag>(tag),
+    targetDefinition,
+  }))
+
+  applySingleChoiceDefaults({ action, actionDefinition, playerView, players, ruleset, eligibilityState }, selectionDraft)
+  const evaluation = action.isInProgress ? undefined : evaluateActionSelection({ state: eligibilityState, ruleset, draft: selectionDraft })
+  const canAfford = evaluation === undefined || !evaluation.issues.some(({ code }) => code === "INSUFFICIENT_RESOURCES")
+  const isSelected = !action.isInProgress && action.selectedTargets !== null
+  const targetSlots = action.isInProgress
+    ? []
+    : targetDefinitions.map(({ tag, targetDefinition }) => ({
+        tag,
+        targetDefinition,
+        options: getTargetOptions({
+          targetTag: tag,
+          targetDefinition,
+          playerView,
+          players,
+          state: eligibilityState,
+          ruleset,
+          draft: selectionDraft,
+        }),
+      }))
+  const inputSlots = action.isInProgress
+    ? []
+    : Object.entries(actionDefinition.inputs).map(([tag, inputDefinition]) => ({
+        tag: branded<InputTag>(tag),
+        inputDefinition,
+      }))
+
+  const { sourceFleet, fleetStrengthEffect, remainingSourceStrength } = getSourceStrength(
+    actionDefinition,
+    selectedTargets,
+    eligibilityState,
+    evaluation,
+  )
+  const actionIssues = evaluation?.issues.filter((issue) => issue.actionId === action.id || issue.actionId === undefined) ?? []
+  const inProgressSummary = getJourneySummary(action, eligibilityState, playerView)
+
+  function submitSelection(): void {
+    const targetEntries = Object.entries(selectedTargets).filter((entry): entry is [string, TargetId] => entry[1] !== undefined)
+    const inputEntries = Object.entries(selectedInputs).filter((entry): entry is [string, number] => entry[1] !== undefined)
+    const parsedTargets = safeTypedParse(SelectedTargetsSchema, Object.fromEntries(targetEntries))
+    const parsedInputs = safeTypedParse(SelectedInputsSchema, Object.fromEntries(inputEntries))
+    if (evaluation?.status === "ELIGIBLE" && parsedTargets.success && parsedInputs.success) {
+      onSelect(parsedTargets.data, parsedInputs.data)
+    }
+  }
+
+  return {
+    targetSlots,
+    inputSlots,
+    selectedTargets,
+    selectedInputs,
+    evaluation,
+    canAfford,
+    isSelected,
+    sourceFleet,
+    fleetStrengthEffect,
+    remainingSourceStrength,
+    inProgressSummary,
+    actionIssues,
+    submitSelection,
+    setDraftTargets,
+    setDraftInputs,
+  }
+}
+
+type ActionCardSelection = {
+  targetSlots: TargetSlot[]
+  inputSlots: InputSlot[]
+  selectedTargets: Record<TargetTag, TargetId | undefined>
+  selectedInputs: Record<InputTag, number | undefined>
+  evaluation: SelectionEvaluation | undefined
+  canAfford: boolean
+  isSelected: boolean
+  sourceFleet: Fleet | undefined
+  fleetStrengthEffect: FleetMoveEffectDefinition | FleetColonizeEffectDefinition | undefined
+  remainingSourceStrength: number | undefined
+  inProgressSummary: string
+  actionIssues: readonly EligibilityIssue[]
+  submitSelection: () => void
+  setDraftTargets: React.Dispatch<React.SetStateAction<Record<TargetTag, TargetId | undefined>>>
+  setDraftInputs: React.Dispatch<React.SetStateAction<Record<InputTag, number | undefined>>>
+}
+
+function ActionInputFields({
+  inputSlots,
+  selectedInputs,
+  actionIssues,
+  setDraftInputs,
+  disabled,
+}: Pick<ActionCardSelection, "inputSlots" | "selectedInputs" | "actionIssues"> & {
+  disabled: boolean
+  setDraftInputs: (inputs: Record<InputTag, number | undefined>) => void
+}): ReactElement {
+  return (
+    <>
+      {" "}
+      {inputSlots.map(({ tag, inputDefinition }) => {
+        const issue = actionIssues.find(({ inputTag }) => inputTag === tag)
+        return (
+          <label key={tag} className="flex flex-col gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
+            {inputDefinition.label}
+            <Input
+              type="number"
+              min={1}
+              step={1}
+              inputMode="numeric"
+              aria-label={inputDefinition.label}
+              aria-invalid={issue !== undefined}
+              disabled={disabled}
+              value={getOwnRecordValue(selectedInputs, tag) ?? ""}
+              onChange={(event) => {
+                const rawValue = event.currentTarget.value
+                setDraftInputs({ ...selectedInputs, [tag]: rawValue === "" ? undefined : Number(rawValue) })
+              }}
+            />
+            {issue === undefined ? null : (
+              <span role="alert" className="text-xs text-destructive">
+                {issue.message}
+              </span>
+            )}
+          </label>
+        )
+      })}
+    </>
   )
 }

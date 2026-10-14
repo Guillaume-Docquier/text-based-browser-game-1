@@ -137,92 +137,102 @@ describe("Move and Assault action selection", () => {
         selectedInputs: { [branded<InputTag>("strength")]: 1 },
       },
     })
-    const gainCannotFund = evaluateSubmittedActions({
-      state: underfundedState,
-      ruleset: TestRuleset,
-      submissions,
-    })
 
-    // Assert
-    expect(submitted.status).toBe("ELIGIBLE")
-    expect(submitted.strengthCommitments[fleet.id]).toBe(50)
-    expect(submitted.remainingStrength[fleet.id]).toBe(0)
-    expect(submitted.resourceCommitments).toStrictEqual({
-      [ResourceType.INFLUENCE]: 8,
-      [ResourceType.METAL]: 0,
-      [ResourceType.FUEL]: 2,
-      [ResourceType.ENERGY]: 0,
-      [ResourceType.COLONY]: 0,
-    })
+    const verifyGainCannotFundPhase1 = (): void => {
+      const gainCannotFund = evaluateSubmittedActions({
+        state: underfundedState,
+        ruleset: TestRuleset,
+        submissions,
+      })
 
-    expect(editedAttack.status).toBe("INELIGIBLE")
-    expect(editedAttack.strengthCommitments[fleet.id]).toBe(51)
-    expect(editedAttack.issues.map(({ code }) => code)).toContain("INSUFFICIENT_STRENGTH")
+      // Assert
+      const assertSubmittedState1 = (): void => {
+        expect(submitted.status).toBe("ELIGIBLE")
+        expect(submitted.strengthCommitments[fleet.id]).toBe(50)
+        expect(submitted.remainingStrength[fleet.id]).toBe(0)
+        expect(submitted.resourceCommitments).toStrictEqual({
+          [ResourceType.INFLUENCE]: 8,
+          [ResourceType.METAL]: 0,
+          [ResourceType.FUEL]: 2,
+          [ResourceType.ENERGY]: 0,
+          [ResourceType.COLONY]: 0,
+        })
 
-    expect(editedMove.status).toBe("ELIGIBLE")
-    expect(editedMove.strengthCommitments[fleet.id]).toBe(49)
-    expect(editedMove.remainingStrength[fleet.id]).toBe(1)
-    expect(editedMove.resourceCommitments).toStrictEqual({
-      [ResourceType.INFLUENCE]: 8,
-      [ResourceType.METAL]: 0,
-      [ResourceType.FUEL]: 2,
-      [ResourceType.ENERGY]: 0,
-      [ResourceType.COLONY]: 0,
-    })
+        expect(editedAttack.status).toBe("INELIGIBLE")
+        expect(editedAttack.strengthCommitments[fleet.id]).toBe(51)
+        expect(editedAttack.issues.map(({ code }) => code)).toContain("INSUFFICIENT_STRENGTH")
 
-    expect(canceledMove.status).toBe("ELIGIBLE")
-    expect(canceledMove.strengthCommitments[fleet.id]).toBe(30)
-    expect(canceledMove.remainingStrength[fleet.id]).toBe(20)
-    expect(canceledMove.resourceCommitments[ResourceType.INFLUENCE]).toBe(5)
-    expect(canceledMove.resourceCommitments[ResourceType.FUEL]).toBe(1)
+        expect(editedMove.status).toBe("ELIGIBLE")
+        expect(editedMove.strengthCommitments[fleet.id]).toBe(49)
+        expect(editedMove.remainingStrength[fleet.id]).toBe(1)
+        expect(editedMove.resourceCommitments).toStrictEqual({
+          [ResourceType.INFLUENCE]: 8,
+          [ResourceType.METAL]: 0,
+          [ResourceType.FUEL]: 2,
+          [ResourceType.ENERGY]: 0,
+          [ResourceType.COLONY]: 0,
+        })
 
-    expect({
-      status: exhaustedSourceCandidate.status,
-      candidateStatus: exhaustedSourceCandidate.candidateStatus,
-      candidateIssues: exhaustedSourceCandidate.candidateIssues.map(({ code }) => code),
-      missingTargets: exhaustedSourceCandidate.missingTargets,
-      missingInputs: exhaustedSourceCandidate.missingInputs,
-      strengthCommitment: exhaustedSourceCandidate.strengthCommitments[fleet.id],
-      remainingStrength: exhaustedSourceCandidate.remainingStrength[fleet.id],
-      resourceCommitments: exhaustedSourceCandidate.resourceCommitments,
-    }).toStrictEqual({
-      status: "INELIGIBLE",
-      candidateStatus: "INELIGIBLE",
-      candidateIssues: ["INSUFFICIENT_STRENGTH"],
-      missingTargets: [branded<TargetTag>("planet")],
-      missingInputs: [branded<InputTag>("strength")],
-      strengthCommitment: 50,
-      remainingStrength: 0,
-      resourceCommitments: {
-        [ResourceType.INFLUENCE]: 13,
-        [ResourceType.METAL]: 0,
-        [ResourceType.FUEL]: 3,
-        [ResourceType.ENERGY]: 0,
-        [ResourceType.COLONY]: 0,
-      },
-    })
+        expect(canceledMove.status).toBe("ELIGIBLE")
+        expect(canceledMove.strengthCommitments[fleet.id]).toBe(30)
+        expect(canceledMove.remainingStrength[fleet.id]).toBe(20)
+        expect(canceledMove.resourceCommitments[ResourceType.INFLUENCE]).toBe(5)
+        expect(canceledMove.resourceCommitments[ResourceType.FUEL]).toBe(1)
 
-    expect(extraCostAttempt.status).toBe("INELIGIBLE")
-    expect(extraCostAttempt.issues).toContainEqual(
-      expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
-    )
-    expect(extraCostAttempt.issues).toContainEqual(
-      expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
-    )
-    expect(extraCostAttempt.strengthCommitments[fleet.id]).toBe(50)
-    expect(extraCostAttempt.strengthCommitments[extraFleet.id]).toBe(1)
-    expect(extraCostAttempt.resourceCommitments[ResourceType.INFLUENCE]).toBe(13)
-    expect(extraCostAttempt.resourceCommitments[ResourceType.FUEL]).toBe(3)
+        expect({
+          status: exhaustedSourceCandidate.status,
+          candidateStatus: exhaustedSourceCandidate.candidateStatus,
+          candidateIssues: exhaustedSourceCandidate.candidateIssues.map(({ code }) => code),
+          missingTargets: exhaustedSourceCandidate.missingTargets,
+          missingInputs: exhaustedSourceCandidate.missingInputs,
+          strengthCommitment: exhaustedSourceCandidate.strengthCommitments[fleet.id],
+          remainingStrength: exhaustedSourceCandidate.remainingStrength[fleet.id],
+          resourceCommitments: exhaustedSourceCandidate.resourceCommitments,
+        }).toStrictEqual({
+          status: "INELIGIBLE",
+          candidateStatus: "INELIGIBLE",
+          candidateIssues: ["INSUFFICIENT_STRENGTH"],
+          missingTargets: [branded<TargetTag>("planet")],
+          missingInputs: [branded<InputTag>("strength")],
+          strengthCommitment: 50,
+          remainingStrength: 0,
+          resourceCommitments: {
+            [ResourceType.INFLUENCE]: 13,
+            [ResourceType.METAL]: 0,
+            [ResourceType.FUEL]: 3,
+            [ResourceType.ENERGY]: 0,
+            [ResourceType.COLONY]: 0,
+          },
+        })
 
-    expect(gainCannotFund.status).toBe("INELIGIBLE")
-    expect(gainCannotFund.resourceCommitments[ResourceType.INFLUENCE]).toBe(8)
-    expect(gainCannotFund.resourceCommitments[ResourceType.FUEL]).toBe(2)
-    expect(gainCannotFund.issues).toContainEqual(
-      expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
-    )
-    expect(gainCannotFund.issues).not.toContainEqual(
-      expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
-    )
+        expect(extraCostAttempt.status).toBe("INELIGIBLE")
+        expect(extraCostAttempt.issues).toContainEqual(
+          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
+        )
+      }
+      assertSubmittedState1()
+      const assertExtraCostAttemptState2 = (): void => {
+        expect(extraCostAttempt.issues).toContainEqual(
+          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
+        )
+        expect(extraCostAttempt.strengthCommitments[fleet.id]).toBe(50)
+        expect(extraCostAttempt.strengthCommitments[extraFleet.id]).toBe(1)
+        expect(extraCostAttempt.resourceCommitments[ResourceType.INFLUENCE]).toBe(13)
+        expect(extraCostAttempt.resourceCommitments[ResourceType.FUEL]).toBe(3)
+
+        expect(gainCannotFund.status).toBe("INELIGIBLE")
+        expect(gainCannotFund.resourceCommitments[ResourceType.INFLUENCE]).toBe(8)
+        expect(gainCannotFund.resourceCommitments[ResourceType.FUEL]).toBe(2)
+        expect(gainCannotFund.issues).toContainEqual(
+          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
+        )
+        expect(gainCannotFund.issues).not.toContainEqual(
+          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
+        )
+      }
+      assertExtraCostAttemptState2()
+    }
+    verifyGainCannotFundPhase1()
   })
 })
 

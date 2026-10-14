@@ -50,8 +50,11 @@ test("Colonize Planet claims a natural-route target and consumes only 20 strengt
   await test.step("Select Colonize Planet 35 for the pinned neutral Planet", async () => {
     const fleetChoice = await actionsPage.chooseFirstTarget("Colonize Planet", "Exceptional Directive", "Fleet")
     expect(fleetChoice).toContain("(50 strength)")
-    await selectPlanetTarget(actionsPage, "Colonize Planet", "Exceptional Directive", "planet 684163", "55:07:50")
-    await actionsPage.enterNumericInput("Colonize Planet", "Exceptional Directive", "Fleet strength", 35)
+    await selectPlanetTarget(actionsPage, "Colonize Planet", "Exceptional Directive", {
+      planetName: "planet 684163",
+      coordinates: "55:07:50",
+    })
+    await actionsPage.enterNumericInput("Colonize Planet", "Exceptional Directive", "Fleet strength", { value: 35 })
     await expect(actionsPage.action("Colonize Planet", "Exceptional Directive")).toContainText("25 Influence")
     await expect(actionsPage.actionInput("Colonize Planet", "Exceptional Directive", "Fleet strength")).toHaveValue("35")
     await expect(actionsPage.selectActionButton("Colonize Planet", "Exceptional Directive")).toBeEnabled()
@@ -189,8 +192,11 @@ test("an explicit Assault can prevent an otherwise eligible Colonize action at 1
       if (turn === 4) {
         const sourceChoice = await attackerActionsPage.chooseFirstTarget("Move Fleet", "Exceptional Directive", "Fleet")
         expect(sourceChoice).toContain("(100 strength)")
-        await selectPlanetTarget(attackerActionsPage, "Move Fleet", "Exceptional Directive", "planet 649967", "55:19:10")
-        await attackerActionsPage.enterNumericInput("Move Fleet", "Exceptional Directive", "Fleet strength", 16)
+        await selectPlanetTarget(attackerActionsPage, "Move Fleet", "Exceptional Directive", {
+          planetName: "planet 649967",
+          coordinates: "55:19:10",
+        })
+        await attackerActionsPage.enterNumericInput("Move Fleet", "Exceptional Directive", "Fleet strength", { value: 16 })
         await expect(attackerActionsPage.actionInput("Move Fleet", "Exceptional Directive", "Fleet strength")).toHaveValue("16")
         await expect(attackerActionsPage.selectActionButton("Move Fleet", "Exceptional Directive")).toBeEnabled()
         await attackerActionsPage.toggleActionSelection("Move Fleet", "Exceptional Directive")
@@ -234,8 +240,11 @@ test("an explicit Assault can prevent an otherwise eligible Colonize action at 1
   await test.step("Send 35 strength from the colonizing player's 50-strength Fleet to the unclaimed Planet", async () => {
     const fleetChoice = await colonizerActionsPage.chooseFirstTarget("Colonize Planet", "Exceptional Directive", "Fleet")
     expect(fleetChoice).toContain("(50 strength)")
-    await selectPlanetTarget(colonizerActionsPage, "Colonize Planet", "Exceptional Directive", "planet 649967", "55:19:10")
-    await colonizerActionsPage.enterNumericInput("Colonize Planet", "Exceptional Directive", "Fleet strength", 35)
+    await selectPlanetTarget(colonizerActionsPage, "Colonize Planet", "Exceptional Directive", {
+      planetName: "planet 649967",
+      coordinates: "55:19:10",
+    })
+    await colonizerActionsPage.enterNumericInput("Colonize Planet", "Exceptional Directive", "Fleet strength", { value: 35 })
     await expect(colonizerActionsPage.resource("Influence")).toHaveAttribute("aria-label", "42 available of 42 Influence")
     await colonizerActionsPage.toggleActionSelection("Colonize Planet", "Exceptional Directive")
     await expect(colonizerActionsPage.resource("Influence")).toHaveAttribute("aria-label", "17 available of 42 Influence")
@@ -251,7 +260,7 @@ test("an explicit Assault can prevent an otherwise eligible Colonize action at 1
     await colonizerActionsPage.toggleActionSelection("Political Campaign")
     const stationPickerEnabled = await attackerActionsPage.openTargetPicker("Stationary Assault", "Improved Directive", "Station")
     expect(stationPickerEnabled).toBe(true)
-    await attackerActionsPage.searchTarget("Stationary Assault", "Improved Directive", "Station", "16 strength")
+    await attackerActionsPage.searchTarget("Stationary Assault", "Improved Directive", "Station", { query: "16 strength" })
     const stationOptions = await attackerActionsPage.targetOptionLabels("Station")
     expect(stationOptions).toHaveLength(1)
     const targetFleetChoice = stationOptions[0]
@@ -318,8 +327,7 @@ async function selectPlanetTarget(
   actionsPage: ActionsPage,
   actionName: string,
   tier: string,
-  planetName: string,
-  coordinates: string,
+  { planetName, coordinates }: { planetName: string; coordinates: string },
 ): Promise<void> {
   const pickerEnabled = await actionsPage.openTargetPicker(actionName, tier, "Planet")
   if (!pickerEnabled) {
@@ -327,7 +335,7 @@ async function selectPlanetTarget(
     return
   }
 
-  await actionsPage.searchTarget(actionName, tier, "Planet", planetName)
+  await actionsPage.searchTarget(actionName, tier, "Planet", { query: planetName })
   const choices = await actionsPage.targetOptionLabels("Planet")
   const choice = choices.find((option) => option.includes(planetName) && option.endsWith(`(${coordinates})`))
   Assert.isDefined(choice)

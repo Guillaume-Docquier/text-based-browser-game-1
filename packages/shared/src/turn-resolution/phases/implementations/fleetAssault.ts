@@ -8,6 +8,7 @@ import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import { isFleetPresentAtPlanet } from "#shared/domain/world/fleets/isFleetPresentAtPlanet.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
+import type { ResolutionFleet } from "#shared/turn-resolution/state/ResolutionFleet.ts"
 import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 import { TurnState } from "#shared/turn-resolution/TurnState.ts"
 
@@ -57,19 +58,9 @@ export function resolveFleetAssaultAttempt({
     )
   }
 
-  const stationaryFleets = Object.values(context.turnState.fleets).filter(
-    (fleet) =>
-      fleet.originPlanetId === planetId &&
-      fleet.destinationPlanetId === undefined &&
-      fleet.distanceToEnd === undefined &&
-      fleet.movement === undefined,
-  )
-  for (const fleet of stationaryFleets) {
-    if (!Number.isSafeInteger(fleet.strength) || fleet.strength < 0) {
-      return Result.Failure(EffectError.Failed({ error: `Fleet "${fleet.id}" has an unsafe Strength value` }))
-    }
-  }
-
+  const stationaryResult = stationaryCombatFleets(context, planetId)
+  if (Result.isFailure(stationaryResult)) return stationaryResult
+  const stationaryFleets = stationaryResult.value
   const defenders = stationaryFleets
     .filter((fleet) => fleet.ownerPlayerId !== submittingPlayerId && isFleetPresentAtPlanet(fleet, planetId))
     .toSorted((first, second) => compareOrdinalStrings(first.id, second.id))
@@ -83,6 +74,64 @@ export function resolveFleetAssaultAttempt({
   }
   const defenderTotal = Number(defenderTotalBigInt)
   const exchangedStrength = Math.min(attacker.strength, defenderTotal)
+  const allocationResult = allocateDefenderLosses(defenders, exchangedStrength, defenderTotalBigInt, planetId)
+  if (Result.isFailure(allocationResult)) return allocationResult
+  const allocations = allocationResult.value
+  const applied = applyAssaultLosses(context, attacker, exchangedStrength, allocations)
+  if (Result.isFailure(applied)) return applied
+  return Result.Success(
+    EffectOutcome.Resolved({
+      result: `Fleet "${attacker.name}" exchanged ${exchangedStrength} Strength with ${defenderTotal} enemy Strength at Planet "${planet.name}"`,
+    }),
+  )
+}
+function applyAssaultLosses(
+  context: TurnContext,
+  attacker: ResolutionFleet,
+  exchangedStrength: number,
+  allocations: readonly DefenderAllocation[],
+): Result<void, EffectError> {
+  attacker.strength = typedParse(NonNegativeSafeIntegerSchema, attacker.strength - exchangedStrength)
+  if (attacker.strength === 0) {
+    TurnState.removeFleet(context.turnState, attacker.id)
+    context.removedFleetIds.add(attacker.id)
+  }
+  for (const allocation of allocations) {
+    const defender = TurnState.getFleet(context.turnState, allocation.fleetId)
+    if (defender === undefined) {
+      return Result.Failure(EffectError.Failed({ error: `Defending Fleet "${allocation.fleetId}" disappeared during Assault` }))
+    }
+    defender.strength = typedParse(NonNegativeSafeIntegerSchema, allocation.strength - allocation.loss)
+    if (defender.strength === 0) {
+      TurnState.removeFleet(context.turnState, defender.id)
+      context.removedFleetIds.add(defender.id)
+    }
+  }
+
+  return Result.Success(undefined)
+}
+function stationaryCombatFleets(context: TurnContext, planetId: PlanetId): Result<ResolutionFleet[], EffectError> {
+  const stationaryFleets = Object.values(context.turnState.fleets).filter(
+    (fleet) =>
+      fleet.originPlanetId === planetId &&
+      fleet.destinationPlanetId === undefined &&
+      fleet.distanceToEnd === undefined &&
+      fleet.movement === undefined,
+  )
+  for (const fleet of stationaryFleets) {
+    if (!Number.isSafeInteger(fleet.strength) || fleet.strength < 0) {
+      return Result.Failure(EffectError.Failed({ error: `Fleet "${fleet.id}" has an unsafe Strength value` }))
+    }
+  }
+
+  return Result.Success(stationaryFleets)
+}
+function allocateDefenderLosses(
+  defenders: readonly ResolutionFleet[],
+  exchangedStrength: number,
+  defenderTotalBigInt: bigint,
+  planetId: PlanetId,
+): Result<DefenderAllocation[], EffectError> {
   const allocations: DefenderAllocation[] = defenders.map((fleet) => {
     const numerator = BigInt(exchangedStrength) * BigInt(fleet.strength)
     const quotient = numerator / defenderTotalBigInt
@@ -112,26 +161,5 @@ export function resolveFleetAssaultAttempt({
     return Result.Failure(EffectError.Failed({ error: `Could not distribute Assault losses at Planet "${planetId}" exactly` }))
   }
 
-  attacker.strength = typedParse(NonNegativeSafeIntegerSchema, attacker.strength - exchangedStrength)
-  if (attacker.strength === 0) {
-    TurnState.removeFleet(context.turnState, attacker.id)
-    context.removedFleetIds.add(attacker.id)
-  }
-  for (const allocation of allocations) {
-    const defender = TurnState.getFleet(context.turnState, allocation.fleetId)
-    if (defender === undefined) {
-      return Result.Failure(EffectError.Failed({ error: `Defending Fleet "${allocation.fleetId}" disappeared during Assault` }))
-    }
-    defender.strength = typedParse(NonNegativeSafeIntegerSchema, allocation.strength - allocation.loss)
-    if (defender.strength === 0) {
-      TurnState.removeFleet(context.turnState, defender.id)
-      context.removedFleetIds.add(defender.id)
-    }
-  }
-
-  return Result.Success(
-    EffectOutcome.Resolved({
-      result: `Fleet "${attacker.name}" exchanged ${exchangedStrength} Strength with ${defenderTotal} enemy Strength at Planet "${planet.name}"`,
-    }),
-  )
+  return Result.Success(allocations)
 }

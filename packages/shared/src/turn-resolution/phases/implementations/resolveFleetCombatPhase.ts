@@ -64,18 +64,23 @@ export function resolveFleetCombatPhase(context: TurnContext): Result<TurnContex
     while (end < candidates.length && candidates[end]?.tick === candidates[first]?.tick) {
       end += 1
     }
-    const canonicalTie = candidates.slice(first, end).toSorted(compareArrivalProvenance)
-    const orderedTie = canonicalTie.length > 1 ? context.rng.shuffle(canonicalTie) : canonicalTie
-    for (const candidate of orderedTie) {
-      const result = resolveScheduledAssault(context, candidate)
-      if (Result.isFailure(result)) {
-        return Result.Failure(ResolvePhaseError.FailedEffect({ error: result.error }))
-      }
-    }
+    const result = resolveAssaultGroup(context, candidates.slice(first, end))
+    if (Result.isFailure(result)) return result
     first = end
   }
 
   return Result.Success(context)
+}
+function resolveAssaultGroup(context: TurnContext, group: readonly ScheduledAssault[]): Result<void, ResolvePhaseError> {
+  const canonicalTie = group.toSorted(compareArrivalProvenance)
+  const orderedTie = canonicalTie.length > 1 ? context.rng.shuffle(canonicalTie) : canonicalTie
+  for (const candidate of orderedTie) {
+    const result = resolveScheduledAssault(context, candidate)
+    if (Result.isFailure(result)) {
+      return Result.Failure(ResolvePhaseError.FailedEffect({ error: result.error }))
+    }
+  }
+  return Result.Success(undefined)
 }
 
 function resolveScheduledAssault(
