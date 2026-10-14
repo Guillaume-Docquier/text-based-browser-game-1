@@ -533,7 +533,7 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      await expect(updateActionSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(updateActionSubmission).rejects.toMatchObject({ data: { code: "CONFLICT" } })
     })
 
     integrationTest("should reject setting an action after the turn deadline", async ({ db }) => {
@@ -559,9 +559,7 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      await expect(updateActionSubmission).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
+      await expect(updateActionSubmission).rejects.toMatchObject({ data: { code: "CONFLICT" } })
     })
 
     integrationTest("should reject an action the player cannot afford", async ({ db }) => {

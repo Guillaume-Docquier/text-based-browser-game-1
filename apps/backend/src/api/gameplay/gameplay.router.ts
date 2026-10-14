@@ -2,7 +2,9 @@ import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import { UpdateReadinessError } from "#api/gameplay/updateReadiness.error.ts"
 import { NO_OUTPUT, type Trpc } from "#api/trpc.ts"
+import { GetPlayerViewError } from "./getPlayerView.error.ts"
 import { type GetPlayerViewUseCase, PlayerViewDtoSchema } from "./getPlayerView.useCase.ts"
+import { UpdateActionSubmissionError } from "./updateActionSubmission.error.ts"
 import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./updateActionSubmission.useCase.ts"
 import { type UpdateReadinessUseCase, UpdateReadinessDtoSchema } from "./updateReadiness.useCase.ts"
 
@@ -34,7 +36,7 @@ export function createGameplayRouter({
 
         switch (updateReadinessResult.error) {
           case UpdateReadinessError.TURN_NOT_OPEN:
-            throw new TRPCError({ code: "CONFLICT", message: "Readiness cannot be changed: the turn is not open" })
+            throw new TRPCError({ code: "CONFLICT", message: "Readiness cannot be changed: the turn is not open." })
           case UpdateReadinessError.UNKNOWN:
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Readiness could not be updated." })
           default:
@@ -48,21 +50,16 @@ export function createGameplayRouter({
      */
     getPlayerView: trpc.inGameProcedure.output(PlayerViewDtoSchema).query(async ({ input, ctx: { playerId } }) => {
       const getPlayerViewResult = await getPlayerViewUseCase.execute({ ...input, playerId })
-      if (Result.isFailure(getPlayerViewResult)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: getPlayerViewResult.error,
-        })
+      if (Result.isSuccess(getPlayerViewResult)) {
+        return getPlayerViewResult.value
       }
 
-      if (getPlayerViewResult.value === undefined) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No view exists for this player and this game",
-        })
+      switch (getPlayerViewResult.error) {
+        case GetPlayerViewError.VIEW_NOT_FOUND:
+          throw new TRPCError({ code: "NOT_FOUND", message: "No view exists." })
+        case GetPlayerViewError.UNKNOWN:
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Player view could not be loaded." })
       }
-
-      return getPlayerViewResult.value
     }),
 
     /**
@@ -74,11 +71,25 @@ export function createGameplayRouter({
       .output(NO_OUTPUT)
       .mutation(async ({ input, ctx: { playerId } }) => {
         const updateActionSubmissionResult = await updateActionSubmissionUseCase.execute({ ...input, playerId })
-        if (Result.isFailure(updateActionSubmissionResult)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: updateActionSubmissionResult.error,
-          })
+        if (Result.isSuccess(updateActionSubmissionResult)) {
+          return
+        }
+
+        switch (updateActionSubmissionResult.error) {
+          case UpdateActionSubmissionError.TURN_NOT_OPEN:
+            throw new TRPCError({ code: "CONFLICT", message: "Actions cannot be changed: the turn is not open." })
+          case UpdateActionSubmissionError.PLAYER_READY:
+            throw new TRPCError({ code: "CONFLICT", message: "You must cancel readiness before changing actions." })
+          case UpdateActionSubmissionError.INVALID_ACTION_ID:
+            throw new TRPCError({ code: "BAD_REQUEST", message: "This action is not available." })
+          case UpdateActionSubmissionError.ACTION_DEFINITION_NOT_FOUND:
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Could not find a definition for this action." })
+          case UpdateActionSubmissionError.INVALID_SUBMISSION:
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid action submission, targets are invalid or costs cannot be paid." })
+          case UpdateActionSubmissionError.UNKNOWN:
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Action submission could not be updated." })
+          default:
+            Assert.isExhausted(updateActionSubmissionResult.error)
         }
       }),
   })
