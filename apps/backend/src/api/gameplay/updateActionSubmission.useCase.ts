@@ -8,9 +8,9 @@ import { safeResolveTargetId } from "shared/turn-resolution/effects/resolveTarge
 import { z } from "zod"
 import { SubmittedActionTargetsDtoSchema } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import { createTurnState } from "./createTurnState.ts"
 import type { GameplayRepository } from "./gameplay.repository.ts"
+import { UpdateActionSubmissionError, UpdateActionSubmissionRollbackError } from "./updateActionSubmission.error.ts"
 
 export class UpdateActionSubmissionUseCase {
   private readonly logger: Logger
@@ -34,14 +34,24 @@ export class UpdateActionSubmissionUseCase {
   /**
    * Long term we'll probably want a batch submission
    */
-  public async execute({ gameId, playerId, turn, submittedActionTargets }: UpdateActionSubmissionDto): Promise<Result<void, string>> {
+  public async execute({
+    gameId,
+    playerId,
+    turn,
+    submittedActionTargets,
+  }: UpdateActionSubmissionDto): Promise<Result<void, UpdateActionSubmissionError>> {
     const setActionResult = await this.createTransaction(async (tx) => {
       const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn }, tx)
 
       const actionsById = new Map(Array.from(context.actions, (action) => [action.id, action]))
       const action = actionsById.get(submittedActionTargets.actionId)
       if (action === undefined) {
-        throw new TransactionRollbackError("Invalid action id")
+        throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.INVALID_ACTION_ID)
+      }
+
+      const actionDefinition = context.ruleset.actionDefinitions[action.actionDefinitionId]
+      if (actionDefinition === undefined) {
+        throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.ACTION_DEFINITION_NOT_FOUND)
       }
 
       if (submittedActionTargets.selectedTargets === null) {
@@ -58,13 +68,6 @@ export class UpdateActionSubmissionUseCase {
         playerId,
         selectedTargets: submittedActionTargets.selectedTargets,
       } satisfies SubmittedAction
-
-      const actionDefinition = context.ruleset.actionDefinitions[submittedAction.actionDefinitionId]
-      if (actionDefinition === undefined) {
-        throw new TransactionRollbackError("No action definition found", {
-          cause: { actionDefinitionId: submittedAction.actionDefinitionId },
-        })
-      }
 
       const planetIds = [
         ...new Set(
@@ -115,7 +118,8 @@ export class UpdateActionSubmissionUseCase {
       })
       const issues = validateSubmittedActions(turnState.submittedActions, context.ruleset, turnState)
       if (issues.length > 0) {
-        throw new TransactionRollbackError(issues.map(({ issue }) => issue).join("\n"))
+        this.logger.error("Invalid action submission", { issues })
+        throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.INVALID_SUBMISSION)
       }
 
       await this.gameplayRepository.updateActionSubmissions({ context, actions: [submittedAction] }, tx)
@@ -129,7 +133,12 @@ export class UpdateActionSubmissionUseCase {
         actionId: submittedActionTargets.actionId,
         error: setActionResult.error,
       })
-      return Result.Failure(setActionResult.error.message)
+
+      if (setActionResult.error instanceof UpdateActionSubmissionRollbackError) {
+        return Result.Failure(setActionResult.error.code)
+      }
+
+      return Result.Failure(UpdateActionSubmissionError.UNKNOWN)
     }
 
     return Result.Success(undefined)

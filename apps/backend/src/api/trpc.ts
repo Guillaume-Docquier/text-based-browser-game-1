@@ -56,8 +56,8 @@ export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepos
           error: playerIdResult.error,
         })
         throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You are not allowed to participate in this game.",
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Game membership could not be checked.",
         })
       }
 

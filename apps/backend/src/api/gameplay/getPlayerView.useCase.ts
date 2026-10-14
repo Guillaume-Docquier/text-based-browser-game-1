@@ -25,6 +25,7 @@ import { z } from "zod"
 import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
 import { createTurnState } from "./createTurnState.ts"
 import type { GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
+import { GetPlayerViewError } from "./getPlayerView.error.ts"
 
 /**
  * Reads a player's gameplay view, including resource commitments and Action affordability.
@@ -36,19 +37,14 @@ export class GetPlayerViewUseCase {
     this.gameplayRepository = gameplayRepository
   }
 
-  /**
-   * Returns the player's view, or undefined when no view exists for the requested player.
-   */
-  public async execute({ gameId, playerId }: GetPlayerViewDto): Promise<Result<PlayerViewDto | undefined, string>> {
+  public async execute({ gameId, playerId }: GetPlayerViewDto): Promise<Result<PlayerViewDto, GetPlayerViewError>> {
     const playerViewResult = await this.gameplayRepository.getPlayerView({ gameId, playerId })
     if (Result.isFailure(playerViewResult)) {
       return playerViewResult
     }
 
     if (playerViewResult.value === undefined) {
-      // This is not a Failure because everything went right.
-      // It's a bad request, but not unexpected from here that no player view is found.
-      return Result.Success(undefined)
+      return Result.Failure(GetPlayerViewError.VIEW_NOT_FOUND)
     }
 
     return Result.Success(toPlayerViewDto(playerViewResult.value))

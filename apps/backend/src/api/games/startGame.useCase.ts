@@ -9,10 +9,9 @@ import { GalaxyCreationSettings } from "shared/galaxy-creation/GalaxyCreationSet
 import { z } from "zod"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
-import { couldNot } from "#lib/errors.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import type { GamesRepository } from "./games.repository.ts"
+import { StartGameError, StartGameRollbackError } from "./startGame.error.ts"
 
 /**
  * Starts a game and initializes its galaxy, resources, and first Turn atomically.
@@ -40,18 +39,16 @@ export class StartGameUseCase {
     this.createTransaction = createTransaction
   }
 
-  public async execute({ gameId, requesterAccountId }: StartGameDto): Promise<Result<void, string>> {
+  public async execute({ gameId, requesterAccountId }: StartGameDto): Promise<Result<void, StartGameError>> {
     const startGameResult = await this.createTransaction(async (tx) => {
       const gameForStart = await this.gamesRepository.getGameForStart({ gameId }, tx)
 
       if (gameForStart.createdByAccountId !== requesterAccountId) {
-        throw new TransactionRollbackError("Only the game creator can start it.")
+        throw new StartGameRollbackError(StartGameError.NOT_GAME_CREATOR)
       }
 
       if (gameForStart.status !== GameStatus.WAITING_FOR_PLAYERS && gameForStart.status !== GameStatus.READY_TO_START) {
-        throw new TransactionRollbackError("The game cannot start in its current status.", {
-          cause: { status: gameForStart.status, expected: [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START] },
-        })
+        throw new StartGameRollbackError(StartGameError.INVALID_GAME_STATUS)
       }
 
       const startedAt = this.clock.now()
@@ -89,7 +86,11 @@ export class StartGameUseCase {
 
     if (Result.isFailure(startGameResult)) {
       this.logger.error("Could not start game", { gameId, requesterAccountId, error: startGameResult.error })
-      return Result.Failure(couldNot("start game"))
+      if (startGameResult.error instanceof StartGameRollbackError) {
+        return Result.Failure(startGameResult.error.code)
+      }
+
+      return Result.Failure(StartGameError.UNKNOWN)
     }
 
     return startGameResult
