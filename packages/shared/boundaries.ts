@@ -11,7 +11,7 @@ const Elements = {
   ACTION_SUBMISSION: { type: "action-submission", pattern: "src/action-submission" },
   TURN_RESOLUTION: { type: "turn-resolution", pattern: "src/turn-resolution" },
 } as const
-const TestFiles = { category: "stubs-and-tests", pattern: ["**/*.stub.ts", "**/*.test.ts"] } as const
+const TestFiles = { category: "stubs-and-tests", pattern: ["**/*.stub.ts", "**/*.test.ts", "**/*.test-support.ts"] } as const
 
 /**
  * Boundaries settings and rules.

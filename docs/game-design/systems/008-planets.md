@@ -4,7 +4,7 @@
 
 Partially Implemented
 
-Biome, Size, initial Planet Attributes, and one Home Planet per player are generated deterministically when a game starts, persisted, and visible on the Star System map. Build Fleet Actions can target owned Planets, and their stationed Fleets appear there. Colonization, vision memory, Terraforming, and automatic Planet Development remain planned.
+Biome, Size, initial Planet Attributes, and one Home Planet per player are generated deterministically when a game starts, persisted, and visible on the Star System map. Build Fleet Actions can target owned Planets, and their stationed Fleets appear there. Standard Fleet colonization claims Unclaimed Planets; vision memory, Terraforming, and automatic Planet Development remain planned.
 
 ## Purpose
 
@@ -28,19 +28,19 @@ Relates to:
 
 ## Core Concepts
 
-| Concept              | Definition                                                                                             |
-| -------------------- | ------------------------------------------------------------------------------------------------------ |
-| Planet               | A fixed location in the galaxy that may be Unclaimed or owned by an empire.                            |
-| Unclaimed Planet     | A Planet with no owner that may be claimed through colonization.                                       |
-| Colony               | A resource required to attempt colonization.                                                           |
-| Colonization Attempt | An empire's attempt to establish ownership of an Unclaimed Planet with a Fleet that has arrived there. |
-| Planet Attribute     | A statistic of a Planet that affects its capabilities and resource production.                         |
-| Biome                | A Planet classification that determines ranges for resource production.                                |
-| Size                 | A Planet category that determines ranges for Max Population and Area.                                  |
-| Max Population       | The hard limit on the number of Population units a Planet can sustain.                                 |
-| Area                 | The number of Infrastructure slots available on a Planet.                                              |
-| Population           | A whole-number worker unit assigned to one planetary activity.                                         |
-| Food                 | A Planet-local resource produced to gain Population.                                                   |
+| Concept              | Definition                                                                                                |
+| -------------------- | --------------------------------------------------------------------------------------------------------- |
+| Planet               | A fixed location in the galaxy that may be Unclaimed or owned by an empire.                               |
+| Unclaimed Planet     | A Planet with no owner that may be claimed through colonization.                                          |
+| Colony               | A stored Resource that currently has no use in colonization.                                              |
+| Colonization Attempt | An empire's attempt to claim an Unclaimed Planet with an owned Fleet present there or arriving this Turn. |
+| Planet Attribute     | A statistic of a Planet that affects its capabilities and resource production.                            |
+| Biome                | A Planet classification that determines ranges for resource production.                                   |
+| Size                 | A Planet category that determines ranges for Max Population and Area.                                     |
+| Max Population       | The hard limit on the number of Population units a Planet can sustain.                                    |
+| Area                 | The number of Infrastructure slots available on a Planet.                                                 |
+| Population           | A whole-number worker unit assigned to one planetary activity.                                            |
+| Food                 | A Planet-local resource produced to gain Population.                                                      |
 
 ## Rules
 
@@ -92,11 +92,13 @@ Each Planet has a Size that determines independent ranges for Max Population and
 
 ## Colonization
 
-A Colonization Attempt requires an Unclaimed Planet, an arriving Fleet, and a Colony resource. On success, the Planet becomes owned by the colonizing empire and the Fleet is consumed.
+The Standard Ruleset offers `Colonize Planet` to move a Fleet to a different Unclaimed Planet and `Colonize Here` to use a Fleet already stationed on one. Both cost 25 Influence and require at least 20 current Fleet Strength. The movement and stationary forms use the same Colonization Effect; neither requires Colony or creates Population. See [System 003-actions](./003-actions.md) for their full values.
 
-Colonization resolves after Fleet Combat. A Colonization Attempt is valid only if its Fleet survives the encounter and remains at the Unclaimed Planet after Fleet Combat. Fleet Combat can therefore deny colonization by destroying a would-be colonizing Fleet. Valid Attempts are considered in the arrival order established by Movement Ticks, so an earlier arrival has priority over later arrivals. If multiple valid Attempts arrive on the same Movement Tick, one is selected randomly to succeed. The Fleets and Colony resources used by unsuccessful attempts return to their empires.
+Colonization resolves after Fleet Movement, Fleet Build, and normal Fleet Combat. Arriving Attempts retain their own Movement Tick; stationary Attempts use Tick 0. At each Planet, candidates are evaluated against the current owner and surviving Fleet. A valid earlier Tick has priority. Eligible contenders tied at one Tick are ordered using the saved game random state, and the first valid claimant changes the Planet owner. Invalid contenders do not draw random values. A claim spends exactly 20 Strength from the Fleet at the destination; any remainder stays stationed there, while a Fleet reduced to 0 disappears. Enemy Fleets do not trigger automatic combat.
 
-A newly colonized Planet starts with `min(Max Population / 2, max(2, floor(colonizing Fleet Strength / 5)))` Population. In other words, every colonized Planet starts with between 2 and half its Max Population based on the colonizing Fleet Strength divided by 5, rounded down.
+The Influence cost is paid before later Phases and is not refunded when an Attempt is Prevented. A Prevented Attempt consumes no additional Strength and does not return its Fleet; for example, combat may leave only 19 Strength, another claimant may already own the Planet, or the Fleet may be destroyed. A valid journey continues if another player claims its target while it is in transit, then is Prevented when it arrives and finds the Planet owned.
+
+Colonization changes Planet ownership only. It does not grant starting Population or trigger automatic Planet Development.
 
 ## Planet Development
 

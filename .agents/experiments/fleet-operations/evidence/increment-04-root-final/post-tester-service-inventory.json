@@ -1,0 +1,20 @@
+[
+  {
+    "localAddress": "::1",
+    "port": 10129,
+    "pid": 25828,
+    "process": "wslrelay"
+  },
+  {
+    "localAddress": "::",
+    "port": 10129,
+    "pid": 6496,
+    "process": "com.docker.backend"
+  },
+  {
+    "localAddress": "::",
+    "port": 6006,
+    "pid": 36796,
+    "process": "node"
+  }
+]

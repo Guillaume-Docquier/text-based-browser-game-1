@@ -4,7 +4,7 @@
 
 Partially Implemented
 
-Turn timing, lifecycle, Action locking, public reversible Readiness, and the Pay Costs, Fleet Build, Income, and Victory effect resolvers are implemented. Submitted Fleet Move Directives advance Fleets, including arrival and merging, while automatic continuation and chronological arrival ordering remain planned. The current Victory effect is a placeholder, not the planned bounded game length or Legacy win condition. Fleet Combat, Planet Development, and Colonization resolution remain planned.
+Turn timing, lifecycle, Action locking, public reversible Readiness, and the Pay Costs, Fleet Movement, Fleet Build, normal Fleet Combat, Colonization, Income, and Victory effect resolvers are implemented. Shared movement eligibility, partial Strength departures, automatic continuation, and Action-instance binding during transit are also implemented. Arrival Assaults retain their initiating Movement Tick through friendly merges and use deterministic ordering for ties. Planet Development and Surprise Assault remain planned. Colonization resolves after Fleet Combat. The current Victory effect is a placeholder, not the planned bounded game length or Legacy win condition.
 
 ## Purpose
 
@@ -51,11 +51,13 @@ When a Turn ends, its status changes from `COLLECTING_ACTIONS` to `AWAITING_PROC
 
 Turn Resolution processes Effects through the fixed, engine-owned Phase order: Pay Costs, Fleet Movement, Fleet Build, Fleet Combat, Planet, Colonization, Income, then Victory. A Ruleset does not configure this sequence. Phases are coarse ordering boundaries and do not create additional player Turns or opportunities to react.
 
-The Fleet Movement Phase uses 20 Ticks to provide finer chronological ordering within the Phase. Movement Ticks establish Fleet progress and arrival order, and events assigned to the same Tick are simultaneous. Fleet Combat, Colonization, and other Phases do not each run through those 20 Ticks.
+The Fleet Movement Phase uses a 20-Tick scale for arrival timing. Existing journeys and new departures each advance once in the Phase, and all arrivals settle before later Phases. Ordinary landing and friendly merging use calculated arrival Tick and stable Fleet ID. Composed Move+Assault Actions capture their Assault intent while moving; the Combat Phase uses the initiating arrival Tick even if the moving Fleet merges into a friendly survivor. Fleet Combat, Colonization, and other Phases do not each run through those 20 Ticks.
 
-After the Fleet Movement Phase, Fleet Build creates or reinforces a player's Fleet at its target Planet. The Fleet Combat Phase then resolves from the final Fleet positions. The Planet Phase occurs before Colonization. Colonization then uses the arrival order established by Movement Ticks. A Fleet that arrives during the Turn is present for the Fleet Combat Phase at its destination before it can colonize that Planet.
+After the Fleet Movement Phase, Fleet Build creates or reinforces a player's Fleet at its target Planet. Fleet Combat then resolves captured normal Assaults against the final Fleet positions. A moving Fleet is not present at its recorded origin while in transit. The Planet Phase remains a boundary with no current behavior. Colonization resolves after Fleet Combat against current Planet owners and surviving stationed Fleets; an arriving Colonization Attempt retains its initiating Movement Tick.
 
 If a locked Action Submission is invalid or an Effect fails to resolve, Turn Resolution does not complete. The Turn remains locked and is retried from the same pre-resolution state, Action Submissions, and deterministic random input. Partial state changes and Effect Outcomes from the failed attempt are discarded.
+
+An In-Transit Fleet advances once per resolved Turn without a new submission or another payment. Its original Action Instance remains occupied until the journey arrives; the next Turn exposes that instance as In Progress while other pool entries remain usable. Continuation outcomes are returned with the current resolution result and are not persisted as resolved-action history.
 
 When Turn Resolution completes, the Turn becomes `COMPLETED`. If the game continues, the server creates the next `COLLECTING_ACTIONS` Turn with its own deadline, random-generator state, available Actions, and processing queue row. If the game ends, no next Turn or processing row is created.
 

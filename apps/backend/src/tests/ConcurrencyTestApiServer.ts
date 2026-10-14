@@ -26,6 +26,7 @@ const API_START_TIMEOUT_MS = 30_000
 const ANY_UNUSED_PORT = 0
 
 export class ConcurrencyTestApiServer {
+  public readonly database: Database
   private readonly postgresContainer: StartedPostgreSqlContainer
   private readonly server: ForkedServer
   private readonly db: Database
@@ -49,16 +50,23 @@ export class ConcurrencyTestApiServer {
     server: ForkedServer
     db: Database
   }) {
+    this.database = db
     this.postgresContainer = postgresContainer
     this.server = server
     this.db = db
     this.accountsRepository = new AccountsRepository({ db, logger: Logger.get() })
   }
 
-  public async createClient(args: { authenticated: true }): Promise<AuthenticatedApiClient>
+  public async createClient(args: { authenticated: true; id?: string }): Promise<AuthenticatedApiClient>
   public async createClient(args: { authenticated: false }): Promise<AnonymousApiClient>
-  public async createClient({ authenticated }: { authenticated: boolean }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
-    return await createApiClient({ port: this.server.port, accountsRepository: this.accountsRepository, authenticated })
+  public async createClient({
+    authenticated,
+    id,
+  }: {
+    authenticated: boolean
+    id?: string
+  }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
+    return await createApiClient({ port: this.server.port, accountsRepository: this.accountsRepository, authenticated, id })
   }
 
   public async [Symbol.asyncDispose](): Promise<void> {
@@ -81,7 +89,7 @@ type ForkedServer = {
  * Starts a real api in a forked process.
  * The goal of this is to use an unadulterated api server running on its own thread.
  */
-async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<ForkedServer> {
+async function forkApiServer(input: { databaseUrl: string }): Promise<ForkedServer> {
   const apiProcess = fork("src/api/entry.api.ts", {
     cwd: process.cwd(),
     detached: true,
@@ -89,7 +97,7 @@ async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<
       AUTH_SERVICE: "test-header",
       CLERK_PUBLISHABLE_KEY: "does not matter with test-header auth",
       CLERK_SECRET_KEY: "does not matter with test-header auth",
-      DATABASE_URL: databaseUrl,
+      DATABASE_URL: input.databaseUrl,
       PORT: ANY_UNUSED_PORT.toString(),
     },
     stdio: API_LOGS,

@@ -1,0 +1,243 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: specs\fleets.spec.ts >> fleet origin and destination links open their planets in the galaxy view
+- Location: playwright\specs\fleets.spec.ts:23:1
+
+# Error details
+
+```
+Test timeout of 30000ms exceeded.
+```
+
+```
+Error: expect(locator).toHaveText(expected) failed
+
+Locator:  getByRole('banner').getByText(/^Turn \d+$/)
+Expected: "Turn 4"
+Received: "Turn 3"
+
+Call log:
+  - Expect "toHaveText" getByRole('banner').getByText(/^Turn \d+$/) with timeout 15000ms
+  - waiting for getByRole('banner').getByText(/^Turn \d+$/)
+    14 × locator resolved to <span class="text-[0.65rem] tracking-[0.16em] uppercase">Turn 3</span>
+       - unexpected value "Turn 3"
+  - Target page, context or browser has been closed
+
+```
+
+```yaml
+- text: Turn 3
+```
+
+# Test source
+
+```ts
+  15  |     }
+  16  |   }
+  17  |
+  18  |   const first = toStarCell(firstCoordinates)
+  19  |   const second = toStarCell(secondCoordinates)
+  20  |   return Math.hypot(first.x - second.x, first.y - second.y)
+  21  | }
+  22  |
+  23  | test("fleet origin and destination links open their planets in the galaxy view", async ({ alice, bob }) => {
+  24  |   const aliceGameDetailsPage = await test.step("Create a game", async () =>
+  25  |     await CreateGamePage.createGame({
+  26  |       creator: alice,
+  27  |       participants: [bob],
+  28  |       settings: { maxPlayers: 2, turnLength: Time.create(1, UnitOfTime.DAYS) },
+  29  |     }))
+  30  |   const aliceGalaxyPage = await test.step("Start the game", async () => {
+  31  |     await aliceGameDetailsPage.reload()
+  32  |     return await aliceGameDetailsPage.startGame()
+  33  |   })
+  34  |   const bobPlayersPage = await test.step("Open the game for Bob", async () => {
+  35  |     const bobGameDetailsPage = new GameDetailsPage(bob.page)
+  36  |     await bobGameDetailsPage.reload()
+  37  |     const bobGalaxyPage = await bobGameDetailsPage.openGame()
+  38  |     return await bobGalaxyPage.openPlayers()
+  39  |   })
+  40  |
+  41  |   const aliceFleetsPage = await test.step("Build a fleet and finish the turn", async () => {
+  42  |     const aliceActionsPage = await aliceGalaxyPage.openActions()
+  43  |     await aliceActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
+  44  |     await aliceActionsPage.toggleActionSelection("Political Campaign")
+  45  |     await aliceActionsPage.toggleActionSelection("Extract Metal")
+  46  |     const alicePlayersPage = await aliceActionsPage.openPlayers()
+  47  |     await alicePlayersPage.toggleReady()
+  48  |     await bobPlayersPage.toggleReady()
+  49  |     await expect(alicePlayersPage.turn).toHaveText("Turn 2", { timeout: 15000 })
+  50  |     await expect(bobPlayersPage.turn).toHaveText("Turn 2", { timeout: 15000 })
+  51  |     return await alicePlayersPage.openFleets()
+  52  |   })
+  53  |
+  54  |   const aliceFleetsPageAfterFunding = await test.step("Refine fuel for movement and finish the next turn", async () => {
+  55  |     const aliceActionsPage = await aliceFleetsPage.openActions()
+  56  |     await aliceActionsPage.toggleActionSelection("Refine Fuel")
+  57  |     await aliceActionsPage.toggleActionSelection("Political Campaign")
+  58  |     const alicePlayersPage = await aliceActionsPage.openPlayers()
+  59  |     await alicePlayersPage.toggleReady()
+  60  |     await bobPlayersPage.toggleReady()
+  61  |     await expect(alicePlayersPage.turn).toHaveText("Turn 3", { timeout: 15000 })
+  62  |     await expect(bobPlayersPage.turn).toHaveText("Turn 3", { timeout: 15000 })
+  63  |     return await alicePlayersPage.openFleets()
+  64  |   })
+  65  |
+  66  |   await test.step("Open the fleet's origin planet and return to Fleets", async () => {
+  67  |     const row = aliceFleetsPageAfterFunding.row(0)
+  68  |     const name = await aliceFleetsPageAfterFunding.getOriginPlanet(row)
+  69  |     const coordinates = await aliceFleetsPageAfterFunding.getCoordinate(row)
+  70  |     const aliceOriginGalaxyPage = await aliceFleetsPageAfterFunding.openOriginPlanet(row)
+  71  |     expect(GalaxyPage.urlPattern.test(alice.page.url())).toBe(true)
+  72  |     await expect(aliceOriginGalaxyPage.starSystemMap).toBeVisible()
+  73  |     await expect(aliceOriginGalaxyPage.planetDetailsPane).toContainText(name)
+  74  |     await expect(aliceOriginGalaxyPage.planetDetailsPane).toContainText(coordinates)
+  75  |     await aliceOriginGalaxyPage.goBack()
+  76  |     expect(FleetsPage.urlPattern.test(alice.page.url())).toBe(true)
+  77  |     await expect(aliceFleetsPageAfterFunding.heading).toBeVisible()
+  78  |   })
+  79  |
+  80  |   let destinationPlanetName = ""
+  81  |   await test.step("Select a valid in-range destination and move partial Strength", async () => {
+  82  |     const originCoordinates = await aliceFleetsPageAfterFunding.getCoordinate(aliceFleetsPageAfterFunding.row(0))
+  83  |     const aliceActionsPage = await aliceFleetsPageAfterFunding.openActions()
+  84  |     const fleetChoice = await aliceActionsPage.chooseFirstTarget("Move Fleet", "Standard Directive", "Fleet")
+  85  |     expect(fleetChoice).toContain("strength")
+  86  |     const planetPicker = aliceActionsPage.targetPicker("Move Fleet", "Standard Directive", "Planet")
+  87  |     let planetChoice = await planetPicker.inputValue()
+  88  |     if (!(await planetPicker.isDisabled())) {
+  89  |       expect(await aliceActionsPage.openTargetPicker("Move Fleet", "Standard Directive", "Planet")).toBe(true)
+  90  |       const options = await aliceActionsPage.targetChoices("Planet").getByRole("option").allTextContents()
+  91  |       const eligibleTarget = options.find((option) => {
+  92  |         const coordinates = /\((\d{2}:\d{2}:\d{2})\)$/.exec(option)?.[1]
+  93  |         return coordinates !== undefined && starCellDistance(originCoordinates, coordinates) >= 2
+  94  |       })
+  95  |       expect(eligibleTarget).toBeDefined()
+  96  |       if (eligibleTarget === undefined) {
+  97  |         throw new Error("No planet met the minimum movement distance")
+  98  |       }
+  99  |       planetChoice = eligibleTarget
+  100 |       await aliceActionsPage.chooseTarget("Planet", planetChoice)
+  101 |     }
+  102 |     const targetCoordinates = /\((\d{2}:\d{2}:\d{2})\)$/.exec(planetChoice)?.[1]
+  103 |     expect(targetCoordinates).toBeDefined()
+  104 |     if (targetCoordinates === undefined) {
+  105 |       throw new Error("The selected target has no planetary coordinates")
+  106 |     }
+  107 |     expect(starCellDistance(originCoordinates, targetCoordinates)).toBeGreaterThanOrEqual(2)
+  108 |     destinationPlanetName = planetChoice.replace(/ \([^()]+\)$/, "")
+  109 |     await aliceActionsPage.enterNumericInput("Move Fleet", "Standard Directive", "Fleet strength", 5)
+  110 |     await aliceActionsPage.toggleActionSelection("Move Fleet", "Standard Directive")
+  111 |     await expect(aliceActionsPage.selectActionButton("Move Fleet", "Standard Directive")).toHaveText("Update action")
+  112 |     const alicePlayersPage = await aliceActionsPage.openPlayers()
+  113 |     await alicePlayersPage.toggleReady()
+  114 |     await bobPlayersPage.toggleReady()
+> 115 |     await expect(alicePlayersPage.turn).toHaveText("Turn 4", { timeout: 15000 })
+      |                                         ^ Error: expect(locator).toHaveText(expected) failed
+  116 |     await expect(bobPlayersPage.turn).toHaveText("Turn 4", { timeout: 15000 })
+  117 |     await alicePlayersPage.openFleets()
+  118 |     await expect(aliceFleetsPageAfterFunding.heading).toBeVisible()
+  119 |   })
+  120 |
+  121 |   await test.step("Verify partial Fleet allocation and open the destination in the galaxy view", async () => {
+  122 |     const fleetRows = await aliceFleetsPageAfterFunding.rows.count()
+  123 |     expect(fleetRows).toBe(2)
+  124 |     let movingRow: ReturnType<typeof aliceFleetsPageAfterFunding.row> | undefined
+  125 |     let stationaryRow: ReturnType<typeof aliceFleetsPageAfterFunding.row> | undefined
+  126 |     for (let index = 0; index < fleetRows; index += 1) {
+  127 |       const row = aliceFleetsPageAfterFunding.row(index)
+  128 |       if ((await aliceFleetsPageAfterFunding.destinationPlanetLink(row).count()) > 0) {
+  129 |         movingRow = row
+  130 |       } else {
+  131 |         stationaryRow = row
+  132 |       }
+  133 |     }
+  134 |     expect(movingRow).toBeDefined()
+  135 |     expect(stationaryRow).toBeDefined()
+  136 |     if (movingRow === undefined || stationaryRow === undefined) {
+  137 |       throw new Error("Expected one moving and one stationary Fleet")
+  138 |     }
+  139 |     const row = movingRow
+  140 |     await expect(aliceFleetsPageAfterFunding.fleetStrength(row)).toHaveText("5")
+  141 |     await expect(aliceFleetsPageAfterFunding.fleetStrength(stationaryRow)).toHaveText("5")
+  142 |     await expect(aliceFleetsPageAfterFunding.journeyLeft(row)).toContainText("ly")
+  143 |     const destinationLink = aliceFleetsPageAfterFunding.destinationPlanetLink(row)
+  144 |     await expect(destinationLink).toContainText(destinationPlanetName)
+  145 |     const destinationUrl = await destinationLink.getAttribute("href")
+  146 |     const aliceDestinationGalaxyPage = await aliceFleetsPageAfterFunding.openDestinationPlanet(row)
+  147 |     expect(GalaxyPage.urlPattern.test(alice.page.url())).toBe(true)
+  148 |     expect(new URL(alice.page.url()).pathname + new URL(alice.page.url()).search).toBe(destinationUrl)
+  149 |     await expect(aliceDestinationGalaxyPage.starSystemMap).toBeVisible()
+  150 |     await expect(aliceDestinationGalaxyPage.planetDetailsPane).toContainText(destinationPlanetName)
+  151 |   })
+  152 | })
+  153 |
+  154 | test("a moving fleet keeps its Action bound through continuation and releases it on arrival", async ({ alice, bob }) => {
+  155 |   test.setTimeout(120000)
+  156 |   const gameDetailsPage = await test.step("Create a game", async () =>
+  157 |     await CreateGamePage.createGame({
+  158 |       creator: alice,
+  159 |       participants: [bob],
+  160 |       settings: { maxPlayers: 2, turnLength: Time.create(1, UnitOfTime.DAYS) },
+  161 |     }))
+  162 |   const aliceGalaxyPage = await test.step("Start the game", async () => {
+  163 |     await gameDetailsPage.reload()
+  164 |     return await gameDetailsPage.startGame()
+  165 |   })
+  166 |   const bobPlayersPage = await test.step("Open the game for Bob", async () => {
+  167 |     const bobGameDetailsPage = new GameDetailsPage(bob.page)
+  168 |     await bobGameDetailsPage.reload()
+  169 |     const bobGalaxyPage = await bobGameDetailsPage.openGame()
+  170 |     return await bobGalaxyPage.openPlayers()
+  171 |   })
+  172 |
+  173 |   const alicePlayersPage = await test.step("Build and fund a fleet", async () => {
+  174 |     const actionsPage = await aliceGalaxyPage.openActions()
+  175 |     await actionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
+  176 |     await actionsPage.toggleActionSelection("Political Campaign")
+  177 |     await actionsPage.toggleActionSelection("Extract Metal")
+  178 |     const playersPage = await actionsPage.openPlayers()
+  179 |     await playersPage.toggleReady()
+  180 |     await bobPlayersPage.toggleReady()
+  181 |     await expect(playersPage.turn).toHaveText("Turn 2", { timeout: 15000 })
+  182 |     await expect(bobPlayersPage.turn).toHaveText("Turn 2", { timeout: 15000 })
+  183 |     const fundingActions = await playersPage.openActions()
+  184 |     await fundingActions.toggleActionSelection("Refine Fuel")
+  185 |     await fundingActions.toggleActionSelection("Political Campaign")
+  186 |     const fundedPlayers = await fundingActions.openPlayers()
+  187 |     await fundedPlayers.toggleReady()
+  188 |     await bobPlayersPage.toggleReady()
+  189 |     await expect(fundedPlayers.turn).toHaveText("Turn 3", { timeout: 15000 })
+  190 |     await expect(bobPlayersPage.turn).toHaveText("Turn 3", { timeout: 15000 })
+  191 |     return fundedPlayers
+  192 |   })
+  193 |
+  194 |   const fleetsPage = await alicePlayersPage.openFleets()
+  195 |   const sourceRow = fleetsPage.row(0)
+  196 |   const originCoordinates = await fleetsPage.getCoordinate(sourceRow)
+  197 |   let actionsPage = await fleetsPage.openActions()
+  198 |   const actionName = "Move Fleet"
+  199 |   const actionTier = "Exceptional Directive"
+  200 |   await actionsPage.chooseFirstTarget(actionName, actionTier, "Fleet")
+  201 |   expect(originCoordinates).toBe("46:93:25")
+  202 |   expect(await actionsPage.openTargetPicker(actionName, actionTier, "Planet")).toBe(true)
+  203 |   const destinationChoice = "planet 13209 (56:40:35)"
+  204 |   expect(await actionsPage.targetOptionLabels("Planet")).toContain(destinationChoice)
+  205 |   await actionsPage.chooseTarget("Planet", destinationChoice)
+  206 |   const destinationPlanetName = destinationChoice.replace(/ \([^()]+\)$/, "")
+  207 |   await actionsPage.enterNumericInput(actionName, actionTier, "Fleet strength", 4)
+  208 |   await actionsPage.toggleActionSelection(actionName, actionTier)
+  209 |   await expect(actionsPage.selectActionButton(actionName, actionTier)).toHaveText("Update action")
+  210 |   await actionsPage.toggleActionSelection("Refine Fuel")
+  211 |   await actionsPage.toggleActionSelection("Political Campaign")
+  212 |
+  213 |   const playersPageAfterDeparture = await actionsPage.openPlayers()
+  214 |   await playersPageAfterDeparture.toggleReady()
+  215 |   await bobPlayersPage.toggleReady()
+```

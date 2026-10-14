@@ -1,0 +1,79 @@
+{
+  "recordedAtUtc": "2026-10-13T00:09:42.1416222Z",
+  "state": "Implementation independently accepted for normal-hook commit; final delivery acceptance pending required exact-head CI",
+  "root": "C:/Users/Guillaume/.codex/worktrees/fleet-operations-experiment/text-based-browser-game-1",
+  "branch": "codex/fleet-operations-experiment",
+  "base": "9fb5a3946bfa5ba9e9d033a88c7f4c633d84a564",
+  "originalBase": "e9408c64620fc988dc3b1fd39827afabcb7d40f5",
+  "approvedPacketSha256": "772ADC2B2D1EEFF581D2D19E0ACCBD08248B743701811BF86466DF26B1F21BBF",
+  "sourceRows": [
+    {
+      "path": "apps/backend/src/api/gameplay/gameplay.colonization.concurrency.test.ts",
+      "sha256": "AE62C8F24CB13B3CE39B80FEA6A33DE3DE8AA020D99A90C256D2149E5C940062"
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/gameplay.concurrency.test.ts",
+      "sha256": "4A3FE3DC23741C9DEFD4E7DD9D9512B4CF106EFB0355AEFFDF5B981C2F570154"
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/gameplay.router.integration.test.ts",
+      "sha256": "9AFA15578897E79BE1ECCDC3E6C0FA2B0D375C66B9478C335AF4790D7633A5C0"
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/AssaultRuleset.unit.test.ts",
+      "sha256": "1F22CF9222AC64283310FC3581F242714C03F42B97DFCFF697C43FD2C666387E"
+    },
+    {
+      "path": "apps/backend/src/turn-processing/TurnProcessor.integration.test.ts",
+      "sha256": "4703AFDA3AC13A292EFE88E65AAF8CEDE4245F7D2002736E6A42583DD7FB5CFC"
+    },
+    {
+      "path": "apps/frontend/src/features/play/components/ActionCard.stories.tsx",
+      "sha256": "26A30930B69D47F84742D8D9A3F793ECCA2A1A06D0848BF79E31076E80343930"
+    },
+    {
+      "path": "apps/frontend/src/features/play/galaxy/GalaxyPage.stories.tsx",
+      "sha256": "367ADF02A51DAB79FFC1AE8FE412413B8B4ED8A1FB237222FF081D4D80588709"
+    },
+    {
+      "path": "packages/shared/src/action-submission/evaluateActionSelection.test.ts",
+      "sha256": "EACB95DBB8C243079895B71B88BB70483E47EE6B0219209A1212F17FE2860DDA"
+    },
+    {
+      "path": "packages/shared/src/testing/FleetActionSelectionParity.ts",
+      "sha256": "878E56FDE1C0DA0045B4CD0586A97DF719DE08B040C6181C29CB510418435367"
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/effects/implementations/FleetMoveEffect.ts",
+      "sha256": "140576B63BBBC203FB7442E548E149483AA9BD2BA57DE84CCFAFCF08B1610894"
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/fleet-assault.test.ts",
+      "sha256": "7332A5417B0E6CC71447D113472A99707549CDC3323895315177A3F5507EA716"
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/fleet-colonization.test.ts",
+      "sha256": "D41CCB3886D4CB079864D1A15CF05A922D5F07D4B957EEDA1E82D0A74D448D64"
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/fleet-movement.test.ts",
+      "sha256": "6F855DA3D995F9A58550223B6D13D0B149AB1F27ECDE268733992BE32B97A40D"
+    }
+  ],
+  "wholeBranchPathsVerified": 147,
+  "testerOriginalReportSha256": "FAF0000845A905DAF2005D76704A40F27CDE41401B1236EA888AB96A5B5F5FF8",
+  "reviewerOriginalReportSha256": "B0BE8ABCFA5A057E04A2B48AD02358020A7E044C241BFBFC5AE8A1EE66B3F4F8",
+  "freshFullReview": "NO ACTIONABLE FINDINGS; ALL WRITES / PROCESSES STOP",
+  "criterionResults": [
+    "I4-01 implementation PASS: literal121to69/full50allocation/ticks5-10-10-8/payment/claim-prevention/release-reuse; actual natural public/API/worker/PG and authenticated browser companions. Root own critical shared113pass0.",
+    "I4-02 implementation PASS: normalized actual UI/API/shared/production-loader fields before result assertions; cumulative replacement/cancellation/occupancy; Seed30/range3/cost7I2F/tags/exacttick10/depletion. Root independently inspected total-resource frontend projection, locked API shared evaluator and delegated production-worker parity observer.",
+    "I4-03 implementation PASS: independent cloned/permuted production-loaded input/RNG; canonical provenance; actual failed save whole snapshot/reset/restoredinputsRNG/retry/no-due/empty-turn once. Root own fresh realPG restore-retry1pass0 and literalassertion inspection.",
+    "I4-04 implementation PASS: root reverified whole147/current13 bytes to fresh fullreview; actual fresh migrations; nullableJSON/DTO/stubs/named type-only API boundaries; partialimplemented docs/indexes. Root independently read migration0001/journal, Fleet movement schema, actual atomic game/planet/null-owner/1row save and live content/docs.",
+    "I4-05 local gameplay/runtime verified: exact combinedbackend181/LCOVBFF71A; exactshared204/LCOV8FED2F; types/builds/exactSBpackagebuild/BOTH65/default12authenticated24/cleanup; attribution honest. Plain local lint FAILED allocator/host OOM actualtool-2146233082, pnpmexitUNKNOWN. Final delivery PENDING all required/applicable exactlatestheadCI including fullplainlint/Codecov/CodeScene and readyPR595; no waiver or invented pass."
+  ],
+  "rootCriticalReceipt": "root-critical-checks.receipt.json",
+  "currentLcovInspection": "current-tester-lcov-inspection.json",
+  "localLintFailure": "root-plain-lint.receipt.json",
+  "noProductionOrTestEditsByRoot": true,
+  "remaining": "Normal hooks/source-byte preservation, commit/push exactbranch, update/attach ONEPR595, all8+applicable exactlatestheadCIgreen, ready and reverify, final actual maintained Storybook review"
+}

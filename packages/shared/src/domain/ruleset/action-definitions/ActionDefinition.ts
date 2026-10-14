@@ -1,7 +1,9 @@
 import { z } from "zod"
 import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
+import { ActionInputDefinitionSchema, type ActionInputDefinition } from "#shared/domain/ruleset/action-definitions/ActionInputDefinition.ts"
 import { ActionTierSchema, type ActionTier } from "#shared/domain/ruleset/action-definitions/ActionTier.ts"
 import { ActionTypeSchema, type ActionType } from "#shared/domain/ruleset/action-definitions/ActionType.ts"
+import { InputTagSchema, type InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
 import { type TargetTag, TargetTagSchema } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import { EffectDefinitionSchema, type EffectDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinition.ts"
 import {
@@ -9,6 +11,7 @@ import {
   type ResourceLossEffectDefinition,
 } from "#shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
 import { type TargetDefinition, TargetDefinitionSchema } from "#shared/domain/ruleset/target-definitions/TargetDefinition.ts"
+import { validateFleetEffectMappings } from "./validateFleetEffectMappings.ts"
 
 /**
  * The definition of an Action.
@@ -24,6 +27,7 @@ export type ActionDefinition = Readonly<{
   name: string
   type: ActionType
   tier: ActionTier
+  inputs: Readonly<Record<InputTag, ActionInputDefinition>>
   targets: Readonly<Record<TargetTag, TargetDefinition>>
   costs: ResourceLossEffectDefinition[]
   effects: EffectDefinition[]
@@ -35,27 +39,37 @@ export const ActionDefinitionSchema = z
     name: z.string(),
     type: ActionTypeSchema,
     tier: ActionTierSchema,
+    inputs: z.record(InputTagSchema, ActionInputDefinitionSchema),
     targets: z.record(TargetTagSchema, TargetDefinitionSchema),
     costs: z.array(ResourceLossEffectDefinitionSchema),
     effects: z.array(EffectDefinitionSchema),
   })
-  .superRefine(validateEffectDefinitionTargets) satisfies z.ZodType<ActionDefinition>
+  .superRefine(validateEffectDefinitionTargets)
+  .superRefine(validateFleetEffectMappings) satisfies z.ZodType<ActionDefinition>
 
 /**
  * Requires an action definition target slot with a compatible type for every effect definition target.
  */
 function validateEffectDefinitionTargets(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
-  for (const effectDefinition of [...actionDefinition.costs, ...actionDefinition.effects]) {
-    for (const effectDefinitionTarget of Object.values(effectDefinition.targets)) {
+  const definitions = [
+    ...actionDefinition.costs.map((effectDefinition, effectIndex) => ({ effectDefinition, path: ["costs", effectIndex] })),
+    ...actionDefinition.effects.map((effectDefinition, effectIndex) => ({ effectDefinition, path: ["effects", effectIndex] })),
+  ]
+
+  for (const { effectDefinition, path } of definitions) {
+    for (const [targetRole, effectDefinitionTarget] of Object.entries(effectDefinition.targets)) {
       const slotTargetType = actionDefinition.targets[effectDefinitionTarget.actionTargetTag]?.targetType
+      const targetPath = [...path, "targets", targetRole]
       if (slotTargetType === undefined) {
         context.addIssue({
           code: "custom",
+          path: targetPath,
           message: `Action Definition "${actionDefinition.name}" is missing target slot tagged "${effectDefinitionTarget.actionTargetTag}" required by the "${effectDefinition.type}" effect definition`,
         })
       } else if (slotTargetType !== effectDefinitionTarget.targetType) {
         context.addIssue({
           code: "custom",
+          path: targetPath,
           message: `Action Definition "${actionDefinition.name}" target slot tagged "${effectDefinitionTarget.actionTargetTag}" has type "${slotTargetType}", but the "${effectDefinition.type}" effect definition requires "${effectDefinitionTarget.targetType}"`,
         })
       }

@@ -1,0 +1,81 @@
+{
+  "recordedAtUtc": "2026-10-13T00:05:06.9987374Z",
+  "ownChecks": [
+    {
+      "command": "git diff --check 9fb5a3946bfa5ba9e9d033a88c7f4c633d84a564 -- apps packages docs",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check e9408c64620fc988dc3b1fd39827afabcb7d40f5 -- apps packages docs",
+      "exitCode": 0
+    }
+  ],
+  "schemaSnapshotComparison": "0001 differs from 0000 only in migration identity and nullable public.actions.selected_inputs jsonb / public.fleets.movement jsonb",
+  "reconciledArtifactIdentity": [
+    {
+      "path": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/available-checks.json",
+      "bytes": 5326,
+      "sha256": "6A193E068BCFF9ABF2240E1F27B9CB402B1E43A0B5B785B5B8B6189533E5D9BD"
+    },
+    {
+      "path": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/backend-coverage-output.txt",
+      "bytes": 390871,
+      "sha256": "76FAEB2F6549E7C296059854C74F0CC43573C9A1FB7B02153237FDBC6F96721D"
+    },
+    {
+      "path": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/backend-coverage.exit.txt",
+      "bytes": 3,
+      "sha256": "13BF7B3039C63BF5A50491FA3CFD8EB4E699D1BA1436315AEF9CBE5711530354"
+    },
+    {
+      "path": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/e2e-output.txt",
+      "bytes": 42829,
+      "sha256": "E008A9BAC3960A48280E5AD3576E0D39431E4360CCBDD8A01FC772A63DB10CE3"
+    },
+    {
+      "path": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/e2e.exit.txt",
+      "bytes": 3,
+      "sha256": "13BF7B3039C63BF5A50491FA3CFD8EB4E699D1BA1436315AEF9CBE5711530354"
+    },
+    {
+      "path": ".agents/experiments/fleet-operations/evidence/increment-04-root-final/root-critical-checks.receipt.json",
+      "bytes": 4585,
+      "sha256": "A4E87D1AE752BB79EE2B0009C25D2E78E6BBD84E7505C148EC4A0796B555B2E4"
+    },
+    {
+      "path": ".agents/experiments/fleet-operations/evidence/increment-04-root-final/root-critical-shared.output.txt",
+      "bytes": 467,
+      "sha256": "C02B5D1FBBA36A58087C23C2BA280220EB1BCE5214C78E6838DB3A5DAEB7BC5E"
+    },
+    {
+      "path": ".agents/experiments/fleet-operations/evidence/increment-04-root-final/root-postgres-restore-retry.output.txt",
+      "bytes": 11425,
+      "sha256": "5FF2793341264D81577343BD9DBFD5321E05CA12646A18DB966B84103D0684D6"
+    },
+    {
+      "path": ".agents/experiments/fleet-operations/evidence/increment-04-root-final/root-plain-lint.receipt.json",
+      "bytes": 840,
+      "sha256": "BC72D287F015437CFFB8059674BAF55C186791E7D6FEEACAEAF9FA433DE82A95"
+    },
+    {
+      "path": ".agents/experiments/fleet-operations/evidence/increment-04-root-final/root-plain-lint.output.txt",
+      "bytes": 10558,
+      "sha256": "EA546C511B7E55D42963EA691D390AE8E302C4E397F89AF49C7A7AB20FA56850"
+    },
+    {
+      "path": ".agents/experiments/fleet-operations/evidence/increment-04-root-final/post-tester-service-inventory.json",
+      "bytes": 322,
+      "sha256": "B53D46E08463FFF59D2ED503435F5062A36ADAB127454AD0F9136E8D7B930917"
+    }
+  ],
+  "sourceDeltaSinceOwnManifest": [],
+  "stagedPaths": [],
+  "head": "9fb5a3946bfa5ba9e9d033a88c7f4c633d84a564",
+  "reviewerOwnedRuntimeProcesses": [],
+  "ownReadFailures": [
+    "Restricted Git worktree view failed; unchanged normal-account retry succeeded",
+    "Restricted pnpm maintained Storybook guidance EPERM; unchanged normal-account retry succeeded",
+    "PowerShell read invocation: Stack overflow, tool exit -1073741571",
+    "PowerShell inventory invocation: double mapped memory release failed, tool exit -2146233082; no-profile read retry succeeded"
+  ]
+}

@@ -10,6 +10,7 @@ export const GainInfluence: ActionDefinition = {
   name: "Political Campaign",
   type: ActionType.AGENDA,
   tier: ActionTier.BASIC,
+  inputs: {},
   targets: {},
   costs: [],
   effects: [

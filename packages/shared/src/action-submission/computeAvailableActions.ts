@@ -14,6 +14,7 @@ export function computeAvailableActions({ playerIds, ruleset }: { playerIds: rea
       playerId,
       actionDefinitionId,
       selectedTargets: null,
+      selectedInputs: null,
     })),
   )
 }

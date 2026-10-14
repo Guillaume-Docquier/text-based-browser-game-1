@@ -1,0 +1,1 @@
+pnpm --filter backend exec vitest run --project concurrency --silent=false --reporter=verbose

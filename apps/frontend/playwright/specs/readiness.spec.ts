@@ -19,7 +19,7 @@ test("being ready locks selected actions and the turn resolves when all players 
     const galaxyPage = await aliceGameDetailsPage.startGame()
     const actionsPage = await galaxyPage.openActions()
     await actionsPage.toggleActionSelection("Extract Metal")
-    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "true")
+    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveText("Update action")
     return await actionsPage.openPlayers()
   })
 
@@ -40,16 +40,16 @@ test("being ready locks selected actions and the turn resolves when all players 
 
   const aliceActionsPage = await test.step("Alice cannot change her actions while ready", async () => {
     const actionsPage = await alicePlayersPage.openActions()
-    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-disabled", "true")
-    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "true")
+    await expect(actionsPage.selectActionButton("Extract Metal")).toBeDisabled()
+    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveText("Update action")
     return actionsPage
   })
 
   await test.step("Alice cancels lock-in from Actions and can change her choices again", async () => {
     await aliceActionsPage.toggleLockIn()
-    await expect(aliceActionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-disabled", "false")
+    await expect(aliceActionsPage.selectActionButton("Extract Metal")).toBeEnabled()
     await aliceActionsPage.toggleActionSelection("Extract Metal")
-    await expect(aliceActionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "false")
+    await expect(aliceActionsPage.selectActionButton("Extract Metal")).toHaveText("Select action")
   })
 
   await test.step("Alice readies", async () => {
@@ -61,7 +61,7 @@ test("being ready locks selected actions and the turn resolves when all players 
   await test.step("Bob selects an action and readies", async () => {
     const actionsPage = await bobPlayersPage.openActions()
     await actionsPage.toggleActionSelection("Extract Metal")
-    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "true")
+    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveText("Update action")
 
     await actionsPage.openPlayers()
     await bobPlayersPage.toggleReady()
@@ -76,7 +76,7 @@ test("being ready locks selected actions and the turn resolves when all players 
     await expect(alicePlayersPage.opponentNotReady).toBeVisible()
 
     await alicePlayersPage.openActions()
-    await expect(aliceActionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-disabled", "false")
+    await expect(aliceActionsPage.selectActionButton("Extract Metal")).toBeEnabled()
   })
 
   await test.step("Bob receives his action resources while Alice's resources remain unchanged", async () => {

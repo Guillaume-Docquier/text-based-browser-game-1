@@ -1,0 +1,15 @@
+{
+  "topLevel": "C:/Users/Guillaume/.codex/worktrees/fleet-operations-experiment/text-based-browser-game-1",
+  "branch": "codex/fleet-operations-experiment",
+  "head": "06954d1a35759a5fa5bd4271f0585ba3ef71c6e4",
+  "manifestSha256": "E8741A320C101B44929758F84485BCCB4E1389F8A81B2EB1E0B667FEC47291FA",
+  "manifestEntries": 61,
+  "manifestMatches": 61,
+  "manifestMismatches": [],
+  "preCommitSha256": "C0508811ED3AC34DFCEB4CBD1DF365217F9554E904DC4CF070368EBC248E1637",
+  "stagedCount": 104,
+  "stagedPathInventorySha256": "0799409C93DBF34652DC83F54E655BB5A34E303F05398A441263070B09F38A58",
+  "statusEntryCount": 163,
+  "reportSha256": "BE24669903908302764DC26CDA5244C1569607B00D76F42C2AFC8F17C8960E8B",
+  "criterionRows": 18
+}

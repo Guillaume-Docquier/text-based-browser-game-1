@@ -1,4 +1,5 @@
 import { type Branded, Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { and, desc, eq, gt, inArray } from "drizzle-orm"
 import type { GameId } from "shared/domain/games/GameId.ts"
 import type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
@@ -8,10 +9,13 @@ import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import type { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
 import type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
-import type { Action } from "shared/domain/turns/actions/Action.ts"
+import { AvailableActionSchema, SubmittedActionSchema, type Action } from "shared/domain/turns/actions/Action.ts"
 import type { ActionId } from "shared/domain/turns/actions/ActionId.ts"
+import type { SelectedInputs } from "shared/domain/turns/actions/SelectedInputs.ts"
 import type { SelectedTargets } from "shared/domain/turns/actions/SelectedTargets.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import { FleetSchema } from "shared/domain/world/fleets/Fleet.ts"
+import type { FleetMovement } from "shared/domain/world/fleets/Fleet.ts"
 import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
 import type { Galaxy } from "shared/domain/world/Galaxy.ts"
 import type { Planet } from "shared/domain/world/planets/Planet.ts"
@@ -50,6 +54,9 @@ export type ActionSubmissionsForUpdate = Branded<
     turn: number
     resources: Readonly<Resources>
     actions: readonly Action[]
+    playerIds: readonly PlayerId[]
+    planets: readonly ResolutionPlanet[]
+    fleets: readonly ResolutionFleet[]
     ruleset: Ruleset
   }>
 >
@@ -62,7 +69,7 @@ export type UpdateActionSubmissionsModel = Readonly<{
   /**
    * The actions to update, can be newly selected, selected target updates or de-selected.
    */
-  actions: ReadonlyArray<Pick<Action, "id" | "selectedTargets">>
+  actions: ReadonlyArray<Pick<Action, "id" | "selectedTargets" | "selectedInputs">>
 }>
 
 type PlayerViewPlayerModel = Readonly<{
@@ -81,11 +88,19 @@ export type ReadinessForUpdate = Branded<
   }>
 >
 
-type PlayerViewActionModel = Readonly<{
-  id: ActionId
-  actionDefinitionId: ActionDefinitionId
-  selectedTargets: SelectedTargets | null
-}>
+type PlayerViewActionModel =
+  | Readonly<{
+      id: ActionId
+      actionDefinitionId: ActionDefinitionId
+      selectedTargets: null
+      selectedInputs: null
+    }>
+  | Readonly<{
+      id: ActionId
+      actionDefinitionId: ActionDefinitionId
+      selectedTargets: SelectedTargets
+      selectedInputs: SelectedInputs
+    }>
 
 export type PlayerViewModel = Readonly<{
   gameId: GameId
@@ -169,6 +184,7 @@ export class GameplayRepository extends PostgresRepository {
               id: actionsTable.id,
               actionDefinitionId: actionsTable.actionDefinitionId,
               selectedTargets: actionsTable.selectedTargets,
+              selectedInputs: actionsTable.selectedInputs,
             })
             .from(actionsTable)
             .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn.turn)))
@@ -188,7 +204,7 @@ export class GameplayRepository extends PostgresRepository {
             turnStatus: turn.status,
             turnEndsAt: turn.endsAt,
             resources: toResourceBag(playerResources),
-            actions: availableActionRows,
+            actions: availableActionRows.map((action) => toPlayerViewAction({ ...action, playerId })),
             ruleset,
           }
         },
@@ -261,12 +277,19 @@ export class GameplayRepository extends PostgresRepository {
       .from(actionsTable)
       .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn)))
 
+    const playerRows = await tx.select({ playerId: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId))
+    const planetRows = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId))
+    const fleetRows = await tx.select().from(fleetsTable).where(eq(fleetsTable.gameId, gameId))
+
     return branded({
       gameId,
       playerId,
       turn,
       resources: toResourceBag(resourceRows),
-      actions,
+      actions: actions.map(toAction),
+      playerIds: playerRows.map(({ playerId: id }) => id),
+      planets: planetRows.map(({ id, name, ownerPlayerId, x, y }) => ({ id, name, ownerPlayerId, x, y })),
+      fleets: fleetRows.map(toFleet),
       ruleset,
     })
   }
@@ -371,7 +394,7 @@ export class GameplayRepository extends PostgresRepository {
         async (action) =>
           await tx
             .update(actionsTable)
-            .set({ selectedTargets: action.selectedTargets, updatedAt })
+            .set({ selectedTargets: action.selectedTargets, selectedInputs: action.selectedInputs, updatedAt })
             .where(
               and(
                 eq(actionsTable.gameId, context.gameId),
@@ -463,10 +486,55 @@ function toPlanetModel({
   }
 }
 
-function toFleet({ destinationPlanetId, distanceToEnd, ...fleet }: typeof fleetsTable.$inferSelect): ResolutionFleet {
-  return {
+function toFleet({ destinationPlanetId, distanceToEnd, movement, ...fleet }: typeof fleetsTable.$inferSelect): ResolutionFleet {
+  const parsedFleet = typedParse(FleetSchema, {
     ...fleet,
     ...(destinationPlanetId === null ? {} : { destinationPlanetId }),
     ...(distanceToEnd === null ? {} : { distanceToEnd }),
+    ...(movement === null ? {} : { movement: movement satisfies FleetMovement }),
+  })
+  return parsedFleet
+}
+
+function toPlayerViewAction({
+  id,
+  playerId,
+  actionDefinitionId,
+  selectedTargets,
+  selectedInputs,
+}: Pick<
+  typeof actionsTable.$inferSelect,
+  "id" | "playerId" | "actionDefinitionId" | "selectedTargets" | "selectedInputs"
+>): PlayerViewActionModel {
+  const action = toAction({ id, playerId, actionDefinitionId, selectedTargets, selectedInputs })
+  if (action.selectedTargets === null) {
+    return {
+      id: action.id,
+      actionDefinitionId: action.actionDefinitionId,
+      selectedTargets: null,
+      selectedInputs: null,
+    }
   }
+  return {
+    id: action.id,
+    actionDefinitionId: action.actionDefinitionId,
+    selectedTargets: action.selectedTargets,
+    selectedInputs: action.selectedInputs,
+  }
+}
+
+function toAction({
+  id,
+  playerId,
+  actionDefinitionId,
+  selectedTargets,
+  selectedInputs,
+}: Pick<typeof actionsTable.$inferSelect, "id" | "playerId" | "actionDefinitionId" | "selectedTargets" | "selectedInputs">): Action {
+  if (selectedTargets === null && selectedInputs === null) {
+    return typedParse(AvailableActionSchema, { id, playerId, actionDefinitionId, selectedTargets, selectedInputs })
+  }
+  if (selectedTargets === null || selectedInputs === null) {
+    throw new Error(`Action "${id}" has mismatched target and input selection state`)
+  }
+  return typedParse(SubmittedActionSchema, { id, playerId, actionDefinitionId, selectedTargets, selectedInputs })
 }

@@ -8,6 +8,13 @@
       "when": 1790648427944,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791659865795,
+      "tag": "0001_fleet-action-inputs-and-movement",
+      "breakpoints": true
     }
   ]
 }

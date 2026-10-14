@@ -1,0 +1,11 @@
+{
+  "base": "34e64fbabee094f18c4af75dbee613f8b7f6c378",
+  "branch": "codex/fleet-operations-experiment",
+  "head": "34e64fbabee094f18c4af75dbee613f8b7f6c378",
+  "count": 61,
+  "manifestSha256": "7DBBFC584D70A63A51DAC53AE89E426E63793A5619043DEB8CE286425A1A2A16",
+  "planSha256": "EE88A85CC2FDC7CE7E0D3561153CAF74450F8E08357EAA1E53C11FE2EF950B31",
+  "commissionSha256": "0421BB4F6A67B202EAB1C070E4B026B413F9E0F997C65AA0E3C66AD006555C8A",
+  "auditVerdictBeforeReceipts": "No actionable findings identified in full increment; all 24 criteria independently audited. Verification execution attribution pending neutral primary receipts.",
+  "recordedAt": "2026-10-12T09:23:49.6682337Z"
+}

@@ -1,5 +1,6 @@
-import { typedParse, type Integer, IntegerSchema, type PositiveNumber, PositiveNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { z } from "zod"
+import { PositiveIntegerSchema, type PositiveInteger } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import type { AbstractEffectDefinition } from "#shared/domain/ruleset/effect-definitions/AbstractEffectDefinition.ts"
 import type { EffectDefinitionFactoryParameters } from "#shared/domain/ruleset/effect-definitions/EffectDefinitionFactoryParameters.ts"
 import { EffectDefinitionTargetDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
@@ -19,9 +20,9 @@ export interface FleetBuildEffectDefinition extends AbstractEffectDefinition {
   }
   readonly parameters: {
     /**
-     * Non-zero positive integer representing the fleet strength to build.
+     * Non-zero safe positive integer representing the fleet strength to build.
      */
-    readonly strength: PositiveNumber & Integer
+    readonly strength: PositiveInteger
   }
 }
 
@@ -48,6 +49,6 @@ export const FleetBuildEffectDefinitionSchema = z.object({
     planet: EffectDefinitionTargetDefinition.schemaFor(z.literal(TargetType.PLANET)),
   }),
   parameters: z.object({
-    strength: z.number().pipe(PositiveNumberSchema).and(IntegerSchema),
+    strength: PositiveIntegerSchema,
   }),
 }) satisfies z.ZodType<FleetBuildEffectDefinition>

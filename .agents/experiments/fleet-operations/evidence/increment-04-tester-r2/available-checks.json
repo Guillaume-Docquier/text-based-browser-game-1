@@ -1,0 +1,120 @@
+{
+  "generatedAtUtc": "2026-10-12T23:48:13.1625208Z",
+  "worktree": "C:/Users/Guillaume/.codex/worktrees/fleet-operations-experiment/text-based-browser-game-1",
+  "sourceIdentityManifest": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/current-source-hashes.json",
+  "checks": [
+    {
+      "command": "pnpm exec oxfmt --write apps/backend/src/api/gameplay/gameplay.router.integration.test.ts packages/shared/src/testing/FleetActionSelectionParity.ts",
+      "exitCode": 0,
+      "output": "Finished in 26ms on 2 files using 24 threads.",
+      "capture": "direct tool output"
+    },
+    {
+      "command": "pnpm exec oxlint --max-warnings 0 apps/backend/src/api/gameplay/gameplay.router.integration.test.ts packages/shared/src/testing/FleetActionSelectionParity.ts",
+      "exitCode": 0,
+      "output": "",
+      "capture": "direct tool output; no diagnostics"
+    },
+    {
+      "command": "pnpm --filter backend typecheck",
+      "exitCode": 0,
+      "output": "$ tsc",
+      "capture": "direct tool output"
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0,
+      "output": "",
+      "capture": "direct tool output; no diagnostics"
+    },
+    {
+      "command": "pnpm --filter backend test --project integration src/api/gameplay/gameplay.router.integration.test.ts -t \"persist the shared mixed-definition parity allocation through the public router\"",
+      "exitCode": 0,
+      "result": "1 passed, 29 skipped (30 total)",
+      "outputPath": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/focused-parity-output.txt",
+      "outputSizeBytes": 704,
+      "outputSha256": "ADC850D3FBDDB4417BC9061DF3A80326F2A4C5A2C871406427A812719683C83B",
+      "exitPath": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/focused-parity.exit.txt",
+      "capture": "full output and actual exit retained"
+    },
+    {
+      "command": "pnpm --filter backend test:coverage",
+      "exitCode": 0,
+      "result": "13/13 files and 181/181 tests passed",
+      "coverage": {
+        "statements": "82.54% (799/968)",
+        "branches": "78% (273/350)",
+        "functions": "90.18% (239/265)",
+        "lines": "81.7% (755/924)"
+      },
+      "outputPath": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/backend-coverage-output.txt",
+      "outputSha256": "76FAEB2F6549E7C296059854C74F0CC43573C9A1FB7B02153237FDBC6F96721D",
+      "exitPath": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/backend-coverage.exit.txt",
+      "lcovStructurePath": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/backend-lcov-structure.json",
+      "capture": "full Tee-captured output and actual exit retained"
+    },
+    {
+      "command": "pnpm --filter shared test:coverage",
+      "exitCode": 0,
+      "result": "26 files, 204 tests",
+      "coverage": {
+        "statements": "89.63%",
+        "branches": "82.66%",
+        "functions": "88.92%",
+        "lines": "89.47%"
+      },
+      "lcov": {
+        "path": "packages/shared/coverage/lcov.info",
+        "sizeBytes": 62904,
+        "sha256": "8FED2F284FFFCA63170D260055A1C4E4828916345F7B9E537288D6E636262B46",
+        "sourceFiles": 159,
+        "endOfRecordCount": 159,
+        "daRows": 1425
+      },
+      "capture": "own direct tool result; raw output not retained"
+    },
+    {
+      "command": "pnpm --filter shared typecheck",
+      "exitCode": 0,
+      "capture": "own direct tool result; output not retained"
+    },
+    {
+      "command": "pnpm --filter frontend typecheck",
+      "exitCode": 0,
+      "capture": "own direct tool result; output not retained"
+    },
+    {
+      "command": "pnpm --filter frontend build",
+      "exitCode": 0,
+      "capture": "own direct tool result; output not retained"
+    },
+    {
+      "command": "pnpm --filter frontend storybook:build",
+      "exitCode": 0,
+      "result": "2,466 modules",
+      "capture": "own direct tool result; output not retained"
+    },
+    {
+      "command": "pnpm --filter frontend storybook:test",
+      "exitCode": 0,
+      "result": "17 test files, 65 tests; storybook and storybook-native projects",
+      "capture": "own direct tool result; output not retained"
+    },
+    {
+      "command": "pnpm --filter frontend e2e --add-reporter=list",
+      "exitCode": 0,
+      "result": "24 tests passed, 12 workers, including authenticated Alice and Bob setup",
+      "outputPath": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/e2e-output.txt",
+      "outputSizeBytes": 42829,
+      "outputSha256": "E008A9BAC3960A48280E5AD3576E0D39431E4360CCBDD8A01FC772A63DB10CE3",
+      "exitPath": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/e2e.exit.txt",
+      "capture": "full output and actual exit retained; run occurred before backend-test-only O4-09 correction"
+    },
+    {
+      "command": "pnpm lint",
+      "exitCode": 1,
+      "result": "FAILED: full local oxlint runtime allocator failure (Go runtime cannot allocate 1,127,868 bytes; low-level exit -1073740791)",
+      "capture": "own direct tool failure; full raw output was not retained; unchanged allocator failure was not repeated"
+    }
+  ]
+}

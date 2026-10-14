@@ -1,0 +1,13 @@
+{
+  "command": "pnpm db:clean",
+  "worktree": "C:/Users/Guillaume/.codex/worktrees/fleet-operations-experiment/text-based-browser-game-1",
+  "project": "cosmic-empires-worktree-43",
+  "port": 10129,
+  "authorization": "Human restarted Docker and cleared all containers/volumes, then explicitly requested assigned pnpm db:clean",
+  "startedAtUtc": "2026-10-12T23:26:55.1675141Z",
+  "completedAtUtc": "2026-10-12T23:27:01.0250447Z",
+  "actualExit": 0,
+  "log": ".agents/experiments/fleet-operations/evidence/increment-04-root-final/db-clean-after-human-restart.output.txt",
+  "environmentFilesEdited": false,
+  "initialGuard": "Initial exact unquoted scope comparison stopped before command; corrected parser accepts existing quoted dotenv values without editing them"
+}

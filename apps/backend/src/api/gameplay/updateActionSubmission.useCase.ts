@@ -1,14 +1,11 @@
-import { branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { validateSubmittedActions } from "shared/action-submission/validation/validateSubmittedActions.ts"
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { evaluateActionSelection, type EligibilityState } from "shared/action-submission/evaluateActionSelection.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
-import { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
 import type { SubmittedAction } from "shared/domain/turns/actions/Action.ts"
-import { safeResolveTargetId } from "shared/turn-resolution/effects/resolveTargetId.ts"
 import { z } from "zod"
 import { SubmittedActionTargetsDtoSchema } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { createTurnState } from "./createTurnState.ts"
 import type { GameplayRepository } from "./gameplay.repository.ts"
 import { UpdateActionSubmissionError, UpdateActionSubmissionRollbackError } from "./updateActionSubmission.error.ts"
 
@@ -41,22 +38,35 @@ export class UpdateActionSubmissionUseCase {
     submittedActionTargets,
   }: UpdateActionSubmissionDto): Promise<Result<void, UpdateActionSubmissionError>> {
     const setActionResult = await this.createTransaction(async (tx) => {
+      // This locks the current turn row for the full replacement evaluation and write.
       const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn }, tx)
-
-      const actionsById = new Map(Array.from(context.actions, (action) => [action.id, action]))
-      const action = actionsById.get(submittedActionTargets.actionId)
+      const action = context.actions.find(({ id }) => id === submittedActionTargets.actionId)
       if (action === undefined) {
         throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.INVALID_ACTION_ID)
       }
 
-      const actionDefinition = context.ruleset.actionDefinitions[action.actionDefinitionId]
-      if (actionDefinition === undefined) {
-        throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.ACTION_DEFINITION_NOT_FOUND)
+      const state: EligibilityState = {
+        gameId: context.gameId,
+        turn,
+        submittingPlayerId: playerId,
+        resources: context.resources,
+        players: Object.fromEntries(context.playerIds.map((id) => [id, { id, ownerPlayerId: id }])),
+        planets: Object.fromEntries(context.planets.map((planet) => [planet.id, planet])),
+        fleets: Object.fromEntries(context.fleets.map((fleet) => [fleet.id, fleet])),
+        actions: context.actions,
       }
 
-      if (submittedActionTargets.selectedTargets === null) {
+      if (submittedActionTargets.selectedTargets === null || submittedActionTargets.selectedInputs === null) {
+        const cancellationEvaluation = evaluateActionSelection({
+          state,
+          ruleset: context.ruleset,
+          draft: { actionId: action.id, selectedTargets: {}, selectedInputs: {} },
+        })
+        if (cancellationEvaluation.issues.some(({ code }) => code === "ACTION_ALREADY_IN_PROGRESS")) {
+          throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.ACTION_IN_PROGRESS)
+        }
         await this.gameplayRepository.updateActionSubmissions(
-          { context, actions: [{ id: submittedActionTargets.actionId, selectedTargets: null }] },
+          { context, actions: [{ id: submittedActionTargets.actionId, selectedTargets: null, selectedInputs: null }] },
           tx,
         )
         return
@@ -67,59 +77,28 @@ export class UpdateActionSubmissionUseCase {
         actionDefinitionId: action.actionDefinitionId,
         playerId,
         selectedTargets: submittedActionTargets.selectedTargets,
+        selectedInputs: submittedActionTargets.selectedInputs,
       } satisfies SubmittedAction
+      const actionDefinition = context.ruleset.actionDefinitions[submittedAction.actionDefinitionId]
+      if (actionDefinition === undefined) {
+        throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.ACTION_DEFINITION_NOT_FOUND)
+      }
 
-      const planetIds = [
-        ...new Set(
-          Object.entries(actionDefinition.targets)
-            .map(([actionTargetTag, targetDefinition]) => {
-              if (targetDefinition.targetType !== TargetType.PLANET) {
-                return null
-              }
-
-              // Object.entries widens TargetTag to string
-              return safeResolveTargetId(submittedAction.selectedTargets, {
-                actionTargetTag: branded(actionTargetTag),
-                targetType: targetDefinition.targetType,
-              })
-            })
-            .filter((planetId) => planetId !== null),
-        ),
-      ]
-      const planets = await this.gameplayRepository.getPlanetsByIds({ gameId: context.gameId, planetIds }, tx)
-
-      const fleetIds = [
-        ...new Set(
-          Object.entries(actionDefinition.targets)
-            .map(([actionTargetTag, targetDefinition]) => {
-              if (targetDefinition.targetType !== TargetType.FLEET) {
-                return null
-              }
-
-              // Object.entries widens TargetTag to string
-              return safeResolveTargetId(submittedAction.selectedTargets, {
-                actionTargetTag: branded(actionTargetTag),
-                targetType: targetDefinition.targetType,
-              })
-            })
-            .filter((fleetId) => fleetId !== null),
-        ),
-      ]
-      const fleets = await this.gameplayRepository.getFleetsByIds({ gameId: context.gameId, fleetIds }, tx)
-
-      const turnState = createTurnState({
-        gameId: context.gameId,
-        turn,
-        playerId,
-        resources: context.resources,
-        submittedActions: [submittedAction],
-        planets,
-        fleets,
+      const evaluation = evaluateActionSelection({
+        state,
+        ruleset: context.ruleset,
+        draft: {
+          actionId: submittedAction.id,
+          selectedTargets: submittedAction.selectedTargets,
+          selectedInputs: submittedAction.selectedInputs,
+        },
       })
-      const issues = validateSubmittedActions(turnState.submittedActions, context.ruleset, turnState)
-      if (issues.length > 0) {
-        this.logger.error("Invalid action submission", { issues })
-        throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.INVALID_SUBMISSION)
+      if (evaluation.status !== "ELIGIBLE") {
+        this.logger.error("Invalid action submission", { issues: evaluation.issues })
+        const code = evaluation.issues.some(({ code }) => code === "ACTION_ALREADY_IN_PROGRESS")
+          ? UpdateActionSubmissionError.ACTION_IN_PROGRESS
+          : UpdateActionSubmissionError.INVALID_SUBMISSION
+        throw new UpdateActionSubmissionRollbackError(code)
       }
 
       await this.gameplayRepository.updateActionSubmissions({ context, actions: [submittedAction] }, tx)
@@ -133,12 +112,11 @@ export class UpdateActionSubmissionUseCase {
         actionId: submittedActionTargets.actionId,
         error: setActionResult.error,
       })
-
-      if (setActionResult.error instanceof UpdateActionSubmissionRollbackError) {
-        return Result.Failure(setActionResult.error.code)
-      }
-
-      return Result.Failure(UpdateActionSubmissionError.UNKNOWN)
+      return Result.Failure(
+        setActionResult.error instanceof UpdateActionSubmissionRollbackError
+          ? setActionResult.error.code
+          : UpdateActionSubmissionError.UNKNOWN,
+      )
     }
 
     return Result.Success(undefined)

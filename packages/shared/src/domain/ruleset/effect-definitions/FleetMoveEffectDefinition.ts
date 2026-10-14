@@ -1,5 +1,6 @@
 import { typedParse, type PositiveNumber, PositiveNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
 import { z } from "zod"
+import { InputTagSchema, type InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
 import type { AbstractEffectDefinition } from "#shared/domain/ruleset/effect-definitions/AbstractEffectDefinition.ts"
 import type { EffectDefinitionFactoryParameters } from "#shared/domain/ruleset/effect-definitions/EffectDefinitionFactoryParameters.ts"
 import { EffectDefinitionTargetDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
@@ -21,6 +22,12 @@ export interface FleetMoveEffectDefinition extends AbstractEffectDefinition {
      */
     readonly planet: EffectDefinitionTargetDefinition<typeof TargetType.PLANET>
   }
+  readonly inputs: {
+    readonly strength: {
+      readonly actionInputTag: InputTag
+      readonly inputType: "POSITIVE_INTEGER"
+    }
+  }
   readonly parameters: {
     /**
      * Non-zero positive number representing the fleet's movement speed in Light Years per turn.
@@ -31,7 +38,12 @@ export interface FleetMoveEffectDefinition extends AbstractEffectDefinition {
 
 export const FleetMoveEffectDefinition = {
   type: "FLEET_MOVE",
-  create: ({ fleetTag, planetTag, speed }: EffectDefinitionFactoryParameters<FleetMoveEffectDefinition>): FleetMoveEffectDefinition =>
+  create: ({
+    fleetTag,
+    planetTag,
+    strengthTag,
+    speed,
+  }: EffectDefinitionFactoryParameters<FleetMoveEffectDefinition> & { strengthTag: string }): FleetMoveEffectDefinition =>
     typedParse(FleetMoveEffectDefinitionSchema, {
       type: FleetMoveEffectDefinition.type,
       targets: {
@@ -42,6 +54,12 @@ export const FleetMoveEffectDefinition = {
         planet: {
           actionTargetTag: planetTag,
           targetType: TargetType.PLANET,
+        },
+      },
+      inputs: {
+        strength: {
+          actionInputTag: strengthTag,
+          inputType: "POSITIVE_INTEGER",
         },
       },
       parameters: {
@@ -56,7 +74,15 @@ export const FleetMoveEffectDefinitionSchema = z.object({
     fleet: EffectDefinitionTargetDefinition.schemaFor(z.literal(TargetType.FLEET)),
     planet: EffectDefinitionTargetDefinition.schemaFor(z.literal(TargetType.PLANET)),
   }),
+  inputs: z
+    .object({
+      strength: z.object({
+        actionInputTag: InputTagSchema,
+        inputType: z.literal("POSITIVE_INTEGER"),
+      }),
+    })
+    .strict(),
   parameters: z.object({
-    speed: z.number().pipe(PositiveNumberSchema),
+    speed: z.number().finite().pipe(PositiveNumberSchema),
   }),
 }) satisfies z.ZodType<FleetMoveEffectDefinition>

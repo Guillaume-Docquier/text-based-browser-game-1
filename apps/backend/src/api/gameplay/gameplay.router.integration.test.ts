@@ -1,14 +1,17 @@
-import { Assert, branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Datetime, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
+import type { GameId } from "shared/domain/games/GameId.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
-import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
-import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
+import { AttackMoveTest, FlexibleAssaultTest, StationaryAssaultTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
+import { ColonizeHereTest, ColonizePlanetTest } from "shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
-import { describe, expect } from "vitest"
+import { afterEach, describe, expect, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
+import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
@@ -17,11 +20,16 @@ import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-in
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
 import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "#lib/rulesets/standard/action-definitions/move-fleet.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
+import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
-import { TurnsRepository } from "#turn-processing/turns.repository.ts"
+import { withDefaultActionViewFields } from "../../tests/fleet-gameplay/gameplay.router.ts"
 
 describe("gameplay.router", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   integrationTest("should reject all gameplay routes when the authenticated player has not joined the game", async ({ db }) => {
     // Arrange
     using apiServer = new ApiServer(await createApiStub({ db }))
@@ -124,34 +132,58 @@ describe("gameplay.router", () => {
           canAfford: false,
         },
         {
+          id: "MOVE_FLEET_IMPROVED_2",
+          actionDefinitionId: MoveFleetImproved.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
           id: expect.any(String),
           actionDefinitionId: MoveFleetExceptional.id,
           selectedTargets: null,
           canAfford: false,
         },
+        {
+          id: expect.any(String),
+          actionDefinitionId: AttackMoveTest.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: FlexibleAssaultTest.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: StationaryAssaultTest.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: "TEST_COLONIZE_PLANET_1",
+          actionDefinitionId: ColonizePlanetTest.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: "TEST_COLONIZE_HERE_1",
+          actionDefinitionId: ColonizeHereTest.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
       ]
-      expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
-        gameId: createdGameId,
-        player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, isReady: false },
-        opponents: {},
-        galaxy: expect.any(Object), // Verified by the snapshot test
-        fleets: [],
-        turn: 1,
-        turnStatus: "COLLECTING_ACTIONS",
-        turnEndsAt: Datetime.increment({
-          date: clock.now(),
-          time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
-        }).toISOString(),
-        resources: createResourcesDtoStub({
-          [ResourceType.INFLUENCE]: { uncommitted: 3, total: 3 },
-          [ResourceType.METAL]: { uncommitted: 2, total: 2 },
-          [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
-        }),
-        ruleset: TestRuleset,
-        actions: expect.arrayContaining(expectedActions),
+
+      assertGetPlayerViewResult2({
+        getPlayerViewResult,
+        createdGameId,
+        player,
+        clock,
+        gameConfiguration,
+        expectedActions,
+        repeatedGetPlayerViewResult,
       })
-      expect(getPlayerViewResult.actions).toHaveLength(expectedActions.length)
-      expect(repeatedGetPlayerViewResult.actions).toStrictEqual(getPlayerViewResult.actions)
     })
 
     integrationTest("should expose uncommitted resources and use them to determine Action affordability", async ({ db }) => {
@@ -241,532 +273,40 @@ describe("gameplay.router", () => {
       await expect(getPlayerView).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } })
     })
   })
-
-  describe("updateActionSubmission", () => {
-    integrationTest("should submit an action with valid planet targets", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-
-      const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-
-      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      const buildFleet = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
-      Assert.isDefined(buildFleet)
-
-      const homePlanet = initialPlayerView.galaxy.systems
-        .flatMap(({ planets }) => planets)
-        .find(({ ownerPlayerId }) => ownerPlayerId === branded(player.account.id))
-      Assert.isDefined(homePlanet)
-
-      // Act
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: initialPlayerView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
-          actionId: buildFleet.id,
-          selectedTargets: { planet: homePlanet.id },
-        }),
-      })
-
-      // Assert
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(playerView.actions.find(({ id }) => id === buildFleet.id)?.selectedTargets).toStrictEqual({ planet: homePlanet.id })
-    })
-
-    integrationTest("should update only the submitting player's Action when players share stable Action IDs", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const creator = await apiServer.createClient({ authenticated: true })
-      const opponent = await apiServer.createClient({ authenticated: true })
-
-      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createGameConfigurationStub() })
-      await opponent.client.games.join.mutate({ gameId: createdGameId })
-      await creator.client.games.startGame.mutate({ gameId: createdGameId })
-
-      const creatorView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const creatorAction = creatorView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
-      Assert.isDefined(creatorAction)
-
-      const opponentView = await opponent.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const opponentAction = opponentView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
-      Assert.isDefined(opponentAction)
-
-      // Act
-      await creator.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: creatorView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: creatorAction.id, selectedTargets: {} }),
-      })
-
-      // Assert
-      expect(creatorAction.id).toBe(opponentAction.id)
-      expect(
-        (await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })).actions.find(({ id }) => id === creatorAction.id),
-      ).toMatchObject({ selectedTargets: {} })
-      expect(
-        (await opponent.client.gameplay.getPlayerView.query({ gameId: createdGameId })).actions.find(({ id }) => id === opponentAction.id),
-      ).toMatchObject({ selectedTargets: null })
-    })
-
-    integrationTest("should submit and deselect multiple actions", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-
-      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const gainFuel = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainFuel.id)
-      const gainMetal = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainMetal.id)
-      Assert.isDefined(gainFuel)
-      Assert.isDefined(gainMetal)
-
-      // Act
-      for (const action of [gainFuel, gainMetal]) {
-        await player.client.gameplay.updateActionSubmission.mutate({
-          gameId: createdGameId,
-          turn: initialPlayerView.turn,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: action.id, selectedTargets: {} }),
-        })
-      }
-      const selectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      for (const action of [gainFuel, gainMetal]) {
-        await player.client.gameplay.updateActionSubmission.mutate({
-          gameId: createdGameId,
-          turn: initialPlayerView.turn,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: action.id, selectedTargets: null }),
-        })
-      }
-      const deselectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Assert
-      const expectedSelectedActions = [
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainInfluence.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: WinTheGame.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainEnergy.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainFuel.id,
-          selectedTargets: {},
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainMetal.id,
-          selectedTargets: {},
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetStandard.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetStandard.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-      ]
-      expect(selectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedSelectedActions))
-      expect(selectedPlayerView.actions).toHaveLength(expectedSelectedActions.length)
-
-      const expectedDeselectedActions = [
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainInfluence.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: WinTheGame.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainEnergy.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainFuel.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainMetal.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetStandard.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetStandard.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-      ]
-      expect(deselectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedDeselectedActions))
-      expect(deselectedPlayerView.actions).toHaveLength(expectedDeselectedActions.length)
-    })
-
-    integrationTest("should reject an action with invalid planet targets", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-
-      const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-
-      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      const buildFleet = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
-      Assert.isDefined(buildFleet)
-
-      // Act
-      const invalidSubmission = player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: initialPlayerView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
-          actionId: buildFleet.id,
-          selectedTargets: { planet: "123456789" },
-        }),
-      })
-
-      // Assert
-      await expect(invalidSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-    })
-
-    integrationTest("should reject setting an action for a stale turn", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const player = await apiServer.createClient({ authenticated: true })
-
-      const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const makeMoreMoney = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
-      Assert.isDefined(makeMoreMoney)
-
-      // Act
-      const updateActionSubmission = player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: 0,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, selectedTargets: {} }),
-      })
-
-      // Assert
-      await expect(updateActionSubmission).rejects.toMatchObject({ data: { code: "CONFLICT" } })
-    })
-
-    integrationTest("should reject setting an action after the turn deadline", async ({ db }) => {
-      // Arrange
-      const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
-      const player = await apiServer.createClient({ authenticated: true })
-
-      const { createdGameId } = await player.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ turnIntervalSeconds: 10 }),
-      })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const makeMoreMoney = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
-      Assert.isDefined(makeMoreMoney)
-      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
-
-      // Act
-      const updateActionSubmission = player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: playerView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, selectedTargets: {} }),
-      })
-
-      // Assert
-      await expect(updateActionSubmission).rejects.toMatchObject({ data: { code: "CONFLICT" } })
-    })
-
-    integrationTest("should reject an action the player cannot afford", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const winTheGame = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === WinTheGame.id)
-      Assert.isDefined(winTheGame)
-
-      // Act
-      const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: 1,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: winTheGame.id, selectedTargets: {} }),
-      })
-
-      // Assert
-      await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-    })
-
-    integrationTest("should reject an action that is not available to the player", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const makeMoreMoney = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
-      Assert.isDefined(makeMoreMoney)
-
-      // Act
-      const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: 1,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: "unavailable-action", selectedTargets: {} }),
-      })
-
-      // Assert
-      await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-    })
-  })
-
-  // This test suite is often failing, but only in the CI. Not sure if it is hanging or just taking longer.
-  // If we get timeouts on a 20s budget, this is definitely hanging and there's an issue running on the CI that we should address.
-  describe("updateReadiness", { timeout: 20_000 }, () => {
-    integrationTest.for([true, false])("should set the player readiness to %s", async (isReady, { db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const creator = await apiServer.createClient({ authenticated: true })
-      const player = await apiServer.createClient({ authenticated: true })
-
-      const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
-      })
-      await player.client.games.join.mutate({ gameId: createdGameId }) // 2nd player to avoid turn processing on ready
-
-      await creator.client.games.startGame.mutate({ gameId: createdGameId })
-      const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Act
-      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: !isReady }) // Making sure the status will change
-      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady })
-
-      // Assert
-      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(playerView).toStrictEqual<typeof playerView>({
-        ...initialPlayerView,
-        player: {
-          ...initialPlayerView.player,
-          isReady,
-        },
-      })
-    })
-
-    integrationTest("should close the turn and submit for processing when all players are ready", async ({ db }) => {
-      // Arrange
-      const logger = Logger.get()
-      const clock = new ControlledClock()
-      const turnsRepository = new TurnsRepository({ db, logger })
-
-      const apiServices = await createApiStub({ db, clock })
-      using apiServer = new ApiServer(apiServices)
-      const creator = await apiServer.createClient({ authenticated: true })
-      const player = await apiServer.createClient({ authenticated: true })
-
-      const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
-      })
-      await player.client.games.join.mutate({ gameId: createdGameId })
-
-      await creator.client.games.startGame.mutate({ gameId: createdGameId })
-      const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Act
-      await player.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
-      const playerViewWithOnePlayerReady = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
-      const playerViewWithAllPlayersReady = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Assert
-      const playerId = branded<PlayerId>(player.account.id)
-      const initialPlayer = initialPlayerView.opponents[playerId]
-      Assert.isDefined(initialPlayer)
-
-      expect(playerViewWithOnePlayerReady).toStrictEqual<typeof playerViewWithAllPlayersReady>({
-        ...initialPlayerView,
-        opponents: {
-          [playerId]: {
-            ...initialPlayer,
-            isReady: true,
-          },
-        },
-      })
-      expect(playerViewWithAllPlayersReady).toStrictEqual<typeof playerViewWithAllPlayersReady>({
-        ...initialPlayerView,
-        turnStatus: TurnStatus.AWAITING_PROCESSING,
-        player: {
-          ...initialPlayerView.player,
-          isReady: true,
-        },
-        opponents: {
-          [playerId]: {
-            ...initialPlayer,
-            isReady: true,
-          },
-        },
-      })
-
-      const turnForProcessing = await apiServices.createTransaction(
-        async (tx) => await turnsRepository.getNextTurnForProcessing({ since: clock.now() }, tx),
-      )
-      expect(turnForProcessing).toStrictEqual<typeof turnForProcessing>(Result.Success(branded({ gameId: createdGameId, turn: 1 })))
-    })
-
-    integrationTest("should reject readiness for the wrong turn", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const creator = await apiServer.createClient({ authenticated: true })
-
-      const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
-      })
-
-      await creator.client.games.startGame.mutate({ gameId: createdGameId })
-      const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Act
-      const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
-
-      // Assert
-      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "CONFLICT" } })
-      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
-    })
-
-    integrationTest("should reject readiness past the deadline", async ({ db }) => {
-      // Arrange
-      const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
-      const creator = await apiServer.createClient({ authenticated: true })
-
-      const turnInterval = Time.create(10, UnitOfTime.SECONDS)
-      const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({
-          mapGenerationSeed: 1234,
-          turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS),
-        }),
-      })
-
-      await creator.client.games.startGame.mutate({ gameId: createdGameId })
-      const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Act
-      clock.increment({ time: turnInterval })
-      const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
-
-      // Assert
-      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "CONFLICT" } })
-      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
-    })
-
-    integrationTest("should reject readiness for players not in the game", async ({ db }) => {
-      // Arrange
-      const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
-      const creator = await apiServer.createClient({ authenticated: true })
-      const player = await apiServer.createClient({ authenticated: true }) // not in the game
-
-      const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
-      })
-
-      await creator.client.games.startGame.mutate({ gameId: createdGameId })
-      const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Act
-      const updateReadiness = player.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
-
-      // Assert
-      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "FORBIDDEN" } })
-      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
-    })
-  })
 })
+
+function assertGetPlayerViewResult2(input: AssertGetPlayerViewResult2Input): void {
+  expect(input.getPlayerViewResult).toStrictEqual<typeof input.getPlayerViewResult>({
+    gameId: input.createdGameId,
+    player: { id: branded(input.player.account.id), color: PlayerColor.TURQUOISE, isReady: false },
+    opponents: {},
+    galaxy: expect.any(Object), // Verified by the snapshot test
+    fleets: [],
+    turn: 1,
+    turnStatus: "COLLECTING_ACTIONS",
+    turnEndsAt: Datetime.increment({
+      date: input.clock.now(),
+      time: Time.create(input.gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
+    }).toISOString(),
+    resources: createResourcesDtoStub({
+      [ResourceType.INFLUENCE]: { uncommitted: 3, total: 3 },
+      [ResourceType.METAL]: { uncommitted: 2, total: 2 },
+      [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
+    }),
+    ruleset: TestRuleset,
+    actions: expect.any(Array),
+  })
+  expect(input.getPlayerViewResult.actions).toStrictEqual(expect.arrayContaining(input.expectedActions.map(withDefaultActionViewFields)))
+  expect(input.getPlayerViewResult.actions).toHaveLength(input.expectedActions.length)
+  expect(input.repeatedGetPlayerViewResult.actions).toStrictEqual(input.getPlayerViewResult.actions)
+}
+
+type AssertGetPlayerViewResult2Input = {
+  getPlayerViewResult: PlayerView
+  createdGameId: GameId
+  player: AuthenticatedApiClient
+  clock: ControlledClock
+  gameConfiguration: ReturnType<typeof createGameConfigurationStub>
+  expectedActions: Array<{ id: unknown; actionDefinitionId: ActionDefinitionId; selectedTargets: null; canAfford: false | true }>
+  repeatedGetPlayerViewResult: PlayerView
+}

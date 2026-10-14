@@ -84,6 +84,8 @@ export function createGameplayRouter({
             throw new TRPCError({ code: "BAD_REQUEST", message: "This action is not available." })
           case UpdateActionSubmissionError.ACTION_DEFINITION_NOT_FOUND:
             throw new TRPCError({ code: "BAD_REQUEST", message: "Could not find a definition for this action." })
+          case UpdateActionSubmissionError.ACTION_IN_PROGRESS:
+            throw new TRPCError({ code: "BAD_REQUEST", message: "An Action cannot be changed or cancelled while it is in progress." })
           case UpdateActionSubmissionError.INVALID_SUBMISSION:
             throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid action submission, targets are invalid or costs cannot be paid." })
           case UpdateActionSubmissionError.UNKNOWN:

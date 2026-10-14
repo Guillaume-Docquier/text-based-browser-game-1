@@ -25,10 +25,34 @@ describe("computeAvailableActions", () => {
 
     // Assert
     expect(actions).toStrictEqual([
-      { id: "POOLED_ACTION_1", playerId: firstPlayerId, actionDefinitionId: pooledDefinition.id, selectedTargets: null },
-      { id: "POOLED_ACTION_2", playerId: firstPlayerId, actionDefinitionId: pooledDefinition.id, selectedTargets: null },
-      { id: "POOLED_ACTION_1", playerId: secondPlayerId, actionDefinitionId: pooledDefinition.id, selectedTargets: null },
-      { id: "POOLED_ACTION_2", playerId: secondPlayerId, actionDefinitionId: pooledDefinition.id, selectedTargets: null },
+      {
+        id: "POOLED_ACTION_1",
+        playerId: firstPlayerId,
+        actionDefinitionId: pooledDefinition.id,
+        selectedTargets: null,
+        selectedInputs: null,
+      },
+      {
+        id: "POOLED_ACTION_2",
+        playerId: firstPlayerId,
+        actionDefinitionId: pooledDefinition.id,
+        selectedTargets: null,
+        selectedInputs: null,
+      },
+      {
+        id: "POOLED_ACTION_1",
+        playerId: secondPlayerId,
+        actionDefinitionId: pooledDefinition.id,
+        selectedTargets: null,
+        selectedInputs: null,
+      },
+      {
+        id: "POOLED_ACTION_2",
+        playerId: secondPlayerId,
+        actionDefinitionId: pooledDefinition.id,
+        selectedTargets: null,
+        selectedInputs: null,
+      },
     ])
   })
 })

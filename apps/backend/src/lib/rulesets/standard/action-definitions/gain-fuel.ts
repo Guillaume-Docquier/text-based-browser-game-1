@@ -11,6 +11,7 @@ export const GainFuel: ActionDefinition = {
   name: "Refine Fuel",
   type: ActionType.DIRECTIVE,
   tier: ActionTier.ADVANCED,
+  inputs: {},
   targets: {},
   costs: [
     ResourceLossEffectDefinition.create({

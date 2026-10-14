@@ -1,0 +1,12 @@
+{
+  "OriginalCount": 24,
+  "CurrentCount": 24,
+  "OracleChanges": [
+    {
+      "Criterion": "C3-24",
+      "Original": "Gatespass.COLONY0andfixtureCOLONY7unchangedacrosssuccess/prevention/emptyTurns.Nopopulation/growthbonus,migration,System/GDDR,envedit,IDbranch,frontendbackend-runtimeimport,outcomehistoryorunrelatedevidencedeletion.",
+      "Current": "Gatespass.COLONY0andfixtureCOLONY7unchangedacrosssuccess/prevention/emptyTurns.Nopopulation/growthbonusornewI3migration,System/GDDR,envedit,IDbranch,frontendbackend-runtimeimport,outcomehistoryorunrelatedevidencedeletion."
+    }
+  ],
+  "Meaning": "Only C3-24 clarifies no NEW I3 migration; all gameplay literal oracles unchanged. Primary JSON structurally unchanged except corrected prior hash. Additional report edits are specified P execution labels, explicit W separation, verified hash addition and formatter Markdown emphasis/table widths."
+}

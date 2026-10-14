@@ -26,6 +26,7 @@ function buildFleetDirective({
     name: "Build Fleet",
     type: ActionType.DIRECTIVE,
     tier,
+    inputs: {},
     targets: {
       planet: {
         targetType: TargetType.PLANET,

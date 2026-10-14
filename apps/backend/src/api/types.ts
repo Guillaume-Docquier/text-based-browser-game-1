@@ -1,10 +1,10 @@
-/**
- * Exports API types for the frontend
- */
-
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import type { TrpcRouter } from "./createApi.ts"
+
+/**
+ * Exports API types for the frontend
+ */
 
 type TrpcRouterInput = inferRouterInputs<TrpcRouter>
 type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
@@ -18,6 +18,7 @@ export type { AccountId } from "shared/domain/accounts/AccountId.ts"
 export type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 export type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
 export type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
+export type { InputTag } from "shared/domain/ruleset/action-definitions/InputTag.ts"
 
 // Games
 export type GameDetails = TrpcRouterOutput["games"]["getById"]
@@ -34,6 +35,7 @@ export type GameListing = TrpcRouterOutput["games"]["getListings"][number]
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
 export type Action = PlayerView["actions"][number]
 export type SelectedTargets = Action["selectedTargets"]
+export type SelectedInputs = Action["selectedInputs"]
 export type TargetId = NonNullable<SelectedTargets>[keyof NonNullable<SelectedTargets>]
 export type ResourceType = keyof PlayerView["resources"]
 export type Ruleset = PlayerView["ruleset"]
@@ -47,6 +49,7 @@ export type EffectDefinition = ActionDefinition["costs"][number] | ActionDefinit
 export type Actions = PlayerView["actions"][number]
 export type Galaxy = PlayerView["galaxy"]
 export type StarSystem = Galaxy["systems"][number]
+export type StarId = StarSystem["star"]["id"]
 export type Planet = StarSystem["planets"][number]
 export type Fleet = PlayerView["fleets"][number]
 export type PlanetBiome = Planet["biome"]
@@ -54,3 +57,14 @@ export type PlanetSize = Planet["size"]
 
 // Account
 export type FinishOnboardingRequest = TrpcRouterInput["accounts"]["finishOnboarding"]
+
+/**
+ * The configured input slot returned in an Action Definition.
+ */
+export type ActionInputDefinition = ActionDefinition["inputs"][keyof ActionDefinition["inputs"]]
+
+export type { ActionId } from "shared/domain/turns/actions/ActionId.ts"
+
+export type ActionType = ActionDefinition["type"]
+export type ActionDefinitionCosts = ActionDefinition["costs"]
+export type PlayerResources = PlayerView["resources"]
