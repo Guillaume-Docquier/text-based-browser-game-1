@@ -1,7 +1,9 @@
-import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { type Logger, Result, Timer } from "@guillaume-docquier/tools-ts"
 import { initTRPC, TRPCError } from "@trpc/server"
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
+import { getHTTPStatusCodeFromError } from "@trpc/server/http"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import { v4 } from "uuid"
 import { z } from "zod"
 import type { GamesRepository } from "#api/games/games.repository.ts"
 import type { RequireProcedureSchemas } from "#api/trpc.d.ts"
@@ -30,19 +32,40 @@ export async function toTrpcOutput<TValue, TError extends string>(
 ): Promise<TValue> {
   const result = await pendingResult
   if (Result.isFailure(result)) {
-    throw new TRPCError(errorResponses[result.error])
+    throw new UseCaseTrpcError(errorResponses[result.error], result.error)
   }
 
   return result.value
 }
 
+/**
+ * Keeps the use-case failure code available to logging without changing the client error shape.
+ */
+class UseCaseTrpcError extends TRPCError {
+  public readonly errorCode: string
+
+  public constructor(response: TrpcErrorResponse, errorCode: string) {
+    super(response)
+    this.name = "UseCaseTrpcError"
+    this.errorCode = errorCode
+  }
+}
+
 type ExpressContextOptions = Pick<CreateExpressContextOptions, "req" | "res">
 
-export type TrpcContext = Awaited<ReturnType<typeof createTrpcContext>>
-export const createTrpcContext = ({ req, res }: ExpressContextOptions): ExpressContextOptions => {
+/**
+ * Request context shared by every procedure in an HTTP batch.
+ */
+export type TrpcContext = ExpressContextOptions & { requestId: string }
+
+/**
+ * Creates one correlation ID per HTTP request, used only by procedure completion logs.
+ */
+export const createTrpcContext = ({ req, res }: ExpressContextOptions): TrpcContext => {
   return {
     req,
     res,
+    requestId: v4(),
   }
 }
 
@@ -53,7 +76,30 @@ export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepos
   // { isDev: false } disables stack traces, see https://trpc.io/docs/server/error-handling#stack-traces-in-production
   const t = initTRPC.context<TrpcContext>().create({ isDev: false })
 
-  const publicProcedure = t.procedure.use(async ({ next, ctx }) => {
+  // Runs before auth checks and input/output validation; measures the procedure pipeline only.
+  const baseProcedure = t.procedure.use(async ({ next, ctx, path, type }) => {
+    const startTime = Timer.start()
+    const result = await next()
+    const context = {
+      durationMs: Timer.since(startTime).value,
+      route: path,
+      type,
+      status: result.ok ? "success" : "error",
+      requestId: ctx.requestId,
+      ...(!result.ok ? { trpcCode: result.error.code } : {}),
+      ...(!result.ok && result.error instanceof UseCaseTrpcError ? { errorCode: result.error.errorCode } : {}),
+    }
+
+    if (!result.ok && getHTTPStatusCodeFromError(result.error) >= 500) {
+      logger.error("rpc.event.completed", context)
+    } else {
+      logger.info("rpc.event.completed", context)
+    }
+
+    return result
+  })
+
+  const publicProcedure = baseProcedure.use(async ({ next, ctx }) => {
     return await next({ ctx: { account: ctx.req.account } })
   })
 

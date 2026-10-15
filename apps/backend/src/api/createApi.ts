@@ -25,7 +25,6 @@ import { createHealthRouter } from "#api/health/health.router.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
-import { requestLoggerMiddleware } from "./requestLoggerMiddleware.ts"
 import { createTrpc, createTrpcContext } from "./trpc.ts"
 
 /**
@@ -68,7 +67,6 @@ export async function createApi({
 
   const app = express()
   app.use(compression())
-  app.use(requestLoggerMiddleware(services))
   app.use(...authService.authenticationMiddlewares())
 
   app.use(
