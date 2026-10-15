@@ -68,7 +68,9 @@ function AuthSession({ auth }: RouterContext): ReactElement {
         },
       }),
   )
-  const [backendApiClient] = useState(() => createBackendApiClient({ baseUrl: env.VITE_BACKEND_BASE_URL, queryClient }))
+  const [backendApiClient] = useState(() =>
+    createBackendApiClient({ baseUrl: env.VITE_BACKEND_BASE_URL, queryClient, logger, isDevelopment: env.DEV }),
+  )
   const [router] = useState(() => createAppRouter({ auth }))
 
   return (
