@@ -1,11 +1,10 @@
 import { branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { AccountIdSchema } from "shared/domain/accounts/AccountId.ts"
-import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
-import { z } from "zod"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GamesRepository } from "./games.repository.ts"
+import type { LeaveGameCommand } from "./leaveGame.command.ts"
 import { LeaveGameError, LeaveGameRollbackError } from "./leaveGame.error.ts"
 
 /**
@@ -33,7 +32,7 @@ export class LeaveGameUseCase {
   /**
    * Leaving an already left lobby returns a success for idempotency.
    */
-  public async execute({ gameId, accountId }: LeaveGameDto): Promise<Result<void, LeaveGameError>> {
+  public async execute({ gameId }: LeaveGameCommand, { accountId }: { accountId: AccountId }): Promise<Result<void, LeaveGameError>> {
     const playerId = branded<PlayerId>(accountId)
     const leaveGameResult = await this.createTransaction(async (tx) => {
       const gameForLeave = await this.gamesRepository.getGameForLeave({ gameId }, tx)
@@ -66,9 +65,3 @@ export class LeaveGameUseCase {
     return Result.Success(undefined)
   }
 }
-
-export type LeaveGameDto = z.infer<typeof LeaveGameDtoSchema>
-export const LeaveGameDtoSchema = z.object({
-  gameId: GameIdSchema,
-  accountId: AccountIdSchema,
-})
