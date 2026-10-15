@@ -11,6 +11,10 @@ type FrontendEnv = z.infer<typeof FrontendEnvSchema>
  */
 const FrontendEnvSchema = z.object({
   /**
+   * Vite's built-in development flag. Absent when parsing loadEnv in the Vite config.
+   */
+  DEV: z.boolean().default(false),
+  /**
    * Matches the reverse proxy path for the backend.
    */
   VITE_BACKEND_BASE_URL: z.string().default("/api"),
