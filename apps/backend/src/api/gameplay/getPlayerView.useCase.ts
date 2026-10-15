@@ -1,5 +1,4 @@
 import { Assert, Result } from "@guillaume-docquier/tools-ts"
-import { NonNegativeNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
 import { getUncommittedResources } from "shared/action-submission/getUncommittedResources.ts"
 import { validateCosts } from "shared/action-submission/validation/costs/validateCosts.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
@@ -13,15 +12,8 @@ import { RulesetSchema } from "shared/domain/ruleset/Ruleset.ts"
 import { ActionIdSchema } from "shared/domain/turns/actions/ActionId.ts"
 import { SelectedTargetsSchema } from "shared/domain/turns/actions/SelectedTargets.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
-import { FleetIdSchema } from "shared/domain/world/fleets/FleetId.ts"
-import { FleetNameSchema } from "shared/domain/world/fleets/FleetName.ts"
-import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
-import { PlanetCoordinatesSchema } from "shared/domain/world/planets/PlanetCoordinates.ts"
-import { PlanetIdSchema } from "shared/domain/world/planets/PlanetId.ts"
-import { PlanetNameSchema } from "shared/domain/world/planets/PlanetName.ts"
-import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
-import { StarCoordinatesSchema } from "shared/domain/world/stars/StarCoordinates.ts"
-import { StarIdSchema } from "shared/domain/world/stars/StarId.ts"
+import { FleetSchema } from "shared/domain/world/fleets/Fleet.ts"
+import { GalaxySchema } from "shared/domain/world/Galaxy.ts"
 import { z } from "zod"
 import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
 import { createTurnState } from "./createTurnState.ts"
@@ -145,50 +137,6 @@ export const PlayerViewPlayerDtoSchema = z.object({
   isReady: z.boolean(),
 })
 
-export const StarDtoSchema = z.object({
-  id: StarIdSchema,
-  name: z.string(),
-  coordinates: StarCoordinatesSchema,
-  x: z.number(),
-  y: z.number(),
-})
-
-export const PlanetDtoSchema = z.object({
-  id: PlanetIdSchema,
-  ownerPlayerId: PlayerIdSchema.nullable(),
-  name: PlanetNameSchema,
-  coordinates: PlanetCoordinatesSchema,
-  x: z.number(),
-  y: z.number(),
-  biome: z.enum(PlanetBiome),
-  size: z.enum(PlanetSize),
-  fertility: z.number(),
-  metal: z.number(),
-  fuel: z.number(),
-  energy: z.number(),
-  maxPopulation: z.number(),
-  area: z.number(),
-})
-
-export const GalaxyDtoSchema = z.object({
-  systems: z.array(
-    z.object({
-      star: StarDtoSchema,
-      planets: z.array(PlanetDtoSchema),
-    }),
-  ),
-})
-
-export const FleetDtoSchema = z.object({
-  id: FleetIdSchema,
-  ownerPlayerId: PlayerIdSchema,
-  name: FleetNameSchema,
-  strength: z.number(),
-  originPlanetId: PlanetIdSchema,
-  destinationPlanetId: PlanetIdSchema.optional(),
-  distanceToEnd: NonNegativeNumberSchema.optional(),
-})
-
 type ActionDto = z.infer<typeof ActionDtoSchema>
 const ActionDtoSchema = z.object({
   id: ActionIdSchema,
@@ -202,8 +150,8 @@ export const PlayerViewDtoSchema = z.object({
   gameId: GameIdSchema,
   player: PlayerViewPlayerDtoSchema,
   opponents: z.record(PlayerIdSchema, PlayerViewPlayerDtoSchema),
-  galaxy: GalaxyDtoSchema,
-  fleets: z.array(FleetDtoSchema).readonly(),
+  galaxy: GalaxySchema,
+  fleets: z.array(FleetSchema).readonly(),
   turn: z.number(),
   turnStatus: z.enum(TurnStatus),
   turnEndsAt: z.date(),
