@@ -28,17 +28,17 @@
     "wts": "node scripts/worktree-setup.ts && pnpm db:clean"
   },
   "devDependencies": {
-    "@guillaume-docquier/oxfmt": "^1.0.15",
+    "@guillaume-docquier/oxfmt": "^1.0.16",
     "@guillaume-docquier/oxlint": "^1.10.0",
     "@guillaume-docquier/show-me": "^1.7.1",
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-boundaries": "^7.2.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
-    "oxfmt": ">=0.71.0",
-    "oxlint": "^1.86.0",
-    "oxlint-tsgolint": "^7.0.2003",
+    "oxfmt": ">=0.72.0",
+    "oxlint": "^1.87.0",
+    "oxlint-tsgolint": "^7.0.2004",
     "typescript": "catalog:"
   },
   "lint-staged": {

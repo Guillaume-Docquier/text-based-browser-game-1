@@ -530,8 +530,8 @@ EmailAddress.parse(input)
 Always use named exports:
 
 ```ts
-import { casesHandled } from "./prelude"
 import { PasswordReset } from "./password-reset"
+import { casesHandled } from "./prelude"
 ```
 
 Export only what callers should use. Keep internal helpers unexported unless intentionally shared. Do not export internals just for tests.
