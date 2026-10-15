@@ -21,12 +21,12 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.75",
+    "@clerk/express": "^2.1.78",
     "@guillaume-docquier/tools-ts": "catalog:",
     "@trpc/server": "^11.18.0",
     "compression": "^1.8.2",
-    "drizzle-orm": "^0.45.3",
-    "express": "^5.2.1",
+    "drizzle-orm": "^0.45.4",
+    "express": "^5.3.0",
     "p-retry": "^8.0.1",
     "pg": "^8.23.1",
     "shared": "workspace:*",
