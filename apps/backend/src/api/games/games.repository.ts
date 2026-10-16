@@ -13,6 +13,7 @@ import type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
 import type { AvailableAction } from "shared/domain/turns/actions/Action.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import type { Galaxy } from "shared/domain/world/Galaxy.ts"
+import type { GameCreationConfirmation } from "#api/games/GameCreationConfirmation.ts"
 import { GetGameByIdError } from "#api/games/getGameById.error.ts"
 import { GetGameCreationSettingsError } from "#api/games/getGameCreationSettings.error.ts"
 import { GetGameListingsError } from "#api/games/getGameListings.error.ts"
@@ -401,7 +402,7 @@ export class GamesRepository extends PostgresRepository {
   public async createGame(
     createGameModel: CreateGameModel,
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<{ createdGameId: GameId }, CreateGameError>> {
+  ): Promise<Result<GameCreationConfirmation, CreateGameError>> {
     const createGameResult = await Result.tryCatch(
       db.transaction(async (tx) => {
         const games = await tx.insert(gamesTable).values(toCreateGameRow(createGameModel)).returning()

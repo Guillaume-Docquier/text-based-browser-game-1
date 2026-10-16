@@ -1,9 +1,8 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "shared/domain/accounts/AccountId.ts"
-import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PLAYER_COLOR_PRIORITY } from "shared/domain/players/PlayerColor.ts"
-import { z } from "zod"
+import type { GameCreationConfirmation } from "#api/games/GameCreationConfirmation.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import type { CreateGameCommand } from "./createGame.command.ts"
 import { CreateGameError } from "./createGame.error.ts"
@@ -23,7 +22,7 @@ export class CreateGameUseCase {
   public async execute(
     createGameCommand: CreateGameCommand,
     { createdByAccountId }: { createdByAccountId: AccountId },
-  ): Promise<Result<CreatedGameDto, CreateGameError>> {
+  ): Promise<Result<GameCreationConfirmation, CreateGameError>> {
     if (createGameCommand.configuration.nbSeats > MAX_NB_SEATS) {
       return Result.Failure(CreateGameError.TOO_MANY_SEATS)
     }
@@ -46,8 +45,3 @@ export class CreateGameUseCase {
     })
   }
 }
-
-export type CreatedGameDto = z.infer<typeof CreatedGameDtoSchema>
-export const CreatedGameDtoSchema = z.object({
-  createdGameId: GameIdSchema,
-})

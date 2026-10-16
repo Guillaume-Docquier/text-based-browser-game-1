@@ -1,9 +1,10 @@
 import { type Logger, branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
+import { GameCreationConfirmationSchema } from "#api/games/GameCreationConfirmation.ts"
 import { NO_INPUT, NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
 import { CreateGameCommandSchema } from "./createGame.command.ts"
 import { CreateGameErrorResponses } from "./createGame.error.ts"
-import { CreatedGameDtoSchema, type CreateGameUseCase } from "./createGame.useCase.ts"
+import type { CreateGameUseCase } from "./createGame.useCase.ts"
 import { GameDetailsDtoSchema } from "./GameDetailsDto.ts"
 import { GameListingDtoSchema } from "./GameListingDto.ts"
 import { GetGameByIdErrorResponses } from "./getGameById.error.ts"
@@ -84,7 +85,7 @@ export function createGamesRouter({
      */
     create: trpc.privateProcedure
       .input(CreateGameCommandSchema)
-      .output(CreatedGameDtoSchema)
+      .output(GameCreationConfirmationSchema)
       .mutation(
         async ({ input: newGame, ctx: { account } }) =>
           await toTrpcOutput(createGameUseCase.execute(newGame, { createdByAccountId: account.id }), CreateGameErrorResponses),
