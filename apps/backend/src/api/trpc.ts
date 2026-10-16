@@ -38,9 +38,6 @@ export async function toTrpcOutput<TValue, TError extends string>(
   return result.value
 }
 
-/**
- * Keeps the use-case failure code available to logging without changing the client error shape.
- */
 class UseCaseTrpcError extends TRPCError {
   public readonly errorCode: string
 
@@ -53,14 +50,8 @@ class UseCaseTrpcError extends TRPCError {
 
 type ExpressContextOptions = Pick<CreateExpressContextOptions, "req" | "res">
 
-/**
- * Request context shared by every procedure in an HTTP batch.
- */
 export type TrpcContext = ExpressContextOptions & { requestId: string }
 
-/**
- * Creates one correlation ID per HTTP request, used only by procedure completion logs.
- */
 export const createTrpcContext = ({ req, res }: ExpressContextOptions): TrpcContext => {
   return {
     req,
@@ -76,7 +67,6 @@ export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepos
   // { isDev: false } disables stack traces, see https://trpc.io/docs/server/error-handling#stack-traces-in-production
   const t = initTRPC.context<TrpcContext>().create({ isDev: false })
 
-  // Runs before auth checks and input/output validation; measures the procedure pipeline only.
   const baseProcedure = t.procedure.use(async ({ next, ctx, path, type }) => {
     const startTime = Timer.start()
     const result = await next()
