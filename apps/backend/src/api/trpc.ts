@@ -74,16 +74,23 @@ export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepos
       durationMs: Timer.since(startTime).value,
       route: path,
       type,
-      status: result.ok ? "success" : "error",
       requestId: ctx.requestId,
-      ...(!result.ok ? { trpcCode: result.error.code } : {}),
-      ...(!result.ok && result.error instanceof ApiTrpcError ? { errorCode: result.error.errorCode } : {}),
     }
 
-    if (!result.ok && getHTTPStatusCodeFromError(result.error) >= 500) {
-      logger.error("rpc.event.completed", context)
+    if (result.ok) {
+      logger.info("rpc.event.completed", { ...context, status: "success" })
     } else {
-      logger.info("rpc.event.completed", context)
+      const errorContext = {
+        ...context,
+        status: "error",
+        trpcCode: result.error.code,
+        ...(result.error instanceof ApiTrpcError ? { errorCode: result.error.errorCode } : {}),
+      }
+      if (getHTTPStatusCodeFromError(result.error) >= 500) {
+        logger.error("rpc.event.completed", errorContext)
+      } else {
+        logger.info("rpc.event.completed", errorContext)
+      }
     }
 
     return result
