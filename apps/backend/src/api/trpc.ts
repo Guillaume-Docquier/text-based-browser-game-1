@@ -67,9 +67,9 @@ export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepos
   // { isDev: false } disables stack traces, see https://trpc.io/docs/server/error-handling#stack-traces-in-production
   const t = initTRPC.context<TrpcContext>().create({ isDev: false })
 
-  const baseProcedure = t.procedure.use(async ({ next, ctx, path, type }) => {
+  const publicProcedure = t.procedure.use(async ({ next, ctx, path, type }) => {
     const startTime = Timer.start()
-    const result = await next()
+    const result = await next({ ctx: { account: ctx.req.account } })
     const context = {
       durationMs: Timer.since(startTime).value,
       route: path,
@@ -87,10 +87,6 @@ export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepos
     }
 
     return result
-  })
-
-  const publicProcedure = baseProcedure.use(async ({ next, ctx }) => {
-    return await next({ ctx: { account: ctx.req.account } })
   })
 
   const privateProcedure = publicProcedure.use(async ({ next, ctx }) => {
