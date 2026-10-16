@@ -5,7 +5,7 @@ import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
 import { z } from "zod"
-import { RulesetSummaryDtoSchema } from "./RulesetSummaryDto.ts"
+import { RulesetSummarySchema } from "./RulesetSummary.ts"
 
 /**
  * Player identity displayed in public game details and gameplay views.
@@ -25,7 +25,7 @@ export const GameConfigurationDetailsDtoSchema = z.object({
   name: z.string(),
   nbSeats: z.number(),
   turnIntervalSeconds: z.number(),
-  ruleset: RulesetSummaryDtoSchema,
+  ruleset: RulesetSummarySchema,
 })
 
 /**

@@ -2,6 +2,7 @@ import type * as ApiTypes from "@api-types"
 import { branded } from "@guillaume-docquier/tools-ts"
 import type { Enumify } from "@guillaume-docquier/tools-ts"
 import { type ReactElement, useState } from "react"
+import { MAX_NB_SEATS } from "shared/domain/games/GameConfiguration.ts"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
 import { Input } from "@/components/input.tsx"
@@ -53,7 +54,7 @@ function CreateGameForm({
   )
   const createGame = useCreateGameMutation()
   const selectedRuleset = creationSettings.rulesets.find(({ id }) => id === rulesetId)
-  const isCreateDisabled = name === "" || nbSeats < 2 || nbSeats > creationSettings.maxNbSeats || selectedRuleset === undefined
+  const isCreateDisabled = name === "" || nbSeats < 2 || nbSeats > MAX_NB_SEATS || selectedRuleset === undefined
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
@@ -102,7 +103,7 @@ function CreateGameForm({
               id="nb-seats"
               type="number"
               min={2}
-              max={creationSettings.maxNbSeats}
+              max={MAX_NB_SEATS}
               value={nbSeats}
               onChange={(event) => {
                 setNbSeats(parseInt(event.target.value))

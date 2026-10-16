@@ -1,6 +1,7 @@
 import { type Logger, branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { GameCreationConfirmationSchema } from "#api/games/GameCreationConfirmation.ts"
+import { GameCreationSettingsSchema } from "#api/games/gameCreationSettings.ts"
 import { NO_INPUT, NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
 import { CreateGameCommandSchema } from "./createGame.command.ts"
 import { CreateGameErrorResponses } from "./createGame.error.ts"
@@ -11,7 +12,7 @@ import { GetGameByIdErrorResponses } from "./getGameById.error.ts"
 import { GetGameByIdQuerySchema } from "./getGameById.query.ts"
 import type { GetGameByIdUseCase } from "./getGameById.useCase.ts"
 import { GetGameCreationSettingsErrorResponses } from "./getGameCreationSettings.error.ts"
-import { type GetGameCreationSettingsUseCase, GameCreationSettingsDtoSchema } from "./getGameCreationSettings.useCase.ts"
+import type { GetGameCreationSettingsUseCase } from "./getGameCreationSettings.useCase.ts"
 import { GetGameListingsErrorResponses } from "./getGameListings.error.ts"
 import type { GetGameListingsUseCase } from "./getGameListings.useCase.ts"
 import { JoinGameCommandSchema } from "./joinGame.command.ts"
@@ -76,7 +77,7 @@ export function createGamesRouter({
      */
     getCreationSettings: trpc.privateProcedure
       .input(NO_INPUT)
-      .output(GameCreationSettingsDtoSchema)
+      .output(GameCreationSettingsSchema)
       .query(async () => await toTrpcOutput(getGameCreationSettingsUseCase.execute(), GetGameCreationSettingsErrorResponses)),
 
     /**

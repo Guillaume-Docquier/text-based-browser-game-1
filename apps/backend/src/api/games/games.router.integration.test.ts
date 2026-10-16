@@ -1,5 +1,6 @@
 import { Datetime, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
+import { MAX_NB_SEATS } from "shared/domain/games/GameConfiguration.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
@@ -10,18 +11,17 @@ import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { CreateGameError, CreateGameErrorResponses } from "#api/games/createGame.error.ts"
 import type { GamePlayerDto } from "#api/games/GameDetailsDto.ts"
-import { MAX_NB_SEATS } from "#api/games/GameLimits.ts"
 import { GetGameByIdError, GetGameByIdErrorResponses } from "#api/games/getGameById.error.ts"
 import { JoinGameError, JoinGameErrorResponses } from "#api/games/joinGame.error.ts"
 import { LeaveGameError, LeaveGameErrorResponses } from "#api/games/leaveGame.error.ts"
-import type { RulesetSummaryDto } from "#api/games/RulesetSummaryDto.ts"
+import type { RulesetSummary } from "#api/games/RulesetSummary.ts"
 import { StartGameError, StartGameErrorResponses } from "#api/games/startGame.error.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 
-const TEST_RULESET_SUMMARY: RulesetSummaryDto = {
+const TEST_RULESET_SUMMARY: RulesetSummary = {
   id: TestRuleset.id,
   name: TestRuleset.name,
   isDefault: TestRuleset.isDefault,
@@ -272,7 +272,6 @@ describe("games.router", () => {
 
       // Assert
       expect(creationSettings).toStrictEqual<typeof creationSettings>({
-        maxNbSeats: MAX_NB_SEATS,
         rulesets: [TEST_RULESET_SUMMARY],
       })
     })

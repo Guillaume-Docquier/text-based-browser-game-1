@@ -18,3 +18,10 @@ export const GameConfigurationSchema = z
     rulesetId: RulesetIdSchema,
   })
   .readonly() satisfies z.ZodType<GameConfiguration>
+
+/**
+ * Maximum number of players supported by a game lobby.
+ *
+ * This has to be improved, it's not present in the schema validation and used ad-hoc in the frontend and backend.
+ */
+export const MAX_NB_SEATS = 16

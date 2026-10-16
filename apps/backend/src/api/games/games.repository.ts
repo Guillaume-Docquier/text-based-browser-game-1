@@ -14,9 +14,11 @@ import type { AvailableAction } from "shared/domain/turns/actions/Action.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import type { Galaxy } from "shared/domain/world/Galaxy.ts"
 import type { GameCreationConfirmation } from "#api/games/GameCreationConfirmation.ts"
+import type { GameCreationSettings } from "#api/games/gameCreationSettings.ts"
 import { GetGameByIdError } from "#api/games/getGameById.error.ts"
 import { GetGameCreationSettingsError } from "#api/games/getGameCreationSettings.error.ts"
 import { GetGameListingsError } from "#api/games/getGameListings.error.ts"
+import type { RulesetSummary } from "#api/games/RulesetSummary.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
@@ -45,19 +47,13 @@ type NewTurnProcessingRow = typeof turnsProcessingTable.$inferInsert
 type CreateGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
 
-export type RulesetSummaryModel = Pick<Ruleset, "id" | "name" | "isDefault">
-
-export type GameCreationSettingsModel = Readonly<{
-  rulesets: readonly RulesetSummaryModel[]
-}>
-
 export type CreateGameConfigurationModel = Omit<GameConfiguration, "mapGenerationSeed">
 
 export type GameConfigurationDetailsModel = Readonly<{
   name: string
   nbSeats: number
   turnIntervalSeconds: number
-  ruleset: RulesetSummaryModel
+  ruleset: RulesetSummary
 }>
 
 export type CreateGameModel = Readonly<{
@@ -379,7 +375,7 @@ export class GamesRepository extends PostgresRepository {
 
   public async getGameCreationSettings(
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GameCreationSettingsModel, GetGameCreationSettingsError>> {
+  ): Promise<Result<GameCreationSettings, GetGameCreationSettingsError>> {
     const rulesetSummariesResult = await Result.tryCatch(
       db
         .select({
@@ -596,7 +592,7 @@ function toGameDetailsModel({
   players,
 }: {
   gameRow: GameRow
-  ruleset: RulesetSummaryModel
+  ruleset: RulesetSummary
   players: GamePlayerModel[]
 }): GameDetailsModel {
   const creator = players.find((player) => player.id === branded(gameRow.createdByAccountId))

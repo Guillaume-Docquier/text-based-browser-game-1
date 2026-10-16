@@ -1,10 +1,10 @@
 import { Assert, branded, Result } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
+import { MAX_NB_SEATS } from "shared/domain/games/GameConfiguration.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { describe, expect, it } from "vitest"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
-import { MAX_NB_SEATS } from "#api/games/GameLimits.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 
 const NB_CONCURRENCY_TEST_ACCOUNTS = MAX_NB_SEATS
