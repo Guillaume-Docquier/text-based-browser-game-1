@@ -32,18 +32,18 @@ export async function toTrpcOutput<TValue, TError extends string>(
 ): Promise<TValue> {
   const result = await pendingResult
   if (Result.isFailure(result)) {
-    throw new UseCaseTrpcError(errorResponses[result.error], result.error)
+    throw new ApiTrpcError(errorResponses[result.error], result.error)
   }
 
   return result.value
 }
 
-class UseCaseTrpcError extends TRPCError {
+class ApiTrpcError extends TRPCError {
   public readonly errorCode: string
 
   public constructor(response: TrpcErrorResponse, errorCode: string) {
     super(response)
-    this.name = "UseCaseTrpcError"
+    this.name = "ApiTrpcError"
     this.errorCode = errorCode
   }
 }
@@ -77,7 +77,7 @@ export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepos
       status: result.ok ? "success" : "error",
       requestId: ctx.requestId,
       ...(!result.ok ? { trpcCode: result.error.code } : {}),
-      ...(!result.ok && result.error instanceof UseCaseTrpcError ? { errorCode: result.error.errorCode } : {}),
+      ...(!result.ok && result.error instanceof ApiTrpcError ? { errorCode: result.error.errorCode } : {}),
     }
 
     if (!result.ok && getHTTPStatusCodeFromError(result.error) >= 500) {
