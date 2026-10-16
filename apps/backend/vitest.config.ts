@@ -2,6 +2,17 @@ import { fileURLToPath } from "node:url"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
+  plugins: [
+    {
+      name: "inherit-vitest-watch-mode",
+      configureVitest({ vitest, project }): void {
+        // Vitest can default projects to watch mode during `vitest run` in interactive terminals.
+        // Keep the typechecker from spawning a watcher that outlives the test run on Windows.
+        // Remove when https://github.com/vitest-dev/vitest/issues/9494 is fixed upstream.
+        project.config.watch = vitest.config.watch
+      },
+    },
+  ],
   test: {
     coverage: {
       exclude: [
