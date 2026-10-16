@@ -29,12 +29,11 @@ Wait for successful completion before removing the worktree. If disposal fails, 
 
 ## Remove the worktree and local branch
 
-Move shell operations to the main checkout before removal. Remove only the captured worktree path:
+Move shell operations to the main checkout before removal. Remove only the captured worktree path.
 
-- For a Codex-managed worktree attached to this task, find its exact identity with `list_artifacts` and use `archive_worktree`. This removes the checkout while retaining a recoverable snapshot. The Codex thread still needs to be archived separately.
-- For an unmanaged worktree, use `git worktree remove` with the captured absolute path. Do not force removal of unpreserved changes.
+Use `git worktree remove` or a tool call with the captured absolute path. Do not force removal of unpreserved changes. Do not retain a recoverable snapshot.
 
-After successful worktree removal, delete its captured local branch, if any, from the main checkout using `git branch -D`. This repository always squash-merges, so `git branch -d` cannot reliably recognize merged task branches. Before deletion, verify that the branch tip is recoverable from a remote branch or the managed worktree's saved snapshot. Do not delete `main` or a branch used by another worktree.
+After successful worktree removal, delete its captured local branch, if any, from the main checkout using `git branch -D`. This repository always squash-merges, so `git branch -d` cannot reliably recognize merged task branches. Do not delete `main` or a branch used by another worktree.
 
 If worktree or branch removal fails, report the remaining cleanup and keep the thread open for retry.
 
