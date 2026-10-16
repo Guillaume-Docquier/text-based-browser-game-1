@@ -2,6 +2,17 @@ import { fileURLToPath } from "node:url"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
+  plugins: [
+    {
+      name: "inherit-vitest-watch-mode",
+      configureVitest({ vitest, project }): void {
+        // Vitest can default projects to watch mode during `vitest run` in interactive terminals.
+        // In git bash on Windows, this causes a 10s hang after the tests.
+        // There's an open issue about this: https://github.com/vitest-dev/vitest/issues/9494
+        project.config.watch = vitest.config.watch
+      },
+    },
+  ],
   test: {
     coverage: {
       exclude: [
