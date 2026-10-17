@@ -58,6 +58,7 @@ export default defineConfig({
           name: { label: "integration", color: "cyan" },
           include: ["**/*.integration.test.ts"],
           setupFiles: ["./src/tests/vitest.integration.setup.ts"],
+          maxConcurrency: 2, // Bound simultaneous PGlite clones so CI coverage stays within the test timeout.
           testTimeout: 15_000, // slow in CI
         },
       },
