@@ -9,6 +9,7 @@ export const UpdateActionSubmissionError = {
   INVALID_ACTION_ID: "INVALID_ACTION_ID",
   ACTION_DEFINITION_NOT_FOUND: "ACTION_DEFINITION_NOT_FOUND",
   INVALID_SUBMISSION: "INVALID_SUBMISSION",
+  RULESET_NOT_FOUND: "RULESET_NOT_FOUND",
   UNKNOWN: "UNKNOWN",
 } as const
 
@@ -27,6 +28,7 @@ export const UpdateActionSubmissionErrorResponses: Record<UpdateActionSubmission
     code: "BAD_REQUEST",
     message: "Invalid action submission, targets are invalid or costs cannot be paid.",
   },
+  [UpdateActionSubmissionError.RULESET_NOT_FOUND]: { code: "INTERNAL_SERVER_ERROR", message: "Could not find the ruleset for this game." },
   [UpdateActionSubmissionError.UNKNOWN]: { code: "INTERNAL_SERVER_ERROR", message: "Action submission could not be updated." },
 }
 

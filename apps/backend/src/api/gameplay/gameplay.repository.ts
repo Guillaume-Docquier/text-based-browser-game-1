@@ -19,11 +19,10 @@ import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import type { Star } from "shared/domain/world/stars/Star.ts"
 import type { ResolutionFleet } from "shared/turn-resolution/state/ResolutionFleet.ts"
 import type { ResolutionPlanet } from "shared/turn-resolution/state/ResolutionPlanet.ts"
-import { GetPlayerViewError } from "#api/gameplay/getPlayerView.error.ts"
+import { GetPlayerViewError, GetPlayerViewRollbackError } from "#api/gameplay/getPlayerView.error.ts"
 import { UpdateReadinessError, UpdateReadinessRollbackError } from "#api/gameplay/updateReadiness.error.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
   actionsTable,
@@ -117,7 +116,7 @@ export class GameplayRepository extends PostgresRepository {
   public async getPlayerView(
     { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<PlayerViewModel | undefined, GetPlayerViewError>> {
+  ): Promise<Result<PlayerViewModel, GetPlayerViewError>> {
     const playerViewResult = await Result.tryCatch(
       db.transaction(
         async (tx) => {
@@ -135,7 +134,7 @@ export class GameplayRepository extends PostgresRepository {
 
           const turn = turns[0]
           if (turn === undefined) {
-            return undefined
+            throw new GetPlayerViewRollbackError(GetPlayerViewError.TURN_NOT_FOUND)
           }
 
           const gameRows = await tx.select({ rulesetId: gamesTable.rulesetId }).from(gamesTable).where(eq(gamesTable.id, gameId))
@@ -144,7 +143,7 @@ export class GameplayRepository extends PostgresRepository {
 
           const ruleset = await this.getRuleset({ rulesetId: gameRows[0].rulesetId }, tx)
           if (ruleset === undefined) {
-            throw new TransactionRollbackError("No ruleset found for this game")
+            throw new GetPlayerViewRollbackError(GetPlayerViewError.RULESET_NOT_FOUND)
           }
 
           const players = await tx
@@ -248,7 +247,7 @@ export class GameplayRepository extends PostgresRepository {
 
     const ruleset = await this.getRuleset({ rulesetId: games[0].rulesetId }, tx)
     if (ruleset === undefined) {
-      throw new TransactionRollbackError("No ruleset found for this game")
+      throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.PLAYER_READY)
     }
 
     const resourceRows = await tx

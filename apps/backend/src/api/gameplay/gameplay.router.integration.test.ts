@@ -7,7 +7,7 @@ import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
+import { createPlayerViewResourcesStub } from "#api/gameplay/PlayerViewResources.stub.ts"
 import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
 import { UpdateActionSubmissionError, UpdateActionSubmissionErrorResponses } from "#api/gameplay/updateActionSubmission.error.ts"
 import { UpdateReadinessError, UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
@@ -144,7 +144,7 @@ describe("gameplay.router", () => {
           date: clock.now(),
           time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
         }).toISOString(),
-        resources: createResourcesDtoStub({
+        resources: createPlayerViewResourcesStub({
           [ResourceType.INFLUENCE]: { uncommitted: 3, total: 3 },
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
           [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
@@ -182,7 +182,7 @@ describe("gameplay.router", () => {
 
       // Assert
       expect(playerView.resources).toStrictEqual<typeof playerView.resources>(
-        createResourcesDtoStub({
+        createPlayerViewResourcesStub({
           [ResourceType.INFLUENCE]: { uncommitted: 0, total: 3 },
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
           [ResourceType.FUEL]: { uncommitted: 0, total: 1 },

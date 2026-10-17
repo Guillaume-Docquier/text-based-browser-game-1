@@ -1,24 +1,15 @@
 import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { getUncommittedResources } from "shared/action-submission/getUncommittedResources.ts"
 import { validateCosts } from "shared/action-submission/validation/costs/validateCosts.ts"
-import { GameIdSchema } from "shared/domain/games/GameId.ts"
-import { PlayerColorSchema } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
-import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
 import type { Resources } from "shared/domain/resources/Resources.ts"
 import type { ResourceType } from "shared/domain/resources/ResourceType.ts"
-import { ActionDefinitionIdSchema } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
-import { RulesetSchema } from "shared/domain/ruleset/Ruleset.ts"
-import { ActionIdSchema } from "shared/domain/turns/actions/ActionId.ts"
-import { SelectedTargetsSchema } from "shared/domain/turns/actions/SelectedTargets.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
-import { FleetSchema } from "shared/domain/world/fleets/Fleet.ts"
-import { GalaxySchema } from "shared/domain/world/Galaxy.ts"
-import { z } from "zod"
-import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
+import type { PlayerViewAction, PlayerView } from "#api/gameplay/PlayerView.ts"
+import type { PlayerViewResourceAmounts } from "#api/gameplay/PlayerViewResources.ts"
 import { createTurnState } from "./createTurnState.ts"
 import type { GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
-import { GetPlayerViewError } from "./getPlayerView.error.ts"
+import type { GetPlayerViewError } from "./getPlayerView.error.ts"
 import type { GetPlayerViewQuery } from "./getPlayerView.query.ts"
 
 /**
@@ -34,21 +25,17 @@ export class GetPlayerViewUseCase {
   public async execute(
     { gameId }: GetPlayerViewQuery,
     { playerId }: { playerId: PlayerId },
-  ): Promise<Result<PlayerViewDto, GetPlayerViewError>> {
+  ): Promise<Result<PlayerView, GetPlayerViewError>> {
     const playerViewResult = await this.gameplayRepository.getPlayerView({ gameId, playerId })
     if (Result.isFailure(playerViewResult)) {
       return playerViewResult
-    }
-
-    if (playerViewResult.value === undefined) {
-      return Result.Failure(GetPlayerViewError.VIEW_NOT_FOUND)
     }
 
     return Result.Success(toPlayerViewDto(playerViewResult.value))
   }
 }
 
-function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
+function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerView {
   const uncommittedResources =
     playerViewModel.turnStatus === TurnStatus.COMPLETED
       ? playerViewModel.resources // When the turn is completed, at action costs have been spent already, so we don't need to compute commitments
@@ -78,9 +65,9 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
   }
 }
 
-function toResourcesDto(totalResources: Readonly<Resources>, uncommittedResources: Readonly<Resources>): PlayerViewDto["resources"] {
+function toResourcesDto(totalResources: Readonly<Resources>, uncommittedResources: Readonly<Resources>): PlayerView["resources"] {
   // string instead of ResourceType to satisfy TypeScript. Strange that it works, maybe even dangerous, but okay
-  return Object.entries(totalResources).reduce<Record<string, ResourceAmountsDto>>((resourcesDto, [resourceType, total]) => {
+  return Object.entries(totalResources).reduce<Record<string, PlayerViewResourceAmounts>>((resourcesDto, [resourceType, total]) => {
     resourcesDto[resourceType] = {
       total,
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: Object.entries widens keys from the Resources record, which are ResourceType values.
@@ -90,7 +77,7 @@ function toResourcesDto(totalResources: Readonly<Resources>, uncommittedResource
   }, {})
 }
 
-function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Resources): ActionDto[] {
+function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Resources): PlayerViewAction[] {
   const turnState = createTurnState({
     gameId: playerViewModel.gameId,
     turn: playerViewModel.turn,
@@ -129,33 +116,3 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
     }
   })
 }
-
-export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDtoSchema>
-export const PlayerViewPlayerDtoSchema = z.object({
-  id: PlayerIdSchema,
-  color: PlayerColorSchema,
-  isReady: z.boolean(),
-})
-
-type ActionDto = z.infer<typeof ActionDtoSchema>
-const ActionDtoSchema = z.object({
-  id: ActionIdSchema,
-  actionDefinitionId: ActionDefinitionIdSchema,
-  selectedTargets: SelectedTargetsSchema.nullable(),
-  canAfford: z.boolean(),
-})
-
-export type PlayerViewDto = z.infer<typeof PlayerViewDtoSchema>
-export const PlayerViewDtoSchema = z.object({
-  gameId: GameIdSchema,
-  player: PlayerViewPlayerDtoSchema,
-  opponents: z.record(PlayerIdSchema, PlayerViewPlayerDtoSchema),
-  galaxy: GalaxySchema,
-  fleets: z.array(FleetSchema).readonly(),
-  turn: z.number(),
-  turnStatus: z.enum(TurnStatus),
-  turnEndsAt: z.date(),
-  resources: ResourcesDtoSchema,
-  ruleset: RulesetSchema,
-  actions: z.array(ActionDtoSchema),
-})

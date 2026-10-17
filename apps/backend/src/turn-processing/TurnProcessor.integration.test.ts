@@ -10,7 +10,7 @@ import { MoveFleetImproved } from "shared/testing/test-ruleset/action-definition
 import { WinTheGame } from "shared/testing/test-ruleset/action-definitions/win-the-game.ts"
 import { afterEach, describe, expect, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
+import { createPlayerViewResourcesStub } from "#api/gameplay/PlayerViewResources.stub.ts"
 import type { SubmittedActionTargets } from "#api/gameplay/SubmittedActionTargets.ts"
 import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
@@ -146,7 +146,7 @@ describe("TurnProcessor", () => {
         ...initialPlayerView,
         turn: 2,
         turnEndsAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
-        resources: createResourcesDtoStub({
+        resources: createPlayerViewResourcesStub({
           [ResourceType.INFLUENCE]: { uncommitted: 8, total: 8 },
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
           [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
@@ -189,7 +189,7 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
         turn: 2,
-        resources: createResourcesDtoStub({
+        resources: createPlayerViewResourcesStub({
           [ResourceType.METAL]: { uncommitted: 5, total: 5 },
           [ResourceType.FUEL]: { uncommitted: 6, total: 6 },
         }),
