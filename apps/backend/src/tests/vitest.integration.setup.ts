@@ -1,15 +1,9 @@
 import { beforeAll, expect } from "vitest"
-import { configureLogger } from "#lib/configureLogger.ts"
 import { errorResponseMatchers } from "#tests/toMatchErrorResponse.ts"
+import { configureIntegrationLogger } from "#tests/vitest.integration.setup.logger.ts"
 
 expect.extend(errorResponseMatchers)
 
 beforeAll(async () => {
-  await setupLogging()
+  await configureIntegrationLogger()
 })
-
-async function setupLogging(): Promise<void> {
-  // nonBlocking otherwise the logs might not be flushed when the test finishes, making it hard to debug.
-  // maybe not ideal because it might change the timing of things compared to prod, but for now that'll have to do.
-  await configureLogger({ scope: "integration-test", nonBlocking: false })
-}

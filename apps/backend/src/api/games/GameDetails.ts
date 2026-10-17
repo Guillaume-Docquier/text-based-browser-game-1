@@ -2,26 +2,19 @@ import { AccountIdSchema } from "shared/domain/accounts/AccountId.ts"
 import { AliasSchema } from "shared/domain/accounts/Alias.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
-import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
+import { PlayerColorSchema } from "shared/domain/players/PlayerColor.ts"
 import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
 import { z } from "zod"
 import { RulesetSummarySchema } from "./RulesetSummary.ts"
 
-/**
- * Player identity displayed in public game details and gameplay views.
- */
-export type GamePlayerDto = z.infer<typeof GamePlayerDtoSchema>
-export const GamePlayerDtoSchema = z.object({
+export type GameDetailsPlayer = z.infer<typeof GameDetailsPlayerSchema>
+export const GameDetailsPlayerSchema = z.object({
   id: PlayerIdSchema,
   alias: AliasSchema,
-  color: z.enum(PlayerColor),
+  color: PlayerColorSchema,
 })
 
-/**
- * Public configuration with ruleset details instead of creation-only settings.
- */
-export type GameConfigurationDetailsDto = z.infer<typeof GameConfigurationDetailsDtoSchema>
-export const GameConfigurationDetailsDtoSchema = z.object({
+const GameConfigurationDetailsSchema = z.object({
   name: z.string(),
   nbSeats: z.number(),
   turnIntervalSeconds: z.number(),
@@ -31,16 +24,19 @@ export const GameConfigurationDetailsDtoSchema = z.object({
 /**
  * Public game details and the operations available to the requesting player.
  */
-export type GameDetailsDto = z.infer<typeof GameDetailsDtoSchema>
-export const GameDetailsDtoSchema = z.object({
+export type GameDetails = z.infer<typeof GameDetailsSchema>
+export const GameDetailsSchema = z.object({
   id: GameIdSchema,
   winnerAccountId: AccountIdSchema.nullable(),
-  configuration: GameConfigurationDetailsDtoSchema,
+  configuration: GameConfigurationDetailsSchema,
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),
-  creator: GamePlayerDtoSchema,
-  players: z.array(GamePlayerDtoSchema).readonly(),
+  creator: GameDetailsPlayerSchema,
+  /**
+   * The players in the game, including the creator
+   */
+  players: z.array(GameDetailsPlayerSchema).readonly(),
   status: z.enum(GameStatus),
   /**
    * Whether the current player can join the game.

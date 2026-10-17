@@ -15,8 +15,8 @@ import { UpdateReadinessUseCase } from "#api/gameplay/updateReadiness.useCase.ts
 import { CreateGameUseCase } from "#api/games/createGame.useCase.ts"
 import type { GamesRepository } from "#api/games/games.repository.ts"
 import { createGamesRouter } from "#api/games/games.router.ts"
-import { GetGameByIdUseCase } from "#api/games/getGameById.useCase.ts"
 import { GetGameCreationSettingsUseCase } from "#api/games/getGameCreationSettings.useCase.ts"
+import { GetGameDetailsUseCase } from "#api/games/getGameDetailsUseCase.ts"
 import { GetGameListingsUseCase } from "#api/games/getGameListings.useCase.ts"
 import { JoinGameUseCase } from "#api/games/joinGame.useCase.ts"
 import { LeaveGameUseCase } from "#api/games/leaveGame.useCase.ts"
@@ -55,7 +55,7 @@ export async function createApi({
     finishOnboardingUseCase: new FinishOnboardingUseCase(applicationServices),
     getGameListingsUseCase: new GetGameListingsUseCase(applicationServices),
     createGameUseCase: new CreateGameUseCase(applicationServices),
-    getGameByIdUseCase: new GetGameByIdUseCase(applicationServices),
+    getGameDetailsUseCase: new GetGameDetailsUseCase(applicationServices),
     getGameCreationSettingsUseCase: new GetGameCreationSettingsUseCase(applicationServices),
     joinGameUseCase: new JoinGameUseCase(applicationServices),
     leaveGameUseCase: new LeaveGameUseCase(applicationServices),
@@ -93,7 +93,7 @@ function createTrpcRouter({
   finishOnboardingUseCase: FinishOnboardingUseCase
   getGameListingsUseCase: GetGameListingsUseCase
   createGameUseCase: CreateGameUseCase
-  getGameByIdUseCase: GetGameByIdUseCase
+  getGameDetailsUseCase: GetGameDetailsUseCase
   getGameCreationSettingsUseCase: GetGameCreationSettingsUseCase
   joinGameUseCase: JoinGameUseCase
   leaveGameUseCase: LeaveGameUseCase

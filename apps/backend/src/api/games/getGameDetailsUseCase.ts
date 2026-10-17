@@ -1,46 +1,42 @@
-import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
-import type { GameDetailsDto } from "./GameDetailsDto.ts"
-import type { GamesRepository, GameDetailsModel } from "./games.repository.ts"
-import { GetGameByIdError } from "./getGameById.error.ts"
+import type { GameDetails } from "./GameDetails.ts"
+import type { GamesRepository, GameDetailsWithoutOps } from "./games.repository.ts"
+import type { GetGameByIdError } from "./getGameById.error.ts"
 import type { GetGameByIdQuery } from "./getGameById.query.ts"
 
 /**
  * Gets public game details and the operations available to the requesting player.
  */
-export class GetGameByIdUseCase {
+export class GetGameDetailsUseCase {
   private readonly logger: Logger
   private readonly gamesRepository: GamesRepository
 
   public constructor({ logger, gamesRepository }: { logger: Logger; gamesRepository: GamesRepository }) {
-    this.logger = logger.child({ scope: "get-game-by-id-use-case" })
+    this.logger = logger.child({ scope: "get-game-details-use-case" })
     this.gamesRepository = gamesRepository
   }
 
-  /**
-   * Distinguishes missing games from persistence failures.
-   */
   public async execute(
     { gameId }: GetGameByIdQuery,
-    { playerId }: { playerId: PlayerId | undefined },
-  ): Promise<Result<GameDetailsDto, GetGameByIdError>> {
-    const getGameByIdResult = await this.gamesRepository.getGameById({ gameId })
-    if (Result.isFailure(getGameByIdResult)) {
-      this.logger.error("Could not get game by id", { gameId, playerId, error: getGameByIdResult.error })
-      return getGameByIdResult
+    { accountId }: { accountId: AccountId | undefined },
+  ): Promise<Result<GameDetails, GetGameByIdError>> {
+    const playerId = accountId === undefined ? undefined : branded<PlayerId>(accountId)
+    const getGameDetailsResult = await this.gamesRepository.getGameDetails({ gameId })
+    if (Result.isFailure(getGameDetailsResult)) {
+      this.logger.error("Could not get game by id", { gameId, accountId, error: getGameDetailsResult.error })
+      return getGameDetailsResult
     }
 
-    const gameModel = getGameByIdResult.value
-    if (gameModel === undefined) {
-      return Result.Failure(GetGameByIdError.GAME_NOT_FOUND)
-    }
+    const gameModel = getGameDetailsResult.value
 
-    return Result.Success(toGameDetailsDto({ gameModel, playerId }))
+    return Result.Success(toGameDetails({ gameModel, playerId }))
   }
 }
 
-function toGameDetailsDto({ gameModel, playerId }: { gameModel: GameDetailsModel; playerId: PlayerId | undefined }): GameDetailsDto {
+function toGameDetails({ gameModel, playerId }: { gameModel: GameDetailsWithoutOps; playerId: PlayerId | undefined }): GameDetails {
   const status = gameModel.status
 
   const canJoin =
@@ -61,7 +57,6 @@ function toGameDetailsDto({ gameModel, playerId }: { gameModel: GameDetailsModel
 
   return {
     ...gameModel,
-    status,
     canJoin,
     canLeave,
     canStart,

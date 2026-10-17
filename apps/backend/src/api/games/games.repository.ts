@@ -1,7 +1,6 @@
 import { Assert, type Branded, branded, type Logger, Result, Time, UnitOfTime, type RngState } from "@guillaume-docquier/tools-ts"
 import { and, count, eq, sql } from "drizzle-orm"
 import type { AccountId } from "shared/domain/accounts/AccountId.ts"
-import type { Alias } from "shared/domain/accounts/Alias.ts"
 import type { GameConfiguration } from "shared/domain/games/GameConfiguration.ts"
 import type { GameId } from "shared/domain/games/GameId.ts"
 import type { GameStatus } from "shared/domain/games/GameStatus.ts"
@@ -15,6 +14,7 @@ import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import type { Galaxy } from "shared/domain/world/Galaxy.ts"
 import type { GameCreationConfirmation } from "#api/games/GameCreationConfirmation.ts"
 import type { GameCreationSettings } from "#api/games/gameCreationSettings.ts"
+import type { GameDetails, GameDetailsPlayer } from "#api/games/GameDetails.ts"
 import { GetGameByIdError } from "#api/games/getGameById.error.ts"
 import { GetGameCreationSettingsError } from "#api/games/getGameCreationSettings.error.ts"
 import { GetGameListingsError } from "#api/games/getGameListings.error.ts"
@@ -49,13 +49,6 @@ type GameRow = typeof gamesTable.$inferSelect
 
 export type CreateGameConfigurationModel = Omit<GameConfiguration, "mapGenerationSeed">
 
-export type GameConfigurationDetailsModel = Readonly<{
-  name: string
-  nbSeats: number
-  turnIntervalSeconds: number
-  ruleset: RulesetSummary
-}>
-
 export type CreateGameModel = Readonly<{
   createdByAccountId: AccountId
   mapGenerationSeed: number
@@ -64,23 +57,7 @@ export type CreateGameModel = Readonly<{
   creatorPlayerColor: PlayerColor
 }>
 
-export type GameDetailsModel = Readonly<{
-  id: GameId
-  createdAt: Date
-  startedAt: Date | null
-  endedAt: Date | null
-  winnerAccountId: AccountId | null
-  status: GameStatus
-  configuration: GameConfigurationDetailsModel
-  creator: GamePlayerModel
-  players: readonly GamePlayerModel[]
-}>
-
-export type GamePlayerModel = Readonly<{
-  id: PlayerId
-  alias: Alias
-  color: PlayerColor
-}>
+export type GameDetailsWithoutOps = Omit<GameDetails, "canJoin" | "canLeave" | "canOpen" | "canStart">
 
 type PlayerForJoin = Readonly<{
   id: PlayerId
@@ -424,10 +401,10 @@ export class GamesRepository extends PostgresRepository {
     return createGameResult
   }
 
-  public async getGameById(
+  public async getGameDetails(
     { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GameDetailsModel | undefined, GetGameByIdError>> {
+  ): Promise<Result<GameDetailsWithoutOps, GetGameByIdError>> {
     const gameRowResult = await Result.tryCatch(
       db
         .select({
@@ -450,7 +427,8 @@ export class GamesRepository extends PostgresRepository {
 
     const gameWithRuleset = gameRowResult.value[0]
     if (gameWithRuleset === undefined) {
-      return Result.Success(undefined)
+      this.logger.error("No game found", { gameId })
+      return Result.Failure(GetGameByIdError.GAME_NOT_FOUND)
     }
 
     if (gameWithRuleset.ruleset === null) {
@@ -475,7 +453,7 @@ export class GamesRepository extends PostgresRepository {
     }
 
     return Result.Success(
-      toGameDetailsModel({ gameRow: gameWithRuleset.game, ruleset: gameWithRuleset.ruleset, players: playersResult.value }),
+      toGameDetailsWithoutOps({ gameRow: gameWithRuleset.game, ruleset: gameWithRuleset.ruleset, players: playersResult.value }),
     )
   }
 
@@ -586,15 +564,15 @@ function toCreateGameRow(createGameModel: CreateGameModel): CreateGameRow {
   }
 }
 
-function toGameDetailsModel({
+function toGameDetailsWithoutOps({
   gameRow,
   ruleset,
   players,
 }: {
   gameRow: GameRow
   ruleset: RulesetSummary
-  players: GamePlayerModel[]
-}): GameDetailsModel {
+  players: GameDetailsPlayer[]
+}): GameDetailsWithoutOps {
   const creator = players.find((player) => player.id === branded(gameRow.createdByAccountId))
   Assert.isDefined(creator)
 

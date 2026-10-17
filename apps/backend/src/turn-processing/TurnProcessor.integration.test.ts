@@ -780,7 +780,7 @@ describe("TurnProcessor", () => {
       // Eventually we'll have a turn order that will change during the game, for now the players are sorted by their id
       const expectedWinnerId = [creator.account.id, joiner.account.id].sort()[0]
 
-      const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
       expect(lobby).toMatchObject({
         winnerAccountId: expectedWinnerId,
         endedAt: expect.any(String),
