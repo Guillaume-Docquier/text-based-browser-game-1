@@ -4,7 +4,7 @@ import { MAX_NB_SEATS } from "shared/domain/games/GameConfiguration.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { describe, expect, it } from "vitest"
-import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
+import { createPlayerViewResourcesStub } from "#api/gameplay/PlayerViewResources.stub.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 
 const NB_CONCURRENCY_TEST_ACCOUNTS = MAX_NB_SEATS
@@ -74,7 +74,7 @@ describe("lobby concurrency", () => {
       Assert.isDefined(gameParticipant)
       const playerView = await gameParticipant.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView.resources).toStrictEqual<typeof playerView.resources>(
-        createResourcesDtoStub({
+        createPlayerViewResourcesStub({
           [ResourceType.INFLUENCE]: { uncommitted: 3, total: 3 },
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
           [ResourceType.FUEL]: { uncommitted: 1, total: 1 },

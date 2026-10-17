@@ -1,8 +1,8 @@
 import { ResourceTypeSchema } from "shared/domain/resources/ResourceType.ts"
 import { z } from "zod"
 
-export type ResourceAmountsDto = z.infer<typeof ResourceAmountsDtoSchema>
-const ResourceAmountsDtoSchema = z.object({
+export type PlayerViewResourceAmounts = z.infer<typeof PlayerViewResourceAmountsSchema>
+const PlayerViewResourceAmountsSchema = z.object({
   /**
    * Resources that can be used this turn on more actions.
    */
@@ -13,5 +13,5 @@ const ResourceAmountsDtoSchema = z.object({
   total: z.number(),
 })
 
-export type ResourcesDto = z.infer<typeof ResourcesDtoSchema>
-export const ResourcesDtoSchema = z.record(ResourceTypeSchema, ResourceAmountsDtoSchema)
+export type PlayerViewResources = z.infer<typeof PlayerViewResourcesSchema>
+export const PlayerViewResourcesSchema = z.record(ResourceTypeSchema, PlayerViewResourceAmountsSchema)

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-033](./033-router-use-case-repository.md).
 
 ### Amendment history
 
@@ -12,6 +12,7 @@ Accepted
 - 2026-09-26: Incrementally migrating towards operation-specific use cases instead of controllers.
 - 2026-10-07: Completed the controller migration to operation-specific use cases while retaining shared repositories.
 - 2026-10-14: Colocated Query/Command schemas with their use cases and separated client input from server-authoritative execution values to make ownership explicit.
+- 2026-10-16: Superseded by ADR-033, the evolution of the Router - Controller - Repository structure.
 
 ## Context
 

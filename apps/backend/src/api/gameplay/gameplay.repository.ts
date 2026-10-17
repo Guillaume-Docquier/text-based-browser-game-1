@@ -12,18 +12,17 @@ import type { Action } from "shared/domain/turns/actions/Action.ts"
 import type { ActionId } from "shared/domain/turns/actions/ActionId.ts"
 import type { SelectedTargets } from "shared/domain/turns/actions/SelectedTargets.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import type { Fleet } from "shared/domain/world/fleets/Fleet.ts"
 import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
 import type { Galaxy } from "shared/domain/world/Galaxy.ts"
 import type { Planet } from "shared/domain/world/planets/Planet.ts"
 import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import type { Star } from "shared/domain/world/stars/Star.ts"
-import type { ResolutionFleet } from "shared/turn-resolution/state/ResolutionFleet.ts"
-import type { ResolutionPlanet } from "shared/turn-resolution/state/ResolutionPlanet.ts"
-import { GetPlayerViewError } from "#api/gameplay/getPlayerView.error.ts"
+import { GetPlayerViewError, GetPlayerViewRollbackError } from "#api/gameplay/getPlayerView.error.ts"
+import type { PlayerView } from "#api/gameplay/PlayerView.ts"
 import { UpdateReadinessError, UpdateReadinessRollbackError } from "#api/gameplay/updateReadiness.error.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
   actionsTable,
@@ -87,22 +86,12 @@ type PlayerViewActionModel = Readonly<{
   selectedTargets: SelectedTargets | null
 }>
 
-export type PlayerViewModel = Readonly<{
-  gameId: GameId
-  player: PlayerViewPlayerModel
-  opponents: Readonly<Record<PlayerId, PlayerViewPlayerModel>>
-  galaxy: Galaxy
-  fleets: readonly ResolutionFleet[]
-  turn: number
-  turnStatus: TurnStatus
-  turnEndsAt: Date
-  resources: Resources
-  /**
-   * All the available actions, with their selected targets if submitted.
-   */
-  actions: readonly PlayerViewActionModel[]
-  ruleset: Ruleset
-}>
+export type PlayerViewModel = Omit<PlayerView, "galaxy" | "resources" | "actions"> &
+  Readonly<{
+    galaxy: Galaxy
+    resources: Resources
+    actions: readonly PlayerViewActionModel[]
+  }>
 
 export class GameplayRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -117,7 +106,7 @@ export class GameplayRepository extends PostgresRepository {
   public async getPlayerView(
     { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<PlayerViewModel | undefined, GetPlayerViewError>> {
+  ): Promise<Result<PlayerViewModel, GetPlayerViewError>> {
     const playerViewResult = await Result.tryCatch(
       db.transaction(
         async (tx) => {
@@ -135,7 +124,7 @@ export class GameplayRepository extends PostgresRepository {
 
           const turn = turns[0]
           if (turn === undefined) {
-            return undefined
+            throw new GetPlayerViewRollbackError(GetPlayerViewError.TURN_NOT_FOUND)
           }
 
           const gameRows = await tx.select({ rulesetId: gamesTable.rulesetId }).from(gamesTable).where(eq(gamesTable.id, gameId))
@@ -144,7 +133,7 @@ export class GameplayRepository extends PostgresRepository {
 
           const ruleset = await this.getRuleset({ rulesetId: gameRows[0].rulesetId }, tx)
           if (ruleset === undefined) {
-            throw new TransactionRollbackError("No ruleset found for this game")
+            throw new GetPlayerViewRollbackError(GetPlayerViewError.RULESET_NOT_FOUND)
           }
 
           const players = await tx
@@ -248,7 +237,7 @@ export class GameplayRepository extends PostgresRepository {
 
     const ruleset = await this.getRuleset({ rulesetId: games[0].rulesetId }, tx)
     if (ruleset === undefined) {
-      throw new TransactionRollbackError("No ruleset found for this game")
+      throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.PLAYER_READY)
     }
 
     const resourceRows = await tx
@@ -274,19 +263,13 @@ export class GameplayRepository extends PostgresRepository {
   public async getPlanetsByIds(
     { gameId, planetIds }: { gameId: GameId; planetIds: readonly PlanetId[] },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<ResolutionPlanet[]> {
+  ): Promise<Planet[]> {
     if (planetIds.length === 0) {
       return []
     }
 
     return await db
-      .select({
-        id: planetsTable.id,
-        name: planetsTable.name,
-        ownerPlayerId: planetsTable.ownerPlayerId,
-        x: planetsTable.x,
-        y: planetsTable.y,
-      })
+      .select()
       .from(planetsTable)
       .where(and(eq(planetsTable.gameId, gameId), inArray(planetsTable.id, planetIds)))
   }
@@ -294,7 +277,7 @@ export class GameplayRepository extends PostgresRepository {
   public async getFleetsByIds(
     { gameId, fleetIds }: { gameId: GameId; fleetIds: readonly FleetId[] },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<ResolutionFleet[]> {
+  ): Promise<Fleet[]> {
     if (fleetIds.length === 0) {
       return []
     }
@@ -417,7 +400,7 @@ function toGalaxyModel({
   const planetsByStarId = Map.groupBy(planets, (planet) => planet.starId)
   const systems = stars.map((star) => ({
     star: toStarModel(star),
-    planets: (planetsByStarId.get(star.id) ?? []).map(toPlanetModel),
+    planets: planetsByStarId.get(star.id) ?? [],
   }))
 
   return { systems }
@@ -427,41 +410,7 @@ function toStarModel({ id, name, coordinates, x, y }: typeof starsTable.$inferSe
   return { id, name, coordinates, x, y }
 }
 
-function toPlanetModel({
-  id,
-  ownerPlayerId,
-  name,
-  coordinates,
-  x,
-  y,
-  biome,
-  size,
-  fertility,
-  metal,
-  fuel,
-  energy,
-  maxPopulation,
-  area,
-}: typeof planetsTable.$inferSelect): Planet {
-  return {
-    id,
-    ownerPlayerId,
-    name,
-    coordinates,
-    x,
-    y,
-    biome,
-    size,
-    fertility,
-    metal,
-    fuel,
-    energy,
-    maxPopulation,
-    area,
-  }
-}
-
-function toFleet({ destinationPlanetId, distanceToEnd, ...fleet }: typeof fleetsTable.$inferSelect): ResolutionFleet {
+function toFleet({ destinationPlanetId, distanceToEnd, ...fleet }: typeof fleetsTable.$inferSelect): Fleet {
   return {
     ...fleet,
     ...(destinationPlanetId === null ? {} : { destinationPlanetId }),
