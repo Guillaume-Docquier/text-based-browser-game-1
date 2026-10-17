@@ -10,6 +10,23 @@ export default defineConfig({
   plugins: ["vitest"],
   overrides: [
     {
+      files: ["**/*.ts"],
+      excludeFiles: ["**/*.error.ts"],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          {
+            patterns: [
+              {
+                group: ["**/TransactionRollbackError", "**/TransactionRollbackError.*"],
+                message: "TransactionRollbackError can only be used in *.error.ts files. Use a specific rollback error instead.",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
       files: ["src/api/**/*.router*.ts"],
       rules: {
         // Routers and their tests intentionally return awaited void outputs to streamline the router handlers.
