@@ -46,6 +46,6 @@ On Windows with Codex, `CodexSandboxOffline` cannot access the Docker daemon pip
 
 ## Drizzle Gotchas
 
-- Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. `throw new TransactionRollbackError(...)` instead.
-- Do not return results from transactions. Throw `TransactionRollbackError` to abort the transaction, or return the value directly.
+- Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. Throw an operation-specific subclass of `TransactionRollbackError` instead, e.g. `throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.INVALID_SUBMISSION)`. Define the subclass in the companion `*.error.ts` module and import it from there; the base class may only be imported in `*.error.ts` files. See [ADR-033](../../docs/architecture/decisions/033-router-use-case-repository.md#use-case).
+- Do not return `Result` values from transaction callbacks. Throw the operation-specific rollback error to abort the transaction, or return the value directly. Let rollback errors escape the callback so Drizzle rolls back; convert them to an operation failure only after the transaction has rejected, as described in [ADR-013](../../docs/architecture/decisions/013-use-results-and-never-throw.md).
 - Do not add `runInTransaction` helpers or flatten nested transaction calls. Drizzle supports nested transactions. If a method must run inside an existing transaction, type its argument as a transaction; otherwise let it create a transaction for its own unit of work.
