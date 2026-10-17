@@ -187,6 +187,10 @@ export class GameplayRepository extends PostgresRepository {
 
     if (Result.isFailure(playerViewResult)) {
       this.logger.error("Could not get player game state by ids", { gameId, playerId, error: playerViewResult.error })
+      if (playerViewResult.error instanceof GetPlayerViewRollbackError) {
+        return Result.Failure(playerViewResult.error.code)
+      }
+
       return Result.Failure(GetPlayerViewError.UNKNOWN)
     }
 
@@ -237,7 +241,7 @@ export class GameplayRepository extends PostgresRepository {
 
     const ruleset = await this.getRuleset({ rulesetId: games[0].rulesetId }, tx)
     if (ruleset === undefined) {
-      throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.PLAYER_READY)
+      throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.RULESET_NOT_FOUND)
     }
 
     const resourceRows = await tx

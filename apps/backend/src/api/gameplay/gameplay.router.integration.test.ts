@@ -7,6 +7,7 @@ import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
+import { GetPlayerViewError, GetPlayerViewErrorResponses } from "#api/gameplay/getPlayerView.error.ts"
 import { createPlayerViewResourcesStub } from "#api/gameplay/PlayerViewResources.stub.ts"
 import { createSubmittedActionTargetsStub } from "#api/gameplay/SubmittedActionTargets.stub.ts"
 import { UpdateActionSubmissionError, UpdateActionSubmissionErrorResponses } from "#api/gameplay/updateActionSubmission.error.ts"
@@ -48,6 +49,21 @@ describe("gameplay.router", () => {
   })
 
   describe("getPlayerView", () => {
+    integrationTest("should report a missing Turn for a member of an unstarted game", async ({ db }) => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub({ db }))
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
+      })
+
+      // Act
+      const playerView = player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Assert
+      await expect(playerView).rejects.toMatchErrorResponse(GetPlayerViewErrorResponses[GetPlayerViewError.TURN_NOT_FOUND])
+    })
+
     integrationTest("should get the authenticated player's state for a started game", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
