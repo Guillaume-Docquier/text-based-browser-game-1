@@ -1,6 +1,6 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "shared/domain/accounts/AccountId.ts"
-import type { GameListingDto } from "./GameListingDto.ts"
+import type { GameListing } from "./GameListing.ts"
 import type { GamesRepository } from "./games.repository.ts"
 import type { GetGameListingsError } from "./getGameListings.error.ts"
 
@@ -19,7 +19,7 @@ export class GetGameListingsUseCase {
   /**
    * Returns a typed failure when listings cannot be loaded.
    */
-  public async execute({ accountId }: { accountId: AccountId | undefined }): Promise<Result<GameListingDto[], GetGameListingsError>> {
+  public async execute({ accountId }: { accountId: AccountId | undefined }): Promise<Result<GameListing[], GetGameListingsError>> {
     const getGameListingsResults = await this.gamesRepository.getGameListings({ accountId })
     if (Result.isFailure(getGameListingsResults)) {
       this.logger.error("Could not get game listings", { error: getGameListingsResults.error })

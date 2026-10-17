@@ -5,10 +5,14 @@ import { z } from "zod"
 /**
  * Public game listing, including the requesting account's membership.
  */
-export type GameListingDto = z.infer<typeof GameListingDtoSchema>
-export const GameListingDtoSchema = z.object({
+export type GameListing = z.infer<typeof GameListingSchema>
+export const GameListingSchema = z.object({
   id: GameIdSchema,
   name: z.string(),
+  /**
+   * Whether the user looking at the game listing has joined that game.
+   * Always false when the user is anonymous.
+   */
   hasJoined: z.boolean(),
   nbPlayers: z.number(),
   nbSeats: z.number(),

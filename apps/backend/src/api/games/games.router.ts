@@ -7,7 +7,7 @@ import { CreateGameCommandSchema } from "./createGame.command.ts"
 import { CreateGameErrorResponses } from "./createGame.error.ts"
 import type { CreateGameUseCase } from "./createGame.useCase.ts"
 import { GameDetailsDtoSchema } from "./GameDetailsDto.ts"
-import { GameListingDtoSchema } from "./GameListingDto.ts"
+import { GameListingSchema } from "./GameListing.ts"
 import { GetGameByIdErrorResponses } from "./getGameById.error.ts"
 import { GetGameByIdQuerySchema } from "./getGameById.query.ts"
 import type { GetGameByIdUseCase } from "./getGameById.useCase.ts"
@@ -53,7 +53,7 @@ export function createGamesRouter({
      */
     getListings: trpc.publicProcedure
       .input(NO_INPUT)
-      .output(z.array(GameListingDtoSchema))
+      .output(z.array(GameListingSchema))
       .query(
         async ({ ctx: { account } }) =>
           await toTrpcOutput(getGameListingsUseCase.execute({ accountId: account?.id }), GetGameListingsErrorResponses),
