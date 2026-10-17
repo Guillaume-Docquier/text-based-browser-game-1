@@ -55,7 +55,7 @@ export class AuthService {
    * This is an abstraction over Clerk, because we can't full rely on their webhooks to sync data (and we haven't set up one yet anyway).
    */
   private recordAccountMiddleware(): RequestHandler {
-    return async (req, _res, next) => {
+    return async (req, res, next) => {
       const authStatus = this.authProvider.parseAuthStatus({ req })
       if (!authStatus.isAuthenticated) {
         next()

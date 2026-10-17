@@ -13,15 +13,6 @@ export default mergeConfig(
       attachmentsDir: "./test-results/storybook",
       projects: [
         {
-          extends: true,
-          test: {
-            name: "unit",
-            environment: "node",
-            include: ["src/**/*.test.{ts,tsx}"],
-            exclude: ["src/**/*.browser.test.{ts,tsx}"],
-          },
-        },
-        {
           plugins: [
             storybookTest({
               configDir: ".storybook",

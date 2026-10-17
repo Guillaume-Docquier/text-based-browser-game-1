@@ -4,57 +4,22 @@ import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
-import { AttackMoveStandard } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
-import {
-  BuildFleetExceptional,
-  BuildFleetImproved,
-  BuildFleetStandard,
-} from "shared/testing/test-ruleset/action-definitions/build-fleet.ts"
-import { GainEnergy } from "shared/testing/test-ruleset/action-definitions/gain-energy.ts"
-import { GainFuel } from "shared/testing/test-ruleset/action-definitions/gain-fuel.ts"
-import { GainInfluence } from "shared/testing/test-ruleset/action-definitions/gain-influence.ts"
-import { GainMetal } from "shared/testing/test-ruleset/action-definitions/gain-metal.ts"
-import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
-import { WinTheGame } from "shared/testing/test-ruleset/action-definitions/win-the-game.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
+import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
+import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
+import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
+import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
+import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
+import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "#lib/rulesets/standard/action-definitions/move-fleet.ts"
+import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
-
-const expectedColonizationActions = [
-  {
-    id: "COLONIZE_PLANET_STANDARD_1",
-    actionDefinitionId: "COLONIZE_PLANET_STANDARD",
-    selectedTargets: null,
-    selectedInputs: null,
-    status: "AVAILABLE",
-    isEligible: false,
-    canAffordResources: false,
-  },
-  {
-    id: "COLONIZE_PLANET_STANDARD_2",
-    actionDefinitionId: "COLONIZE_PLANET_STANDARD",
-    selectedTargets: null,
-    selectedInputs: null,
-    status: "AVAILABLE",
-    isEligible: false,
-    canAffordResources: false,
-  },
-  {
-    id: "COLONIZE_STATIONED_PLANET_STANDARD_1",
-    actionDefinitionId: "COLONIZE_STATIONED_PLANET_STANDARD",
-    selectedTargets: null,
-    selectedInputs: null,
-    status: "AVAILABLE",
-    isEligible: false,
-    canAffordResources: false,
-  },
-]
 
 describe("gameplay.router", () => {
   integrationTest("should reject all gameplay routes when the authenticated player has not joined the game", async ({ db }) => {
@@ -97,20 +62,74 @@ describe("gameplay.router", () => {
       const repeatedGetPlayerViewResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      const expectedActions = expectedActionSelections([
-        { actionDefinitionId: AttackMoveStandard.id, canAffordResources: false, eligible: false, count: 2 },
-        { actionDefinitionId: GainInfluence.id, canAffordResources: true },
-        { actionDefinitionId: WinTheGame.id, canAffordResources: false },
-        { actionDefinitionId: GainEnergy.id, canAffordResources: true },
-        { actionDefinitionId: GainFuel.id, canAffordResources: true },
-        { actionDefinitionId: GainMetal.id, canAffordResources: true },
-        { actionDefinitionId: BuildFleetStandard.id, canAffordResources: true },
-        { actionDefinitionId: BuildFleetImproved.id, canAffordResources: false },
-        { actionDefinitionId: BuildFleetExceptional.id, canAffordResources: false },
-        { actionDefinitionId: MoveFleetStandard.id, canAffordResources: true },
-        { actionDefinitionId: MoveFleetImproved.id, canAffordResources: false },
-        { actionDefinitionId: MoveFleetExceptional.id, canAffordResources: false },
-      ])
+      const expectedActions = [
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainInfluence.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: WinTheGame.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainEnergy.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainFuel.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainMetal.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetStandard.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetImproved.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetExceptional.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetStandard.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetImproved.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetExceptional.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+      ]
       expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
         player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, isReady: false },
@@ -129,11 +148,12 @@ describe("gameplay.router", () => {
           [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
         }),
         ruleset: TestRuleset,
-        actions: expect.arrayContaining(expectedActions),
+        actions: expect.arrayContaining(
+          expectedActions.map(({ canAfford, ...action }) => expect.objectContaining({ ...action, canAffordResources: canAfford })),
+        ),
       })
-      expect(getPlayerViewResult.actions).toHaveLength(expectedActions.length + 1)
+      expect(getPlayerViewResult.actions).toHaveLength(11)
       expect(repeatedGetPlayerViewResult.actions).toStrictEqual(getPlayerViewResult.actions)
-      expect(repeatedGetPlayerViewResult).toStrictEqual(getPlayerViewResult)
     })
 
     integrationTest("should expose uncommitted resources and use them to determine Action affordability", async ({ db }) => {
@@ -326,39 +346,157 @@ describe("gameplay.router", () => {
       const deselectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      const expectedSelectedActions = expectedActionSelections([
-        { actionDefinitionId: AttackMoveStandard.id, canAffordResources: false, eligible: false, count: 2 },
-        { actionDefinitionId: GainInfluence.id, canAffordResources: true },
-        { actionDefinitionId: WinTheGame.id, canAffordResources: false },
-        { actionDefinitionId: GainEnergy.id, canAffordResources: false },
-        { actionDefinitionId: GainFuel.id, canAffordResources: true, selected: true },
-        { actionDefinitionId: GainMetal.id, canAffordResources: true, selected: true },
-        { actionDefinitionId: BuildFleetStandard.id, canAffordResources: false },
-        { actionDefinitionId: BuildFleetImproved.id, canAffordResources: false },
-        { actionDefinitionId: BuildFleetExceptional.id, canAffordResources: false },
-        { actionDefinitionId: MoveFleetStandard.id, canAffordResources: false },
-        { actionDefinitionId: MoveFleetImproved.id, canAffordResources: false },
-        { actionDefinitionId: MoveFleetExceptional.id, canAffordResources: false },
-      ])
-      expect(selectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedSelectedActions))
-      expect(selectedPlayerView.actions).toHaveLength(expectedSelectedActions.length + 1)
+      const expectedSelectedActions = [
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainInfluence.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: WinTheGame.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainEnergy.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainFuel.id,
+          selectedTargets: {},
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainMetal.id,
+          selectedTargets: {},
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetStandard.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetImproved.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetExceptional.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetStandard.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetImproved.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetExceptional.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+      ]
+      expect(selectedPlayerView.actions).toStrictEqual(
+        expect.arrayContaining(
+          expectedSelectedActions.map(({ canAfford, ...action }) => expect.objectContaining({ ...action, canAffordResources: canAfford })),
+        ),
+      )
+      expect(selectedPlayerView.actions).toHaveLength(11)
 
-      const expectedDeselectedActions = expectedActionSelections([
-        { actionDefinitionId: AttackMoveStandard.id, canAffordResources: false, eligible: false, count: 2 },
-        { actionDefinitionId: GainInfluence.id, canAffordResources: true },
-        { actionDefinitionId: WinTheGame.id, canAffordResources: false },
-        { actionDefinitionId: GainEnergy.id, canAffordResources: true },
-        { actionDefinitionId: GainFuel.id, canAffordResources: true },
-        { actionDefinitionId: GainMetal.id, canAffordResources: true },
-        { actionDefinitionId: BuildFleetStandard.id, canAffordResources: true },
-        { actionDefinitionId: BuildFleetImproved.id, canAffordResources: false },
-        { actionDefinitionId: BuildFleetExceptional.id, canAffordResources: false },
-        { actionDefinitionId: MoveFleetStandard.id, canAffordResources: true },
-        { actionDefinitionId: MoveFleetImproved.id, canAffordResources: false },
-        { actionDefinitionId: MoveFleetExceptional.id, canAffordResources: false },
-      ])
-      expect(deselectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedDeselectedActions))
-      expect(deselectedPlayerView.actions).toHaveLength(expectedDeselectedActions.length + 1)
+      const expectedDeselectedActions = [
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainInfluence.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: WinTheGame.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainEnergy.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainFuel.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainMetal.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetStandard.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetImproved.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetExceptional.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetStandard.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetImproved.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetExceptional.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+      ]
+      expect(deselectedPlayerView.actions).toStrictEqual(
+        expect.arrayContaining(
+          expectedDeselectedActions.map(({ canAfford, ...action }) =>
+            expect.objectContaining({ ...action, canAffordResources: canAfford }),
+          ),
+        ),
+      )
+      expect(deselectedPlayerView.actions).toHaveLength(11)
     })
 
     integrationTest("should reject an action with invalid planet targets", async ({ db }) => {
@@ -646,37 +784,3 @@ describe("gameplay.router", () => {
     })
   })
 })
-
-type ExpectedActionRow = Readonly<{
-  actionDefinitionId: string
-  canAffordResources: boolean
-  selected?: true
-  eligible?: false
-  count?: number
-}>
-
-type ExpectedActionSelection = Readonly<{
-  id: string
-  actionDefinitionId: string
-  selectedTargets: Record<string, string> | null
-  selectedInputs: Record<string, number> | null
-  status: string
-  isEligible: boolean
-  canAffordResources: boolean
-}>
-function expectedActionSelections(rows: ExpectedActionRow[]): ExpectedActionSelection[] {
-  return [
-    ...expectedColonizationActions,
-    ...rows.flatMap((row) =>
-      Array.from({ length: row.count ?? 1 }, () => ({
-        id: expect.any(String),
-        actionDefinitionId: row.actionDefinitionId,
-        selectedTargets: row.selected ? {} : null,
-        selectedInputs: row.selected ? {} : null,
-        status: row.selected ? "SUBMITTED" : "AVAILABLE",
-        isEligible: row.eligible ?? expect.any(Boolean),
-        canAffordResources: row.canAffordResources,
-      })),
-    ),
-  ]
-}

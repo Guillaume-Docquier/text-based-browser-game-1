@@ -3,24 +3,10 @@ import { once } from "node:events"
 import { setTimeout } from "node:timers/promises"
 import { Assert, FatalError, Logger } from "@guillaume-docquier/tools-ts"
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql"
-import { eq } from "drizzle-orm"
-import { migrate } from "drizzle-orm/node-postgres/migrator"
-import type { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { createApiStub } from "#api/createApi.stub.ts"
 import { PortListeningMessageSchema } from "#api/PortListeningMessage.ts"
-import type { GameId } from "#api/types.ts"
-import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
-import { planetsTable, fleetsTable, resourcesTable, actionsTable, turnsTable, turnsProcessingTable } from "#lib/db/schema.ts"
-import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
-import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
-import { ApiServer } from "#tests/ApiServer.ts"
-import { SaveTransactionFailure } from "#tests/SaveTransactionFailure.stub.ts"
-import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
-import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
-import type { TurnToProcessModel, TurnsRepository } from "#turn-processing/turns.repository.ts"
 
 // Needs to be in sync with the GitHub Actions, prod and docker-compose
 // See infra/docker-compose.yaml
@@ -140,101 +126,4 @@ async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<
 async function timeout(timeoutMs: number): Promise<FatalError<{ timeoutMs: number }>> {
   await setTimeout(timeoutMs)
   return new FatalError("API process did not start in time", { timeoutMs })
-}
-
-/** Real PostgreSQL with injected production clock/worker so deadline races have no sleep oracle. */
-export class ControlledConcurrencyTestApiServer {
-  private readonly postgres: StartedPostgreSqlContainer
-  private readonly db: Database
-  private readonly api: ApiServer
-  public readonly clock: ControlledClock
-  public readonly processor: TurnProcessor
-  public readonly turnsRepository: TurnsRepository
-  private constructor({
-    postgres,
-    db,
-    api,
-    clock,
-    processor,
-    turnsRepository,
-  }: {
-    postgres: StartedPostgreSqlContainer
-    db: Database
-    api: ApiServer
-    clock: ControlledClock
-    processor: TurnProcessor
-    turnsRepository: TurnsRepository
-  }) {
-    this.postgres = postgres
-    this.db = db
-    this.api = api
-    this.clock = clock
-    this.processor = processor
-    this.turnsRepository = turnsRepository
-  }
-  public static async create(authoredRulesets: readonly Ruleset[] = []): Promise<ControlledConcurrencyTestApiServer> {
-    const postgres = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
-    const db = createDb({ databaseUrl: postgres.getConnectionUri() })
-    await migrate(db, { migrationsFolder: "./drizzle/" })
-    const logger = Logger.get()
-    const repository = new RulesetsRepository({ db, logger })
-    for (const ruleset of [...CoreRulesets, ...authoredRulesets]) Assert.isSuccess(await repository.upsertRuleset(ruleset))
-    const clock = new ControlledClock()
-    const api = new ApiServer(await createApiStub({ db, clock }))
-    const { turnProcessor: processor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-    return new ControlledConcurrencyTestApiServer({ postgres, db, api, clock, processor, turnsRepository })
-  }
-  /** Claim/load through the concrete production repository, then reset the worker attempt for normal execution. */
-  public async captureNextDueTurn(): Promise<TurnToProcessModel> {
-    const input = await this.db.transaction(async (tx) => {
-      const due = await this.turnsRepository.getNextTurnForProcessing({ since: this.clock.now() }, tx)
-      Assert.isDefined(due)
-      return await this.turnsRepository.startTurnProcessing({ turn: due, processingStartedAt: this.clock.now() }, tx)
-    })
-    Assert.isSuccess(await this.turnsRepository.resetProcessingAttempt({ gameId: input.gameId, turn: input.turn }))
-    return structuredClone(input)
-  }
-  /** Read-only worker-save observation: never used to manufacture scenario state. */
-  public async observeWorkerPersistence(gameId: GameId): Promise<{
-    planets: Array<typeof planetsTable.$inferSelect>
-    fleets: Array<typeof fleetsTable.$inferSelect>
-    resources: Array<typeof resourcesTable.$inferSelect>
-    actions: Array<typeof actionsTable.$inferSelect>
-    turns: Array<typeof turnsTable.$inferSelect>
-    queue: Array<typeof turnsProcessingTable.$inferSelect>
-  }> {
-    const [planets, fleets, resources, actions, turns, queue] = await Promise.all([
-      this.db.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id),
-      this.db.select().from(fleetsTable).where(eq(fleetsTable.gameId, gameId)).orderBy(fleetsTable.id),
-      this.db
-        .select()
-        .from(resourcesTable)
-        .where(eq(resourcesTable.gameId, gameId))
-        .orderBy(resourcesTable.playerId, resourcesTable.resourceType),
-      this.db
-        .select()
-        .from(actionsTable)
-        .where(eq(actionsTable.gameId, gameId))
-        .orderBy(actionsTable.turn, actionsTable.playerId, actionsTable.id),
-      this.db.select().from(turnsTable).where(eq(turnsTable.gameId, gameId)).orderBy(turnsTable.turn),
-      this.db.select().from(turnsProcessingTable).where(eq(turnsProcessingTable.gameId, gameId)).orderBy(turnsProcessingTable.turn),
-    ])
-    return { planets, fleets, resources, actions, turns, queue }
-  }
-  public async createSaveFailureProcessor(): Promise<{ processor: TurnProcessor; fault: SaveTransactionFailure }> {
-    const fault = new SaveTransactionFailure(this.db)
-    const { turnProcessor: processor } = await createTurnProcessorStub({ db: fault.db, clock: this.clock })
-    return { processor, fault }
-  }
-  public async recreateProcessor(): Promise<TurnProcessor> {
-    return (await createTurnProcessorStub({ db: this.db, clock: this.clock })).turnProcessor
-  }
-  public async createClient(): Promise<AuthenticatedApiClient> {
-    return await this.api.createClient({ authenticated: true })
-  }
-  public async [Symbol.asyncDispose](): Promise<void> {
-    this.api[Symbol.dispose]()
-    await this.db.$client.end()
-    await this.postgres.stop()
-  }
 }

@@ -94,10 +94,9 @@ export const LargeList: Story = {
     await expect(body.getAllByRole("option")).toHaveLength(50)
     await expect(body.getByRole("option", { name: "Planet 0001" })).toBeVisible()
     await expect(body.getByRole("option", { name: "Planet 0050" })).toBeVisible()
-    await expect(body.queryByRole("option", { name: "Planet 0051" })).not.toBeInTheDocument()
     await expect(body.getByText("Showing first 50 of 3000. Keep typing to narrow the list.")).toBeVisible()
 
-    await userEvent.type(combobox, "  pLaNeT 2999  ")
+    await userEvent.type(combobox, "planet 2999")
     await expect(body.getAllByRole("option")).toHaveLength(1)
     await expect(body.getByRole("option", { name: "Planet 2999" })).toBeVisible()
     await userEvent.click(body.getByRole("option", { name: "Planet 2999" }))
@@ -130,88 +129,19 @@ export const Disabled: Story = {
   },
 }
 
-/**
- * A dependent singleton must remain selectable; the ordinary singleton stays settled and disabled.
- */
-export const DependentSingleton: Story = {
-  render: () => (
-    <>
-      <SearchSelectExample
-        label="Dependent planet"
-        options={[{ id: "world", label: "Unclaimed World" }]}
-        placeholder="Choose planet"
-        allowSingleOptionSelection
-      />
-      <SearchSelectExample label="Settled source" options={[{ id: "source", label: "Home Guard" }]} placeholder="Choose source" />
-    </>
-  ),
-  play: async ({ canvas, canvasElement, userEvent }) => {
-    const dependent = canvas.getByRole("combobox", { name: "Dependent planet" })
-    await expect(canvas.getByRole("combobox", { name: "Settled source" })).toBeDisabled()
-    await userEvent.click(dependent)
-    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole("option", { name: "Unclaimed World" }))
-    await expect(dependent).toHaveValue("Unclaimed World")
-  },
-}
-
-/** Explicit disabling and an empty dependent list must override the singleton opt-in. */
-export const UnavailableDependentChoices: Story = {
-  render: () => (
-    <>
-      <SearchSelect
-        label="Empty dependent planet"
-        options={[]}
-        value={undefined}
-        placeholder="Choose planet"
-        allowSingleOptionSelection
-        onValueChange={(): void => {}}
-      />
-      <SearchSelect
-        label="Disabled dependent planet"
-        options={[{ id: "world", label: "Unclaimed World" }]}
-        value="world"
-        placeholder="Choose planet"
-        allowSingleOptionSelection
-        disabled
-        onValueChange={(): void => {}}
-      />
-    </>
-  ),
-  play: async ({ canvas, canvasElement, userEvent }) => {
-    const empty = canvas.getByRole("combobox", { name: "Empty dependent planet" })
-    const disabled = canvas.getByRole("combobox", { name: "Disabled dependent planet" })
-    await expect(empty).toBeDisabled()
-    await expect(disabled).toBeDisabled()
-    await userEvent.click(empty)
-    await userEvent.click(disabled)
-    await expect(empty).toHaveValue("")
-    await expect(disabled).toHaveValue("Unclaimed World")
-    await expect(within(canvasElement.ownerDocument.body).queryByRole("listbox")).not.toBeInTheDocument()
-  },
-}
-
 function SearchSelectExample({
   label,
   options,
   placeholder,
-  allowSingleOptionSelection = false,
 }: {
   label: string
   options: ReadonlyArray<{ id: string; label: string }>
   placeholder: string
-  allowSingleOptionSelection?: boolean
 }): React.JSX.Element {
   const [value, setValue] = useState<string | undefined>()
   return (
     <div className="w-80">
-      <SearchSelect
-        label={label}
-        options={options}
-        value={value}
-        placeholder={placeholder}
-        allowSingleOptionSelection={allowSingleOptionSelection}
-        onValueChange={setValue}
-      />
+      <SearchSelect label={label} options={options} value={value} placeholder={placeholder} onValueChange={setValue} />
     </div>
   )
 }

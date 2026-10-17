@@ -32,7 +32,7 @@ flowchart LR
   end
   C --> Create[Create Effects]
   D --> Create
-  S[Action Submission with selected targets and inputs] --> Create
+  S[Action Submission with selected targets] --> Create
   Create --> E[Effects] --> P[Effect Pool] --> R[Resolve in Phases] --> O[Effect Outcomes] --> A[Resolved Action]
 ```
 
@@ -48,11 +48,11 @@ Because of this, the use of the `Assert` module is not permitted there.
 
 ## Validation
 
-All action submissions are validated before any resolution starts. Any invalid action fails the turn. Every action is expected to have been validated already on submission using the same shared eligibility evaluator. Draft, complete-set and candidate evaluations use total resources, game-scoped entities, cumulative costs and source Strength allocations. Replacement excludes the prior player/instance allocation. The API holds the Turn lock while evaluating the entire proposed set; the frontend projects the same state shape.
+All action submissions are validated before any resolution starts. Any invalid action fails the turn. Every action is expected to have been validated already on submission using the same validators.
 
 A failed turn state is expected to not be persisted, as the turn resolver stopped at the first error and the state is probably incomplete.
 
-Expected later gameplay changes, such as a destroyed attacker, insufficient surviving colonizing force or an earlier Planet claim, complete the Effect with a Prevented outcome. They do not fail the Turn or refund paid costs. Corrupt saved bindings, invalid locked submissions and engine failures return a typed Failure; their partial state must not be persisted. See [Turn processing](turn-processing.md) for the atomic save boundary and current failure-recovery policy.
+If any Effect fails to process at a later time, for any reason, then the turn will also be failed. Passing the validation should ensure that every Action will be able to resolve correctly, so if an Effect cannot properly resolve, it will be treated as fatal and fail the turn.
 
 ![Rules Engine success and failure boundary](../../.github/images/rules-engine-failure-boundary.png)
 
@@ -113,13 +113,3 @@ The phases pipeline handles Effect resolution:
 Effects can be added to the Effect pool through other Effects during the Phases.
 
 After all phases are done, we expect all effects to have been resolved.
-
-## Fleet journeys
-
-Movement input/effect and source/range constraints are declarative Ruleset data. The Fleet Movement Phase creates all deterministic child departures before advancing old and new journeys once by their saved speed. Positive remainders preserve source identity; zero sources and merged children are removed. Friendly stationed merge preserves its identity. Journey records retain the initiating submission, Turn and speed, and occupy that player/Action instance until terminal cleanup. Saved journey integrity checks bind the existing definition, pooled instance, mapped selections and deterministic child identity before continuation. Before any departure, saved route endpoints and remaining distance must agree exactly with the canonical route-length, saved-speed and elapsed-Turn calculation; inconsistent progress fails rather than being overwritten. These checks do not recheck departure eligibility or require an exhausted source Fleet to remain. Saved speed remains authoritative when the current definition speed changes. Costs apply to new locked submissions only. The current Effect completes at departure; continuation is persisted game state rather than an unresolved pool Effect. Arrival candidates are computed before landing and processed in ascending Tick batches, with canonical semantic ties. Persisted indexed pending Assaults activate only after arrival in Fleet Combat. Separate per-order arrival intents retain original provenance and Tick while friendly merges redirect actual Fleet identity. Normal Assault snapshots the current survivor and all stationed opponents, applies exact proportional whole losses and deletes zero Fleets. Prior valid destruction produces explanatory Prevented outcomes. Saved fleet/pending integrity is checked before Pay Costs.
-
-Outcome groups use initiating Turn, Player ID and Action ID rather than object identity. Resolved Actions contain initiatingTurn and only the current resolution's outcome deltas, including prior-turn arrivals with no current submissions. Completed outcome history is not persisted by the worker.
-
-## Colonization
-
-The bounded pending-arrival union is `ASSAULT | COLONIZE`, with original effect indexes, mapped definitions and submission provenance. Combat filters Assault; Colonization filters Colonize. Stationary Colonize registers Tick-0 intents before departures. Both variants validate post-Combat current Fleet identity, ownership, location and configured Strength. Known destruction is Prevented; unknown or corrupt bindings fail before costs. Canonical eligible-only competition is grouped by Tick then Planet ID and uses the persisted RNG. Successful effects replace the keyed readonly Planet value and consume the requirement once, deleting zero Fleets. Outcome grouping retains the immutable originating submission while merges redirect the actual Fleet identity.
