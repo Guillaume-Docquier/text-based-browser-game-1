@@ -30,7 +30,7 @@ export default defineConfig({
       reportsDirectory: "./coverage",
     },
     environment: "node",
-    isolate: false, // We have 0 import side effects, so we can!
+    isolate: false,
     globals: false,
     slowTestThreshold: 1_000, // Tailored for local
     projects: [
