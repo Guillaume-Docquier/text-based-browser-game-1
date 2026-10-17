@@ -209,37 +209,34 @@ export class TurnsRepository extends PostgresRepository {
     Assert.isTrue(games.length === 1)
     Assert.isDefined(games[0])
 
-    const [players, resources, submittedActions, rulesets, planets, fleets] = await Promise.all([
-      tx
-        .select({ id: playersTable.playerId })
-        .from(playersTable)
-        .where(eq(playersTable.gameId, startTurnProcessingModel.turn.gameId))
-        .orderBy(asc(playersTable.playerId)),
-      tx
-        .select()
-        .from(resourcesTable)
-        .where(eq(resourcesTable.gameId, startTurnProcessingModel.turn.gameId))
-        .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
-      tx
-        .select()
-        .from(actionsTable)
-        .where(
-          and(eq(actionsTable.gameId, startTurnProcessingModel.turn.gameId), eq(actionsTable.turn, startTurnProcessingModel.turn.turn)),
-        )
-        .orderBy(asc(actionsTable.playerId)),
-      tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, games[0].rulesetId)),
-      tx
-        .select({
-          id: planetsTable.id,
-          name: planetsTable.name,
-          ownerPlayerId: planetsTable.ownerPlayerId,
-          x: planetsTable.x,
-          y: planetsTable.y,
-        })
-        .from(planetsTable)
-        .where(eq(planetsTable.gameId, startTurnProcessingModel.turn.gameId)),
-      tx.select().from(fleetsTable).where(eq(fleetsTable.gameId, startTurnProcessingModel.turn.gameId)),
-    ])
+    // A transaction uses one PostgreSQL connection, so its queries must run sequentially.
+    const players = await tx
+      .select({ id: playersTable.playerId })
+      .from(playersTable)
+      .where(eq(playersTable.gameId, startTurnProcessingModel.turn.gameId))
+      .orderBy(asc(playersTable.playerId))
+    const resources = await tx
+      .select()
+      .from(resourcesTable)
+      .where(eq(resourcesTable.gameId, startTurnProcessingModel.turn.gameId))
+      .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType))
+    const submittedActions = await tx
+      .select()
+      .from(actionsTable)
+      .where(and(eq(actionsTable.gameId, startTurnProcessingModel.turn.gameId), eq(actionsTable.turn, startTurnProcessingModel.turn.turn)))
+      .orderBy(asc(actionsTable.playerId))
+    const rulesets = await tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, games[0].rulesetId))
+    const planets = await tx
+      .select({
+        id: planetsTable.id,
+        name: planetsTable.name,
+        ownerPlayerId: planetsTable.ownerPlayerId,
+        x: planetsTable.x,
+        y: planetsTable.y,
+      })
+      .from(planetsTable)
+      .where(eq(planetsTable.gameId, startTurnProcessingModel.turn.gameId))
+    const fleets = await tx.select().from(fleetsTable).where(eq(fleetsTable.gameId, startTurnProcessingModel.turn.gameId))
 
     Assert.isTrue(rulesets.length === 1)
     Assert.isDefined(rulesets[0])

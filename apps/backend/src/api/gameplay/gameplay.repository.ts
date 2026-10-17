@@ -366,22 +366,20 @@ export class GameplayRepository extends PostgresRepository {
     const updatedAt = this.clock.now()
 
     // Not super great, drizzle doesn't support batch updates very well, could use sql statements probably
-    await Promise.all(
-      actions.map(
-        async (action) =>
-          await tx
-            .update(actionsTable)
-            .set({ selectedTargets: action.selectedTargets, updatedAt })
-            .where(
-              and(
-                eq(actionsTable.gameId, context.gameId),
-                eq(actionsTable.playerId, context.playerId),
-                eq(actionsTable.turn, context.turn),
-                eq(actionsTable.id, action.id),
-              ),
-            ),
-      ),
-    )
+    // A transaction uses one PostgreSQL connection, so its queries must run sequentially.
+    for (const action of actions) {
+      await tx
+        .update(actionsTable)
+        .set({ selectedTargets: action.selectedTargets, updatedAt })
+        .where(
+          and(
+            eq(actionsTable.gameId, context.gameId),
+            eq(actionsTable.playerId, context.playerId),
+            eq(actionsTable.turn, context.turn),
+            eq(actionsTable.id, action.id),
+          ),
+        )
+    }
   }
 
   /**
