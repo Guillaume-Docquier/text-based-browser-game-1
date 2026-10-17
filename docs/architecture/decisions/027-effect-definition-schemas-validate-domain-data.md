@@ -4,6 +4,10 @@
 
 Accepted
 
+### Amendment history
+
+- 2026-10-17: Corrected the example to use brand-first generic arguments so the numeric schema matches the tools-ts branding API.
+
 ## Context
 
 [ADR-015](015-zod-validation-must-be-type-representable.md) limits Zod schemas to parsing constraints that are represented by their inferred TypeScript types. That rule is appropriate for schemas whose only responsibility is parsing transport data.
@@ -19,7 +23,7 @@ Ruleset schemas are allowed to validate runtime domain and integrity constraints
 Whenever a schema uses a constraint that is not representable by its ordinary inferred TypeScript type, define a dedicated branded schema and named branded type for that domain value. Apply the runtime constraints before branding; the brand alone is not validation. For example, following the repository's existing branded-type pattern:
 
 ```ts
-type PositiveInteger = Branded<number, "PositiveInteger">
+type PositiveInteger = Branded<"PositiveInteger", number>
 
 const PositiveIntegerSchema = z
   .number()
