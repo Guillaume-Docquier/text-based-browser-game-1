@@ -1,0 +1,6 @@
+interface:
+  display_name: "Dispatch AI Tasks"
+  short_description: "Dispatch tasks that are ready to implement by an AI"
+
+policy:
+  allow_implicit_invocation: false
