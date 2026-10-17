@@ -11,7 +11,7 @@ import { WinTheGame } from "shared/testing/test-ruleset/action-definitions/win-t
 import { afterEach, describe, expect, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
-import type { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
+import type { SubmittedActionTargets } from "#api/gameplay/SubmittedActionTargets.ts"
 import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
@@ -863,8 +863,8 @@ describe("TurnProcessor", () => {
 function getActionToSubmintegrationTest(
   playerView: PlayerView,
   actionDefinitionId: ActionDefinitionId,
-  selectedTargets: DeepUnbranded<SubmittedActionTargetsDto["selectedTargets"]> = {},
-): DeepUnbranded<SubmittedActionTargetsDto> {
+  selectedTargets: DeepUnbranded<SubmittedActionTargets["selectedTargets"]> = {},
+): DeepUnbranded<SubmittedActionTargets> {
   const action = playerView.actions.find((availableAction) => availableAction.actionDefinitionId === actionDefinitionId)
   Assert.isDefined(action)
   return {
