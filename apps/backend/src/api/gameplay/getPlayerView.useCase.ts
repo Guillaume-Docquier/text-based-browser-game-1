@@ -67,13 +67,13 @@ function toPlayerView(playerViewModel: PlayerViewModel): PlayerView {
 
 function toPlayerViewResources(totalResources: Readonly<Resources>, uncommittedResources: Readonly<Resources>): PlayerView["resources"] {
   // string instead of ResourceType to satisfy TypeScript. Strange that it works, maybe even dangerous, but okay
-  return Object.entries(totalResources).reduce<Record<string, PlayerViewResourceAmounts>>((resourcesDto, [resourceType, total]) => {
-    resourcesDto[resourceType] = {
+  return Object.entries(totalResources).reduce<Record<string, PlayerViewResourceAmounts>>((playerViewResources, [resourceType, total]) => {
+    playerViewResources[resourceType] = {
       total,
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: Object.entries widens keys from the Resources record, which are ResourceType values.
       uncommitted: uncommittedResources[resourceType as ResourceType] ?? 0,
     }
-    return resourcesDto
+    return playerViewResources
   }, {})
 }
 
