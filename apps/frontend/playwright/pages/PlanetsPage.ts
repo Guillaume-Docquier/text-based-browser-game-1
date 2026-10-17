@@ -42,10 +42,6 @@ export class PlanetsPage extends GamePage {
     return branded(index === "last" ? this.rows.last() : this.rows.nth(index))
   }
 
-  public rowByCoordinate(coordinate: string): PlanetRowLocator {
-    return branded(this.rows.filter({ has: this.page.getByRole("link", { name: coordinate, exact: true }) }))
-  }
-
   public planetName(row: PlanetRowLocator): Locator {
     return row.getByRole("cell").nth(0)
   }

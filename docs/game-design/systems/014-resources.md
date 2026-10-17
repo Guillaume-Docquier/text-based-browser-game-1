@@ -49,11 +49,11 @@ Relates to:
 | Metal     | Supports construction, including Fleets and Infrastructure.                                           |
 | Fuel      | Supports Fleet movement.                                                                              |
 | Energy    | Represents coordination effort, time investment and actions that grant buffs or additional effects.   |
-| Colony    | Stored Resource with no current source or use; Colonization does not spend it.                        |
+| Colony    | Supports colonizing additional Planets. It is fractional and produced in low amounts.                 |
 
 ## Current Implementation
 
-Each player currently has integer stockpiles for all five Resources and starts with placeholder amounts. Standard Ruleset Actions can gain Influence, Metal, Fuel, and Energy. Build Fleet spends Influence and Metal from the empire stockpile through configured Action costs; its current values are in [System 003-actions](./003-actions.md). Political Campaign currently gains Influence without a cost; the planned Influence reset is not implemented. Colony is stored and displayed but has no current source or use; current Colonization costs Influence and Fleet Strength instead. The player view exposes both total and uncommitted Resources, and the frontend displays them with Action costs and affordability.
+Each player currently has integer stockpiles for all five Resources and starts with placeholder amounts. Standard Ruleset Actions can gain Influence, Metal, Fuel, and Energy. Build Fleet spends Influence and Metal from the empire stockpile through configured Action costs; its current values are in [System 003-actions](./003-actions.md). Political Campaign currently gains Influence without a cost; the planned Influence reset is not implemented. Colony is stored and displayed but has no current source or use. The player view exposes both total and uncommitted Resources, and the frontend displays them with Action costs and affordability.
 
 ## Rules
 

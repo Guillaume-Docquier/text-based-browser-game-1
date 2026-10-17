@@ -1,503 +1,916 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
-import type { GameId } from "shared/domain/games/GameId.ts"
-import type { PlayerId } from "shared/domain/players/PlayerId.ts"
+import { Assert, branded, Datetime, type DeepUnbranded, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
-import { required } from "shared/testing/required.ts"
-import { StationaryAssaultTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
+import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import { BuildFleetStandard } from "shared/testing/test-ruleset/action-definitions/build-fleet.ts"
-import { describe, expect } from "vitest"
+import { GainFuel } from "shared/testing/test-ruleset/action-definitions/gain-fuel.ts"
+import { GainInfluence } from "shared/testing/test-ruleset/action-definitions/gain-influence.ts"
+import { GainMetal } from "shared/testing/test-ruleset/action-definitions/gain-metal.ts"
+import { MoveFleetImproved } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
+import { WinTheGame } from "shared/testing/test-ruleset/action-definitions/win-the-game.ts"
+import { afterEach, describe, expect, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import type { PlayerView, Fleet, Planet } from "#api/types.ts"
+import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
+import type { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
+import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
-import type { Database } from "#lib/db/createDb.ts"
-import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
-import type { reverseWorkerInputEnumeration } from "#tests/fleet-concurrency/gameplay.ts"
-import type { mulberry32FirstDraw, replayObservedTurn, mulberry32DrawSequence } from "#tests/fleet-worker/TurnProcessor.scenarios.ts"
+import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
-import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
-import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
-import { assertEmptyObserved3 } from "../tests/fleet-assertions/TurnProcessor-2.ts"
-import {
-  createClientsSetup,
-  createStationedSetup,
-  createObservedSetup,
-  createObservedSetup2,
-  createAfterCombatViewsSetup,
-  createObservedSetup3,
-  createAfterCombatViewsSetup2,
-} from "../tests/fleet-assertions/TurnProcessor.stages.ts"
-import { assertOutcomeB, assertEmptyObserved, assertEmptyObserved2 } from "../tests/fleet-assertions/TurnProcessor.ts"
-import { createThreeOwnerStationedAssaultFixture, getActionToSubmintegrationTest } from "../tests/fleet-worker/TurnProcessor.scenarios.ts"
-import { AssaultWorkerRuleset } from "../tests/fleet-worker/TurnProcessor.ts"
+import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
+import { type ProcessedTurnModel, TurnsRepository } from "#turn-processing/turns.repository.ts"
 
 describe("TurnProcessor", () => {
-  integrationTest(
-    "should observe and replay the public same-pool two-owner Assault tie before the real worker saves it",
-    async ({ db }) => {
-      // Arrange: create stable public owners and the fixed seed-147 public map through supported API routes.
+  describe("processTurnsForever", () => {
+    afterEach(() => {
+      vi.clearAllTimers()
+      vi.useRealTimers()
+    })
+
+    integrationTest("should process all currently due turns before waiting", async ({ db }) => {
+      // Arrange
       const clock = new ControlledClock()
-      const apiServices = await createApiStub({ db, clock })
-      Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(AssaultWorkerRuleset))
-      using apiServer = new ApiServer(apiServices)
-      const alice = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000001" })
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
 
-      const clientsSetup1 = await createClientsSetup({ apiServer, alice, db, clock })
-      const { clients, gameId } = clientsSetup1
+      const turnInterval = Time.create(100, UnitOfTime.SECONDS)
+      const { createdGameId: firstGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) / 2 }),
+      })
+      await player.client.games.startGame.mutate({ gameId: firstGameId })
 
-      // Act: move the non-target owner's complete fleet to the fixed target through a public ordinary Move order.
+      const { createdGameId: secondGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId: secondGameId })
 
-      const stationedSetup2 = await createStationedSetup({ ...clientsSetup1, alice })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
 
-      await submitStationaryAssaults({ ...clientsSetup1, ...stationedSetup2 })
+      // Act
+      vi.useFakeTimers()
+      clock.increment({ time: turnInterval })
+      await turnProcessor.processTurnsForever({ interval: Time.create(1, UnitOfTime.SECONDS) })
 
-      const observedSetup3 = await createObservedSetup({
-        ...clientsSetup1,
-        ...stationedSetup2,
-        db,
-        clock,
+      // Assert
+      expect(vi.getTimerCount()).toBe(1)
+      vi.clearAllTimers()
+      vi.useRealTimers()
+
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: firstGameId })).toMatchObject({
+        turn: 2,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
 
-      await assertOutcomeB({ ...clientsSetup1, ...stationedSetup2, ...observedSetup3 })
-
-      const afterCombatViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
-
-      verifyAfterCombatViews({ ...clientsSetup1, ...stationedSetup2, afterCombatViews })
-
-      // Assert: the next publicly closed empty turn observes the saved one-draw RNG and an empty action list.
-      const emptyTurn = afterCombatViews[0]
-      Assert.isDefined(emptyTurn)
-
-      await assertEmptyObservedValue1({
-        ...clientsSetup1,
-        ...stationedSetup2,
-        ...observedSetup3,
-        emptyTurn,
-        db,
-        clock,
-        afterCombatViews,
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: secondGameId })).toMatchObject({
+        turn: 2,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
-    },
-  )
-
-  integrationTest("should persist multi-owner Build names and Assault permutations through the public worker", async ({ db }) => {
-    // Arrange: stage the same public seed-147 stationary A30/B20/C10 vector for both tie scenarios.
-    // Act
-    const clock = new ControlledClock()
-    const apiServices = await createApiStub({ db, clock })
-    Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(AssaultWorkerRuleset))
-    using apiServer = new ApiServer(apiServices)
-    const { clients, playerIds, gameId, turnProcessor, turnsRepository, target, homes, stationed } =
-      await createThreeOwnerStationedAssaultFixture({ db, clock, apiServer })
-    const alice = clients[0]
-    const playerAId = playerIds[0]
-    const playerBId = playerIds[1]
-    const playerCId = playerIds[2]
-
-    const preAssaultViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
-    const buildActionIds: string[] = []
-
-    await verifyBuildActionIds({ clients, preAssaultViews, homes, buildActionIds, gameId })
-    const assaultActionIds: string[] = []
-
-    await submitStationaryAssaults({
-      clients,
-      preAssaultViews,
-      stationed,
-      actionIds: assaultActionIds,
-      gameId,
-      target,
-      ownerIndices: [0, 1],
     })
 
-    const observedSetup4 = await createObservedSetup2({
-      assaultActionIds,
-      preAssaultViews,
-      clients,
-      gameId,
-      db,
-      clock,
-      turnsRepository,
-      playerIds,
-      homes,
-    })
+    integrationTest("should wait before retrying when the selected turn processing fails", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const player = await apiServer.createClient({ authenticated: true })
 
-    const afterCombatViewsSetup5 = await createAfterCombatViewsSetup({
-      ...observedSetup4,
-      assaultActionIds,
-      playerIds,
-      stationed,
-      target,
-      playerAId,
-      playerBId,
-      playerCId,
-      turnProcessor,
-      clients,
-      gameId,
-    })
-    const { afterCombatViews } = afterCombatViewsSetup5
+      const turnInterval = Time.create(100, UnitOfTime.SECONDS)
+      const { createdGameId: failingGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId: failingGameId })
 
-    verifyActualFleet({ ...observedSetup4, ...afterCombatViewsSetup5, stationed, target })
-    const actualWorkerBuildNames: string[] = []
+      const { createdGameId: successfulGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId: successfulGameId })
 
-    verifyActualBuild({
-      ...observedSetup4,
-      ...afterCombatViewsSetup5,
-      actualWorkerBuildNames,
-      clients,
-      preAssaultViews,
-      target,
-      assaultActionIds,
-    })
+      const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
 
-    // Assert: capture the next empty public turn and verify the naturally persisted one-draw RNG before the real worker.
-    const emptyTurn = afterCombatViews[0]
-    Assert.isDefined(emptyTurn)
+      // Act
+      vi.useFakeTimers()
+      clock.increment({ time: turnInterval })
+      await turnProcessor.processTurnsForever({ interval: Time.create(1, UnitOfTime.SECONDS) })
 
-    await assertEmptyObservedValue12({
-      ...observedSetup4,
-      ...afterCombatViewsSetup5,
-      clients,
-      gameId,
-      emptyTurn,
-      db,
-      clock,
-      turnsRepository,
-      actualWorkerBuildNames,
-      playerIds,
-      buildActionIds,
-      homes,
-      stationed,
-      assaultActionIds,
-      turnProcessor,
-      alice,
-      target,
+      // Assert
+      expect(vi.getTimerCount()).toBe(1)
+      vi.clearAllTimers()
+      vi.useRealTimers()
+
+      // No turns were processed because turns in error block, this will be resolved by https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/278
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: failingGameId })).toMatchObject({
+        turn: 1,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
+      })
+
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: successfulGameId })).toMatchObject({
+        turn: 1,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
+      })
     })
   })
 
-  integrationTest("should persist the three-owner Assault-only tie through public arrivals and worker reloads", async ({ db }) => {
-    // Arrange: stage the same public seed-147 stationary A30/B20/C10 vector for both tie scenarios.
-    // Act
-    const clock = new ControlledClock()
-    const apiServices = await createApiStub({ db, clock })
-    Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(AssaultWorkerRuleset))
-    using apiServer = new ApiServer(apiServices)
-    const { clients, playerIds, gameId, turnProcessor, turnsRepository, target, stationed } = await createThreeOwnerStationedAssaultFixture(
-      { db, clock, apiServer },
-    )
-    const alice = clients[0]
-    const playerAId = playerIds[0]
-    const playerBId = playerIds[1]
-    const playerCId = playerIds[2]
+  describe("processNextDueTurn", () => {
+    integrationTest("should process the current turn and queue the next one", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      const { api, accountsRepository } = await createApiStub({ db, clock })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const player = await apiServer.createClient({ authenticated: true })
 
-    const preAssaultViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
-    const assaultActionIds: string[] = []
+      const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
 
-    await submitStationaryAssaults({
-      clients,
-      preAssaultViews,
-      stationed,
-      actionIds: assaultActionIds,
-      gameId,
-      target,
-      ownerIndices: [0, 1],
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: 1,
+        submittedActionTargets: getActionToSubmintegrationTest(initialPlayerView, GainInfluence.id),
+      })
+
+      // Act
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const repeatedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(playerView).toStrictEqual<typeof playerView>({
+        ...initialPlayerView,
+        turn: 2,
+        turnEndsAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
+        resources: createResourcesDtoStub({
+          [ResourceType.INFLUENCE]: { uncommitted: 8, total: 8 },
+          [ResourceType.METAL]: { uncommitted: 2, total: 2 },
+          [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
+        }),
+        actions: expect.any(Array),
+      })
+      expect(playerView.actions.map(({ id }) => id)).toStrictEqual(initialPlayerView.actions.map(({ id }) => id))
+      expect(playerView.actions.every(({ selectedTargets }) => selectedTargets === null)).toBe(true)
+      expect(repeatedPlayerView.actions).toStrictEqual(playerView.actions)
     })
 
-    const observedSetup6 = await createObservedSetup3({
-      assaultActionIds,
-      preAssaultViews,
-      clients,
-      gameId,
-      db,
-      clock,
-      turnsRepository,
-      playerIds,
-      stationed,
-    })
+    integrationTest("should process multiple submitted actions", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
 
-    const afterCombatViewsSetup7 = await createAfterCombatViewsSetup2({
-      ...observedSetup6,
-      target,
-      playerIds,
-      playerAId,
-      playerBId,
-      playerCId,
-      turnProcessor,
-      clients,
-      gameId,
-    })
-    const { afterCombatViews } = afterCombatViewsSetup7
-    for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-      const before = preAssaultViews[ownerIndex]
-      const after = afterCombatViews[ownerIndex]
-      Assert.isDefined(before)
-      Assert.isDefined(after)
-      expect(
-        after.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === target.id)?.ownerPlayerId,
-      ).toBe(target.ownerPlayerId)
-      expect(after.actions.find(({ id }) => id === assaultActionIds[0])).toMatchObject({ selectedTargets: null, isInProgress: false })
-      expect(after.actions.find(({ id }) => id === assaultActionIds[1])).toMatchObject({ selectedTargets: null, isInProgress: false })
-      for (const resourceType of Object.values(ResourceType)) {
-        expect(after.resources[resourceType].total).toBe(before.resources[resourceType].total)
+      const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      for (const actionDefinitionId of [GainFuel.id, GainMetal.id]) {
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: initialPlayerView.turn,
+          submittedActionTargets: getActionToSubmintegrationTest(initialPlayerView, actionDefinitionId),
+        })
       }
-    }
 
-    // Assert: capture the next empty public turn and verify the naturally persisted one-draw RNG before the real worker.
-    const emptyTurn = afterCombatViews[0]
-    Assert.isDefined(emptyTurn)
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
-    await assertEmptyObservedValue13({
-      ...observedSetup6,
-      ...afterCombatViewsSetup7,
-      clients,
-      gameId,
-      emptyTurn,
-      db,
-      clock,
-      turnsRepository,
-      stationed,
-      playerIds,
-      assaultActionIds,
-      turnProcessor,
-      alice,
-      target,
+      // Act
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+        turn: 2,
+        resources: createResourcesDtoStub({
+          [ResourceType.METAL]: { uncommitted: 5, total: 5 },
+          [ResourceType.FUEL]: { uncommitted: 6, total: 6 },
+        }),
+      })
+    })
+
+    integrationTest("should process actions that build fleets", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      // Create the game
+      const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
+
+      // Start the game
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      const buildFleet = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+      Assert.isDefined(buildFleet)
+
+      const homePlanet = initialPlayerView.galaxy.systems
+        .flatMap(({ planets }) => planets)
+        .find(({ ownerPlayerId }) => ownerPlayerId === branded(player.account.id))
+      Assert.isDefined(homePlanet)
+
+      // Build a fleet
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: initialPlayerView.turn,
+        submittedActionTargets: { actionId: buildFleet.id, selectedTargets: { planet: homePlanet.id }, selectedInputs: {} },
+      })
+
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(initialPlayerView.fleets).toStrictEqual([])
+      expect(playerView.fleets).toStrictEqual([
+        {
+          id: expect.any(String), // this is deterministic, but we cannot control the initial game rng state
+          ownerPlayerId: player.account.id,
+          name: expect.any(String), // this is deterministic, but we cannot control the initial game rng state
+          strength: 10,
+          originPlanetId: homePlanet.id,
+        },
+      ])
+    })
+
+    integrationTest("should persist a fleet in transit and land it after another turn", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+      const turnInterval = Time.create(10, UnitOfTime.SECONDS)
+      const { createdGameId: gameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({
+          turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS),
+          mapGenerationSeed: 1234,
+        }),
+      })
+      await player.client.games.startGame.mutate({ gameId })
+      const initialView = await player.client.gameplay.getPlayerView.query({ gameId })
+      const planets = initialView.galaxy.systems.flatMap(({ planets }) => planets)
+      const origin = planets.find(({ ownerPlayerId }) => ownerPlayerId === branded(player.account.id))
+      Assert.isDefined(origin)
+      // With seed 1234, this planet is about 1.146 light years from the home planet.
+      const destination = planets.find(({ coordinates }) => coordinates === "55:07:50")
+      Assert.isDefined(destination)
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+
+      // Earn enough resources to build a fleet and refine its fuel next turn.
+      for (const actionDefinitionId of [GainInfluence.id, GainMetal.id]) {
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId,
+          turn: initialView.turn,
+          submittedActionTargets: getActionToSubmintegrationTest(initialView, actionDefinitionId),
+        })
+      }
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+      const fundedView = await player.client.gameplay.getPlayerView.query({ gameId })
+
+      for (const submittedActionTargets of [
+        getActionToSubmintegrationTest(fundedView, BuildFleetStandard.id, { planet: origin.id }),
+        getActionToSubmintegrationTest(fundedView, GainFuel.id),
+        getActionToSubmintegrationTest(fundedView, GainInfluence.id),
+      ]) {
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId,
+          turn: fundedView.turn,
+          submittedActionTargets,
+        })
+      }
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+      const builtView = await player.client.gameplay.getPlayerView.query({ gameId })
+      const fleet = builtView.fleets[0]
+      Assert.isDefined(fleet)
+      expect(builtView.fleets).toHaveLength(1)
+      expect(fleet).toMatchObject({ ownerPlayerId: player.account.id, originPlanetId: origin.id, strength: 10 })
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId,
+        turn: builtView.turn,
+        submittedActionTargets: getActionToSubmintegrationTest(
+          builtView,
+          MoveFleetImproved.id,
+          {
+            fleet: fleet.id,
+            planet: destination.id,
+          },
+          { strength: 10 },
+        ),
+      })
+
+      // Act
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      const firstTurnResult = await turnProcessor.processNextDueTurn()
+      const inTransitView = await player.client.gameplay.getPlayerView.query({ gameId })
+
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      const secondTurnResult = await turnProcessor.processNextDueTurn()
+      const landedView = await player.client.gameplay.getPlayerView.query({ gameId })
+
+      // Assert
+      expect(firstTurnResult).toBe("processed")
+      expect(secondTurnResult).toBe("processed")
+      expect(inTransitView.turn).toBe(4)
+      expect(inTransitView.fleets).toMatchObject([
+        {
+          ownerPlayerId: player.account.id,
+          originPlanetId: origin.id,
+          destinationPlanetId: destination.id,
+          strength: 10,
+          distanceToEnd: expect.closeTo(0.1456435045942517, 12),
+        },
+      ])
+      expect(landedView.turn).toBe(5)
+      expect(landedView.fleets).toMatchObject([{ ownerPlayerId: player.account.id, originPlanetId: destination.id, strength: 10 }])
+    })
+
+    integrationTest("should merge an arriving fleet with the player's fleet at the destination in one turn", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+      const turnInterval = Time.create(10, UnitOfTime.SECONDS)
+      const { createdGameId: gameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({
+          turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS),
+          mapGenerationSeed: 1234,
+        }),
+      })
+      await player.client.games.startGame.mutate({ gameId })
+      const initialView = await player.client.gameplay.getPlayerView.query({ gameId })
+      const planets = initialView.galaxy.systems.flatMap(({ planets }) => planets)
+      const homePlanet = planets.find(({ ownerPlayerId }) => ownerPlayerId === branded(player.account.id))
+      Assert.isDefined(homePlanet)
+      // This planet shares the home system, so an improved move takes one turn.
+      const nearbyPlanet = planets.find(({ coordinates }) => coordinates === "45:98:25")
+      Assert.isDefined(nearbyPlanet)
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+
+      for (const actionDefinitionId of [GainInfluence.id, GainMetal.id]) {
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId,
+          turn: initialView.turn,
+          submittedActionTargets: getActionToSubmintegrationTest(initialView, actionDefinitionId),
+        })
+      }
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+      const fundedView = await player.client.gameplay.getPlayerView.query({ gameId })
+
+      for (const submittedActionTargets of [
+        getActionToSubmintegrationTest(fundedView, BuildFleetStandard.id, { planet: homePlanet.id }),
+        getActionToSubmintegrationTest(fundedView, GainFuel.id),
+        getActionToSubmintegrationTest(fundedView, GainInfluence.id),
+      ]) {
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId,
+          turn: fundedView.turn,
+          submittedActionTargets,
+        })
+      }
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+      const builtView = await player.client.gameplay.getPlayerView.query({ gameId })
+      const movingFleet = builtView.fleets[0]
+      Assert.isDefined(movingFleet)
+      expect(builtView.fleets).toHaveLength(1)
+
+      // Move the first fleet away, then build a second fleet at home.
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId,
+        turn: builtView.turn,
+        submittedActionTargets: getActionToSubmintegrationTest(
+          builtView,
+          MoveFleetImproved.id,
+          {
+            fleet: movingFleet.id,
+            planet: nearbyPlanet.id,
+          },
+          { strength: 10 },
+        ),
+      })
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+      const awayView = await player.client.gameplay.getPlayerView.query({ gameId })
+      const awayFleet = awayView.fleets[0]
+      Assert.isDefined(awayFleet)
+      expect(awayFleet.id).not.toBe(movingFleet.id)
+      expect(awayView.fleets).toMatchObject([{ originPlanetId: nearbyPlanet.id, strength: 10 }])
+
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId,
+        turn: awayView.turn,
+        submittedActionTargets: getActionToSubmintegrationTest(awayView, BuildFleetStandard.id, { planet: homePlanet.id }),
+      })
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+      const returnView = await player.client.gameplay.getPlayerView.query({ gameId })
+      const stationedFleet = returnView.fleets.find(({ originPlanetId }) => originPlanetId === homePlanet.id)
+      Assert.isDefined(stationedFleet)
+      expect(returnView.fleets).toHaveLength(2)
+      expect(stationedFleet.id).not.toBe(movingFleet.id)
+      expect(returnView.fleets.map(({ strength }) => strength)).toStrictEqual([10, 10])
+
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId,
+        turn: returnView.turn,
+        submittedActionTargets: getActionToSubmintegrationTest(
+          returnView,
+          MoveFleetImproved.id,
+          {
+            fleet: awayFleet.id,
+            planet: homePlanet.id,
+          },
+          { strength: 10 },
+        ),
+      })
+
+      // Act
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      const turnResult = await turnProcessor.processNextDueTurn()
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId })
+
+      // Assert
+      expect(turnResult).toBe("processed")
+      expect(playerView.turn).toBe(6)
+      expect(playerView.fleets).toStrictEqual([
+        {
+          ...stationedFleet,
+          strength: 20,
+        },
+      ])
+    })
+
+    integrationTest.for([
+      { turnInterval: Time.create(100, UnitOfTime.SECONDS), timeIncrement: Time.create(116, UnitOfTime.SECONDS) },
+      { turnInterval: Time.create(100, UnitOfTime.MINUTES), timeIncrement: Time.create(103, UnitOfTime.MINUTES) },
+    ])(
+      "should schedule the next turn from the current time when the delay exceeds 15 percent of the interval, capped at 2 minutes",
+      async ({ turnInterval, timeIncrement }, { db }) => {
+        // Arrange
+        const clock = new ControlledClock()
+        using apiServer = new ApiServer(await createApiStub({ db, clock }))
+        const player = await apiServer.createClient({ authenticated: true })
+
+        const { createdGameId } = await player.client.games.create.mutate({
+          configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+        })
+        await player.client.games.startGame.mutate({ gameId: createdGameId })
+
+        const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+
+        // Act
+        clock.increment({ time: timeIncrement })
+        await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+        await turnProcessor.processNextDueTurn()
+
+        // Assert
+        expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+          turn: 2,
+          turnEndsAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
+        })
+      },
+    )
+
+    integrationTest("should fail the turn when a locked action submission is no longer affordable", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: 10 }),
+      })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
+
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+      const resourcesRepository = new ResourcesRepository({ db, logger })
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: 1,
+        submittedActionTargets: getActionToSubmintegrationTest(initialPlayerView, GainMetal.id),
+      })
+      Assert.isSuccess(
+        await resourcesRepository.updateResource({
+          gameId: createdGameId,
+          playerId: branded(player.account.id),
+          resourceType: ResourceType.INFLUENCE,
+          amountDelta: -3,
+        }),
+      )
+
+      // Act
+      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      const result = await turnProcessor.processNextDueTurn()
+
+      // Assert
+      expect(result).toBe("failed")
+    })
+
+    integrationTest("should process only the earliest scheduled turn in one invocation", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      // later game
+      const laterTurnInterval = Time.create(100, UnitOfTime.SECONDS)
+      const { createdGameId: laterGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(laterTurnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId: laterGameId })
+
+      // earlier game
+      const earlierTurnInterval = Time.create(50, UnitOfTime.SECONDS)
+      const { createdGameId: earlierGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(earlierTurnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId: earlierGameId })
+
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      clock.increment({ time: Time.create(200, UnitOfTime.SECONDS) })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
+        turn: 1,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
+      })
+
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
+        turn: 2,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
+      })
+    })
+
+    integrationTest("should be able to process the same turn over time", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const turnInterval = Time.create(50, UnitOfTime.SECONDS)
+      const { createdGameId: gameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId })
+
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnProcessor.processNextDueTurn()
+
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
+        turn: 3,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
+      })
+    })
+
+    integrationTest("should skip turns that are already processing", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+
+      const processingTurnInterval = Time.create(50, UnitOfTime.SECONDS)
+      const { createdGameId: processingGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(processingTurnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId: processingGameId })
+
+      // Act
+      clock.increment({ time: processingTurnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      const processingResults = await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
+
+      // Assert
+      expect(processingResults).toStrictEqual<typeof processingResults>(["processed", "idle"])
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: processingGameId })).toMatchObject({
+        turn: 2,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
+      })
+    })
+
+    integrationTest("should not process another turn when the selected turn processing fails", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const failingTurnInterval = Time.create(50, UnitOfTime.SECONDS)
+      const { createdGameId: failingGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(failingTurnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId: failingGameId })
+
+      const successfulTurnInterval = Time.create(100, UnitOfTime.SECONDS)
+      const { createdGameId: successfulGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(successfulTurnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId: successfulGameId })
+
+      const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
+
+      // Act
+      clock.increment({ time: successfulTurnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: failingGameId })).toMatchObject({
+        turn: 1,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
+      })
+
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: successfulGameId })).toMatchObject({
+        turn: 1,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
+      })
+    })
+
+    integrationTest("should be able to process turns in parallel", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const earlierTurnInterval = Time.create(50, UnitOfTime.SECONDS)
+      const { createdGameId: earlierGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(earlierTurnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId: earlierGameId })
+
+      const laterTurnInterval = Time.create(100, UnitOfTime.SECONDS)
+      const { createdGameId: laterGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(laterTurnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId: laterGameId })
+
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      clock.increment({ time: laterTurnInterval })
+
+      // if rows are locked correctly, processing 2 turns concurrently should result in 2 different turns being processed
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
+
+      // Assert
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
+        turn: 2,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
+      })
+
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
+        turn: 2,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
+      })
+    })
+
+    integrationTest("should do nothing if there are no turns left when processing turns in parallel", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const turnInterval = Time.create(50, UnitOfTime.SECONDS)
+      const { createdGameId: gameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.games.startGame.mutate({ gameId })
+
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      // if rows are locked correctly, processing 2 turns concurrently should result in 1 turn being processed and the other one will do nothing
+      await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
+
+      // Assert
+      expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
+        turn: 2,
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
+      })
+    })
+
+    integrationTest("should fully process every player and select at most one deterministic winner", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const creator = await apiServer.createClient({ authenticated: true })
+      const joiner = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: 10 }),
+      })
+      await joiner.client.games.join.mutate({ gameId: createdGameId })
+      await creator.client.games.startGame.mutate({ gameId: createdGameId })
+
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+      const resourcesRepository = new ResourcesRepository({ db, logger })
+
+      for (const { player, amountDelta } of [
+        { player: creator, amountDelta: 10 },
+        { player: joiner, amountDelta: 12 },
+      ]) {
+        for (const resourceType of [ResourceType.INFLUENCE, ResourceType.METAL, ResourceType.FUEL, ResourceType.ENERGY]) {
+          const updateResourceResult = await resourcesRepository.updateResource({
+            gameId: createdGameId,
+            playerId: branded(player.account.id),
+            resourceType,
+            amountDelta,
+          })
+          Assert.isSuccess(updateResourceResult)
+        }
+        const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: 1,
+          submittedActionTargets: getActionToSubmintegrationTest(playerView, WinTheGame.id),
+        })
+      }
+
+      const creatorViewBeforeProcessing = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const joinerViewBeforeProcessing = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Act
+      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      // Eventually we'll have a turn order that will change during the game, for now the players are sorted by their id
+      const expectedWinnerId = [creator.account.id, joiner.account.id].sort()[0]
+
+      const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+      expect(lobby).toMatchObject({
+        winnerAccountId: expectedWinnerId,
+        endedAt: expect.any(String),
+      })
+
+      const creatorView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(creatorView).toMatchObject({
+        turn: 1,
+        turnStatus: "COMPLETED",
+        resources: {
+          [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 },
+        },
+        actions: creatorViewBeforeProcessing.actions.map(({ id, selectedTargets, selectedInputs }) => ({
+          id,
+          selectedTargets,
+          selectedInputs,
+        })),
+      })
+
+      const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(joinerView).toMatchObject({
+        turn: 1,
+        turnStatus: "COMPLETED",
+        resources: {
+          [ResourceType.INFLUENCE]: { total: 5, uncommitted: 5 },
+        },
+        actions: joinerViewBeforeProcessing.actions.map(({ id, selectedTargets, selectedInputs }) => ({
+          id,
+          selectedTargets,
+          selectedInputs,
+        })),
+      })
+    })
+
+    integrationTest("should not do anything in case of failure", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds: 10 }),
+      })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: 1,
+        submittedActionTargets: getActionToSubmintegrationTest(playerView, GainInfluence.id),
+      })
+
+      const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId: createdGameId })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
+      const turnToProcess = { gameId: createdGameId, turn: 1 }
+
+      // Act
+      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      const failedProcessingResult = await turnProcessor.processNextDueTurn()
+      const playerViewAfterFailedSave = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      turnsRepository.shouldFail = false
+      await turnsRepository.resetProcessingAttempt(turnToProcess)
+      const retriedProcessingResult = await turnProcessor.processNextDueTurn()
+      const playerViewAfterRetry = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Assert
+      expect(failedProcessingResult).toBe("failed")
+      expect(playerViewAfterFailedSave).toMatchObject({
+        turn: 1,
+        resources: {
+          [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 },
+        },
+      })
+      expect(retriedProcessingResult).toBe("processed")
+      expect(playerViewAfterRetry).toMatchObject({
+        turn: 2,
+        resources: {
+          [ResourceType.INFLUENCE]: { total: 8, uncommitted: 8 },
+        },
+      })
     })
   })
 })
 
-async function submitStationaryAssaults(input: VerifyOwnerIndexInput): Promise<void> {
-  for (const ownerIndex of input.ownerIndices ?? input.clients.map((_, index) => index)) {
-    const client = input.clients[ownerIndex]
-    const view = input.preAssaultViews[ownerIndex]
-    const fleet = input.stationed[ownerIndex]
-    Assert.isDefined(client)
-    Assert.isDefined(view)
-    Assert.isDefined(fleet)
-    const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
-    Assert.isDefined(action)
-    input.actionIds.push(action.id)
-    await client.client.gameplay.updateActionSubmission.mutate({
-      gameId: input.gameId,
-      turn: view.turn,
-      submittedActionTargets: getActionToSubmintegrationTest(view, StationaryAssaultTest.id, {
-        station: fleet.id,
-        battlePlanet: input.target.id,
-      }),
-    })
+function getActionToSubmintegrationTest(
+  playerView: PlayerView,
+  actionDefinitionId: ActionDefinitionId,
+  selectedTargets: DeepUnbranded<SubmittedActionTargetsDto["selectedTargets"]> = {},
+  selectedInputs: DeepUnbranded<SubmittedActionTargetsDto["selectedInputs"]> = {},
+): DeepUnbranded<SubmittedActionTargetsDto> {
+  const action = playerView.actions.find((availableAction) => availableAction.actionDefinitionId === actionDefinitionId)
+  Assert.isDefined(action)
+  return {
+    actionId: action.id,
+    selectedTargets,
+    selectedInputs,
   }
 }
 
-function verifyAfterCombatViews(input: VerifyAfterCombatViewsInput): void {
-  expect(
-    required(
-      required(input.afterCombatViews[0]).fleets.find(
-        (fleet) => fleet.ownerPlayerId === input.playerIds[0] && isStationaryPublicFleet(fleet, input.target.id),
-      ),
-    ).strength,
-  ).toBe(10)
-  expect(required(input.afterCombatViews[0]).fleets.some(({ ownerPlayerId }) => ownerPlayerId === input.playerIds[1])).toBe(false)
-  for (let ownerIndex = 0; ownerIndex < input.clients.length; ownerIndex += 1) {
-    const before = input.preAssaultViews[ownerIndex]
-    const after = input.afterCombatViews[ownerIndex]
-    Assert.isDefined(before)
-    Assert.isDefined(after)
-    expect(
-      after.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === input.target.id)?.ownerPlayerId,
-    ).toBe(input.target.ownerPlayerId)
-    for (const resourceType of Object.values(ResourceType)) {
-      expect(after.resources[resourceType].total).toBe(before.resources[resourceType].total)
+class FailingTurnsRepository extends TurnsRepository {
+  private readonly failingGameId: number
+
+  public shouldFail = true
+
+  public constructor({
+    db,
+    logger,
+    failingGameId,
+  }: ConstructorParameters<typeof TurnsRepository>[0] & {
+    failingGameId: number
+  }) {
+    super({ db, logger })
+    this.failingGameId = failingGameId
+  }
+
+  public override async saveProcessedTurn(processedTurn: ProcessedTurnModel): Promise<Result<{ saved: true }, string>> {
+    if (processedTurn.gameId === this.failingGameId && this.shouldFail) {
+      return Result.Failure("Expected turn save failure")
     }
-    expect(after.actions.find(({ id }) => id === input.actionIds[ownerIndex])).toMatchObject({ selectedTargets: null, isInProgress: false })
+
+    return await super.saveProcessedTurn(processedTurn)
   }
-}
-
-async function assertEmptyObservedValue1(input: AssertEmptyObservedValue1Input): Promise<void> {
-  const assertEmptyObservedPhase3Value1 = input.draw.value
-  const assertEmptyObservedPhase3Observed = input.observed
-
-  await assertEmptyObserved({ ...input, assertEmptyObservedPhase3Observed, assertEmptyObservedPhase3Value1 })
-}
-
-async function verifyBuildActionIds(input: VerifyBuildActionIdsInput): Promise<void> {
-  for (const ownerIndex of [2, 1, 0]) {
-    const client = input.clients[ownerIndex]
-    const view = input.preAssaultViews[ownerIndex]
-    const home = input.homes[ownerIndex]
-    Assert.isDefined(client)
-    Assert.isDefined(view)
-    Assert.isDefined(home)
-    const buildAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
-    Assert.isDefined(buildAction)
-    input.buildActionIds.push(buildAction.id)
-    await client.client.gameplay.updateActionSubmission.mutate({
-      gameId: input.gameId,
-      turn: view.turn,
-      submittedActionTargets: getActionToSubmintegrationTest(view, BuildFleetStandard.id, { planet: home.id }),
-    })
-  }
-  expect(input.buildActionIds).toStrictEqual(["BUILD_FLEET_STANDARD_1", "BUILD_FLEET_STANDARD_1", "BUILD_FLEET_STANDARD_1"])
-}
-
-function verifyActualFleet(input: VerifyActualFleetInput): void {
-  for (const originalFleet of input.stationed) {
-    const expectedFleet = Object.values(input.forward.resolved.fleets).find(({ id }) => id === originalFleet.id)
-    const actualFleet = input.afterCombatViews[0]?.fleets.find(({ id }) => id === originalFleet.id)
-    if (expectedFleet === undefined) {
-      expect(actualFleet).toBeUndefined()
-    } else {
-      expect(actualFleet).toMatchObject({
-        id: originalFleet.id,
-        name: originalFleet.name,
-        ownerPlayerId: originalFleet.ownerPlayerId,
-        strength: expectedFleet.strength,
-        originPlanetId: input.target.id,
-      })
-    }
-  }
-}
-
-function verifyActualBuild(input: VerifyActualBuildInput): void {
-  for (const replayBuild of input.replayBuilds) {
-    const actualBuild = input.afterCombatViews[0]?.fleets.find(({ id }) => id === replayBuild.id)
-    Assert.isDefined(actualBuild)
-    expect(actualBuild).toMatchObject(replayBuild)
-    input.actualWorkerBuildNames.push(actualBuild.name)
-  }
-  for (let ownerIndex = 0; ownerIndex < input.clients.length; ownerIndex += 1) {
-    const before = input.preAssaultViews[ownerIndex]
-    const after = input.afterCombatViews[ownerIndex]
-    Assert.isDefined(before)
-    Assert.isDefined(after)
-    expect(
-      after.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === input.target.id)?.ownerPlayerId,
-    ).toBe(input.target.ownerPlayerId)
-    expect(after.actions.find(({ id }) => id === input.assaultActionIds[0])).toMatchObject({ selectedTargets: null, isInProgress: false })
-    expect(after.actions.find(({ id }) => id === input.assaultActionIds[1])).toMatchObject({ selectedTargets: null, isInProgress: false })
-    for (const resourceType of Object.values(ResourceType)) {
-      const spent = resourceType === ResourceType.INFLUENCE ? 2 : resourceType === ResourceType.METAL ? 1 : 0
-      expect(after.resources[resourceType].total).toBe(before.resources[resourceType].total - spent)
-    }
-  }
-}
-
-async function assertEmptyObservedValue12(input: AssertEmptyObservedValue12Input): Promise<void> {
-  const assertEmptyObservedPhase6Value1 = input.draw.value
-  const assertEmptyObservedPhase6Observed = input.observed
-
-  await assertEmptyObserved2({ ...input, assertEmptyObservedPhase6Observed, assertEmptyObservedPhase6Value1 })
-}
-
-async function assertEmptyObservedValue13(input: AssertEmptyObservedValue13Input): Promise<void> {
-  const assertEmptyObservedPhase8Value1 = input.draw.value
-  const assertEmptyObservedPhase8Observed = input.observed
-
-  await assertEmptyObserved3({ ...input, assertEmptyObservedPhase8Observed, assertEmptyObservedPhase8Value1 })
-}
-
-type VerifyOwnerIndexInput = {
-  ownerIndices?: readonly number[]
-  clients: readonly AuthenticatedApiClient[]
-  preAssaultViews: PlayerView[]
-  stationed: readonly Fleet[]
-  actionIds: string[]
-  gameId: number
-  target: Planet
-}
-
-type VerifyAfterCombatViewsInput = {
-  afterCombatViews: PlayerView[]
-  playerIds: readonly [PlayerId, PlayerId]
-  target: Planet
-  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
-  preAssaultViews: PlayerView[]
-  actionIds: string[]
-}
-
-type AssertEmptyObservedValue1Input = {
-  draw: ReturnType<typeof mulberry32FirstDraw>
-  observed: ReturnType<typeof reverseWorkerInputEnumeration>
-  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
-  gameId: GameId
-  emptyTurn: PlayerView
-  turnProcessor: TurnProcessor
-  db: Database
-  clock: ControlledClock
-  turnsRepository: TurnsRepository
-  forward: ReturnType<typeof replayObservedTurn>
-  stationed: readonly [Fleet, Fleet]
-  playerIds: readonly [PlayerId, PlayerId]
-  actionIds: string[]
-  afterCombatViews: PlayerView[]
-}
-
-type VerifyBuildActionIdsInput = {
-  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
-  preAssaultViews: PlayerView[]
-  homes: readonly [Planet, Planet, Planet]
-  buildActionIds: string[]
-  gameId: number
-}
-
-type VerifyActualFleetInput = {
-  stationed: readonly [Fleet, Fleet, Fleet]
-  forward: ReturnType<typeof replayObservedTurn>
-  afterCombatViews: PlayerView[]
-  target: Planet
-}
-
-type VerifyActualBuildInput = {
-  replayBuilds: Array<{ id: string; name: string; ownerPlayerId: PlayerId; originPlanetId: string; strength: number }>
-  afterCombatViews: PlayerView[]
-  actualWorkerBuildNames: string[]
-  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
-  preAssaultViews: PlayerView[]
-  target: Planet
-  assaultActionIds: string[]
-}
-
-type AssertEmptyObservedValue12Input = {
-  draw: { value: number; nextGeneratorState: number }
-  observed: ReturnType<typeof reverseWorkerInputEnumeration>
-  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
-  gameId: number
-  emptyTurn: PlayerView
-  db: Database
-  clock: ControlledClock
-  turnsRepository: TurnsRepository
-  forward: ReturnType<typeof replayObservedTurn>
-  rngSequence: ReturnType<typeof mulberry32DrawSequence>
-  actualWorkerBuildNames: string[]
-  expectedBuildNames: string[]
-  playerIds: readonly [PlayerId, PlayerId, PlayerId]
-  buildActionIds: string[]
-  homes: readonly [Planet, Planet, Planet]
-  stationed: readonly [Fleet, Fleet, Fleet]
-  assaultActionIds: string[]
-  turnProcessor: TurnProcessor
-  alice: AuthenticatedApiClient
-  target: Planet
-  actualForces: Record<string, undefined | number[]>
-}
-
-type AssertEmptyObservedValue13Input = {
-  draw: ReturnType<typeof mulberry32FirstDraw>
-  observed: ReturnType<typeof reverseWorkerInputEnumeration>
-  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
-  gameId: number
-  emptyTurn: PlayerView
-  db: Database
-  clock: ControlledClock
-  turnsRepository: TurnsRepository
-  forward: ReturnType<typeof replayObservedTurn>
-  stationed: readonly [Fleet, Fleet, Fleet]
-  playerIds: readonly [PlayerId, PlayerId, PlayerId]
-  assaultActionIds: string[]
-  turnProcessor: TurnProcessor
-  alice: AuthenticatedApiClient
-  target: Planet
-  actualForces: Record<string, undefined | number[]>
-}
-
-function isStationaryPublicFleet(fleet: Fleet, planetId: Planet["id"]): boolean {
-  return fleet.originPlanetId === planetId && fleet.movement === undefined
 }

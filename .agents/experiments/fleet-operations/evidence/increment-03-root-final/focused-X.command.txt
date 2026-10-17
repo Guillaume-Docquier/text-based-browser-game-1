@@ -1,3 +1,0 @@
-$env:PLAYWRIGHT_HTML_OPEN = "never"
-$env:PLAYWRIGHT_LIST_PRINT_STEPS = "1"
-pnpm --filter frontend e2e playwright/specs/fleet-colonization.spec.ts --add-reporter=list

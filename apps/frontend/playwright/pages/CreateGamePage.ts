@@ -9,7 +9,6 @@ type TurnLength = Time<UnitOfTime.DAYS | UnitOfTime.HOURS | UnitOfTime.MINUTES>
 
 type CreateGameSettings = {
   readonly gameName?: string
-  readonly mapGenerationSeed?: number
   readonly maxPlayers?: number
   readonly turnLength?: TurnLength
 }
@@ -43,15 +42,15 @@ export class CreateGamePage extends WebsitePage {
     this.createButton = page.getByRole("button", { name: "Create", exact: true })
   }
 
-  public static async goto(page: Page, mapGenerationSeed?: number): Promise<CreateGamePage> {
-    return await new CreateGamePage(page).goto(mapGenerationSeed)
+  public static async goto(page: Page): Promise<CreateGamePage> {
+    return await new CreateGamePage(page).goto()
   }
 
   /**
    * Create a game, join any additional participants, and return the creator's game details page.
    */
   public static async createGame({ creator, participants = [], settings = {} }: CreateGameInput): Promise<GameDetailsPage> {
-    const createGamePage = await CreateGamePage.goto(creator.page, settings.mapGenerationSeed)
+    const createGamePage = await CreateGamePage.goto(creator.page)
 
     await createGamePage.setGameName(settings.gameName ?? `E2E-${crypto.randomUUID()}`)
     await createGamePage.selectRuleset(TEST_RULESET_NAME)
@@ -75,8 +74,8 @@ export class CreateGamePage extends WebsitePage {
     return creatorGameDetailsPage
   }
 
-  public async goto(mapGenerationSeed = DETERMINISTIC_GALAXY_SEED): Promise<CreateGamePage> {
-    await this.page.goto(`${CreateGamePage.urlPattern.pathname}?mapGenerationSeed=${mapGenerationSeed}`)
+  public async goto(): Promise<CreateGamePage> {
+    await this.page.goto(`${CreateGamePage.urlPattern.pathname}?mapGenerationSeed=${DETERMINISTIC_GALAXY_SEED}`)
     return this
   }
 

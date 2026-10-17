@@ -1,4 +1,0 @@
-# Preserve local raw browser recordings without adding generated videos to source control.
-*.webm
-# Original diagnostic bytes accompany whitespace-normalized tracked captures locally.
-**/error-context.original.txt

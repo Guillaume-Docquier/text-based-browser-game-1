@@ -4,7 +4,7 @@
 
 Partially Implemented
 
-Build Fleet Actions create and reinforce stationed Fleets. Move Fleet Directives support range-checked partial departures, persisted journeys, automatic continuation, and arrival or friendly merging. Normal Assault combat, the Fleets view, and Star System markers show the current Fleet outcomes. Surprise Assault and cloaking remain planned; the Standard Ruleset supports arriving and stationary Colonization.
+Build Fleet Actions create and reinforce stationed Fleets. Move Fleet Directives advance Fleets and can land or merge them, but automatic continuation and the full movement lifecycle remain incomplete. The Fleets view and Star System markers show Fleets. Combat, splitting, cloaking, and colonization remain planned.
 
 ## Purpose
 
@@ -36,9 +36,7 @@ Relates to:
 
 A player can submit a Build Fleet Directive targeting one of their owned Planets. The server validates the target and combined Action costs when the submission is made, then validates locked submissions again during Turn Resolution. Pay Costs precedes Fleet Build. The available Standard Ruleset versions and their temporary balance values are recorded in [System 003-actions](./003-actions.md).
 
-The Standard Ruleset also offers three Move Fleet Directives. Each selects an owned, stationary Fleet, a positive whole-number amount of Strength, and a different destination Planet within the Action's inclusive Range. Their current speeds, ranges, and costs are recorded in [System 003-actions](./003-actions.md). The shared eligibility evaluator reserves Strength and resources across every submitted Action Instance, excluding an edited instance's previous selection. A partial departure leaves the unallocated Strength stationed at its source and creates a deterministic moving Fleet for the selected amount.
-
-The moving Fleet persists its speed, departure Turn, originating Action Submission, and any captured normal Assault definition in its movement data. It advances once during the departure Turn and once each later Turn until arrival; it does not need another submission and does not pay the original costs again. The associated Action Instance remains In Progress until arrival, while other instances of the same definition can use stationary Strength. An arrival clears the movement binding, then lands or merges into the same player's stationed Fleet while preserving the survivor's ID and name. The captured Assault follows its initiating arrival through that merge and resolves only after all arrivals and Fleet Builds have settled. Enemy Fleets remain separate and can be attacked by the normal Fleet Combat Phase. After Combat, a captured Colonize intent can claim an Unclaimed Planet by consuming exactly 20 Strength from the current destination survivor; any remainder stays there, and a depleted Fleet disappears. A prevented claim consumes no further Strength and does not return the Fleet.
+The Standard Ruleset also offers three Move Fleet Directives. Each targets an owned Fleet and a destination Planet. Their current speeds and costs are recorded in [System 003-actions](./003-actions.md). Each submitted Directive advances the Fleet by up to its speed; remaining distance persists for another submission on a later Turn. A Fleet that arrives lands at the destination or merges its Strength into the same player's stationed Fleet there. Range limits and partial-Strength movement are not yet enforced.
 
 Fleet Build creates a Fleet with the Action's Strength, or adds that Strength to the same player's existing Fleet at the target Planet. It does not merge with another player's Fleet there. A new Fleet's ID is deterministic from the Game, Player, Planet, and creation Turn; reinforcement keeps the existing ID and name. New names are deterministic random values of the form `fleet <number>`.
 
@@ -46,9 +44,11 @@ The player view currently exposes every Fleet in the Game to every player, inclu
 
 ### Planned Fleet Lifecycle
 
-A Fleet whose Strength reaches 0 disappears. Fleet Strength has no maximum. An empire has at most one stationed Fleet at a given Planet. Arriving friendly Fleets merge into the stationed Fleet while preserving that Fleet's ID and name. Other merge rules remain planned.
+A Fleet whose Total Strength reaches 0 disappears. Fleet Strength has no maximum. An empire has at most one stationed Fleet at a given Planet. Merging Fleets that meet through other future mechanics remains planned.
 
-New Fleets can only be built at Planets owned by their empire. A moving Fleet created by a split may appear away from the source Planet.
+To move a Fleet, the player selects a positive amount of its Strength. That Strength departs as the moving Fleet, while any remaining Strength stays at the origin.
+
+New Fleets can only be built at Planets owned by their empire. A new fleet can appear anywhere as a result of a split.
 
 ### Cloaking
 

@@ -14,14 +14,9 @@ Partially Implemented
 - [x] Resource stockpile and affordability presentation
 - [x] Available Actions
 - [x] Ruleset-defined Action Pool with stable Action IDs
-- [x] Frontend target selection for Build Fleet's owned Planet, Move Fleet's Fleet/destination, and Colonize's Fleet/Unclaimed Planet targets
+- [x] Frontend target selection for Build Fleet's owned Planet and Move Fleet's owned Fleet and destination Planet targets
 - [x] Fleet Build Effect and resolution Phase
-- [x] Move Fleet Effect with partial allocations and persisted automatic continuation
-- [x] Normal Fleet Assault Effect with deterministic combat and arrival-bound composition
-- [x] Fleet Colonize Effect with shared eligibility, stationary reservations, and arrival-bound composition
-- [x] Typed positive-integer Action inputs and movement-composition validation
-- [x] Shared Action eligibility at frontend selection, API submission, and locked resolution
-- [x] Per-instance Action binding during movement
+- [x] Move Fleet Effect and per-submission movement
 - [ ] Frontend target selection for all target types
 - [x] Multiple Actions
 
@@ -75,10 +70,10 @@ The rules boundary is:
 
 1. A Ruleset persists Action Definitions and one Action Pool. Each definition contains the Action metadata (id, name, tier, etc.), its composed Effect Definitions, its source and input requirements, and its target slots. Each Pooled Action has a stable Action ID and references a definition.
 2. For each player and Turn, the server creates Available Action Instances from the Action Pool. The same Action ID identifies a pool entry across Turns.
-3. The server provides each Available Action Instance and its Action Definition, including target slots and typed inputs. The client uses player-visible game state to present choices that depend on other selections; the server does not enumerate legal combinations.
+3. The server provides each Available Action Instance and its Action Definition, including target slots. The client uses the player-visible game state to present target choices, including choices that depend on other selected targets. The server does not enumerate legal targets or target combinations.
 4. An Action Submission identifies the Available Action Instance and the player's selected source, inputs, and targets.
-5. The frontend, submission API, and Turn Resolution use the shared eligibility evaluator. The API validates a complete submission against retained submissions, and Turn Resolution revalidates the locked full set before costs or state changes. Client-provided choices are never trusted as proof of legality.
-6. During Turn Resolution, each valid new locked submission's composed Effect Definitions produce Effects for the Effect Pool; previously started journeys continue through the Fleet Movement Phase without a new payable submission.
+5. The server validates the Action Submission when it is received and validates the locked submission again during Turn Resolution. Client-provided choices are never trusted as proof of legality.
+6. During Turn Resolution, each valid locked submission's composed Effect Definitions produce Effects for the Effect Pool.
 
 An Action Definition stores its configured Effect Definitions in `effects`. Resource-loss definitions used for payment are stored separately in `costs`; both fields produce runtime Effects.
 
@@ -102,24 +97,24 @@ The engine can host games using different developer-authored Rulesets. A single 
 
 Turn Resolution creates one Effect Pool from locked Action Submissions and automatic game rules. The Rules Engine resolves that pool through this fixed, engine-owned Phase order:
 
-| Phase          | Responsibility                                                                                                      |
-| -------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Pay Costs      | Validate and apply the costs committed by locked Action Submissions.                                                |
-| Fleet Movement | Advance new departures and existing journeys once, then settle all arrivals by calculated Tick and stable Fleet ID. |
-| Fleet Build    | Create or reinforce a player's Fleet at the submitted Planet target with a deterministic identity.                  |
-| Fleet Combat   | Resolve captured normal Assaults after all Fleet Movement arrivals and Fleet Builds.                                |
-| Planet         | Resolve Planet activities.                                                                                          |
-| Colonization   | Resolve attempts to claim Unclaimed Planets after Fleet Movement and Fleet Combat.                                  |
-| Income         | Resolve Resource production and other recurring gains.                                                              |
-| Victory        | Resolve the winning player, if any.                                                                                 |
+| Phase          | Responsibility                                                                                                                    |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Pay Costs      | Validate and apply the costs committed by locked Action Submissions.                                                              |
+| Fleet Movement | Resolve Fleet Movement; chronological arrivals through the 20 Ticks defined by [System 001-turns](./001-turns.md) remain planned. |
+| Fleet Build    | Create or reinforce a player's Fleet at the submitted Planet target with a deterministic identity.                                |
+| Fleet Combat   | Resolve hostile Fleet encounters after Fleet Movement and Fleet Build.                                                            |
+| Planet         | Resolve Planet activities.                                                                                                        |
+| Colonization   | Resolve attempts to claim Unclaimed Planets after Fleet Movement and Fleet Combat.                                                |
+| Income         | Resolve Resource production and other recurring gains.                                                                            |
+| Victory        | Resolve the winning player, if any.                                                                                               |
 
 The Phase sequence belongs to the Rules Engine and is the same for every Ruleset. Each Phase is free to collect, order, coordinate, and resolve its Effects in the way that Phase requires.
 
-Pay Costs, Fleet Movement, Fleet Build, normal Fleet Combat, Colonization, Income, and Victory currently resolve Effects. Planet remains a Phase boundary without gameplay behavior. Colonization evaluates arriving and stationary Fleet attempts against current Planet ownership and surviving Strength after Combat; success assigns ownership and consumes the configured Strength requirement. [System 008-planets](./008-planets.md) records the current Colonization rules. The Fleet Build Effect creates or reinforces a Fleet at the submitted owned Planet; [System 010-fleets](./010-fleets.md) defines the current Fleet behavior.
+Pay Costs, Fleet Movement, Fleet Build, Income, and Victory currently resolve Effects. Fleet Combat, Planet, and Colonization have Phase boundaries but no gameplay behavior yet. The Fleet Build Effect creates or reinforces a Fleet at the submitted owned Planet; [System 010-fleets](./010-fleets.md) defines the current Fleet behavior.
 
-The Move Fleet Effect advances only the selected Strength from an owned, stationary Fleet to a different Planet within the configured inclusive Range. The origin keeps its unallocated Strength; the deterministic child stores its Speed, departure Turn, originating Action Submission, and any captured pending Assault or Colonize definitions in movement JSON. It advances automatically once during the departure Turn and once per later Turn without repaying costs. Its Action Instance stays In Progress until arrival, when it lands or merges with the same player's stationed Fleet. Pending Assault and Colonize definitions follow their initiating arrivals through friendly merges. Assault resolves after all arrivals and Fleet Builds; Colonization then uses its recorded initiating Tick and current Planet/Fleet state. Continuation outcomes are returned for that resolution only and are not stored as action history. [System 012-movement](./012-movement.md) records the current rules.
+The Move Fleet Effect advances the submitted owned Fleet toward its destination by up to the configured speed. Remaining distance persists for another submission on a later Turn; on arrival, the Fleet lands or merges into the same player's stationed Fleet. [System 012-movement](./012-movement.md) records the remaining work, including automatic continuation, Action binding during transit, Range limits, partial-Strength movement, and coordinated Tick-based arrivals.
 
-Phases are coarse ordering boundaries. The Fleet Movement Phase calculates arrival Ticks on a 20-Tick scale and settles every arrival before Fleet Build and Fleet Combat. A Tick is not a Phase, and the other Phases do not each receive 20 Ticks. Pending Assaults keep their initiating order through friendly merges; a Fleet in transit is not present at its recorded origin.
+Phases are coarse ordering boundaries. Planned Tick-based resolution provides finer ordering inside the Fleet Movement Phase; a Tick is not a Phase, and the other Phases do not each receive 20 Ticks.
 
 Each Effect belongs to a Phase that orchestrates its resolution. An Effect may create, modify, cancel, or make a later Effect invalid.
 

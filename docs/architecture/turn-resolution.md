@@ -32,15 +32,13 @@ flowchart LR
   end
   C --> Create[Create Effects]
   D --> Create
-  S[Action Submission with selected source, inputs, and targets] --> Create
+  S[Action Submission with selected targets] --> Create
   Create --> E[Effects] --> P[Effect Pool] --> R[Resolve in Phases] --> O[Effect Outcomes] --> A[Resolved Action]
 ```
 
 ## Determinism
 
 The rules engine is deterministic. Given the same Rng state, Turn State and Ruleset, the results will always be identical. This is important for testing and reproducibility.
-
-Locked submissions are constructed in ordinal `(playerId, actionId)` order. Fleet Build effects run in ordinal `(playerId, actionId, definitionOrdinal)` order. Assault candidates run by ascending movement Tick, then by the canonical global `(playerId, actionId, departureTurn, initiatingJourneyId, definitionOrdinal)` key; string components use ordinal comparison. For each equal-Tick group, the canonical list is passed to the persisted tools-ts RNG's descending Fisher-Yates shuffle. A singleton bypasses the shuffle and consumes no draw. The full tied group remains queued: if an earlier Assault destroys a later attacker, its queued candidate is still resolved as Prevented, without reshuffling. These keys, draw rules, and saved RNG state define replay order; [System 011 Combat](../game-design/systems/011-combat.md) describes the player-facing order.
 
 ## Failure modes
 
@@ -50,7 +48,7 @@ Because of this, the use of the `Assert` module is not permitted there.
 
 ## Validation
 
-The complete locked submission set and existing Fleet journeys are validated through the shared eligibility evaluator before resolution mutates state. A corrupt or invalid locked submission fails the Turn; expected Effect outcomes such as a prevented competition do not. Submission-time and resolution-time validation use the same authoritative rules.
+All action submissions are validated before any resolution starts. Any invalid action fails the turn. Every action is expected to have been validated already on submission using the same validators.
 
 A failed turn state is expected to not be persisted, as the turn resolver stopped at the first error and the state is probably incomplete.
 
@@ -93,13 +91,11 @@ The turn pipeline is the highest level. It orchestrates the high level concepts 
 
 ### Validation Pipeline
 
-The validation pipeline checks the locked data that could be corrupted or inconsistent:
+The validation pipeline handles validating action submissions for any data that could be corrupted or inconsistent:
 
-- Available Action ID and its bound Action Definition
-- Submission player and Action Definition input/target mappings
-- Typed inputs, dependent target constraints, and movement composition
-- Aggregate resource costs and Fleet Strength across submitted instances
-- Existing journey bindings and Action Instance occupancy
+- Action Definition Mappings
+- Action Target Mappings
+- Action Costs Eligibility
 
 ### Phases Pipeline
 
@@ -115,7 +111,5 @@ The phases pipeline handles Effect resolution:
 - Victory
 
 Effects can be added to the Effect pool through other Effects during the Phases.
-
-The Fleet Movement Phase advances all new departures and existing journeys once, settles every arrival by its calculated Tick and stable Fleet ID, and preserves pending Assault and Colonize intents for each initiating arrival. Fleet Build then creates or reinforces Fleets. Fleet Combat applies normal Assaults after all arrivals and Builds; their intents retain their initiating order through friendly merges, while a Fleet in transit is not present at its recorded origin. The Colonization Phase runs after Combat and resolves arrival and stationary claims against current ownership and surviving Fleet Strength. See [System 008 Planets](../game-design/systems/008-planets.md) for the player-facing rules.
 
 After all phases are done, we expect all effects to have been resolved.

@@ -223,30 +223,6 @@ export const FilterByOwner: Story = {
 }
 
 /**
- * A resolved Assault leaves the surviving fleet at its updated strength and removes the destroyed defender row.
- */
-export const AfterAssault: Story = {
-  args: {
-    fleets: [
-      createFleetStub({
-        id: "fleet-assault-survivor",
-        name: "Aegis",
-        ownerPlayerId: alice.id,
-        originPlanetId: destination.id,
-        strength: 10,
-      }),
-    ],
-  },
-  play: async ({ canvas }) => {
-    const table = within(await canvas.findByRole("table", { name: "Fleets" }))
-    await expect(table.getByRole("row", { name: /Aegis/ })).toBeVisible()
-    await expect(within(table.getByRole("row", { name: /Aegis/ })).getByRole("cell", { name: "10" })).toHaveTextContent("10")
-    await expect(table.queryByRole("row", { name: /Vanguard/ })).not.toBeInTheDocument()
-    await expect(table.getAllByRole("row")).toHaveLength(2)
-  },
-}
-
-/**
  * Numeric journey sorting must compare distances rather than their formatted labels.
  */
 export const SortFleets: Story = {

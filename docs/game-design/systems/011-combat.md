@@ -2,9 +2,7 @@
 
 ## Status
 
-Partially Implemented
-
-Normal Assaults are implemented. Surprise Assault remains planned.
+Not Implemented
 
 ## Purpose
 
@@ -28,16 +26,16 @@ Relates to:
 
 ## Rules
 
-The Fleet Combat Phase resolves after Fleet Movement has advanced every journey and settled every arrival, and after Fleet Build. An Assault sees all Fleets stationed at its destination, including arrivals and Build contributions from the current Turn. A Fleet still in transit is not present at its recorded origin. If an arriving friendly Fleet merges, its Assault remains bound to that initiating order and is retargeted to the actual surviving Fleet, whose ID and name are preserved.
+The Fleet Combat Phase resolves after the Fleet Movement Phase, but before arrival-dependent events have completed for Turn Resolution. It uses the final Fleet positions, so every Fleet that arrived during the Turn is present before Fleet Combat begins.
 
-An Assault at a Planet has one attacking Fleet and a defending side made up of every stationary Enemy Fleet at that Planet, including Fleets owned by different players. A standalone Assault requires the owned source Fleet to be stationed at the target Planet. Move+Assault captures the Assault definition during departure and resolves it on arrival; the original source remainder does not attack from its origin.
+An Assault at a Planet has an attacking Fleet and a defending side made up of all Enemy Fleets at that Planet. Each side's Strength is its Combined Force.
 
-Normal Assault makes one simultaneous exchange. With attacker Strength A and combined defender Strength D, the attacker loses min(A, D), and the defenders lose min(D, A). A successful Assault with no defenders is a Resolved no-op. If an earlier Assault destroys an attacker before its queued turn, that later Assault is Prevented. Each later Assault uses the surviving forces left by earlier ones.
+In normal combat, each side loses Strength equal to the other side's Combined Force, capped at its own Combined Force.
 
-When defender losses are distributed across multiple Fleets, each Fleet receives its proportional whole-number share. Remaining units go by largest fractional remainder, with Fleet ID as the stable tie-breaker, so the total loss is exact and no Fleet becomes negative.
+If a side contains multiple Fleets, its total Strength loss is distributed proportionally across those Fleets. Losses use whole numbers. Rounding may be required, but total losses must be respected.
 
-Assaults resolve by their initiating movement Tick. The exact replay keys, ordinal comparison, seeded tie shuffle, and prevented queued-order behavior are defined in [Turn Resolution determinism](../../architecture/turn-resolution.md#determinism). Surprise Assault, first strike, cloaking, conquest, and ownership change remain planned.
+A Surprise Assault resolves in two steps. First, the attacking Fleet deals its Strength as loss to the Combined defending force. Then only surviving defending Strength deals loss to the attacker. If no defending Strength remains, there is no retaliation.
 
 ## Potential Flaws
 
-Surprise Assault remains unimplemented; the future first-strike rules still need their own balance and player-facing explanation.
+The exact proportional rounding rule remains open and must be deterministic once implemented.

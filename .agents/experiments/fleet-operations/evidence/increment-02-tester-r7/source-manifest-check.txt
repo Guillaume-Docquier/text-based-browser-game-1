@@ -1,7 +1,0 @@
-Manifest: .agents/experiments/fleet-operations/evidence/increment-02-tester-r6/source-manifest.txt
-Manifest SHA256: E8741A320C101B44929758F84485BCCB4E1389F8A81B2EB1E0B667FEC47291FA
-Entries: 61
-Rehashed source entries matching manifest: 61
-Missing entries: 0
-Mismatches: 0
-Additional .husky/pre-commit SHA256: C0508811ED3AC34DFCEB4CBD1DF365217F9554E904DC4CF070368EBC248E1637
