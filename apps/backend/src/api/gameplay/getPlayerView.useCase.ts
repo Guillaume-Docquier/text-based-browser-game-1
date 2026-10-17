@@ -2,7 +2,7 @@ import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { getUncommittedResources } from "shared/action-submission/getUncommittedResources.ts"
 import { validateCosts } from "shared/action-submission/validation/costs/validateCosts.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
-import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
+import { PlayerColorSchema } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
 import type { Resources } from "shared/domain/resources/Resources.ts"
@@ -133,7 +133,7 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
 export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDtoSchema>
 export const PlayerViewPlayerDtoSchema = z.object({
   id: PlayerIdSchema,
-  color: z.enum(PlayerColor),
+  color: PlayerColorSchema,
   isReady: z.boolean(),
 })
 

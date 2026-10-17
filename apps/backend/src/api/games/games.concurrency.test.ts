@@ -33,7 +33,7 @@ describe("lobby concurrency", () => {
     )
 
     // Assert
-    const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+    const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
     expect(lobby.players).toHaveLength(4)
   })
 
@@ -62,7 +62,7 @@ describe("lobby concurrency", () => {
     ])
 
     // Assert
-    const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+    const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
     const participantsMap = new Map(
       [creator, ...participants].map((participant) => [branded<PlayerId>(participant.account.id), participant]),
     )

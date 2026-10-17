@@ -1,4 +1,4 @@
-import { type Logger, branded } from "@guillaume-docquier/tools-ts"
+import type { Logger } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { GameCreationConfirmationSchema } from "#api/games/GameCreationConfirmation.ts"
 import { GameCreationSettingsSchema } from "#api/games/gameCreationSettings.ts"
@@ -6,13 +6,13 @@ import { NO_INPUT, NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
 import { CreateGameCommandSchema } from "./createGame.command.ts"
 import { CreateGameErrorResponses } from "./createGame.error.ts"
 import type { CreateGameUseCase } from "./createGame.useCase.ts"
-import { GameDetailsDtoSchema } from "./GameDetailsDto.ts"
+import { GameDetailsSchema } from "./GameDetails.ts"
 import { GameListingSchema } from "./GameListing.ts"
 import { GetGameByIdErrorResponses } from "./getGameById.error.ts"
 import { GetGameByIdQuerySchema } from "./getGameById.query.ts"
-import type { GetGameByIdUseCase } from "./getGameById.useCase.ts"
 import { GetGameCreationSettingsErrorResponses } from "./getGameCreationSettings.error.ts"
 import type { GetGameCreationSettingsUseCase } from "./getGameCreationSettings.useCase.ts"
+import type { GetGameDetailsUseCase } from "./getGameDetailsUseCase.ts"
 import { GetGameListingsErrorResponses } from "./getGameListings.error.ts"
 import type { GetGameListingsUseCase } from "./getGameListings.useCase.ts"
 import { JoinGameCommandSchema } from "./joinGame.command.ts"
@@ -31,7 +31,7 @@ export function createGamesRouter({
   getGameListingsUseCase,
   startGameUseCase,
   createGameUseCase,
-  getGameByIdUseCase,
+  getGameDetailsUseCase,
   getGameCreationSettingsUseCase,
   joinGameUseCase,
   leaveGameUseCase,
@@ -40,7 +40,7 @@ export function createGamesRouter({
   getGameListingsUseCase: GetGameListingsUseCase
   startGameUseCase: StartGameUseCase
   createGameUseCase: CreateGameUseCase
-  getGameByIdUseCase: GetGameByIdUseCase
+  getGameDetailsUseCase: GetGameDetailsUseCase
   getGameCreationSettingsUseCase: GetGameCreationSettingsUseCase
   joinGameUseCase: JoinGameUseCase
   leaveGameUseCase: LeaveGameUseCase
@@ -96,17 +96,12 @@ export function createGamesRouter({
      * Returns public game details and the operations available to the requesting account.
      * Use to display a game's lobby or details, including for visitors who are not signed in.
      */
-    getById: trpc.publicProcedure
+    getDetails: trpc.publicProcedure
       .input(GetGameByIdQuerySchema)
-      .output(GameDetailsDtoSchema)
+      .output(GameDetailsSchema)
       .query(
         async ({ input, ctx: { account } }) =>
-          await toTrpcOutput(
-            getGameByIdUseCase.execute(input, {
-              playerId: account === undefined ? undefined : branded(account.id),
-            }),
-            GetGameByIdErrorResponses,
-          ),
+          await toTrpcOutput(getGameDetailsUseCase.execute(input, { accountId: account?.id }), GetGameByIdErrorResponses),
       ),
 
     /**

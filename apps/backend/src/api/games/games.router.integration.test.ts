@@ -10,7 +10,7 @@ import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { CreateGameError, CreateGameErrorResponses } from "#api/games/createGame.error.ts"
-import type { GamePlayerDto } from "#api/games/GameDetailsDto.ts"
+import type { GameDetailsPlayer } from "#api/games/GameDetails.ts"
 import { GetGameByIdError, GetGameByIdErrorResponses } from "#api/games/getGameById.error.ts"
 import { JoinGameError, JoinGameErrorResponses } from "#api/games/joinGame.error.ts"
 import { LeaveGameError, LeaveGameErrorResponses } from "#api/games/leaveGame.error.ts"
@@ -172,7 +172,7 @@ describe("games.router", () => {
 
       // Act
       const startGameResult = await player.client.games.startGame.mutate({ gameId: createdGameId })
-      const lobby = await player.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await player.client.games.getDetails.query({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
@@ -331,8 +331,8 @@ describe("games.router", () => {
       // Assert
       expect(createGameResult).toStrictEqual<typeof createGameResult>({ createdGameId: expect.any(Number) })
 
-      const createdGame = await creator.client.games.getById.query({ gameId: createGameResult.createdGameId })
-      const expectedCreator: GamePlayerDto = {
+      const createdGame = await creator.client.games.getDetails.query({ gameId: createGameResult.createdGameId })
+      const expectedCreator: GameDetailsPlayer = {
         id: branded(creator.account.id),
         alias: creator.account.alias,
         color: PlayerColor.TURQUOISE,
@@ -371,7 +371,7 @@ describe("games.router", () => {
       })
 
       // Assert
-      const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
       expect(lobby.status).toBe(GameStatus.READY_TO_START)
     })
 
@@ -386,7 +386,7 @@ describe("games.router", () => {
       })
 
       // Assert
-      const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
       expect(lobby.configuration.nbSeats).toBe(MAX_NB_SEATS)
     })
 
@@ -430,10 +430,10 @@ describe("games.router", () => {
       const { createdGameId } = await creator.client.games.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const lobby = await viewer.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await viewer.client.games.getDetails.query({ gameId: createdGameId })
 
       // Assert
-      const expectedCreator: GamePlayerDto = {
+      const expectedCreator: GameDetailsPlayer = {
         id: branded(creator.account.id),
         alias: creator.account.alias,
         color: PlayerColor.TURQUOISE,
@@ -470,10 +470,10 @@ describe("games.router", () => {
       const { createdGameId } = await creator.client.games.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const lobby = await anonymous.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await anonymous.client.games.getDetails.query({ gameId: createdGameId })
 
       // Assert
-      const expectedCreator: GamePlayerDto = {
+      const expectedCreator: GameDetailsPlayer = {
         id: branded(creator.account.id),
         alias: creator.account.alias,
         color: PlayerColor.TURQUOISE,
@@ -511,9 +511,9 @@ describe("games.router", () => {
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
 
       // Act
-      const playerLobby = await creator.client.games.getById.query({ gameId: createdGameId })
-      const nonPlayerLobby = await viewer.client.games.getById.query({ gameId: createdGameId })
-      const anonymousLobby = await anonymous.client.games.getById.query({ gameId: createdGameId })
+      const playerLobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
+      const nonPlayerLobby = await viewer.client.games.getDetails.query({ gameId: createdGameId })
+      const anonymousLobby = await anonymous.client.games.getDetails.query({ gameId: createdGameId })
 
       // Assert
       expect({
@@ -533,7 +533,7 @@ describe("games.router", () => {
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
-      const getLobby = anonymous.client.games.getById.query({ gameId: 404 })
+      const getLobby = anonymous.client.games.getDetails.query({ gameId: 404 })
 
       // Assert
       await expect(getLobby).rejects.toMatchErrorResponse(GetGameByIdErrorResponses[GetGameByIdError.GAME_NOT_FOUND])
@@ -558,7 +558,7 @@ describe("games.router", () => {
       await thirdJoiner.client.games.join.mutate({ gameId: createdGameId })
 
       // Assert
-      const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
       const colorsByPlayerId = new Map(lobby.players.map(({ id, color }) => [id, color]))
       expect(colorsByPlayerId.get(branded<PlayerId>(creator.account.id))).toBe(PlayerColor.TURQUOISE)
       expect(colorsByPlayerId.get(branded<PlayerId>(firstJoiner.account.id))).toBe(PlayerColor.PINK)
@@ -581,7 +581,7 @@ describe("games.router", () => {
       await Promise.all(joiners.map(async (joiner) => await joiner.client.games.join.mutate({ gameId: createdGameId })))
 
       // Assert
-      const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
       expect(new Set(lobby.players.map(({ color }) => color))).toStrictEqual(new Set(Object.values(PlayerColor)))
     })
 
@@ -606,7 +606,7 @@ describe("games.router", () => {
       await Promise.all(leavers.map(async (rejoiner) => await rejoiner.client.games.join.mutate({ gameId: createdGameId })))
 
       // Assert
-      const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
       expect(new Set(lobby.players.map(({ color }) => color))).toStrictEqual(new Set(Object.values(PlayerColor)))
     })
 
@@ -623,13 +623,13 @@ describe("games.router", () => {
       await joiner.client.games.join.mutate({ gameId: createdGameId })
 
       // Assert
-      const joinedLobby = await joiner.client.games.getById.query({ gameId: createdGameId })
-      const expectedCreator: GamePlayerDto = {
+      const joinedLobby = await joiner.client.games.getDetails.query({ gameId: createdGameId })
+      const expectedCreator: GameDetailsPlayer = {
         id: branded(creator.account.id),
         alias: creator.account.alias,
         color: PlayerColor.TURQUOISE,
       }
-      const expectedJoiner: GamePlayerDto = {
+      const expectedJoiner: GameDetailsPlayer = {
         id: branded(joiner.account.id),
         alias: joiner.account.alias,
         color: PlayerColor.PINK,
@@ -677,7 +677,7 @@ describe("games.router", () => {
       // Assert
       await expect(joinGame).rejects.toMatchErrorResponse(JoinGameErrorResponses[JoinGameError.LOBBY_FULL])
 
-      const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(2)
     })
 
@@ -696,7 +696,7 @@ describe("games.router", () => {
       // Assert
       await expect(joinGame).rejects.toMatchErrorResponse(JoinGameErrorResponses[JoinGameError.GAME_ALREADY_STARTED])
 
-      const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(1)
     })
 
@@ -715,7 +715,7 @@ describe("games.router", () => {
       await joiner.client.games.join.mutate({ gameId: createdGameId })
 
       // Assert
-      const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(2)
       expect(lobby.status).toBe(GameStatus.WAITING_FOR_PLAYERS)
     })
@@ -749,8 +749,8 @@ describe("games.router", () => {
       await leaver.client.games.leave.mutate({ gameId: createdGameId })
 
       // Assert
-      const leftLobby = await leaver.client.games.getById.query({ gameId: createdGameId })
-      const expectedCreator: GamePlayerDto = {
+      const leftLobby = await leaver.client.games.getDetails.query({ gameId: createdGameId })
+      const expectedCreator: GameDetailsPlayer = {
         id: branded(creator.account.id),
         alias: creator.account.alias,
         color: PlayerColor.TURQUOISE,
@@ -821,7 +821,7 @@ describe("games.router", () => {
       await nonPlayer.client.games.leave.mutate({ gameId: createdGameId })
 
       // Assert
-      const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
+      const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(1)
     })
 

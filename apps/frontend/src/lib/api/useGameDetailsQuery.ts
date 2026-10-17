@@ -6,5 +6,5 @@ import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
 export function useGameDetailsQuery(gameId: GameId) {
   const backendApiClient = useBackendApiClient()
 
-  return useQuery(backendApiClient.games.getById.queryOptions({ gameId }))
+  return useQuery(backendApiClient.games.getDetails.queryOptions({ gameId }))
 }

@@ -20,7 +20,7 @@ export type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
 export type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
 
 // Games
-export type GameDetails = TrpcRouterOutput["games"]["getById"]
+export type GameDetails = TrpcRouterOutput["games"]["getDetails"]
 export type GameStatus = GameDetails["status"]
 export type Player = GameDetails["creator"]
 export type Players = GameDetails["players"]
