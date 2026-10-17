@@ -1,9 +1,9 @@
 ---
-name: pick-up-ai-tasks
-description: Dispatch approved Cosmic Empires GitHub project issues marked Good for AI into separate Codex implementation chats. Use when asked to pick up AI tasks or when invoked by the dispatcher automation.
+name: dispatch-ai-tasks
+description: Dispatch Cosmic Empires GitHub project issues marked Approved and Good for AI into separate Codex implementation chats. Use only when explicitly requested by the user or an automation.
 ---
 
-# Pick up AI tasks
+# Dispatch AI tasks
 
 Scan the [cosmic-empires project](https://github.com/users/Guillaume-Docquier/projects/7) and create one independent Codex chat per eligible issue. Invoking this workflow authorizes those chat creations. The dispatcher only discovers and dispatches tasks; implementation belongs to the new chats.
 
@@ -16,11 +16,8 @@ An eligible item must:
 - Be an open GitHub issue in this repository and project, rather than a draft item or pull request.
 - Have both existing issue labels `Approved` and `Good for AI` (compare label names case-insensitively).
 - Have project `Status` equal to `Backlog` or `Todo`.
-- Have no existing implementation chat or open implementation PR for the issue.
 
 Inspect current project fields, not the issue's open/closed state alone. Issues in `In Progress`, `Dev Done`, `Released`, `Rejected`, or `Blocked` are not ready for dispatch. A missing or unknown status is not ready either.
-
-Use the desktop app's chat-listing and chat-reading tools to identify existing implementations by their full issue URL. Include pinned chats and inspect candidate chats when their summaries are inconclusive. Inspect linked/open implementation PRs as well. A recent-chat listing is not proof that an older implementation does not exist; use the current project status and the available chat/PR evidence together. If the evidence for a candidate remains ambiguous, report it and skip that issue rather than creating a second implementation.
 
 ## Dispatch
 
