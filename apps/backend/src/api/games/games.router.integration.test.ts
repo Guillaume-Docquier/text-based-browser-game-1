@@ -115,7 +115,7 @@ describe("games.router", () => {
       await expect(startGame).rejects.toMatchObject({ data: { code: "FORBIDDEN" } })
     })
 
-    integrationTest("should generate a deterministic galaxy from the game's seed", async ({ db }) => {
+    integrationTest("should generate a deterministic galaxy from the game's seed", async ({ db, expect }) => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true, id: "7f80447c-442a-4229-8d52-39b675b3e80c" })

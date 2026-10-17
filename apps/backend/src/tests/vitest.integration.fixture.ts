@@ -44,7 +44,7 @@ export const integrationTest = test
     })
 
     return db
-  })
+  }).concurrent
 
 function pgliteToDb(pglite: PGlite): Database {
   // TS2375: Type
