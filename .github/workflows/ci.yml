@@ -143,6 +143,8 @@ jobs:
           fail_ci_if_error: true
           files: ./apps/backend/coverage/lcov.info
           disable_search: true
+          # Vitest already generated LCOV; skip unrelated native/Python coverage collectors.
+          plugins: noop
           flags: backend
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -176,5 +178,7 @@ jobs:
           fail_ci_if_error: true
           files: ./packages/shared/coverage/lcov.info
           disable_search: true
+          # Vitest already generated LCOV; skip unrelated native/Python coverage collectors.
+          plugins: noop
           flags: shared
           token: ${{ secrets.CODECOV_TOKEN }}
