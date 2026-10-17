@@ -21,7 +21,8 @@ minimumReleaseAgeExclude:
 allowBuilds:
   bufferutil: true
   core-js: true
-  cpu-features: true
+  # Optional ssh2 CPU detection only changes cipher preference; Docker tests use the supported fallback.
+  cpu-features: false
   esbuild: true
   protobufjs: true
   ssh2: true
