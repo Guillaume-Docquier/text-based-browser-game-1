@@ -4,7 +4,7 @@ import { SelectedTargetsSchema } from "shared/domain/turns/actions/SelectedTarge
 import { v4 } from "uuid"
 import type { SubmittedActionTargets } from "#api/gameplay/SubmittedActionTargets.ts"
 
-export function createSubmittedActionTargetsDtoStub({
+export function createSubmittedActionTargetsStub({
   actionId = v4(),
   selectedTargets = null,
   ...overrides

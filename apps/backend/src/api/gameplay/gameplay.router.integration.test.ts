@@ -8,7 +8,7 @@ import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createPlayerViewResourcesStub } from "#api/gameplay/PlayerViewResources.stub.ts"
-import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
+import { createSubmittedActionTargetsStub } from "#api/gameplay/SubmittedActionTargets.stub.ts"
 import { UpdateActionSubmissionError, UpdateActionSubmissionErrorResponses } from "#api/gameplay/updateActionSubmission.error.ts"
 import { UpdateReadinessError, UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
@@ -42,7 +42,7 @@ describe("gameplay.router", () => {
       nonPlayer.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 1,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub(),
+        submittedActionTargets: createSubmittedActionTargetsStub(),
       }),
     ).rejects.toMatchObject(expectedError)
   })
@@ -170,7 +170,7 @@ describe("gameplay.router", () => {
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: initialPlayerView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: generatePower.id, selectedTargets: {} }),
+        submittedActionTargets: createSubmittedActionTargetsStub({ actionId: generatePower.id, selectedTargets: {} }),
       })
 
       // Act
@@ -267,7 +267,7 @@ describe("gameplay.router", () => {
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: initialPlayerView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        submittedActionTargets: createSubmittedActionTargetsStub({
           actionId: buildFleet.id,
           selectedTargets: { planet: homePlanet.id },
         }),
@@ -300,7 +300,7 @@ describe("gameplay.router", () => {
       await creator.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: creatorView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: creatorAction.id, selectedTargets: {} }),
+        submittedActionTargets: createSubmittedActionTargetsStub({ actionId: creatorAction.id, selectedTargets: {} }),
       })
 
       // Assert
@@ -331,7 +331,7 @@ describe("gameplay.router", () => {
         await player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
           turn: initialPlayerView.turn,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: action.id, selectedTargets: {} }),
+          submittedActionTargets: createSubmittedActionTargetsStub({ actionId: action.id, selectedTargets: {} }),
         })
       }
       const selectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -340,7 +340,7 @@ describe("gameplay.router", () => {
         await player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
           turn: initialPlayerView.turn,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: action.id, selectedTargets: null }),
+          submittedActionTargets: createSubmittedActionTargetsStub({ actionId: action.id, selectedTargets: null }),
         })
       }
       const deselectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -506,7 +506,7 @@ describe("gameplay.router", () => {
       const invalidSubmission = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: initialPlayerView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+        submittedActionTargets: createSubmittedActionTargetsStub({
           actionId: buildFleet.id,
           selectedTargets: { planet: "123456789" },
         }),
@@ -533,7 +533,7 @@ describe("gameplay.router", () => {
       const updateActionSubmission = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, selectedTargets: {} }),
+        submittedActionTargets: createSubmittedActionTargetsStub({ actionId: makeMoreMoney.id, selectedTargets: {} }),
       })
 
       // Assert
@@ -561,7 +561,7 @@ describe("gameplay.router", () => {
       const updateActionSubmission = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: playerView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, selectedTargets: {} }),
+        submittedActionTargets: createSubmittedActionTargetsStub({ actionId: makeMoreMoney.id, selectedTargets: {} }),
       })
 
       // Assert
@@ -584,7 +584,7 @@ describe("gameplay.router", () => {
       const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 1,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: winTheGame.id, selectedTargets: {} }),
+        submittedActionTargets: createSubmittedActionTargetsStub({ actionId: winTheGame.id, selectedTargets: {} }),
       })
 
       // Assert
@@ -607,7 +607,7 @@ describe("gameplay.router", () => {
       const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 1,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: "unavailable-action", selectedTargets: {} }),
+        submittedActionTargets: createSubmittedActionTargetsStub({ actionId: "unavailable-action", selectedTargets: {} }),
       })
 
       // Assert

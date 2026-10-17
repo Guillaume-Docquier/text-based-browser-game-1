@@ -31,11 +31,11 @@ export class GetPlayerViewUseCase {
       return playerViewResult
     }
 
-    return Result.Success(toPlayerViewDto(playerViewResult.value))
+    return Result.Success(toPlayerView(playerViewResult.value))
   }
 }
 
-function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerView {
+function toPlayerView(playerViewModel: PlayerViewModel): PlayerView {
   const uncommittedResources =
     playerViewModel.turnStatus === TurnStatus.COMPLETED
       ? playerViewModel.resources // When the turn is completed, at action costs have been spent already, so we don't need to compute commitments
@@ -59,13 +59,13 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerView {
     turn: playerViewModel.turn,
     turnStatus: playerViewModel.turnStatus,
     turnEndsAt: playerViewModel.turnEndsAt,
-    resources: toResourcesDto(playerViewModel.resources, uncommittedResources),
+    resources: toPlayerViewResources(playerViewModel.resources, uncommittedResources),
     ruleset: playerViewModel.ruleset,
-    actions: toActionDtos(playerViewModel, uncommittedResources),
+    actions: toPlayerViewActions(playerViewModel, uncommittedResources),
   }
 }
 
-function toResourcesDto(totalResources: Readonly<Resources>, uncommittedResources: Readonly<Resources>): PlayerView["resources"] {
+function toPlayerViewResources(totalResources: Readonly<Resources>, uncommittedResources: Readonly<Resources>): PlayerView["resources"] {
   // string instead of ResourceType to satisfy TypeScript. Strange that it works, maybe even dangerous, but okay
   return Object.entries(totalResources).reduce<Record<string, PlayerViewResourceAmounts>>((resourcesDto, [resourceType, total]) => {
     resourcesDto[resourceType] = {
@@ -77,7 +77,7 @@ function toResourcesDto(totalResources: Readonly<Resources>, uncommittedResource
   }, {})
 }
 
-function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Resources): PlayerViewAction[] {
+function toPlayerViewActions(playerViewModel: PlayerViewModel, uncommittedResources: Resources): PlayerViewAction[] {
   const turnState = createTurnState({
     gameId: playerViewModel.gameId,
     turn: playerViewModel.turn,
