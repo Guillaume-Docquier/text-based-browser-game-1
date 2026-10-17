@@ -11,7 +11,7 @@ Accepted
 
 ## Context
 
-We use Zod schemas in routers to validate and parse user input.
+We use Zod schemas in to validate and parse user input.
 
 If a Zod rule cannot be represented by the inferred TypeScript type, then that rule's guarantees are lost as soon as parsed data is typed and passed to the next layer.
 
@@ -21,7 +21,7 @@ Examples of non-representable constraints include `z.number().int()` and `z.stri
 
 ## Decision
 
-Use Zod in routers for base shape/format parsing that remains representable in TypeScript types. A schema may also enforce a runtime constraint that is not represented by an ordinary TypeScript type when it produces a dedicated branded type that records the guarantee.
+Use Zod without branding when parsing data that remains representable in TypeScript types. A schema that does validation that is not type representable must output a branded readonly type to capture the performed validation.
 
 Allowed Zod constraints are those that narrow data in a way captured by the resulting type, for example:
 
@@ -41,14 +41,6 @@ Example zod schemas that do not produce type representable validation:
 - `z.refine()`
 - `z.superRefine()`
 
-Using `.refine()` without a brand is appropriate if the model being parsed already enforces the invariants. For example, the `RangeDto` schema is fine, because the `Range` factory method enforces the checks that the schema does. In fact, the schema uses the same checks as the `Range` factory method.
-
-Business logic and remaining data integrity validation must happen in controllers/services, where it is explicit and close to domain behavior.
-
 ## Consequences
 
-Router schemas stay focused on parsing and type-safe transport boundaries.
-
-Controllers/services remain the owner of business behavior and persistence validation. Dedicated branded schemas may own reusable runtime constraints at a parsing boundary, preventing shotgun validation while keeping the guarantee visible in the resulting type.
-
-The architecture becomes easier to reason about because type-level guarantees and runtime guarantees align more consistently at layer boundaries.
+We can use zod for all validation and branded types give us a mean to know that the data has been validated.
