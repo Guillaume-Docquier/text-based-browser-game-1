@@ -1,20 +1,24 @@
 import { PGlite } from "@electric-sql/pglite"
-import { Logger } from "@guillaume-docquier/tools-ts"
 import { pushSchema } from "drizzle-kit/api"
 import { drizzle } from "drizzle-orm/pglite"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { test } from "vitest"
+import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import * as schema from "#lib/db/schema.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
 export const integrationTest = test
+  .extend("logger", { scope: "worker", auto: true }, async () => {
+    // Blocking logs make failures visible before the test process exits.
+    return await configureLogger({ scope: "integration-test", nonBlocking: false })
+  })
   /**
    * Creates a db template with the schema applied and seeded data for the worker scope.
    * Use the db fixture to get an isolated copy for your test.
    * This is much faster than pushing the schemas every time.
    */
-  .extend("pgliteTemplate", { scope: "worker" }, async () => {
+  .extend("pgliteTemplate", { scope: "worker" }, async ({ logger }) => {
     const pgliteTemplate = new PGlite()
 
     const db = pgliteToDb(pgliteTemplate)
@@ -23,7 +27,7 @@ export const integrationTest = test
 
     // We push the test ruleset in the main db copy, so all tests can use it afterward.
     // Core ruleset are pre-seeded data in production, so this replicates what we expect in production, but we only upsert the test ruleset for speed.
-    const rulesetRepository = new RulesetsRepository({ db, logger: Logger.get() })
+    const rulesetRepository = new RulesetsRepository({ db, logger })
     await rulesetRepository.upsertRuleset(TestRuleset)
 
     return pgliteTemplate
