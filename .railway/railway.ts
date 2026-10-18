@@ -19,18 +19,6 @@ export default defineRailway(() => {
     sizeMB: 500,
   })
 
-  const frontend = service("Frontend", {
-    source: applicationSource,
-    build: {
-      builder: "RAILPACK",
-      buildCommand: "pnpm --filter frontend build",
-      watchPatterns: ["apps/frontend/**", "packages/shared/**", "package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"],
-    },
-    replicas: { "us-east4-eqdc4a": 1 },
-    deploy: { sleepApplication: true },
-    networking: { privateNetworkEndpoint: "frontend" },
-  })
-
   const reverseProxy = service("Reverse Proxy", {
     source: github("railwayapp-templates/caddy-reverse-proxy", {
       branch: "main",
@@ -43,19 +31,33 @@ export default defineRailway(() => {
     networking: { privateNetworkEndpoint: "caddy-proxy" },
   })
 
+  const sharedWatchPatterns = ["packages/shared/**", "package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"]
+
+  const frontend = service("Frontend", {
+    source: applicationSource,
+    build: {
+      builder: "RAILPACK",
+      buildCommand: "pnpm --filter frontend build",
+      watchPatterns: ["apps/frontend/**", ...sharedWatchPatterns],
+    },
+    replicas: { "us-east4-eqdc4a": 1 },
+    deploy: { sleepApplication: true },
+    networking: { privateNetworkEndpoint: "frontend" },
+  })
+
   const backend = service("Backend", {
     source: applicationSource,
     build: {
       builder: "RAILPACK",
-      watchPatterns: ["apps/backend/**", "packages/shared/**", "package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"],
+      watchPatterns: ["apps/backend/**", ...sharedWatchPatterns],
     },
     start: "pnpm --filter backend start",
     replicas: { "us-east4-eqdc4a": 1 },
     networking: { privateNetworkEndpoint: "backend" },
   })
 
-  // Railway CLI supports this setting, though the SDK's project type does not yet declare it.
   const configuration = {
+    // We don't commit secrets, they stay in Railway
     variables: { managed: false },
     resources: [frontend, database, reverseProxy, backend, databaseVolume],
   }

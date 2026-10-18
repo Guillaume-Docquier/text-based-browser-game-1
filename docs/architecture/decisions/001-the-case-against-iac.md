@@ -24,7 +24,7 @@ The Railway team seems really against IaC.
 
 ## Decision
 
-This was the original decision. [ADR-034](./034-use-railway-infrastructure-as-code.md) replaces it with Railway's project-level Infrastructure as Code.
+Since the project is still small, we'll go with pure Railway for now. As it grows, we can consider giving Terraform a try, but for now we'll embrace the Railway way.
 
 ## Consequences
 

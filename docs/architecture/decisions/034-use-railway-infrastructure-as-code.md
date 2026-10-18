@@ -14,10 +14,10 @@ The deployed project also contains resources and settings outside those two file
 
 ## Decision
 
-Use Railway's project-level Infrastructure as Code to describe the existing Railway project in one `.railway/railway.ts` file. Import the live configuration before editing it, preserve the existing resource names and settings, and review `railway config plan` before applying a change. Merge the new IaC file while keeping the per-service `railway.json` files, cut over the live services, apply the IaC configuration, then remove the old files in a follow-up change.
+Use Railway's project-level Infrastructure as Code to describe the Railway project via `.railway/railway.ts`.
 
-Keep existing environment variable values in Railway. The migration does not copy secrets into source control or change their values. Use Railway's unmanaged-variable migration mode for existing service variables.
+Keep existing environment variable values in Railway because we don't want to commit secrets.
 
 ## Consequences
 
-The project's infrastructure becomes reviewable with the application code, including resources that Config as Code could not describe. A migration or later change can affect the whole environment, so plans must be checked for unintended resource or variable changes before applying. Railway CLI authentication and a coordinated cutover are required; merging a file alone does not apply it to Railway.
+The project's infrastructure becomes reviewable with the application code, including resources that Config as Code could not describe. Most infra work can be done via CLI and version controlled files instead of via click-ops in Railway.
