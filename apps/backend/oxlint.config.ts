@@ -55,5 +55,13 @@ export default defineConfig({
         "vitest/no-standalone-expect": ["error", { additionalTestBlockFunctions: ["integrationTest", "integrationTest.for"] }],
       },
     },
+    {
+      files: ["src/**/*.concurrency.test.ts"],
+      rules: {
+        // Fixture support
+        "vitest/require-hook": ["error", { allowedFunctionCalls: ["concurrencyTest", "concurrencyTest.for"] }],
+        "vitest/no-standalone-expect": ["error", { additionalTestBlockFunctions: ["concurrencyTest", "concurrencyTest.for"] }],
+      },
+    },
   ],
 } satisfies OxlintConfig)

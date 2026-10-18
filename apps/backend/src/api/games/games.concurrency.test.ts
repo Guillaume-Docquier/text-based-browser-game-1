@@ -3,14 +3,15 @@ import { createGameConfigurationStub } from "shared/domain/games/GameConfigurati
 import { MAX_NB_SEATS } from "shared/domain/games/GameConfiguration.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
-import { describe, expect, it } from "vitest"
+import { describe, expect } from "vitest"
 import { createPlayerViewResourcesStub } from "#api/gameplay/PlayerViewResources.stub.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
+import { concurrencyTest } from "#tests/vitest.concurrency.fixture.ts"
 
 const NB_CONCURRENCY_TEST_ACCOUNTS = MAX_NB_SEATS
 
 describe("lobby concurrency", () => {
-  it("should enforce the seat count when multiple accounts join the same game concurrently", async () => {
+  concurrencyTest("should enforce the seat count when multiple accounts join the same game concurrently", async () => {
     // Arrange
     await using concurrencyTestApiServer = await ConcurrencyTestApiServer.create()
     const [creator, ...participants] = await Promise.all(
@@ -37,7 +38,7 @@ describe("lobby concurrency", () => {
     expect(lobby.players).toHaveLength(4)
   })
 
-  it("should keep started-game resources consistent while accounts join and leave concurrently", async () => {
+  concurrencyTest("should keep started-game resources consistent while accounts join and leave concurrently", async () => {
     // Arrange
     await using concurrencyTestApiServer = await ConcurrencyTestApiServer.create()
     const [creator, ...participants] = await Promise.all(
