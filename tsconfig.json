@@ -12,5 +12,5 @@
     "erasableSyntaxOnly": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["*.ts", "scripts"]
+  "include": ["*.ts", "scripts", ".railway/railway.ts"]
 }

@@ -39,6 +39,7 @@
     "oxfmt": ">=0.72.0",
     "oxlint": "^1.87.0",
     "oxlint-tsgolint": "^7.0.2004",
+    "railway": "^3.16.0",
     "typescript": "catalog:"
   },
   "lint-staged": {

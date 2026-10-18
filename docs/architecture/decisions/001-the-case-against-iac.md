@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-034](./034-use-railway-infrastructure-as-code.md).
+
+### Amendment history
+
+- 2026-10-17: Superseded because Railway added project-level Infrastructure as Code and will stop reading `railway.json` on December 1, 2026.
 
 ## Context
 
