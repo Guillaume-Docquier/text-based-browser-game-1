@@ -9,6 +9,7 @@ Supersedes [004-duplicated-tools-versions](./004-duplicated-tools-versions.md)
 ### Amendment history
 
 - 2026-09-28: Included reusable workspace packages and aligned the code-sharing consequence with amended ADR-007.
+- 2026-10-17: Moved Railway service configuration to project-level Infrastructure as Code under [ADR-034](./034-use-railway-infrastructure-as-code.md).
 
 ## Context
 
@@ -22,7 +23,7 @@ With a pnpm monorepo, scripts are easier to use as well because we can run recur
 
 Use a root `pnpm-workspace.yaml` with deployable apps under `apps/` and reusable packages under `packages/`. Keep one root lockfile and install the whole workspace from the root.
 
-Railway service configs stay next to the deployable packages, but their build and start commands run through workspace filters.
+Railway service configuration lives in `.railway/railway.ts` under [ADR-034](./034-use-railway-infrastructure-as-code.md). Build and start commands continue to run through workspace filters.
 
 ## Consequences
 
