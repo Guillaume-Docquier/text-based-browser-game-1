@@ -211,6 +211,9 @@ catalogs:
       specifier: ^4.6.6
       version: 4.6.7
 
+patchedDependencies:
+  railway@3.16.0: aa2f76b95092bf08bbd1787e3c048fe5856bb2112f3a508604198ecb7637470c
+
 importers:
 
   .:
@@ -253,7 +256,7 @@ importers:
         version: 7.0.2004
       railway:
         specifier: ^3.16.0
-        version: 3.16.0
+        version: 3.16.0(patch_hash=aa2f76b95092bf08bbd1787e3c048fe5856bb2112f3a508604198ecb7637470c)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -12455,7 +12458,7 @@ snapshots:
       '@types/react': 19.3.0
       '@types/react-dom': 19.3.0(@types/react@19.3.0)
 
-  railway@3.16.0:
+  railway@3.16.0(patch_hash=aa2f76b95092bf08bbd1787e3c048fe5856bb2112f3a508604198ecb7637470c):
     dependencies:
       '@graphql-typed-document-node/core': 3.2.0(graphql@16.14.2)
       graphql: 16.14.2
