@@ -52,6 +52,8 @@ Keep the description current as fixes change the implementation.
 
 Use structured API arguments or a UTF-8 body file with `--body-file` for multiline PR bodies and comments. Attach the PR to the current task with `attach_artifact` when the app tool is available.
 
+Add the `codex` label to the PR.
+
 ## 5. Monitor and repair CI
 
 Monitor the PR's checks and workflow runs until CI is green for its **current head commit**. Read failure logs, make the required fixes, commit, push, and repeat. After every push, refresh the head SHA and check runs; a passing result for an earlier commit is insufficient.
