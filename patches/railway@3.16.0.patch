@@ -1,0 +1,40 @@
+diff --git a/dist/iac/index.cjs b/dist/iac/index.cjs
+index f0a17cc76257c9b6b09f53a1bbacccaecc5aa4bb..ab980eaeda75d7e85734ec095abe5079042fd1ec 100644
+--- a/dist/iac/index.cjs
++++ b/dist/iac/index.cjs
+@@ -47,10 +47,13 @@ var MINIMUM_IAC_CLI_MESSAGE = `This version of railway/iac requires Railway CLI
+ // src/iac/cli-version.ts
+ function assertMinimumIacCliVersion() {
+   if (!isNativeCliEvaluation()) return;
+-  const executable = process2__default.default.env._ || "railway";
++  // Windows package-manager shims need cmd.exe; `_` may point to a POSIX shell script.
++  const isWindows = process2__default.default.platform === "win32";
++  const executable = isWindows ? process2__default.default.env.ComSpec || "cmd.exe" : process2__default.default.env._ || "railway";
++  const args = isWindows ? ["/d", "/s", "/c", "railway --version"] : ["--version"];
+   let output = "";
+   try {
+-    output = child_process.execFileSync(executable, ["--version"], {
++    output = child_process.execFileSync(executable, args, {
+       encoding: "utf8",
+       stdio: ["ignore", "pipe", "ignore"]
+     });
+diff --git a/dist/iac/index.js b/dist/iac/index.js
+index a3068b3708354d00fdd946876839feaed50aab36..27f8e6a73cb98b9bfceb9c7c5996d98a793ffb9c 100644
+--- a/dist/iac/index.js
++++ b/dist/iac/index.js
+@@ -41,10 +41,13 @@ var MINIMUM_IAC_CLI_MESSAGE = `This version of railway/iac requires Railway CLI
+ // src/iac/cli-version.ts
+ function assertMinimumIacCliVersion() {
+   if (!isNativeCliEvaluation()) return;
+-  const executable = process2.env._ || "railway";
++  // Windows package-manager shims need cmd.exe; `_` may point to a POSIX shell script.
++  const isWindows = process2.platform === "win32";
++  const executable = isWindows ? process2.env.ComSpec || "cmd.exe" : process2.env._ || "railway";
++  const args = isWindows ? ["/d", "/s", "/c", "railway --version"] : ["--version"];
+   let output = "";
+   try {
+-    output = execFileSync(executable, ["--version"], {
++    output = execFileSync(executable, args, {
+       encoding: "utf8",
+       stdio: ["ignore", "pipe", "ignore"]
+     });

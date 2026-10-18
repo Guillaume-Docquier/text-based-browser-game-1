@@ -35,3 +35,7 @@ peerDependencyRules:
     utf-8-validate: "6"
 
 strictPeerDependencies: true
+
+patchedDependencies:
+  # Fixing a windows bug: https://github.com/railwayapp/cli/issues/1255
+  railway@3.16.0: patches/railway@3.16.0.patch
