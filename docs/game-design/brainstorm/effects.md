@@ -33,6 +33,7 @@
 | Progressed     | The Effect resolved and stays Ongoing                                                |
 | Prevented      | The Effect could not resolve because some conditions were not met and stays Ongoing. |
 | Completed      | The Effect resolved and moves to Completed.                                          |
+| Canceled       | The Effect did not resolve and moves to Canceled.                                    |
 | Error          | Something went wrong during resolution. This is unexpected.                          |
 
 | Status     | Description                                                                                                                                                                               |
@@ -55,23 +56,26 @@
 | Pin      | Pins target [Fleet] for [NbTurns] Turns.                                                                             | Fleet                    | NbTurns         | -                                                                  | -          | No         |
 | Colonize |                                                                                                                      |                          |                 |                                                                    |            | No         |
 
-| Action Ruling                                     | Scenario                                                   | Submission                                        | Resolution                                                 | Lifecycle         |
-| ------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------- | ----------------- |
-| fleetA Assaults every Turn for 5 Turns.           | fleetA is stationed, turn 1/5                              | Valid                                             | Progressed                                                 | Assault Ongoing   |
-| fleetA Assaults every Turn for 5 Turns.           | fleetA is stationed, turn 5/5                              | -                                                 | Completed                                                  | Assault Completed |
-| fleetA Assaults every Turn for 5 Turns.           | fleetA is In Transit                                       | Invalid (fleetA must be Stationed)                | Error (Illegal state, Assault Pins)                        | Assault Canceled  |
-| fleetA Assaults every Turn for 5 Turns.           | fleetA is Destroyed, turn 2/5                              | -                                                 | -                                                          | Assault Canceled  |
-| Move fleetA to planetB within 100 LY at Speed 10. | fleetA is stationed 100 LY away from planetB               | Valid                                             | Progressed                                                 | Move Ongoing      |
-| Move fleetA to planetB within 100 LY at Speed 10. | fleetA is stationed 10 LY away from planetB                | Valid                                             | Completed                                                  | Move Completed    |
-| Move fleetA to planetB within 100 LY at Speed 10. | fleetA is stationed 0 LY away from planetB                 | Valid                                             | Completed                                                  | Move Completed    |
-| Move fleetA to planetB within 100 LY at Speed 10. | fleetA is stationed 101 LY away from planetB               | Invalid (fleetA must be within 100 LY of planetB) | Error (Illegal state, Move is the only source of movement) | Move Canceled     |
-| Move fleetA to planetB within 100 LY at Speed 10. | fleetA is Pinned                                           | Invalid (fleetA must be able to Move)             | Prevented                                                  | Move Ongoing      |
-| Move fleetA to planetB within 100 LY at Speed 10. | fleetA is In Transit via this Effect but is now Pinned     | Already Active                                    | Prevented                                                  | Move Ongoing      |
-| Move fleetA to planetB within 100 LY at Speed 10. | fleetA is In Transit via this Effect                       | Already Active                                    | Progressed                                                 | Move Ongoing      |
-| Move fleetA to planetB within 100 LY at Speed 10. | fleetA is In Transit via this Effect and arrives this turn | Already Active                                    | Completed                                                  | Move Completed    |
-| Move fleetA to planetB within 100 LY at Speed 10. | fleetA is In Transit via another Effect                    | Invalid (fleetA must be Stationed)                | Error (Illegal state)                                      | Move Canceled     |
-| Move fleetA to planetB within 100 LY at Speed 10. | fleetA gets Pinned by an Opponent on the same turn         | Valid (the Pin is not observable)                 | ??                                                         |                   |
-| Move fleetA to planetB within 100 LY at Speed 10. | fleetA gets Pinned by The Player on the same turn          | Invalid (fleetA must be able to Move)             | ??                                                         |                   |
+| Action Ruling                                                         | Scenario                                                      | Submission                                        | Outcome                                                    | Lifecycle                                               | Statuses |
+| --------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------- | -------- |
+| fleetA Assaults every Turn for 5 Turns.                               | fleetA is Stationed, turn 1/5                                 | Valid                                             | Progressed                                                 | Assault Ongoing                                         |          |
+| fleetA Assaults every Turn for 5 Turns.                               | fleetA is Stationed, turn 5/5                                 | Already Active                                    | Completed                                                  | Assault Completed                                       |          |
+| fleetA Assaults every Turn for 5 Turns.                               | fleetA is In Transit                                          | Invalid (fleetA must be Stationed)                | Error (Illegal state, Assault Pins)                        | Assault Canceled                                        |          |
+| fleetA Assaults every Turn for 5 Turns.                               | fleetA is Destroyed, turn 2/5                                 | Already Active                                    | -                                                          | Assault Canceled                                        |          |
+| Move fleetA to planetB within 100 LY at Speed 10.                     | fleetA is Stationed 100 LY away from planetB                  | Valid                                             | Progressed                                                 | Move Ongoing                                            |          |
+| Move fleetA to planetB within 100 LY at Speed 10.                     | fleetA is Stationed 10 LY away from planetB                   | Valid                                             | Completed                                                  | Move Completed                                          |          |
+| Move fleetA to planetB within 100 LY at Speed 10.                     | fleetA is Stationed 0 LY away from planetB                    | Valid                                             | Completed                                                  | Move Completed                                          |          |
+| Move fleetA to planetB within 100 LY at Speed 10.                     | fleetA is Stationed 101 LY away from planetB                  | Invalid (fleetA must be within 100 LY of planetB) | Error (Illegal state, Move is the only source of movement) | Move Canceled                                           |          |
+| Move fleetA to planetB within 100 LY at Speed 10.                     | fleetA is Pinned                                              | Invalid (fleetA must be able to Move)             | Prevented                                                  | Move Ongoing                                            |          |
+| Move fleetA to planetB within 100 LY at Speed 10.                     | fleetA is In Transit via this Effect but is now Pinned        | Already Active                                    | Prevented                                                  | Move Ongoing                                            |          |
+| Move fleetA to planetB within 100 LY at Speed 10.                     | fleetA is In Transit via this Effect                          | Already Active                                    | Progressed                                                 | Move Ongoing                                            |          |
+| Move fleetA to planetB within 100 LY at Speed 10.                     | fleetA is In Transit via this Effect and arrives this turn    | Already Active                                    | Completed                                                  | Move Completed                                          |          |
+| Move fleetA to planetB within 100 LY at Speed 10.                     | fleetA is In Transit via another Effect                       | Invalid (fleetA must be Stationed)                | Error (Illegal state)                                      | Move Canceled                                           |          |
+| Move fleetA to planetB within 100 LY at Speed 10.                     | fleetA gets Pinned by an Opponent on the same turn            | Valid (the Pin is not observable)                 | Canceled                                                   | Move Canceled, On Arrival Canceled                      |          |
+| Move fleetA to planetB within 100 LY at Speed 10.                     | fleetA gets Pinned by The Player on the same turn             | Invalid (fleetA must be able to Move)             | ??                                                         |                                                         |          |
+| Move fleetA to planetB within 100 LY at Speed 10. Assault On Arrival. | fleetA is Stationed 100 LY away from planetB                  | Valid                                             | Progressed                                                 | Move Ongoing, On Arrival Pending                        |          |
+| Move fleetA to planetB within 100 LY at Speed 10. Assault On Arrival. | fleetA is Stationed 0 LY away from planetB                    | Valid                                             | Completed                                                  | Move Completed, On Arrival Triggered, Assault Completed |          |
+| Move fleetA to planetB within 100 LY at Speed 10. Assault On Arrival. | fleetA is In Transit via this Effect, 10 LY away from planetB | Already Active                                    | Completed                                                  | Move Completed, On Arrival Triggered, Assault Completed |          |
 
 Phase ordering:
 
@@ -80,3 +84,19 @@ Phase ordering:
 - Movements
 - Assaults
 - Colonization
+
+# Problems
+
+## Pinning a Fleet the same turn it is set to start a Transit
+
+Pinning says a fleet cannot start a transit. This is useful for modeling Assault, which prevents you from starting a Move. This can be done via some turn prediction, where we can apply the effects of your already submitted actions and determine that your Fleet is Pinned and cannot move. Actually, this doesn't work if you commit an Assault to an already moving fleet. The fleet will be Stationed (not yet in Transit), so a valid target. Well, fleet could be In Transit as a projection.
+
+However, if an Opponent Pins your Fleet, you don't know that, and your action is considered valid. When resolution happens, it's harder to do that prediction, because we don't have a clear ordering. If the Move is evaluated first, then it is valid. If the Pin is evaluated first, then the Move is not. In all cases, the Fleet won't move, but the Transit might start.
+
+Idea. Pinning completely Prevents starting a Transit. If an Action that contains a Move and other effects targets a Fleet that gets Pinned, the Move mechanic automatically gets Canceled. The rest of the Effects take place normally. This prevents a Fleet split since the order will target the existing Fleet (not its projection). We solve the "Assault for 5 turns, it cannot move" by having the Assault consume the "movement" point, making it illegal to submit without making the Pin mechanic inconsistent. Or maybe the Fleet can move, and only after Combat it is Pinned?
+
+1 Movement Point to prevent a Fleet from being targeted to move to 2 different places
+
+Ehhhhh doesn't work, because Fleet splitting is a thing that is legal. But also an Assault commits a full Fleet's Strength to the Assault
+
+Can we represent committed Strength?
