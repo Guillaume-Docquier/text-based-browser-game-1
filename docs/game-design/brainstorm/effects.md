@@ -100,3 +100,72 @@ Idea. Pinning completely Prevents starting a Transit. If an Action that contains
 Ehhhhh doesn't work, because Fleet splitting is a thing that is legal. But also an Assault commits a full Fleet's Strength to the Assault
 
 Can we represent committed Strength?
+
+# Thoughts dump
+
+## Repeated Pin and Action reuse
+
+Support “Pin X every Turn for Y Turns” as a Multi-Turn Action. This allows two choices:
+
+| Action                   | Pin behavior                         | Action reuse                    |
+| ------------------------ | ------------------------------------ | ------------------------------- |
+| Apply a lasting Pin once | Immediately Pin a Fleet for 5 Turns. | Can be reused every Turn.       |
+| Repeat Pin each Turn     | Pin a Fleet every Turn for 5 Turns.  | Cannot be reused while ongoing. |
+
+## Strength commitment solves the Pinning Problem
+
+- Assault commits the Fleet's entire Strength.
+- After submitting Assault, no Move can be submitted for that Fleet because no uncommitted Strength remains.
+- Assault cannot be submitted if any of the Fleet's Strength is already committed to movement.
+- Remove Assault's Pin component: Strength commitment prevents conflicting submissions.
+
+## Effects to add
+
+- Build.
+
+## Targeting multiple Fleets
+
+Support targeting:
+
+- All Fleets in range.
+- All Fleets on a Planet.
+
+Use Pin as an example Effect to demonstrate these targeting options.
+
+## Multiple Effects from one Effect Definition
+
+- Open question: How should one Effect Definition produce multiple Effects?
+- Example: The previous Assault definition generated both an Assault Effect and a Pin Effect.
+
+## Clearer examples and test mapping
+
+- Define example Actions before the Action examples table, then refer to them by name to shorten the table.
+- Consider explicit start-state and end-state columns in the Action examples table.
+- Add identifiers in the first column of each table:
+
+| Table           | Identifier                                                |
+| --------------- | --------------------------------------------------------- |
+| Effects Rulings | A three-letter Effect key.                                |
+| Action examples | The Effect key followed by a three-digit scenario number. |
+
+Use the Action examples table as a requirements table and map each scenario to a test through its identifier.
+
+## Charged Actions
+
+- Support delayed Effects such as “Pin 5 in 3 Turns”.
+- The Action remains ongoing and cannot be reused during the wind-up Turns.
+- Pin applies only on the final Turn.
+- Open question: Should this use a Status or Trigger, and how would that keep the Action ongoing during the wind-up?
+
+## Messages as Actions
+
+- Explore sending messages as Actions, delivered at Turn end. This would remain consistent with the principle that player communication must not reward frequent check-ins.
+- Delivery could take multiple Turns and could require infrastructure to send or receive.
+- Support tight-beam and broadcast messages.
+- Movement and Pin requirements may already provide the necessary building blocks:
+
+| Messaging concept                 | Related mechanic                      |
+| --------------------------------- | ------------------------------------- |
+| Message delivery speed            | Movement speed.                       |
+| Broadcast to all Players in range | Pin targeting all Fleets in range.    |
+| Message all Players on a Planet   | Pin targeting all Fleets on a Planet. |
