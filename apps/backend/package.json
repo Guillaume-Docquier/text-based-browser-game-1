@@ -34,9 +34,9 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite": "^0.5.10",
     "@inquirer/prompts": "^8.7.3",
-    "@testcontainers/postgresql": "^12.2.0",
+    "@testcontainers/postgresql": "^12.2.1",
     "@trpc/client": "^11.18.0",
     "@types/compression": "^1.8.1",
     "@types/express": "^5.0.6",
@@ -45,7 +45,7 @@
     "@vitest/coverage-v8": "catalog:",
     "commander": "^15.0.0",
     "drizzle-kit": "^0.31.11",
-    "testcontainers": "^12.2.0",
+    "testcontainers": "^12.2.1",
     "type-fest": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
