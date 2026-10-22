@@ -104,7 +104,7 @@ Note: When [NbTurns] is 1, the text rules won't mention it.
 Phase ordering:
 
 - Pay Costs
-- Statuses? (Pin target Fleet)
+- Statuses? Utility? (Pin target Fleet)
 - Movements
 - Assaults
 - Colonization
@@ -121,17 +121,7 @@ Phase ordering:
 
 ## Pinning a Fleet the same turn it is set to start a Transit
 
-Pinning says a fleet cannot start a transit. This is useful for modeling Assault, which prevents you from starting a Move. This can be done via some turn prediction, where we can apply the effects of your already submitted actions and determine that your Fleet is Pinned and cannot move. Actually, this doesn't work if you commit an Assault to an already moving fleet. The fleet will be Stationed (not yet in Transit), so a valid target. Well, fleet could be In Transit as a projection.
-
-However, if an Opponent Pins your Fleet, you don't know that, and your action is considered valid. When resolution happens, it's harder to do that prediction, because we don't have a clear ordering. If the Move is evaluated first, then it is valid. If the Pin is evaluated first, then the Move is not. In all cases, the Fleet won't move, but the Transit might start.
-
-Idea. Pinning completely Prevents starting a Transit. If an Action that contains a Move and other effects targets a Fleet that gets Pinned, the Move mechanic automatically gets Canceled. The rest of the Effects take place normally. This prevents a Fleet split since the order will target the existing Fleet (not its projection). We solve the "Assault for 5 turns, it cannot move" by having the Assault consume the "movement" point, making it illegal to submit without making the Pin mechanic inconsistent. Or maybe the Fleet can move, and only after Combat it is Pinned?
-
-1 Movement Point to prevent a Fleet from being targeted to move to 2 different places
-
-Ehhhhh doesn't work, because Fleet splitting is a thing that is legal. But also an Assault commits a full Fleet's Strength to the Assault
-
-Can we represent committed Strength?
+Solution: Commit Strength
 
 # Thoughts dump
 
