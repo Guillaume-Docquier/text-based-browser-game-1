@@ -69,6 +69,19 @@
 
 Note: When [NbTurns] is 1, the text rules won't mention it.
 
+# Phases
+
+Phases resolve in deterministic order.
+
+| Name                     | Description                                                                             |
+| ------------------------ | --------------------------------------------------------------------------------------- |
+| Pay Costs                | Validate and apply the costs committed by locked Action Submissions.                    |
+| Statuses / Utility — TBD | Undecided: name, scope, and placement. May resolve Effects such as Pin before Movement. |
+| Fleet Movement           | Resolve Fleet movements and triggers arrivals.                                          |
+| Fleet Production         | Resolve Fleet production on Planets.                                                    |
+| Fleet Combat             | Resolve all combats.                                                                    |
+| Colonization             | Resolve attempts to claim Unclaimed Planets.                                            |
+
 # Sample Actions
 
 | Name             | Description                                                                          | Effects                                        | Requirements | Conditions |
@@ -79,43 +92,37 @@ Note: When [NbTurns] is 1, the text rules won't mention it.
 
 # Scenarios
 
-| Action(s)        | Scenario Description                                                                               | Submission                                         | Effects Outcome                                                 | Effects Lifecycle                                       | Outcome description |
-| ---------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------- | ------------------- |
-| Repeated Assault | Submitting Assault for a Stationed Fleet with no other Fleets on Planet                            | Valid                                              | Assault Progressed                                              | Assault Ongoing                                         |                     |
-| Repeated Assault | Last Turn of an Assault for a Stationed Fleet with no other Fleets on Planet                       | Already Active                                     | Assault Completed                                               | Assault Completed                                       |                     |
-| Repeated Assault | Submitting Assault for a Fleet In Transit                                                          | Invalid (Fleet(FA) must be Stationed)              | Assault Error (Illegal state, Assault Fleet cannot Transit)     | Assault Canceled                                        |                     |
-| Repeated Assault | 3rd Turn of an Assault for a Stationed Fleet with a stronger opposing Fleet on Planet              | Already Active                                     | Assault Progressed                                              | Assault Canceled                                        |                     |
-| Repeated Assault | Last Turn of an Assault for a Stationed Fleet with a stronger opposing Fleet on Planet             | Already Active                                     | Assault Completed                                               | Assault Completed                                       |                     |
-| Travel           | Submitting Move for a Fleet Stationed at max Distance from the destination                         | Valid                                              | Move Progressed                                                 | Move Ongoing                                            |                     |
-| Travel           | Submitting Move for a Fleet Stationed at 1 Turn range of the destination                           | Valid                                              | Move Completed                                                  | Move Completed                                          |                     |
-| Travel           | Submitting Move for a Fleet Stationed on the destination Planet                                    | Valid                                              | Move Completed                                                  | Move Completed                                          |                     |
-| Travel           | Submitting Move for a Fleet Stationed too far from the destination                                 | Invalid (Fleet(FA) must be in range of Planet(PA)) | Move Error (Illegal state, Move is the only source of movement) | Move Canceled                                           |                     |
-| Travel           | Submitting Move for a Pinned, Stationed Fleet                                                      | Invalid (Fleet(FA) must be able to Move)           | Move Prevented                                                  | Move Ongoing                                            |                     |
-| Travel           | Ongoing Move for a Pinned Fleet In Transit                                                         | Already Active                                     | Move Prevented                                                  | Move Ongoing                                            |                     |
-| Travel           | Ongoing Move for a Fleet In Transit with more Distance remaining than the Speed                    | Already Active                                     | Move Progressed                                                 | Move Ongoing                                            |                     |
-| Travel           | Ongoing Move for a Fleet In Transit at 1 Turn range of the destination                             | Already Active                                     | Move Completed                                                  | Move Completed                                          |                     |
-| Travel           | Submitting Move for a Fleet already In Transit via another Move Effect                             | Invalid (Fleet(FA) must be Stationed)              | Move Error (Illegal state)                                      | Move Canceled                                           |                     |
-| Travel           | Submitting Move for a Stationed Fleet that an Opponent Pins on the same Turn                       | Valid (the Pin is not observable)                  | Move Canceled                                                   | Move Canceled, On Arrival Canceled                      |                     |
-| Travel           | Submitting Move for a Stationed Fleet that The Player Pins on the same Turn                        | Valid (the Pin will generate a warning)            | Move Canceled                                                   | Move Canceled, On Arrival Canceled                      |                     |
-| Invasion         | Submitting Move with Assault On Arrival for a Fleet Stationed at max Distance from the destination | Valid                                              | Move Progressed                                                 | Move Ongoing, On Arrival Pending                        |                     |
-| Invasion         | Submitting Move with Assault On Arrival for a Fleet Stationed on the destination Planet            | Valid                                              | Move Completed                                                  | Move Completed, On Arrival Triggered, Assault Completed |                     |
-| Invasion         | Ongoing Move with Assault On Arrival for a Fleet In Transit at 1 Turn range of the destination     | Already Active                                     | Move Completed                                                  | Move Completed, On Arrival Triggered, Assault Completed |                     |
-
-Phase ordering:
-
-- Pay Costs
-- Statuses? Utility? (Pin target Fleet)
-- Movements
-- Assaults
-- Colonization
+| Action(s)        | Scenario                                                                                                                                     | Intent                                                                   | Outcome                                                                                                                                                                                                                                                                                                                         |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repeated Assault | Submitting Assault for a Stationed Fleet with no other Fleets on Planet                                                                      | Start a Multi-Turn Effect.                                               | No combat occurs and Fleet Strength does not change. The Fleet remains Stationed. One Assault repetition is consumed; [Repeats] minus one repetitions remain and the Assault stays Ongoing.                                                                                                                                     |
+| Repeated Assault | Last Turn of an Assault for a Stationed Fleet with no other Fleets on Planet                                                                 | Complete a Multi-Turn Effect.                                            | No combat occurs and Fleet Strength does not change. The Fleet remains Stationed. The final Assault repetition is consumed and the Assault completes.                                                                                                                                                                           |
+| Repeated Assault | Submitting Assault for a Fleet In Transit                                                                                                    | Enforce the Stationed Requirement.                                       | Submission is rejected because the Fleet is In Transit. This Action causes no combat and does not change the existing Transit.                                                                                                                                                                                                  |
+| Repeated Assault | An intermediate Turn of an Assault for a Stationed Fleet with a stronger opposing Fleet on Planet                                            | Cancel an Ongoing Effect after its Fleet is Destroyed.                   | The Fleets exchange damage. The attacking Fleet is Destroyed; the opposing Fleet survives with its Strength reduced by the attacker's Strength before combat. The current Assault repetition resolves with outcome Progressed, then the Assault is Canceled because the attacker was Destroyed. No remaining repetitions occur. |
+| Repeated Assault | Last Turn of an Assault for a Stationed Fleet with a stronger opposing Fleet on Planet                                                       | Complete the final repetition despite Fleet destruction.                 | The Fleets exchange damage. The attacking Fleet is Destroyed; the opposing Fleet survives with its Strength reduced by the attacker's Strength before combat. The final Assault repetition resolves and the Assault completes because no repetitions remain.                                                                    |
+| Travel           | Submitting Move for a Fleet Stationed at [Distance] from the destination, with more than one Turn of travel required                         | Accept the Distance limit and start a Multi-Turn Move.                   | The Fleet departs and travels at [Speed] toward the destination for one Turn. It remains In Transit with [Distance] minus the distance covered this Turn remaining. The Move stays Ongoing.                                                                                                                                     |
+| Travel           | Submitting Move for a Fleet Stationed at 1 Turn range of the destination                                                                     | Complete a Multi-Turn Effect on its first resolution.                    | The Fleet covers the remaining distance at [Speed] and becomes Stationed on the destination Planet this Turn. The Transit ends and the Move completes.                                                                                                                                                                          |
+| Travel           | Submitting Move for a Fleet Stationed on the destination Planet                                                                              | Complete Move without travel.                                            | The Fleet remains Stationed on the destination Planet. No distance is traveled and no Transit is needed. The Move completes.                                                                                                                                                                                                    |
+| Travel           | Submitting Move for a Fleet Stationed too far from the destination                                                                           | Enforce the Distance Requirement.                                        | Submission is rejected because the destination is beyond the Move's [Distance] limit. The Fleet remains Stationed at its origin and no Transit starts.                                                                                                                                                                          |
+| Travel           | Submitting Move for a Pinned, Stationed Fleet                                                                                                | Pin blocks the Can Move Requirement.                                     | Submission is rejected because the Fleet is already Pinned. The Fleet remains Stationed and no Transit starts.                                                                                                                                                                                                                  |
+| Travel           | Ongoing Move for a Pinned Fleet In Transit                                                                                                   | Pin fails the Can Move Condition and pauses an Ongoing Move.             | The Fleet makes no movement progress. It remains In Transit toward the same destination with the same remaining distance. The Move stays Ongoing and can resume on a later Turn when the Fleet is no longer Pinned.                                                                                                             |
+| Travel           | Ongoing Move for a Fleet In Transit with more Distance remaining than the Speed                                                              | Progress a Multi-Turn Effect on a later Turn.                            | The Fleet travels at [Speed] toward the destination for one Turn. Its remaining distance decreases by the distance covered this Turn. It remains In Transit and the Move stays Ongoing.                                                                                                                                         |
+| Travel           | Ongoing Move for a Fleet In Transit at 1 Turn range of the destination                                                                       | Complete a Multi-Turn Move on a later Turn.                              | The Fleet covers the remaining distance at [Speed] and becomes Stationed on the destination Planet this Turn. The Transit ends and the Move completes.                                                                                                                                                                          |
+| Travel           | Submitting Move for a Fleet already In Transit via another Move Effect                                                                       | An existing Transit blocks a new Move through the Stationed Requirement. | The new submission is rejected because another Move already controls the Fleet's Transit. It does not replace or cancel the existing Move, which resolves normally.                                                                                                                                                             |
+| Travel           | Submitting Move for a Stationed Fleet that an Opponent Pins on the same Turn                                                                 | An unseen Pin cancels departure during resolution.                       | The Opponent's Pin resolves normally before Movement. The Fleet remains Stationed at its origin, no Transit starts, and the new Move is canceled.                                                                                                                                                                               |
+| Travel           | Submitting Move for a Stationed Fleet that The Player Pins on the same Turn                                                                  | A known Pin conflict warns without rejecting submission.                 | The Player sees a warning about the conflicting Pin. If both Actions remain submitted, Pin resolves normally before Movement: the Fleet remains Stationed at its origin, no Transit starts, and the new Move is canceled.                                                                                                       |
+| Invasion         | Submitting Move with Assault On Arrival for a Stationed Fleet that an Opponent Pins on the same Turn                                         | Cancel On Arrival when its Move is canceled.                             | The Opponent's Pin resolves normally before Movement. The Fleet remains Stationed at its origin and no Transit starts. The Move is canceled, which also cancels its pending On Arrival trigger. No Assault is triggered on this or any later Turn by this Action.                                                               |
+| Invasion         | Submitting Move with Assault On Arrival for a Fleet Stationed at [Distance] from the destination, with more than one Turn of travel required | Keep On Arrival Pending while Move is Ongoing.                           | The Move resolves normally and stays Ongoing. On Arrival remains Pending and no Assault is triggered this Turn.                                                                                                                                                                                                                 |
+| Invasion         | Submitting Move with Assault On Arrival for a Fleet Stationed on the destination Planet                                                      | Trigger On Arrival when Move completes without travel.                   | The Move completes without travel. On Arrival triggers even though the Fleet was already at the destination. Its Assault resolves normally during the Assault Phase.                                                                                                                                                            |
+| Invasion         | Ongoing Move with Assault On Arrival for a Fleet In Transit at 1 Turn range of the destination                                               | Trigger On Arrival after a Multi-Turn Move completes.                    | The Move resolves normally and completes at the destination this Turn. On Arrival triggers and its Assault resolves normally during the Assault Phase.                                                                                                                                                                          |
 
 # To Do
 
-- Write End States & Descriptions
 - Make sure we covered all Assault cases
 - Make sure we covered all Move cases
 - Make sure we covered all Move with Assault on Arrival cases
 - Add Assault & Move Strength commitments
+- Do Colonization
+- Do Fleet Production
 
 # Problems
 
@@ -125,25 +132,12 @@ Solution: Commit Strength
 
 # Thoughts dump
 
-## Repeated Pin and Action reuse
-
-Support “Pin X every Turn for Y Turns” as a Multi-Turn Action. This allows two choices:
-
-| Action                   | Pin behavior                         | Action reuse                    |
-| ------------------------ | ------------------------------------ | ------------------------------- |
-| Apply a lasting Pin once | Immediately Pin a Fleet for 5 Turns. | Can be reused every Turn.       |
-| Repeat Pin each Turn     | Pin a Fleet every Turn for 5 Turns.  | Cannot be reused while ongoing. |
-
 ## Strength commitment solves the Pinning Problem
 
 - Assault commits the Fleet's entire Strength.
 - After submitting Assault, no Move can be submitted for that Fleet because no uncommitted Strength remains.
 - Assault cannot be submitted if any of the Fleet's Strength is already committed to movement.
 - Remove Assault's Pin component: Strength commitment prevents conflicting submissions.
-
-## Effects to add
-
-- Build.
 
 ## Targeting multiple Fleets
 
