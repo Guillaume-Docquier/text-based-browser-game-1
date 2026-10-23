@@ -4,11 +4,11 @@ packages:
 
 catalog:
   "@guillaume-docquier/tools-ts": ^10.1.3
-  "@vitest/coverage-v8": ^5.0.3
+  "@vitest/coverage-v8": ^5.0.5
   "type-fest": ^5.10.0
   "typescript": ~7.0.2
   "uuid": ^14.0.3
-  "vitest": ^5.0.3
+  "vitest": ^5.0.5
   "zod": ^4.6.6
 
 minimumReleaseAgeStrict: true
@@ -17,6 +17,12 @@ minimumReleaseAgeExclude:
   - "@guillaume-docquier/oxfmt"
   - "@guillaume-docquier/oxlint"
   - "@guillaume-docquier/show-me"
+
+overrides:
+  # Drizzle Kit's legacy loader pins esbuild below the security fix in 0.25.0.
+  "@esbuild-kit/core-utils@3.3.2>esbuild": "^0.25.12"
+  # Boundaries pins 4.7.9; its patched release is still within the release-age window.
+  "handlebars@4.7.9": "^4.7.10"
 
 allowBuilds:
   bufferutil: true
