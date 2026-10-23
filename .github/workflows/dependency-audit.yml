@@ -1,0 +1,32 @@
+name: Dependency audit
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 17 * * *" # Noon EST
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout ${{ github.head_ref || github.ref_name }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setting up pnpm
+        uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
+        with:
+          install: false
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level high

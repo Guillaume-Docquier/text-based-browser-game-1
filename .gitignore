@@ -22,6 +22,9 @@ lib-cov
 coverage
 *.lcov
 
+# Gitleaks scan report
+/results.sarif
+
 # nyc test coverage
 .nyc_output
 

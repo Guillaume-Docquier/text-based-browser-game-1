@@ -15,13 +15,25 @@ jobs:
   code-quality:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write
 
     steps:
       - name: Checkout ${{ github.head_ref || github.ref_name }}
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_NOTIFY_USER_LIST: "@Guillaume-Docquier"
 
       - name: Setting up pnpm
-        uses: pnpm/setup@v3.1.1
+        uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
 
       - name: Typecheck
         run: pnpm typecheck
@@ -38,10 +50,10 @@ jobs:
 
     steps:
       - name: Checkout ${{ github.head_ref || github.ref_name }}
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setting up pnpm
-        uses: pnpm/setup@v3.1.1
+        uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
 
       - name: Build
         run: pnpm --filter frontend build
@@ -62,7 +74,7 @@ jobs:
 
       - name: Upload Storybook test failures
         if: failure()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: storybook-test-results
           path: apps/frontend/test-results/storybook/
@@ -90,10 +102,10 @@ jobs:
 
     steps:
       - name: Checkout ${{ github.head_ref || github.ref_name }}
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setting up pnpm
-        uses: pnpm/setup@v3.1.1
+        uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
 
       - name: Install Playwright browser
         run: pnpm --filter frontend e2e:install
@@ -107,7 +119,7 @@ jobs:
 
       - name: Upload Playwright videos
         if: failure()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-videos
           path: apps/frontend/test-results/**/*.webm
@@ -119,10 +131,10 @@ jobs:
 
     steps:
       - name: Checkout ${{ github.head_ref || github.ref_name }}
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setting up pnpm
-        uses: pnpm/setup@v3.1.1
+        uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
 
       - name: Typecheck
         run: pnpm --filter backend typecheck
@@ -131,14 +143,14 @@ jobs:
         run: pnpm --filter backend test:coverage
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: backend-coverage
           path: apps/backend/coverage/lcov.info
           if-no-files-found: error
 
       - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           fail_ci_if_error: true
           files: ./apps/backend/coverage/lcov.info
@@ -154,10 +166,10 @@ jobs:
 
     steps:
       - name: Checkout ${{ github.head_ref || github.ref_name }}
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setting up pnpm
-        uses: pnpm/setup@v3.1.1
+        uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
 
       - name: Typecheck
         run: pnpm --filter shared typecheck
@@ -166,14 +178,14 @@ jobs:
         run: pnpm --filter shared test:coverage
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: shared-coverage
           path: packages/shared/coverage/lcov.info
           if-no-files-found: error
 
       - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           fail_ci_if_error: true
           files: ./packages/shared/coverage/lcov.info

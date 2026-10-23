@@ -14,6 +14,22 @@ AI contributions are welcome, AI slop is not.
 
 Always disclose what you built with AI and how you ensured the quality of your contribution.
 
+## Gitleaks
+
+Install [Gitleaks](https://github.com/gitleaks/gitleaks#installing) before committing. The pre-commit hook expects `gitleaks` on your `PATH`.
+
+On Windows:
+
+```powershell
+winget install --id Gitleaks.Gitleaks --exact --source winget
+```
+
+Restart your terminal after installation if needed, then check:
+
+```bash
+gitleaks version
+```
+
 ## Generating maps to test
 
 We have scripts to create svg of procedurally generated maps for manual testing
