@@ -1,3 +1,18 @@
+# Purpose and editing workflow
+
+This document builds a list of game requirements that can later become test cases. These requirements are currently called scenarios. Scenarios guide clarification of the rest of the document: define terms and describe supporting mechanics as needed to make each scenario understandable and unambiguous.
+
+Each scenario describes the game state before and after one Turn, with the reason for covering that behavior:
+
+- **Action(s)** identifies the Action being tested so readers can determine which Effects are involved.
+- **Scenario** describes the preconditions or starting game state.
+- **Intent** states the rule or behavior the scenario aims to cover. It is information about the scenario's purpose.
+- **Outcome** describes what happens and the expected resulting game state.
+
+Each scenario covers exactly one Turn. Cover behavior across multiple Turns with separate scenarios. The starting state can include an Action or Effect already in progress. For example, one scenario covers submitting Assault for a Stationed Fleet; another starts on the final Turn of an already ongoing Assault. A row does not need to describe the prior Turns.
+
+Editing is collaborative. Understand the human's intended meaning and identify gaps and ambiguities. Discuss unresolved game-design choices before making changes that depend on them; do not infer missing decisions from existing prose. Record clarified intent here so later agents have the context.
+
 # Glossary
 
 | Term              | Definition                                                                                                                                                                                                              |
@@ -18,7 +33,7 @@
 | Distance          | A Distance, in Light Years (LY).                                                                                                                                                                                        |
 | Speed             | A Distance per Turn.                                                                                                                                                                                                    |
 
-# Validation
+# Submission Validation
 
 | Submission validation result | Description                                                                                                         |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
@@ -28,7 +43,7 @@
 | Already Active               | The Action is Multi-Turn, was submitted in a previous Turn and is still ongoing.                                    |
 | Error                        | Something went wrong during validation. This is unexpected.                                                         |
 
-# Statuses
+# Entity Statuses
 
 | Status     | Description                                                                                                                                                                               |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -117,10 +132,10 @@ Phases resolve in deterministic order.
 
 # To Do
 
+- Add Assault & Move Strength commitments
 - Make sure we covered all Assault cases
 - Make sure we covered all Move cases
 - Make sure we covered all Move with Assault on Arrival cases
-- Add Assault & Move Strength commitments
 - Do Colonization
 - Do Fleet Production
 
