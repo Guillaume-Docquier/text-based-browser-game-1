@@ -1,4 +1,4 @@
-name: Trivy
+name: Dependency audit
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  trivy:
+  dependency-audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -23,14 +23,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Scan dependencies for vulnerabilities
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+      - name: Setting up pnpm
+        uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
-          version: v0.76.1
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-        env:
-          TRIVY_INCLUDE_DEV_DEPS: "true"
+          install: false
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level high
