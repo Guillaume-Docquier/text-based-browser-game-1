@@ -15,10 +15,22 @@ jobs:
   code-quality:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write
 
     steps:
       - name: Checkout ${{ github.head_ref || github.ref_name }}
         uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_NOTIFY_USER_LIST: "@Guillaume-Docquier"
 
       - name: Setting up pnpm
         uses: pnpm/setup@v3.1.1
