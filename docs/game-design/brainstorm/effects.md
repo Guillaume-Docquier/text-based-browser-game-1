@@ -188,7 +188,6 @@ Inputs lists player-supplied Action inputs. The Strength input is passed to the 
 
 - Define whether and how Fleets merge while In Transit.
 - Define the name, scope, and placement of the proposed Statuses / Utility Phase, including which Effects it resolves.
-
 - Define resolution behavior when no Strength remains after successful validation.
 - Define allocation among several Move commitments when losses leave them collectively short, without assuming priority or proportional distribution.
 - Define rounding for fractional Strength commitments.
@@ -199,6 +198,7 @@ Inputs lists player-supplied Action inputs. The Strength input is passed to the 
 - Make sure we covered all Move with Assault on Arrival cases
 - Do Colonization
 - Do Fleet Production
+- (last) add test case unique key. each effect gets a 3? letter key, each test scenario gets the main effect being tested followed by an incrementing number.
 
 # Problems
 
@@ -217,19 +217,6 @@ Use Pin as an example Effect to demonstrate these targeting options.
 
 - Open question: How should one Effect Definition produce multiple Effects?
 - Example: The previous Assault definition generated both an Assault Effect and a Pin Effect.
-
-## Clearer examples and test mapping
-
-- Define example Actions before the Action examples table, then refer to them by name to shorten the table.
-- Consider explicit start-state and end-state columns in the Action examples table.
-- Add identifiers in the first column of each table:
-
-| Table           | Identifier                                                |
-| --------------- | --------------------------------------------------------- |
-| Effects Rulings | A three-letter Effect key.                                |
-| Action examples | The Effect key followed by a three-digit scenario number. |
-
-Use the Action examples table as a requirements table and map each scenario to a test through its identifier.
 
 ## Charged Actions
 
