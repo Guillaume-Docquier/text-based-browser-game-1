@@ -21,6 +21,7 @@ Editing is collaborative. Understand the human's intended meaning and identify g
 
 | Term                | Definition                                                                                                                                                                                                              |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ruleset             | An immutable player authored set of rules for a game. It contains all the action definitions for that game. It is known before game starts.                                                                             |
 | Action Definition   | A player authored composition of Effects, with Requirements and Conditions.                                                                                                                                             |
 | Effect Definition   | An engine owned game mechanic, with Requirements and Conditions.                                                                                                                                                        |
 | Action              | An instance of an Action Definition.                                                                                                                                                                                    |
@@ -39,52 +40,6 @@ Editing is collaborative. Understand the human's intended meaning and identify g
 | Strength commitment | A fixed whole-number amount or All assigned from a Fleet to an Action.                                                                                                                                                  |
 | Distance            | A Distance, in Light Years (LY).                                                                                                                                                                                        |
 | Speed               | A Distance per Turn.                                                                                                                                                                                                    |
-
-# Strength commitments
-
-A Strength commitment is a fixed whole-number amount or All. All means the entirety of the Fleet and uses its Strength at resolution. Its numeric amount is not recorded at submission.
-
-## Fleets at a location
-
-Fleets belonging to the same Player at a Planet/location merge automatically into one Fleet. Merging combines their Strength and carries all their Statuses over to the resulting Fleet. This includes On Arrival triggers, Pin from either Fleet, and buffs gained during Transit. Fleets belonging to different Players can coexist there. Fleets never merge while In Transit. Move can split a Player's Fleet by Strength.
-
-When only part of a Fleet moves, the split-off Fleet inherits none of the source Fleet's Statuses, including buffs, harmful Statuses, and triggers. The source Fleet retains its Statuses. When the entire Fleet actually moves, no split occurs and its Statuses remain with it. This also applies when a fixed commitment moves the whole remaining Fleet, rather than using All.
-
-Status inheritance is separate from an Action assigning Statuses or triggers. The splitting rule does not remove Invasion's explicitly assigned Assault On Arrival trigger.
-
-When an Invasion Fleet merges on arrival, its Assault On Arrival trigger transfers to the resulting Fleet. The triggered Assault uses that Player's entire combined Fleet Strength at combat resolution. A Pin carried over from the Stationed Fleet leaves the merged Fleet Pinned; Pin blocks movement and does not prevent Assault.
-
-## Fleet destruction
-
-A Fleet is Destroyed when it loses all its Strength. Moving or allocating all of a Fleet's Strength does not count as destruction. A Destroyed Fleet cannot participate in further Action resolution. Any remaining Effect resolution requiring that Fleet is canceled.
-
-Resolution already performed retains its outcome. Destruction after an intermediate Assault repetition cancels the remaining repetitions. A final Assault repetition that resolves can complete even if that combat destroys the attacker.
-
-## Strength availability
-
-Submission Validation requires sufficient uncommitted Strength for the Action's commitment. If it is insufficient, the submission is rejected and creates no Effect. This requirement applies to Strength commitments generally. All requires the full Fleet to be uncommitted; it cannot select only the Strength left uncommitted after other submissions.
-
-After validation succeeds, resolution attempts to satisfy the commitment. If the requested amount is no longer available and positive Strength remains, resolution uses that remaining available Strength. A reduction to a positive amount does not by itself prevent resolution.
-
-## Move
-
-Each Move specifies a Strength commitment. Selecting or submitting Move does not split the Fleet. When the Turn resolves, the Move uses the committed Strength or the remaining available Strength if less. If only part of the Fleet moves, that Strength splits off and the rest remains at the origin. If the entire Fleet moves, it departs without splitting. An ongoing Move progresses with its moving Fleet's remaining positive Strength; it does not split the source again each Turn or require restoration of its initial Strength. A Move is canceled if its source Fleet is Destroyed before departure or its moving Fleet is Destroyed while In Transit.
-
-The ruleset author can set a fixed whole-number amount, such as exactly 10 Strength, or All. Alternatively, The Player selects a whole-number amount or All as allowed by the Action. The Action can constrain the amount, such as between 10 and 20 Strength or any available whole-number amount.
-
-Multiple Move submissions can use the same origin Fleet in one Turn. They resolve from smallest commitment to largest to fulfill as many Moves as possible. Equal commitments are ordered using random numbers from the game's pseudorandom number generator. Submission order does not affect priority, and Players cannot specify a resolution order. Each Move attempts its requested amount and uses a smaller positive amount if that is all that remains available when it resolves. Once no Strength remains available, the remaining Moves are Canceled. Strength already allocated to earlier Moves continues moving.
-
-For example, from 100 Strength, commitments of 30 and 40 send 30 and 40 Strength to separate destinations and leave 30 Strength at the origin. If commitments of 3, 5, and 7 validate against 15 Strength but only 6 remains before movement, the Move for 3 receives 3, the Move for 5 receives the remaining 3, and the Move for 7 is Canceled.
-
-For a fixed commitment of 10 Strength, Submission Validation requires 10 uncommitted Strength. If validation succeeds and other Effects later reduce the available Strength to 8 before movement, those 8 Strength moves. There is no insufficient-Strength failure at resolution for this positive remainder.
-
-## Assault
-
-Assault always commits All. All of the Fleet's Strength at resolution participates in combat, including Strength gained since submission. It is not a fixed amount recorded at submission.
-
-Assault requires sufficient uncommitted Strength for its All commitment. After Assault is submitted, no uncommitted Strength remains to satisfy a Move commitment. If a partial Move is submitted first, the remaining uncommitted Strength cannot satisfy Assault's All commitment. Both submissions follow the same Strength availability requirement.
-
-Strength commitment replaces Assault's former Pin component. The separate Pin Effect and its rules still apply independently.
 
 # Submission Validation
 
@@ -136,6 +91,60 @@ Strength commitment replaces Assault's former Pin component. The separate Pin Ef
 | Produce Fleet | Fleet Production | Fleet(Strength, Planet)                                   | Create a Fleet of [Strength] on [Planet]. If a Fleet is already present, it is reinforced instead. Repeats every Turn for [Repeats] Turns.                                                                                                                                                                                                                                                                                                                                               | Planet                   | Strength, Repeats         | -                                                                                                                      | -                                                                          | Yes        |
 
 Note: When [NbTurns] is 1, the text rules won't mention it.
+
+# In Depth Mechanics
+
+## Ruleset
+
+A Ruleset defines all the rules for a game. Every value can be customized. Cosmic Empire will provide core Rulesets, but players will be able to author their own.
+
+The Ruleset allows players to define the set of Actions available for play by combining Effects, Statuses, Requirements and Conditions. Phase ordering is fixed.
+
+Some Effects have their own Requirements and Conditions. They cannot be overridden. However, Actions can define additional requirements and conditions, and can define the values for each Effect, such as the Movement max Distance and Speed. They can choose fixed values or let the user choose when they submit.
+
+## Fleets
+
+Fleets belonging to the same Player at a Planet/location merge automatically into one Fleet. Merging combines their Strength and carries all their Statuses over to the resulting Fleet. This includes On Arrival triggers, Pin from either Fleet, statuses gained during Transit, etc. Fleets belonging to different Players can coexist there. Fleets never merge while In Transit. Move can split a Player's Fleet by Strength.
+
+When only part of a Fleet moves, the split-off Fleet inherits none of the source Fleet's Statuses, including buffs, harmful Statuses, and triggers. The source Fleet retains its Statuses. When the entire Fleet actually moves, no split occurs and its Statuses remain with it. This also applies when a fixed commitment moves the whole remaining Fleet, rather than using All.
+
+Status inheritance is separate from an Action assigning Statuses or triggers. The splitting rule does not remove Invasion's explicitly assigned Assault On Arrival trigger.
+
+When an Invasion Fleet merges on arrival, its Assault On Arrival trigger transfers to the resulting Fleet. The triggered Assault uses that Player's entire combined Fleet Strength at combat resolution. A Pin carried over from the Stationed Fleet leaves the merged Fleet Pinned; Pin blocks movement and does not prevent Assault.
+
+## Fleet destruction
+
+A Fleet is Destroyed when it loses all its Strength. Moving or allocating all of a Fleet's Strength does not count as destruction. A Destroyed Fleet cannot participate in further Action resolution. Any remaining Effect resolution requiring that Fleet is canceled.
+
+Resolution already performed retains its outcome. Destruction after an intermediate Assault repetition cancels the remaining repetitions. A final Assault repetition that resolves can complete even if that combat destroys the attacker.
+
+## Strength commitments
+
+Most Actions involving Fleets will need to Commit Strength to the Action. To be able to Commit Strength, the Fleet must have enough uncommitted Strength.
+
+A Strength commitment is a fixed whole-number amount or "All". "All" means the entirety of the Fleet and uses its Strength at resolution. Its numeric amount is not recorded at submission.
+
+Submission Validation requires sufficient uncommitted Strength for the Action's commitment. If it is insufficient, the submission is rejected and creates no Effect. This requirement applies to Strength commitments generally. "All" requires the full Fleet to be uncommitted; it cannot select only the Strength left uncommitted after other submissions.
+
+After validation succeeds, resolution attempts to satisfy the commitment. If the requested amount is no longer available and positive Strength remains, resolution uses that remaining available Strength. A reduction to a positive amount does not by itself prevent resolution unless there is a specific Condition set by the Action or Effect.
+
+## Move
+
+Each Move specifies a Strength commitment. Selecting or submitting Move does not split the Fleet. When the Turn resolves, the Move uses the committed Strength or the remaining available Strength if less. If only part of the Fleet moves, that Strength splits off and the rest remains at the origin. If the entire Fleet moves, it departs without splitting. An ongoing Move progresses with its moving Fleet's remaining positive Strength; it does not split the source again each Turn or require restoration of its initial Strength. A Move is canceled when its source Fleet is Destroyed.
+
+The ruleset author can set a fixed whole-number amount, such as exactly 10 Strength, or All. Alternatively, The Player selects a whole-number amount or All as allowed by the Action. The Action can constrain the amount, such as between 10 and 20 Strength or any available whole-number amount.
+
+Multiple Move submissions can use the same origin Fleet in one Turn. They resolve from smallest commitment to largest to fulfill as many Moves as possible. Equal commitments are ordered using random numbers from the game's pseudorandom number generator. Submission order does not affect priority, and Players cannot specify a resolution order. Each Move attempts its requested amount and uses a smaller positive amount if that is all that remains available when it resolves. Once no Strength remains available, the remaining Moves are Canceled. Strength already allocated to earlier Moves continues moving.
+
+For example, from 100 Strength, commitments of 30 and 40 send 30 and 40 Strength to separate destinations and leave 30 Strength at the origin. If commitments of 3, 5, and 7 validate against 15 Strength but only 6 remains before movement, the Move for 3 receives 3, the Move for 5 receives the remaining 3, and the Move for 7 is Canceled.
+
+For a fixed commitment of 10 Strength, Submission Validation requires 10 uncommitted Strength. If validation succeeds and other Effects later reduce the available Strength to 8 before movement, those 8 Strength moves. There is no insufficient-Strength failure at resolution for this positive remainder.
+
+## Assault
+
+Assault always commits All. All of the Fleet's Strength at resolution participates in combat, including Strength gained since submission. It is not a fixed amount recorded at submission.
+
+Assault requires sufficient uncommitted Strength for its All commitment. After Assault is submitted, no uncommitted Strength remains to satisfy a Move commitment. If a partial Move is submitted first, the remaining uncommitted Strength cannot satisfy Assault's All commitment. Both submissions follow the same Strength availability requirement.
 
 # Phases
 
