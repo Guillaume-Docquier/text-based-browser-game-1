@@ -1,21 +1,146 @@
-# Purpose and editing workflow
+# Purpose and Editing Workflow
 
-This document builds a list of game requirements that can later become test cases. These requirements are currently called scenarios. Scenarios guide clarification of the rest of the document: define terms and describe supporting mechanics as needed to make each scenario understandable and unambiguous.
+I call this document a "technical" rulebook, because it will look a lot like a rulebook, but it won't be suitable for teaching players how to play. It will include quite a bit of information that will be necessary for implementation rather than for learning. I'm writing this document as a rulebook because I believe teaching or explaining a game is a good way to express the constraints of the game and identify missing rules and interactions. I plan on using AI to implement the game based on the technical rulebook, and I am hoping that the teaching part will help provide context on how the game is played and should feel like. Afterward, I will use the technical rulebook as the living spec for the game and I will probably derive the actual rulebook from it, removing the unnecessary implementation details and probably preferring an HTML version. I fully expect the format of the technical rulebook to change over time, this is already the 3rd version of it.
 
-Each scenario describes the game state before and after one Turn, with the reason for covering that behavior. State scenario-specific inputs and starting state in each row so its expected outcome can be understood without shared default values:
+The important parts of the technical rulebook will be:
 
-- **Action(s)** identifies the Action being tested so readers can determine which Effects are involved.
-- **Scenario** describes the preconditions or starting game state.
-- **Intent** states the rule or behavior the scenario aims to cover. It is information about the scenario's purpose.
-- **Outcome** describes what happens and the expected resulting game state.
+- Learning via gradual discovery, starting with a wide view and then diving into specifics.
+- A linear narrative as much as possible. We'll inevitably need cross-references or looping concepts.
+- A set of strictly defined scenarios for each mechanic that will become enforced test cases. This will be super important to validate the implementation.
 
-Each scenario covers exactly one Turn. Cover behavior across multiple Turns with separate scenarios. The starting state can include an Action or Effect already in progress. For example, one scenario covers submitting Assault for a Stationed Fleet; another starts on the final Turn of an already ongoing Assault. A row does not need to describe the prior Turns.
+## Active Voice
 
-Keep scenarios grouped by Action where possible, with multi-Action interaction scenarios together next to a relevant group.
+[Active voice](https://www.grammarly.com/blog/sentences/active-vs-passive-voice/) should be preferred over Passive voice. Only use Passive voice when it makes the explanation clearer.
+
+## Consistent Vocabulary
+
+Always use the same term to talk about the same concept. If two terms define the same concept, we choose one and stick with it. Capitalize those terms when used in the context of their game meaning. For example:
+
+- Whenever a Fleet Moves, it must have a valid destination. ("moves" is used as a game concept)
+- After Resolution, the game moves to the next Turn. ("moves" is not used as a game concept)
+
+A glossary should define all the game specific terms and concepts for an easy reference.
+
+## Scenarios
+
+Scenarios are implementation requirements in disguise. For the technical rulebook, list ALL the scenarios to accurately define mechanics and their interactions. In the actual rulebook, we will keep only the edge case ones to support the mechanic explanation.
+
+A scenario is written as a table row, with columns "Action(s)", "Scenario", "Intent" and "Outcome":
+
+- Action(s) identifies the Action being tested to understand which Effects are involved.
+- Scenario describes the starting game state.
+- Intent states the rule or behavior the scenario aims to cover, the scenario's purpose.
+- Outcome describes what happens and the expected resulting game state.
+
+Each Scenario covers exactly one Turn. The starting state can include an Action or Effect already in progress to cover behavior across multiple Turns. A row does not need to describe the prior Turns, the Scenario should be self-contained.
+
+Scenarios are grouped together to form a linear narrative. For example, a multi turn Action could have the following scenario intents:
+
+- Submitting a valid Action, resolving the first Turn
+- Starting with an Ongoing Action, resolving the second Turn
+- Starting with an Ongoing Action, Completing it during resolution.
+- Submitting an invalid Action for reason 1, it is rejected and does not resolve
+- Submitting an invalid Action for reason 2, it is rejected and does not resolve
+- etc
+
+## Inspiration
+
+- https://resonym.com/writing-rulebooks/
+- https://entrogames.substack.com/p/how-to-write-a-rulebook-for-your-board-game
+
+## AI Guidance
 
 The main content states established rules. Put unresolved questions and provisional notes only in To Do, Problems, or Thoughts dump.
 
 Editing is collaborative. Understand the human's intended meaning and identify gaps and ambiguities. Discuss unresolved game-design choices before making changes that depend on them; do not infer missing decisions from existing prose. Record clarified intent here so later agents have the context.
+
+# Table of Contents
+
+- Learning the Game
+  - Setting
+  - Goal & Game End
+  - Starting a game
+  - Structure of a Turn
+  - Game Mechanics Overview
+  - Customize your Game
+  - Quick Reference
+- Rules Reference (by domain)
+  - Movement
+  - Combat
+  - Planets
+  - Legacy
+- Glossary (by domain)
+  - Movement
+  - Combat
+  - Planets
+  - Legacy
+- Architecture Constraints
+  - API vs Turn Resolution
+  - Data Driven Ruleset
+  - Generated frontend
+  - Shared Validation Rules
+- Ideas (as I write this document)
+
+# Learning the Game
+
+## Setting
+
+After the Sun mysteriously began to fade, leading to a global freeze, humans were forced to leave Earth. There was no time to find a planet certain to sustain life, nor could enough ships be built to save everyone. In a desperate attempt to ensure humanity's survival, hundreds of small expeditions were launched across the galaxy. Only sixteen found habitable worlds. One of them was yours.
+
+## Goal & Game End
+
+In Heirs of Sol, you control one of the surviving Earth expeditions. You must grow your new homeworld into an empire that will be remembered. The goal is to gain Legacy Points by having an impact on the galaxy. Extract Resources, Build Fleets, Colonize Planets, Trade, perform Contracts and achieve the ultimate Legacy Projects to bring back humanity to what it once was.
+
+Heirs of Sol is an asynchronous turn based game that requires no coordination to play your turn. Check in once per day when you can, submit your orders, and wait for the turn to resolve. Games have a predetermined fixed duration, either in time or number of turns. The player with the most Legacy Points at the end of the game wins.
+
+## Starting a game
+
+A game can be played with 2 to 16 players. To create a game, you must:
+
+- choose the maximum number of players you'd like to play with
+- set the game's duration by choosing an end date, a maximum number of turns, or both
+- choose a galaxy preset
+- choose a Ruleset
+
+Then, you wait for players to join your game. Once you are satisfied with the number of players that have joined, you can start the game, revealing the galaxy. Players cannot join or leave this game after it has started.
+
+## The First Turn
+
+The first turn is slightly different from the following turns. The most important difference is that the first turn has no set duration. All players must Lock-In for the first turn to resolve, then the game will progress normally.
+
+In your first turn, you will also get to choose your starting political Regime. Your political Regime will influence your options throughout the game. The impact of your chosen Regime ranges from modifying the Effect magnitudes and Costs, to fundamentally changing how you interact with Ideological Alignments. Don't worry, you can change your Regime during the game, and they are all viable options to start with.
+
+Once you have chosen your Regime, you can submit your actions as in the normal turn structure. Remember that you must Lock-In, or the first turn will never resolve!
+
+## Structure of a Turn
+
+## Ideological Alignments
+
+## Game Mechanics Overview
+
+## Customize your Game
+
+## Quick Reference
+
+# Rules Reference
+
+# Glossary
+
+| Term                   | Description                                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Legacy Point           | The player with the most Legacy Points at the end of the game wins.                                                            |
+| (Political) Regime     |                                                                                                                                |
+| (Ideological) Aligment |                                                                                                                                |
+| Lock-In                | Locking in a turn prevent you from changing your actions, and when all players are locked-in, the turn resolves automatically. |
+
+# Architecture Constraints
+
+# Ideas
+
+- Include the Solar System with a Frozen Earth and a faded / dead Sun, with a victory path of making Earth viable again and repopulating it.
+- Start around the Solar System, not around the galaxy center, so that it makes sense that all players start the game at the same time (same travel distances from Earth).
+
+# <<<--- Old stuff below --->>>
 
 # Glossary
 
