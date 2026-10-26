@@ -60,8 +60,13 @@ Editing is collaborative. Understand the human's intended meaning and identify g
   - Setting
   - Goal & Game End
   - Starting a game
+  - The First Turn
   - Structure of a Turn
-  - Game Mechanics Overview
+  - Actions
+  - Ideological Alignments
+  - Effects
+  - Galaxy
+  - Fleets
   - Customize your Game
   - Quick Reference
 - Rules Reference (by domain)
@@ -91,15 +96,16 @@ After the Sun mysteriously began to fade, leading to a global freeze, humans wer
 
 In Heirs of Sol, you control one of the surviving Earth expeditions. You must grow your new homeworld into an empire that will be remembered. The goal is to gain Legacy Points by having an impact on the galaxy. Extract Resources, Build Fleets, Colonize Planets, Trade, perform Contracts and achieve the ultimate Legacy Projects to bring back humanity to what it once was.
 
-Heirs of Sol is an asynchronous turn based game that requires no coordination to play your turn. Check in once per day when you can, submit your orders, and wait for the turn to resolve. Games have a predetermined fixed duration, either in time or number of turns. The player with the most Legacy Points at the end of the game wins.
+Heirs of Sol is an asynchronous turn based game that requires no coordination to play your turn. Check in once per day when you can, submit your Actions, and wait for the turn to resolve. Games have a predetermined fixed duration, either in time or number of turns. The player with the most Legacy Points at the end of the game wins.
 
 ## Starting a game
 
 A game can be played with 2 to 16 players. To create a game, you must:
 
 - choose the maximum number of players you'd like to play with
-- set the game's duration by choosing an end date, a maximum number of turns, or both
-- choose a galaxy preset
+- choose a turn length, in minutes, hours or days
+- choose the game's duration by setting an end date, a maximum number of turns, or both
+- choose a galaxy generation preset
 - choose a Ruleset
 
 Then, you wait for players to join your game. Once you are satisfied with the number of players that have joined, you can start the game, revealing the galaxy. Players cannot join or leave this game after it has started.
@@ -108,15 +114,44 @@ Then, you wait for players to join your game. Once you are satisfied with the nu
 
 The first turn is slightly different from the following turns. The most important difference is that the first turn has no set duration. All players must Lock-In for the first turn to resolve, then the game will progress normally.
 
-In your first turn, you will also get to choose your starting political Regime. Your political Regime will influence your options throughout the game. The impact of your chosen Regime ranges from modifying the Effect magnitudes and Costs, to fundamentally changing how you interact with Ideological Alignments. Don't worry, you can change your Regime during the game, and they are all viable options to start with.
+In your first turn, you will also get to choose your starting political Regime. Your political Regime will influence your options throughout the game. The impact of your chosen Regime ranges from modifying your Effects magnitudes and Costs, to fundamentally changing how you interact with Ideological Alignments. Don't worry, you can change your Regime during the game, and they are all viable options to start with.
 
-Once you have chosen your Regime, you can submit your actions as in the normal turn structure. Remember that you must Lock-In, or the first turn will never resolve!
+Once you have chosen your Regime, you'll be able to see your starting Planet and its surroundings. It is very unlikely that you'll see another player from the start. You'll probably encounter them after a few turns when you start exploring.
+
+You can submit your turn's actions as in the normal turn structure. Remember that you must Lock-In, or the first turn will never resolve!
 
 ## Structure of a Turn
 
+During a turn, you will choose and submit Actions. An Action will list the following:
+
+- Name
+- Tier
+- Costs
+- Effects
+- Targets
+- Inputs
+
+If you can pay the Costs, you can submit the Action. There is no limit to how many Actions you can play, as long as you can pay for it. Everything you do in the game is done via submitting an Action, and all Actions of all players resolve at the end of the turn. You can change your Action submissions without penalty before the end of the turn.
+
+A turn a very simple:
+
+- Submit Actions
+- Lock-In (optional)
+- Turn ends and Actions resolve
+
+The turn ends either when its duration chosen before starting the game expires or when all players have Locked-In.
+
+Action submissions are secret. You cannot see what other players will submit or have submitted. You will, however, see the Effect outcomes that affected you. A turn log will list everything that happened that you can perceive. You will know if a player traded with you, you will receive battle reports, you will be notified of players that colonized planets in your scan range, etc.
+
+## Actions
+
 ## Ideological Alignments
 
-## Game Mechanics Overview
+## Effects
+
+## Galaxy
+
+## Fleets
 
 ## Customize your Game
 
@@ -132,6 +167,9 @@ Once you have chosen your Regime, you can submit your actions as in the normal t
 | (Political) Regime     |                                                                                                                                |
 | (Ideological) Aligment |                                                                                                                                |
 | Lock-In                | Locking in a turn prevent you from changing your actions, and when all players are locked-in, the turn resolves automatically. |
+| Action                 |                                                                                                                                |
+| Effect                 |                                                                                                                                |
+| Cost                   |                                                                                                                                |
 
 # Architecture Constraints
 
