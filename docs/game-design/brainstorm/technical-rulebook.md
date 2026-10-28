@@ -145,6 +145,60 @@ You can submit your turn's actions as in the normal turn structure. Remember tha
 
 ## Actions
 
+The game's Ruleset defines the Actions available in the game. It is chosen by the game's creator before the game starts. It is public information, so every player knows which Actions it contains.
+
+### Reading an Action
+
+Each Action has a name, usually a thematic name that describes an operation. It also lists its Tier, Type, Costs, Effects, and any Targets or Inputs you must choose.
+
+- **Costs** list the Resources you must pay to submit the Action.
+- **Effects** describe what the Action does. An Action can have one or any number of Effects, as defined by the Ruleset.
+- **Targets** identify what the Action affects, such as a Fleet or a Planet.
+- **Inputs** are other choices you make, such as a travel speed.
+
+The game uses a fixed set of mechanics and a consistent vocabulary to describe them. When Actions use the same mechanic, they use the same keywords and format. For example, Actions that Move a Fleet describe its Fleet Target, destination Planet, maximum Distance, and Speed.
+
+An Action can set some parameters and let you choose others. For example, one movement Action might set a fixed Speed, while another lets you choose a Speed within a specified range. The Ruleset defines these parameters for each Action.
+
+The following sketch illustrates the parts of an Action. Its Costs are examples.
+
+```text
+MOVE FLEET                         Costs: 3 Influence, 1 Fuel
+Standard Directive                 Tier and Type
+
+Move a Fleet to a target Planet within 10 light years at 0.1 light years per Turn.
+                                   Effect; Speed is fixed
+
+Fleet Target:  [Choose Fleet]      Target
+Planet Target: [Choose Planet]     Target
+```
+
+### Costs and Influence
+
+Every Action costs Influence. Influence is a Resource used only to play Actions, and it refills to its full amount every Turn. Actions can also cost other Resources. The current Resources are Metal, Energy, Fuel, and Colony; you can gain them through other Actions.
+
+Everything that happens in the game happens through an Action. Choose how to spend your Influence each Turn: a powerful, expensive Action can limit what else you can do, while several smaller Actions can give you more flexibility across your empire. Smaller Actions may give less value for the Influence spent in exchange for that flexibility.
+
+### Actions that last multiple Turns
+
+Some Actions have Effects that last multiple Turns. You pay the Action's Costs once, when you submit it. For example, an Action that grants 5 Metal per Turn for 3 Turns costs nothing more to continue and grants its benefit over those 3 Turns.
+
+An Action that is still active is unavailable to submit again until its Effects have finished. If you have one copy of that Action, you must wait for it to finish before submitting it again. You can have multiple copies of the same Action; each copy can be used independently.
+
+A multi-Turn Action may cost more Influence up front than a single-Turn Action, but give more total benefit for its Cost. Balance these longer commitments against single-Turn Actions and the flexibility to respond to new situations.
+
+### Action Tiers
+
+Each Action has a Tier: Basic, Standard, Improved, Advanced, or Exceptional, in ascending order. Tiers are cosmetic and usually suggest an Action's power level. The Ruleset author decides how to use them, so a Standard Action can be especially powerful. A Tier does not impose restrictions on an Action's Costs or Effects.
+
+### Action Types
+
+Each Action has one of three Types: Directive, Agenda, or Program.
+
+- **Directives** usually have a narrow scope and let you make precise tactical decisions. For example, an Assault Directive could order a Fleet to attack a Planet.
+- **Agendas** usually have a broad scope and apply some form of automation across your empire. For example, an Agenda could shift all your Planets to producing Fleets. An Agenda can have a large impact, while a Directive can address a specific opportunity.
+- **Programs** lead to Legacy Projects, the main way to gain Legacy Points. A Legacy Project might require a chain of Programs or a single expensive Program. Lesser Programs may also grant Legacy Points.
+
 ## Ideological Alignments
 
 ## Effects
