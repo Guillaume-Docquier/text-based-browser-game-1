@@ -21,9 +21,9 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.80",
+    "@clerk/express": "^2.1.84",
     "@guillaume-docquier/tools-ts": "catalog:",
-    "@trpc/server": "^11.18.0",
+    "@trpc/server": "^11.19.0",
     "compression": "^1.8.2",
     "drizzle-orm": "^0.45.4",
     "express": "^5.3.0",
@@ -34,10 +34,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.10",
-    "@inquirer/prompts": "^8.7.3",
+    "@electric-sql/pglite": "^0.5.12",
+    "@inquirer/prompts": "^8.7.5",
     "@testcontainers/postgresql": "^12.2.1",
-    "@trpc/client": "^11.18.0",
+    "@trpc/client": "^11.19.0",
     "@types/compression": "^1.8.1",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.5",
