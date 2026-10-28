@@ -110,16 +110,6 @@ A game can be played with 2 to 16 players. To create a game, you must:
 
 Then, you wait for players to join your game. Once you are satisfied with the number of players that have joined, you can start the game, revealing the galaxy. Players cannot join or leave this game after it has started.
 
-## The First Turn
-
-The first turn is slightly different from the following turns. The most important difference is that the first turn has no set duration. All players must Lock-In for the first turn to resolve, then the game will progress normally.
-
-In your first turn, you will also get to choose your starting political Regime. Your political Regime will influence your options throughout the game. The impact of your chosen Regime ranges from modifying your Effects magnitudes and Costs, to fundamentally changing how you interact with Ideological Alignments. Don't worry, you can change your Regime during the game, and they are all viable options to start with.
-
-Once you have chosen your Regime, you'll be able to see your starting Planet and its surroundings. It is very unlikely that you'll see another player from the start. You'll probably encounter them after a few turns when you start exploring.
-
-You can submit your turn's actions as in the normal turn structure. Remember that you must Lock-In, or the first turn will never resolve!
-
 ## Structure of a Turn
 
 During a turn, you will choose and submit Actions. An Action will list the following:
@@ -142,6 +132,16 @@ A turn a very simple:
 The turn ends either when its duration chosen before starting the game expires or when all players have Locked-In.
 
 Action submissions are secret. You cannot see what other players will submit or have submitted. You will, however, see the Effect outcomes that affected you. A turn log will list everything that happened that you can perceive. You will know if a player traded with you, you will receive battle reports, you will be notified of players that colonized planets in your scan range, etc.
+
+## The First Turn
+
+The first turn is slightly different from the following turns. The most important difference is that the first turn has no set duration. All players must Lock-In for the first turn to resolve, then the game will progress normally.
+
+In your first turn, you will also get to choose your starting political Regime. Your political Regime will influence your options throughout the game. The impact of your chosen Regime ranges from modifying your Effects magnitudes and Costs, to fundamentally changing how you interact with Ideological Alignments. Don't worry, you can change your Regime during the game, and they are all viable options to start with.
+
+Once you have chosen your Regime, you'll be able to see your starting Planet and its surroundings. It is very unlikely that you'll see another player from the start. You'll probably encounter them after a few turns when you start exploring.
+
+You can submit your turn's actions as in the normal turn structure. Remember that you must Lock-In, or the first turn will never resolve!
 
 ## Actions
 
