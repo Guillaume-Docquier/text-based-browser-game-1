@@ -201,6 +201,26 @@ Each Action has one of three Types: Directive, Agenda, or Program.
 
 ## Ideological Alignments
 
+Your Ideological Alignments determine which Actions are available to you each Turn. Each Alignment is a position on a scale from -5 to 5. You start the game at 0 on every scale.
+
+There are three axes, each with two opposing extremes:
+
+| Axis      | Extremes                     |
+| --------- | ---------------------------- |
+| Diplomacy | Isolationist and Cooperative |
+| Industry  | Industrial and Ecologist     |
+| Military  | Defensive and Offensive      |
+
+Your position on each axis shapes the Actions available to your empire. Specializing toward an extreme usually gives you more specific and powerful Actions, but you may lose access to Actions associated with the other extreme. Staying neutral usually gives you a balanced set of Actions.
+
+For example, moving toward Cooperative may give you more Trade and Contract Actions, while moving toward Isolationist may give you more Actions to build infrastructure or produce Fleets. Cooperation helps you work with other players, but it may leave you with fewer options to build your own infrastructure. Isolationism gives you more ways to build your empire on your own.
+
+Your positions across all three axes combine to shape what your empire can do. Reaching an extreme is not always the best choice: you may lose too much flexibility in your available Actions. You might instead stay neutral or specialize only enough to gain access to an Action you want.
+
+### Changing your Alignments
+
+Some Action Effects move you along one or more axes. The Action states which axes it affects and how much it moves you along each one. Directives usually cause no movement or only a small change, while Agendas and Programs usually cause larger changes.
+
 ## Effects
 
 ## Galaxy
