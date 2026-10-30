@@ -477,6 +477,18 @@ Inputs lists player-supplied Action inputs. The Strength input is passed to the 
 
 # Thoughts dump
 
+## Tech Tree
+
+Progresses your Empire into the late game
+
+Maybe some mechanics are gated behind tech?
+
+Buffs / Specializations?
+
+## Alignment Combos
+
+Some actions only available when certain axes are combined
+
 ## Targeting multiple Fleets
 
 Support targeting:
