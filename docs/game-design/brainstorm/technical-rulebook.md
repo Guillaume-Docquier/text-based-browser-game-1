@@ -201,7 +201,7 @@ Each Action has one of three Types: Directive, Agenda, or Program.
 
 ## Ideological Alignments
 
-Your Ideological Alignments determine which Actions are available to you each Turn. Each Alignment is a position on a scale from -5 to 5. You start the game at 0 on every scale.
+Your Ideological Alignments determine which Actions are available to you each Turn. Each Alignment is a position on a scale from -5 to 5 and each position offers its own unique Action pool. You start the game at 0 on every scale.
 
 There are three axes, each with two opposing extremes:
 
@@ -211,9 +211,9 @@ There are three axes, each with two opposing extremes:
 | Industry  | Industrial and Ecologist     |
 | Military  | Defensive and Offensive      |
 
-Your position on each axis shapes the Actions available to your empire. Specializing toward an extreme usually gives you more specific and powerful Actions, but you may lose access to Actions associated with the other extreme. Staying neutral usually gives you a balanced set of Actions.
+Specializing toward an extreme usually gives you more specific and powerful Actions, but you lose access to Actions associated with the other extreme. Staying neutral usually gives you a balanced set of Actions.
 
-For example, moving toward Cooperative may give you more Trade and Contract Actions, while moving toward Isolationist may give you more Actions to build infrastructure or produce Fleets. Cooperation helps you work with other players, but it may leave you with fewer options to build your own infrastructure. Isolationism gives you more ways to build your empire on your own.
+For example, moving toward Cooperative may give you more Trade and Contract Actions, while moving toward Isolationist may give you more Actions to build infrastructure or produce Fleets. Cooperation helps you work with other players, but it may leave you with fewer options to build your own infrastructure. Isolationism gives you more ways to build your empire on your own.#
 
 Your positions across all three axes combine to shape what your empire can do. Reaching an extreme is not always the best choice: you may lose too much flexibility in your available Actions. You might instead stay neutral or specialize only enough to gain access to an Action you want.
 
@@ -522,3 +522,13 @@ Use Pin as an example Effect to demonstrate these targeting options.
 | Message delivery speed            | Movement speed.                       |
 | Broadcast to all Players in range | Pin targeting all Fleets in range.    |
 | Message all Players on a Planet   | Pin targeting all Fleets on a Planet. |
+
+## Ideological Axes
+
+Opposites is fun, but kinda... hard. If I want to introduce combos, 3 axes with 2 opposites means essentially 6 "colors" and 63 combinations from 1-6 "colors", while only allowing 3 thematic axes.
+
+If instead each axis was independent, I could have 5 axes, 5 themes and 31 combinations from 1-5 colors.
+
+## Bring Your Own Actions
+
+Maybe players can build their "deck" and bring it in game? Need to be restrictive, though, as full freedom would inevitably be unbalanced.
