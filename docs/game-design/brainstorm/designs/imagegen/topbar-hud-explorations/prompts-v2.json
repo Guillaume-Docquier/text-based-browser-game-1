@@ -1,0 +1,9 @@
+{
+  "tool": "built-in image_gen",
+  "reference_images": [
+    "C:/Users/Guillaume/Dev/text-based-browser-game-1/output/imagegen/topbar-hud-explorations/01-minimal-blue.png",
+    "C:/Users/Guillaume/Dev/text-based-browser-game-1/output/imagegen/topbar-hud-explorations/02-industrial-amber.png",
+    "C:/Users/Guillaume/Dev/text-based-browser-game-1/output/imagegen/topbar-hud-explorations/03-glass-violet.png"
+  ],
+  "prompt": "Use case: precise-object-edit / ui-mockup. Edit the attached HUD concept. REQUIRED LAYOUT CORRECTION: The slim horizontal top bar must be FLUSH WITH THE VERY TOP EDGE OF THE IMAGE, y=0, spanning the full width. There must be ZERO empty space, zero star field, zero margin, zero padding above the bar anywhere. Think a browser page with CSS top:0. The central oversized countdown button must also start at the top image edge and extend DOWNWARD below the thin bar into the page, remaining fully readable and complete, not clipped. Adapt its upper corners/frame as needed to attach naturally to the top edge. The slim bar should remain the same thin height, and the center button remain taller than the bar. Keep the current visual style, colors, materials, logo, all resource icons and their quantities, timer text 'NEXT TURN' and '02:14:38', typography, horizontal positions and backdrop. Resource list stays on the right in a single row. Preserve the wide image aspect ratio. Do not create any space above the header. This is a targeted positioning correction to the provided image, not a redesign."
+}

@@ -1,0 +1,33 @@
+Generated with the built-in image_gen tool.
+
+Use case: infographic-diagram / illustrated game interface explainer.
+Create ONE finished landscape one-page game design document for HEIRS OF SOL, the second page of a matching design series. High resolution, ideally 2400px or greater width, roughly A3 landscape. Readability and coherent interface hierarchy matter greatly.
+REFERENCES: Image 1 is the approved first-page RETRO SPACE POSTER and is the STYLE reference: cream paper, deep navy ink, burnt orange, muted turquoise, golden highlights, subtle screen-print grain, bold condensed uppercase headings, serif body copy, geometric space illustrations. Match its identity and title lettering. Image 2 is a hand-drawn MAIN VIEW schema and is the content/layout reference. Image 3 is an existing action card and is a loose card anatomy reference ONLY. Its submit/select-action button must NOT appear. Do not copy the premise paragraph or three Earth-restoration phases from image 1: this is a different page about the main view.
+LAYOUT:
+At top, prominent "HEIRS OF SOL" with "MAIN VIEW" beside it, leaving generous room for the actual explainer. Subtitle: "Every action is a card. Shape your cards through specialization."
+The center-left majority of the page is a large clean framed game screen illustration, surrounded by short organized callouts. The rightmost approximately 28% is a prominent ACTION CARDS feature with an enlarged card anatomy example. Bottom includes a compact SYSTEM VIEW inset and specialization-to-card progression. Keep elements large and text clear; avoid tiny decorative UI copy. All paragraphs must fit, no overlaps.
+MAIN SCREEN:
+Wide top HUD split into three obvious sections: left five specialization icons (flask, exploration rocket, mining tool, leaf, handshake), center large turn counter with "TURN 24", "01:12:25" and "CLICK TO READY", right five resource icons with names or an adjacent readable legend: Metal, Energy, Fuel, Science, Refined alloys. These resources are provisional examples. HUD should feel continuous and stay consistent in the system view inset.
+Main central map is a deep navy GALAXY VIEW with stars only at this scale, a faint square coordinate grid, a few distinct star nodes, and two tiny fleets in transit. Do NOT draw large planets in the galaxy view. Show one solid travel segment leading from departure star to current fleet, then a dashed segment from current fleet to destination star, with clear two-item legend "Travel completed" (solid) and "Travel remaining" (dashed). A small open fleet information panel contains "Destination", "Cargo (if known)", "Travel time remaining"; avoid invented travel numbers or galaxy scale. Left edge has a narrow navigation strip with compact icons. Bottom of screen shows a fan/hand of action cards, with one forward/selected. No submit button.
+Surround the screen with these short headings and exact explanatory copy, connected to the relevant screen elements by thin clean leader lines:
+"SPECIALIZATIONS"
+"Start at zero on all five axes. Gain points, choose skill-tree branches and unlock exclusive card effects."
+List all five names legibly: "Science", "Space exploration", "Resource exploitation", "Nature mastery", "Diplomacy".
+"TURN CONTROL"
+"Turns have a fixed duration. Click the counter to mark yourself ready. When all players are ready, the next turn starts early."
+"RESOURCES"
+"Always visible. Click to open the resource view."
+"Examples: Metal, Energy, Fuel, Science, Refined alloys."
+"GALAXY & FLEETS"
+"View stars and fleet routes. Click a fleet to inspect its destination, known cargo and remaining travel time."
+"SYSTEM VIEW"
+"Click a star to inspect its planets with the same HUD. Galaxies and planets are procedurally generated."
+The small SYSTEM VIEW inset shows a sun with several orbiting planets and exactly the same top-HUD structure plus bottom cards, visually linked from a selected star on the large galaxy screen. Keep system inset uncluttered, with sufficient detail to demonstrate scale change.
+ACTION CARDS SECTION:
+Heading "ACTION CARDS" and prominent sentence "Every action has costs, effects and targets."
+Enlarged handsome rectangular retro illustrated card, clearly organized: name across top "BUILD FLEET"; resource costs in a separate narrow VERTICAL COLUMN at the RIGHT edge, never horizontal; middle illustration of ships assembling in an orbital shipyard; lower section titled "EFFECTS" with "Build a fleet on the target planet."; final target field "TARGET" / "Select a planet". NO button beneath or within this card. No separate mystery action icon in upper-left. Resource column uses three vertically stacked clear icons with example numbers 20, 10, 5 (metal, energy, refined alloys). Small caption "Illustrative card and costs". Four simple leader labels identify "Name", "Resource costs", "Illustration", "Effects & target" without crossing or clutter.
+Below this enlarged card, show a compact progression diagram with readable nodes:
+"Basic effects" → "Specialization unlocks" → "Custom cards"
+Copy under it: "Everyone starts with basic effects. Upgrade cards, add effects or create new cards using the effects your specializations unlock."
+Include a tiny branching skill-tree motif to visually connect specializations with card customization. Do not imply random card draws, limited hand size, deckbuilding constraints, cooldowns, card rarity, combat victory, specific turn lengths, or gameplay rules not stated here.
+Keep the page polished, readable, spacious and clearly part of the same retro series. Prefer cream gutters and restrained orange rules over dense boxes. Space illustrations should communicate mechanics. All copy is in English. No watermark or author line. This is a complete explanatory one-pager, not a standalone UI screenshot or a photo of printed paper.

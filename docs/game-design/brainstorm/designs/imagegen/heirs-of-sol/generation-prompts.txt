@@ -1,0 +1,62 @@
+Generated with the built-in image_gen tool.
+Reference: C:/Users/Guillaume/Pictures/cosmic-empires/1-pagers/1-pager-high-level.jfif
+
+VARIANT 1
+Use case: infographic-diagram. Create a finished, beautiful landscape one-page game design document for HEIRS OF SOL, roughly A3 landscape, with highly legible professional typography. Reference image is a sideways photograph of the user's hand-drawn schema, solely a layout/concept reference; reorient the concepts to an upright landscape page. Do not reproduce the photograph, handwriting, tablet, or its incidental labels. Theme 1: CINEMATIC STAR ATLAS. Midnight navy space, luminous restrained amber and ice-blue accents, elegant science-fiction editorial typography, richly illustrated celestial objects balanced with clean text panels. This is a readable design document, not just concept art. Large title, concise premise at top, four activity blocks at left, central colony star map, three sequential phase blocks at right, scoring/strategy footer. Main central map shows 16 inhabited colony markers and separately a dim Sol with frozen Earth, subtle interstellar freight routes, one colony highlighted as YOUR COLONY. Avoid extraneous named planets or claims about travel technology. Right-hand three phases are visibly linked 01 → 02 → 03 with illustrations: collectors orbiting another star, dim Sun restoring golden light, frozen Earth becoming green and blue. Make ALL following copy accurate and easy to read, without adding any other game rules:
+Title: "HEIRS OF SOL"
+Subtitle: "16 colonies. One shared goal: reclaim Earth."
+Premise: "The Sun mysteriously dimmed, freezing Earth. With no time to find a new home, humanity sent hundreds of small expeditions across the galaxy. Only 16 found habitable worlds. You lead one of them."
+Left heading: "DEVELOP YOUR COLONY"
+"EXTRACT RESOURCES" / "Gather the materials for colonies and megastructures."
+"ADVANCE SCIENCE" / "Research megastructures, solar restoration and terraforming."
+"BUILD INFRASTRUCTURE" / "Develop mines, laboratories, shipyards and construction sites."
+"MANAGE LOGISTICS" / "Move resources between worlds and to construction sites."
+Center labels: "16 COLONIES", "YOUR COLONY", "DIMMED SOL", "FROZEN EARTH".
+Right heading: "RECLAIM EARTH"
+"01  BUILD A DYSON SWARM" / "Build a swarm or sphere around a star to power solar restoration."
+"02  RESTORE THE SUN" / "Understand and reverse the dimming to restore the Sun's original light."
+"03  RECLAIM EARTH" / "Thaw Earth, rebuild its infrastructure and repopulate it."
+Footer heading: "COOPERATE OR WIN ALONE"
+Footer: "Specialize and work with other colonies, or develop every capability and complete all three phases yourself."
+Scoring: "Players are scored on their contributions across the three phases. Contribute to one, several or all."
+Keep left activities distinct from right sequential phases. The resource/science/infrastructure/logistics systems support all three phases, not one-to-one matches. Dyson power source need not be Sol. No warfare, combat imagery, faction names, invented rules, extra numerical statistics, watermark, or document author line. No tiny text. Crisp polished full-page artwork, edge-safe margins.
+
+VARIANT 2
+Use case: infographic-diagram. Create a finished landscape one-page game design document for HEIRS OF SOL, roughly A3 landscape, with excellent text legibility. Reference image is a sideways photo of a hand-drawn schema, only a conceptual/layout reference; create a fully upright clean page, not a photo of a page. Theme 2: MISSION ENGINEERING BLUEPRINT. Pale ivory drafting paper, deep blue technical line drawings and text, teal systems highlights, restrained orange phase numbers, fine grid behind the central schematic only, precise aerospace diagrams, generous white space. Sophisticated printed mission brief with clear sans-serif type and selective monospaced labels. Large title and short premise at top; four equal activity modules at left; central technical star map with exactly 16 colony markers, a separate dim Sun/Earth inset, routes and YOUR COLONY callout; three stacked illustrated numbered milestones at right connected in order; full-width strategy and scoring footer. Illustrations are technical cutaways/diagrams: an orbital collector swarm about another star, Sun regaining output, Earth thawed and rebuilt. No decorative illegible text. Render this exact copy:
+"HEIRS OF SOL"
+"16 colonies. One shared goal: reclaim Earth."
+"The Sun mysteriously dimmed, freezing Earth. With no time to find a new home, humanity sent hundreds of small expeditions across the galaxy. Only 16 found habitable worlds. You lead one of them."
+"DEVELOP YOUR COLONY"
+"EXTRACT RESOURCES" / "Gather the materials for colonies and megastructures."
+"ADVANCE SCIENCE" / "Research megastructures, solar restoration and terraforming."
+"BUILD INFRASTRUCTURE" / "Develop mines, laboratories, shipyards and construction sites."
+"MANAGE LOGISTICS" / "Move resources between worlds and to construction sites."
+Map labels: "16 COLONIES", "YOUR COLONY", "DIMMED SOL", "FROZEN EARTH".
+"RECLAIM EARTH"
+"01  BUILD A DYSON SWARM" / "Build a swarm or sphere around a star to power solar restoration."
+"02  RESTORE THE SUN" / "Understand and reverse the dimming to restore the Sun's original light."
+"03  RECLAIM EARTH" / "Thaw Earth, rebuild its infrastructure and repopulate it."
+"COOPERATE OR WIN ALONE"
+"Specialize and work with other colonies, or develop every capability and complete all three phases yourself."
+"Players are scored on their contributions across the three phases. Contribute to one, several or all."
+Use all content, ensure readable type. Diagram establishes that all four activities support all three sequential milestones; do not incorrectly pair activities individually with phases. Dyson structure may orbit another star, not necessarily the Sun. Avoid added gameplay rules, battles, invented numerical values, fake scientific equations, author credit, watermark. Finished flat page, clean borders and margins.
+
+VARIANT 3
+Use case: infographic-diagram. Create a finished landscape one-page game design document for HEIRS OF SOL, approximately A3 landscape, using the reference sketch only for concept/layout. Reference photograph is sideways; output is upright, clean, flat finished art with readable typesetting. Theme 3: RETRO SPACE EXPLORATION POSTER. Mid-century space-age editorial illustration, warm cream background, bold ink navy typography, burnt-orange Sun, muted turquoise planets, golden yellow collector arrays, subtle screen-print texture away from text. Optimistic but serious human return to Earth. Bold geometric space illustrations, beautifully composed graphic design with generous negative space. Do not use propaganda slogans or invented story. Page layout keeps the four activity pillars at left, central star network, and three illustrated sequential phases at right, with title/premise above and strategy/scoring below. Map has exactly 16 inhabited colony markers (one highlighted YOUR COLONY), separately dim Sol/frozen Earth, and stylized cargo routes. Three right illustrations: orbiting collectors around a star, Sun becoming bright again, Earth going from ice to habitable green and blue. Preserve all of the following exact English copy and make it readable:
+"HEIRS OF SOL"
+"16 colonies. One shared goal: reclaim Earth."
+"The Sun mysteriously dimmed, freezing Earth. With no time to find a new home, humanity sent hundreds of small expeditions across the galaxy. Only 16 found habitable worlds. You lead one of them."
+"DEVELOP YOUR COLONY"
+"EXTRACT RESOURCES" / "Gather the materials for colonies and megastructures."
+"ADVANCE SCIENCE" / "Research megastructures, solar restoration and terraforming."
+"BUILD INFRASTRUCTURE" / "Develop mines, laboratories, shipyards and construction sites."
+"MANAGE LOGISTICS" / "Move resources between worlds and to construction sites."
+Map labels: "16 COLONIES", "YOUR COLONY", "DIMMED SOL", "FROZEN EARTH".
+"RECLAIM EARTH"
+"01  BUILD A DYSON SWARM" / "Build a swarm or sphere around a star to power solar restoration."
+"02  RESTORE THE SUN" / "Understand and reverse the dimming to restore the Sun's original light."
+"03  RECLAIM EARTH" / "Thaw Earth, rebuild its infrastructure and repopulate it."
+"COOPERATE OR WIN ALONE"
+"Specialize and work with other colonies, or develop every capability and complete all three phases yourself."
+"Players are scored on their contributions across the three phases. Contribute to one, several or all."
+Left activities support all phases. Right phases explicitly ordered 01 then 02 then 03. The Dyson star can be different from Sol. Illustrations should help explain gameplay, not crowd out text. No combat, no invented mechanics or factions, no extra statistics, no watermarks, no author line. High-quality crisp readable typography with ample print margins.
