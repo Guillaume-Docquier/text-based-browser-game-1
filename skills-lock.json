@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "open-pencil": {
+      "source": "open-pencil/open-pencil",
+      "sourceType": "github",
+      "skillPath": "skills/open-pencil/SKILL.md",
+      "computedHash": "2fb3eb3956b75884aa9438de35647143740f2fa1f1201f88aaa172a0b74a24ac"
+    }
+  }
+}
