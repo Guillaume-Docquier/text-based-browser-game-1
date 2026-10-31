@@ -1,0 +1,5 @@
+Edited with the built-in image_gen tool.
+
+Make one precise text-only edit to the supplied HEIRS OF SOL retro poster. Replace the opening premise paragraph beneath the title and subtitle with this EXACT shorter text:
+"After the Sun mysteriously began to fade, humans were forced to leave Earth. In a desperate attempt to ensure humanity's survival, hundreds of small expeditions were launched across the galaxy. Only sixteen found habitable worlds. One of them was yours."
+Use the same serif font, size, color, left alignment and line spacing as the existing paragraph. Wrap naturally within the existing paragraph area. Leave any newly available space as matching cream paper texture. Preserve EVERYTHING ELSE as closely as possible: landscape canvas, title HEIRS OF SOL, subtitle, every other word, layout and positions, corrected three-rod resources icon, central colony map with DIMMED SOL and no Earth, all right-hand phase illustrations including Earth, footer, landscape, people, colors and texture. Do not redesign, reflow the other sections, change other wording, add objects or add a watermark. Only the opening paragraph changes.

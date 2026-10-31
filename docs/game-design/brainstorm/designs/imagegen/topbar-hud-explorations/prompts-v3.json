@@ -1,0 +1,9 @@
+{
+  "tool": "built-in image_gen",
+  "reference_images": [
+    "C:/Users/Guillaume/Dev/text-based-browser-game-1/output/imagegen/topbar-hud-explorations/01-minimal-blue-v2.png",
+    "C:/Users/Guillaume/Dev/text-based-browser-game-1/output/imagegen/topbar-hud-explorations/02-industrial-amber-v2.png",
+    "C:/Users/Guillaume/Dev/text-based-browser-game-1/output/imagegen/topbar-hud-explorations/03-glass-violet-v2.png"
+  ],
+  "prompt": "Edit this UI exploration. Deliver a wide screenshot of the page itself. The topbar MUST be docked flush to the physical top edge of the output canvas with NO space above it. Draw the bar from row y=0 to about y=75 spanning x=0 to the right edge. First pixel row is the header material, not space background. Center timer is a complete top-attached tab: straight horizontal TOP BORDER visible at y=0, square upper corners, vertical sides, rounded or chamfered BOTTOM corners matching the supplied design. It extends DOWN to y=140, below the bar. Redesign the upper silhouette so it looks intentionally attached to the page top, not cropped off. Keep all of its contents comfortably inset below y=0: NEXT TURN, 02:14:38, progress indicator. Logo and horizontal resource row vertically centered within the slim bar; keep the four resource icons and their exact quantities. Preserve the supplied style, colors, resource layout, and star map background below the HUD. NO margin or padding above the bar, NO browser chrome, NO presentation frame, NO annotations. Keep the same wide aspect ratio."
+}
