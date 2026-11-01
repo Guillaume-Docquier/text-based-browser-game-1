@@ -561,3 +561,10 @@ Maybe players can build their "deck" and bring it in game? Need to be restrictiv
 - No player can contribute to a project after a Dyson Sphere has been completed. Only 1 completed Dyson Sphere will exist. The old construction site will stay there as-is and their system will remain unclaimable.
 - The one-project limit is intended to prevent repeated system destruction while retaining some strategic choice about which system to sacrifice. The main purpose is a path toward victory, with the loss of potential colonies as part of its cost.
 - Contributions award Legacy Points only if the project succeeds and its Dyson Sphere is completed. Competing projects create a race: players must choose which project to support, and contributions to the losing project award no points.
+
+## Initiative
+
+- Players may submit competing Actions in the same Turn, such as unloading Resources into a project phase or contributing research toward a technology shared across players. Resolution needs to determine whose contribution applies first when the remaining requirement cannot accept all contributions.
+- Example: A shared technology needs 100 more research points, and two players each contribute 100 research points in the same Turn.
+- Proposal: Use Initiative as a global modifier to determine resolution order. A simple starting rule could be that the player with the highest Initiative resolves first on any Action. This idea may need further development.
+- Open question: When players have equal Initiative, should resolution use a random order or split the remaining contribution equally between them? The choice may depend on the specific Effects.
