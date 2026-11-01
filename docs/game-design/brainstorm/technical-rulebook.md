@@ -548,3 +548,16 @@ Maybe players can build their "deck" and bring it in game? Need to be restrictiv
   - Ranked: Medium expected collaboration. The game has a fixed number of Turns. Everyone loses if Eden is not achieved. If Eden is achieved, players gain more Elo based on their contribution.
   - Unranked: Low expected collaboration. Players are scored based only on their contribution. The number of Turns can be chosen.
   - Perfection: Maximum expected collaboration. The game can be seeded. Players must complete Eden as fast as possible.
+
+## Dyson Sphere Projects
+
+- Proposed victory objective: Players choose a site and contribute together to construct a Dyson Sphere or Swarm.
+- Starting a project is an Action targeting a star. It permanently reserves the system for that project and prevents its Planets from being claimed. The system must have no claimed Planets, so players must choose an uncolonized site instead of using their home system or destroying another player's colonies.
+- The initiating player must visit every Planet in the system and strip it through separate Actions. The Planets are consumed and disappear as part of establishing the project.
+- Planet quality determines the system's initial contribution to construction. A typical system could provide approximately 5–25% of the total requirement.
+- A construction site or partially built structure around the star becomes the destination where players deliver the remaining contributions. Other players can contribute to complete it.
+- Each player can start only one Dyson Sphere project per game. The project cannot be cancelled and remains for the rest of the game, even if the player never strips the Planets. Choosing the site is a permanent commitment.
+- No player can start a new project after a Dyson Sphere has been completed. Before that, each player can start their own, allowing competing projects to exist at the same time.
+- No player can contribute to a project after a Dyson Sphere has been completed. Only 1 completed Dyson Sphere will exist. The old construction site will stay there as-is and their system will remain unclaimable.
+- The one-project limit is intended to prevent repeated system destruction while retaining some strategic choice about which system to sacrifice. The main purpose is a path toward victory, with the loss of potential colonies as part of its cost.
+- Contributions award Legacy Points only if the project succeeds and its Dyson Sphere is completed. Competing projects create a race: players must choose which project to support, and contributions to the losing project award no points.
