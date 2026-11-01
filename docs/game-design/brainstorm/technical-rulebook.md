@@ -532,3 +532,19 @@ If instead each axis was independent, I could have 5 axes, 5 themes and 31 combi
 ## Bring Your Own Actions
 
 Maybe players can build their "deck" and bring it in game? Need to be restrictive, though, as full freedom would inevitably be unbalanced.
+
+## Eden Project and Game Modes
+
+- The Eden Project has three phases: Dyson sphere, Sol dim reversion, and Earth repopulation.
+- Each phase has three components: materials, workers, and science. Their ratios differ by phase:
+
+| Phase              | Materials | Workers | Science |
+| ------------------ | --------- | ------- | ------- |
+| Dyson sphere       | High      | Medium  | Low     |
+| Sol dim reversion  | Medium    | Low     | High    |
+| Earth repopulation | Low       | High    | Medium  |
+
+- Three game modes aim to incentivize collaboration:
+  - Ranked: Medium expected collaboration. The game has a fixed number of Turns. Everyone loses if Eden is not achieved. If Eden is achieved, players gain more Elo based on their contribution.
+  - Unranked: Low expected collaboration. Players are scored based only on their contribution. The number of Turns can be chosen.
+  - Perfection: Maximum expected collaboration. The game can be seeded. Players must complete Eden as fast as possible.
