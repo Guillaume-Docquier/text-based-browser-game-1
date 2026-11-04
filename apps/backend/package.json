@@ -34,13 +34,13 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.12",
+    "@electric-sql/pglite": "^0.5.14",
     "@inquirer/prompts": "^8.7.5",
     "@testcontainers/postgresql": "^12.2.1",
     "@trpc/client": "^11.19.0",
     "@types/compression": "^1.8.1",
     "@types/express": "^5.0.6",
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "catalog:",
     "commander": "^15.0.0",

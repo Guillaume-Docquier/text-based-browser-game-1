@@ -39,8 +39,8 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@babel/core": "^8.0.9",
-    "@clerk/testing": "^2.2.51",
+    "@babel/core": "^8.0.10",
+    "@clerk/testing": "^2.2.53",
     "@playwright/test": "^1.64.1",
     "@rolldown/plugin-babel": "^0.2.4",
     "@storybook/addon-mcp": "10.6.3",
@@ -49,14 +49,14 @@
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/router-plugin": "^1.168.48",
     "@types/babel__core": "^7.20.5",
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@typescript/native": "npm:typescript@7.0.2",
     "@vitejs/plugin-react": "^6.1.2",
     "@vitest/browser-playwright": "^5.0.5",
     "babel-plugin-react-compiler": "^1.0.0",
-    "storybook": "^10.6.4",
+    "storybook": "^10.6.5",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vite": "^8.3.5",
     "vitest": "catalog:"
