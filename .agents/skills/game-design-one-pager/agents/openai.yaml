@@ -1,4 +1,4 @@
 interface:
-  display_name: "Create New One-Pager"
+  display_name: "Game Design One-Pager"
   short_description: "Create three parallel game-concept layout proposals"
-  default_prompt: "Use $create-new-one-pager to develop three editable layout proposals for this game concept, then refine my choice."
+  default_prompt: "Use $game-design-one-pager to develop three editable layout proposals for this game concept, then refine my choice."
