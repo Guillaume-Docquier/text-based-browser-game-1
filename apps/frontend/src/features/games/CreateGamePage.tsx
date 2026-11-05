@@ -110,39 +110,12 @@ function CreateGameForm({
               }}
             />
           </div>
-          <div className="space-y-2">
-            <Label>Turn length</Label>
-            <div className="flex gap-3">
-              <Input
-                aria-label="Turn length"
-                type="number"
-                value={turnIntervalMultiplier}
-                onChange={(event) => {
-                  setTurnIntervalMultiplier(parseInt(event.target.value))
-                }}
-              />
-              <Select
-                value={turnIntervalUnit}
-                items={Object.values(TurnIntervalUnit).map((unit) => ({ value: unit, label: unit }))}
-                onValueChange={(value) => {
-                  if (value !== null) {
-                    setTurnIntervalUnit(value)
-                  }
-                }}
-              >
-                <SelectTrigger aria-label="Turn length unit" className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(TurnIntervalUnit).map((unit) => (
-                    <SelectItem key={unit} value={unit}>
-                      {unit}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <TurnLengthFields
+            multiplier={turnIntervalMultiplier}
+            unit={turnIntervalUnit}
+            onMultiplierChange={setTurnIntervalMultiplier}
+            onUnitChange={setTurnIntervalUnit}
+          />
         </CardContent>
       </Card>
 
@@ -167,6 +140,56 @@ function CreateGameForm({
         >
           {createGame.isPending ? "Creating..." : "Create"}
         </Button>
+      </div>
+    </div>
+  )
+}
+
+function TurnLengthFields({
+  multiplier,
+  unit,
+  onMultiplierChange,
+  onUnitChange,
+}: {
+  multiplier: number
+  unit: TurnIntervalUnit
+  onMultiplierChange: (value: number) => void
+  onUnitChange: (value: TurnIntervalUnit) => void
+}): ReactElement {
+  const unitItems = Object.values(TurnIntervalUnit).map((value) => ({ value, label: value }))
+
+  return (
+    <div className="space-y-2">
+      <Label>Turn length</Label>
+      <div className="flex gap-3">
+        <Input
+          aria-label="Turn length"
+          type="number"
+          value={multiplier}
+          onChange={(event) => {
+            onMultiplierChange(parseInt(event.target.value))
+          }}
+        />
+        <Select
+          value={unit}
+          items={unitItems}
+          onValueChange={(value) => {
+            if (value !== null) {
+              onUnitChange(value)
+            }
+          }}
+        >
+          <SelectTrigger aria-label="Turn length unit" className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {unitItems.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   )
