@@ -9,7 +9,7 @@ description: Maintain the Game Design Canvas in OpenPencil. Use when updating th
 
 The Game Design Canvas is a single OpenPencil page containing editable one-pagers. Each one-pager explains one game concept. The starting point is the Pillars, which leads into the Overview and then fans out to the different game concepts as the design develops. Refine this canvas over time instead of making a separate final document for each concept.
 
-The established file is `../../../docs/game-design/brainstorm/one-pager/game-design-canvas.fig` in the repository. Its shared page is named `Game Design Canvas`. Use the open document when available. Discover its current document, page, and node IDs; IDs can change after reloads. If the file has moved, inspect open documents and the workspace before asking for a new location, and update this skill with the new path once you found the file.
+The established file is `../../../docs/game-design/brainstorm/game-design-canvas.fig` in the repository. Its shared page is named `Game Design Canvas`. Use the open document when available. Discover its current document, page, and node IDs; IDs can change after reloads. If the file has moved, inspect open documents and the workspace before asking for a new location, and update this skill with the new path once you found the file.
 
 Read the available `open-pencil` skill for tool use and design authoring. Use its MCP tools against the live document and specify document and page IDs explicitly.
 
