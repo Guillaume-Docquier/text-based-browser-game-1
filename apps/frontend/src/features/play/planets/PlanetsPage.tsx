@@ -104,6 +104,11 @@ function PlanetsFilters({
   onSearchChange: (value: string) => void
   onOwnerFilterChange: (value: string) => void
 }): ReactElement {
+  const ownerItems = [
+    { value: ALL_PLAYERS, label: "All players" },
+    ...owners.map((owner) => ({ value: owner.id, label: owner.alias ?? `Player ${owner.id}` })),
+  ]
+
   return (
     <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center">
       <div className="relative min-w-0 flex-1">
@@ -123,10 +128,7 @@ function PlanetsFilters({
         <span className="text-sm font-medium text-muted-foreground">Owner</span>
         <Select<PlayerId | typeof ALL_PLAYERS>
           value={ownerFilter}
-          items={[
-            { value: ALL_PLAYERS, label: "All players" },
-            ...owners.map((owner) => ({ value: owner.id, label: owner.alias ?? `Player ${owner.id}` })),
-          ]}
+          items={ownerItems}
           onValueChange={(value) => {
             if (value !== null) {
               onOwnerFilterChange(value)
@@ -137,10 +139,9 @@ function PlanetsFilters({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_PLAYERS}>All players</SelectItem>
-            {owners.map((owner) => (
-              <SelectItem key={owner.id} value={owner.id}>
-                {owner.alias ?? `Player ${owner.id}`}
+            {ownerItems.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
               </SelectItem>
             ))}
           </SelectContent>
