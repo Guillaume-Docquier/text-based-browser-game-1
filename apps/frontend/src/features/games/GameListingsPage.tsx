@@ -30,11 +30,7 @@ export function GameListingsPage(): ReactElement {
         <PageHeader
           title="Games"
           description="Browse active lobbies, filter by name, and jump back into an ongoing match."
-          actions={
-            <Button asChild>
-              <Link to="/games/create">Create game</Link>
-            </Button>
-          }
+          actions={<Button render={<Link to="/games/create" />}>Create game</Button>}
         />
         <Alert variant="destructive">
           <AlertTitle>Could not load games</AlertTitle>
@@ -51,14 +47,7 @@ export function GameListingsPage(): ReactElement {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <PageHeader
-        title="Games"
-        actions={
-          <Button asChild>
-            <Link to="/games/create">Create game</Link>
-          </Button>
-        }
-      />
+      <PageHeader title="Games" actions={<Button render={<Link to="/games/create" />}>Create game</Button>} />
       <Card className="border border-border/60">
         <CardContent className="flex flex-col gap-4">
           <div className="flex max-w-xl flex-col gap-2 sm:flex-row">{filters.map(({ element }) => element)}</div>

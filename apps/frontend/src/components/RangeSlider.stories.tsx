@@ -90,8 +90,8 @@ export const Disabled: Story = {
     const minimum = canvas.getByRole("slider", { name: "Minimum" })
     const maximum = canvas.getByRole("slider", { name: "Maximum" })
 
-    await expect(minimum).toHaveAttribute("data-disabled", "")
-    await expect(maximum).toHaveAttribute("data-disabled", "")
+    await expect(minimum).toBeDisabled()
+    await expect(maximum).toBeDisabled()
     await userEvent.tab()
     await expect(minimum).not.toHaveFocus()
     await expect(minimum).toHaveAttribute("aria-valuenow", "25")

@@ -21,26 +21,32 @@ export function AppLayout(): ReactElement {
           </Link>
           <Separator orientation="vertical" className="hidden h-8 md:block" />
           <nav className="flex flex-1 items-center gap-2">
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/" activeProps={{ className: "bg-muted text-foreground" }}>
-                <Rocket className="size-4" />
-                Home
-              </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+
+              render={<Link to="/" activeProps={{ className: "bg-muted text-foreground" }} />}
+            >
+              <Rocket className="size-4" />
+              Home
             </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/games" activeProps={{ className: "bg-muted text-foreground" }}>
-                <UserSearch className="size-4" />
-                Games
-              </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+
+              render={<Link to="/games" activeProps={{ className: "bg-muted text-foreground" }} />}
+            >
+              <UserSearch className="size-4" />
+              Games
             </Button>
           </nav>
           <div className="flex items-center gap-2">
             <Show when="signed-out" treatPendingAsSignedOut={true}>
-              <Button asChild variant="ghost" size="sm">
-                <Link to="/sign-in">Sign in</Link>
+              <Button variant="ghost" size="sm" render={<Link to="/sign-in" />}>
+                Sign in
               </Button>
-              <Button asChild size="sm">
-                <Link to="/sign-up">Sign up</Link>
+              <Button size="sm" render={<Link to="/sign-up" />}>
+                Sign up
               </Button>
             </Show>
             <Show when="signed-in" treatPendingAsSignedOut={true}>

@@ -121,7 +121,18 @@ function PlanetsFilters({
 
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-muted-foreground">Owner</span>
-        <Select value={ownerFilter} onValueChange={onOwnerFilterChange}>
+        <Select<PlayerId | typeof ALL_PLAYERS>
+          value={ownerFilter}
+          items={[
+            { value: ALL_PLAYERS, label: "All players" },
+            ...owners.map((owner) => ({ value: owner.id, label: owner.alias ?? `Player ${owner.id}` })),
+          ]}
+          onValueChange={(value) => {
+            if (value !== null) {
+              onOwnerFilterChange(value)
+            }
+          }}
+        >
           <SelectTrigger aria-label="Owner" className="min-w-40">
             <SelectValue />
           </SelectTrigger>

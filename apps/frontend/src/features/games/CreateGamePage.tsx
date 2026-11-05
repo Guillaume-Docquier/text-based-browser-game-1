@@ -1,5 +1,4 @@
 import type * as ApiTypes from "@api-types"
-import { branded } from "@guillaume-docquier/tools-ts"
 import type { Enumify } from "@guillaume-docquier/tools-ts"
 import { type ReactElement, useState } from "react"
 import { MAX_NB_SEATS } from "shared/domain/games/GameConfiguration.ts"
@@ -80,9 +79,10 @@ function CreateGameForm({
           <div className="space-y-2 md:col-span-2">
             <Label>Ruleset</Label>
             <Select
-              value={rulesetId ?? ""}
+              value={rulesetId ?? null}
+              items={creationSettings.rulesets.map((ruleset) => ({ value: ruleset.id, label: ruleset.name }))}
               onValueChange={(value) => {
-                setRulesetId(branded(value))
+                setRulesetId(value ?? undefined)
               }}
             >
               <SelectTrigger aria-label="Ruleset">
@@ -123,9 +123,11 @@ function CreateGameForm({
               />
               <Select
                 value={turnIntervalUnit}
+                items={Object.values(TurnIntervalUnit).map((unit) => ({ value: unit, label: unit }))}
                 onValueChange={(value) => {
-                  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Maybe we should parse, but this will be okay
-                  setTurnIntervalUnit(value as TurnIntervalUnit)
+                  if (value !== null) {
+                    setTurnIntervalUnit(value)
+                  }
                 }}
               >
                 <SelectTrigger aria-label="Turn length unit" className="w-40">

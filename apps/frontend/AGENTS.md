@@ -1,6 +1,6 @@
 # Frontend Instructions
 
-The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn, Clerk auth, Vite, Playwright, and Storybook.
+The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn with Base UI, Clerk auth, Vite, Playwright, and Storybook.
 
 ## Structure
 

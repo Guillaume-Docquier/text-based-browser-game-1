@@ -69,3 +69,16 @@ export const Disabled: Story = {
     await expect(canvas.getByRole("button", { name: "Launch fleet" })).toBeDisabled()
   },
 }
+
+/**
+ * Composed navigation controls keep native link semantics and keyboard focus.
+ */
+export const RenderLink: Story = {
+  render: () => <Button render={<a href="#fleet-details" />}>Fleet details</Button>,
+  play: async ({ canvas, userEvent }) => {
+    const link = canvas.getByRole("link", { name: "Fleet details" })
+    await expect(link).toHaveAttribute("href", "#fleet-details")
+    await userEvent.tab()
+    await expect(link).toHaveFocus()
+  },
+}
