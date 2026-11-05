@@ -1,5 +1,5 @@
+import { cn } from "cn"
 import { type ReactElement, useId } from "react"
-import { cn } from "@/lib/cn.ts"
 
 /**
  * Displays the turn clock and the reversible lock-in action in one control.

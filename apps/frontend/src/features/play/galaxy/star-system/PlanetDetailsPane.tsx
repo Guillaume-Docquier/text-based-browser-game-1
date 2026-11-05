@@ -1,7 +1,7 @@
 import type { Planet } from "@api-types"
+import { cn } from "cn"
 import type { AnimationEvent, ReactElement } from "react"
 import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/star-system/planetBiomeColors.ts"
-import { cn } from "@/lib/cn.ts"
 
 /**
  * Displays the generated characteristics of a selected Planet.

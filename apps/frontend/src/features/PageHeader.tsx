@@ -1,5 +1,5 @@
+import { cn } from "cn"
 import type { ReactElement, ReactNode } from "react"
-import { cn } from "@/lib/cn.ts"
 
 interface PageHeaderProps {
   title: string
