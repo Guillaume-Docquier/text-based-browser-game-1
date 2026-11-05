@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update Game Design Map"
+  short_description: "Refine and arrange the shared game design map"
+  default_prompt: "Use $update-game-design-map to refine the existing concept pages or integrate my chosen one-pager into the shared map."
