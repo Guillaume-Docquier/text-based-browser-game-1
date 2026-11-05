@@ -83,7 +83,7 @@ export const NoFleets: Story = {
     const table = within(await canvas.findByRole("table", { name: "Fleets" }))
     await expect(table.getByRole("cell", { name: "No fleets" })).toHaveAttribute("colspan", "6")
     await userEvent.click(canvas.getByRole("combobox", { name: "Owner" }))
-    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole("option", { name: "Bob" }))
+    await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole("option", { name: "Bob" }))
     await expect(table.getByRole("cell", { name: "No fleets" })).toBeVisible()
   },
 }
@@ -182,7 +182,7 @@ export const FilterByOwner: Story = {
     const owner = canvas.getByRole("combobox", { name: "Owner" })
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(owner)
-    await userEvent.click(body.getByRole("option", { name: "Bob" }))
+    await userEvent.click(await body.findByRole("option", { name: "Bob" }))
     await expect(
       canvas
         .getAllByRole("row")
@@ -190,7 +190,7 @@ export const FilterByOwner: Story = {
         .map((row) => within(row).getAllByRole("cell")[0]?.textContent),
     ).toEqual(["Reserve", "Vanguard"])
     await userEvent.click(owner)
-    await userEvent.click(body.getByRole("option", { name: "All players" }))
+    await userEvent.click(await body.findByRole("option", { name: "All players" }))
     await expect(canvas.getAllByRole("row")).toHaveLength(5)
   },
 }

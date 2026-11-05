@@ -92,3 +92,8 @@
     @apply font-sans;
   }
 }
+
+#root,
+#storybook-root {
+  isolation: isolate;
+}

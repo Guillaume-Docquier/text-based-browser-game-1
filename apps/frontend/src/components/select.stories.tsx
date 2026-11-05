@@ -1,6 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { expect, within } from "storybook/test"
+import { expect, waitFor, within } from "storybook/test"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "./select.tsx"
+
+const FLEETS = [
+  { value: "expeditionary", label: "Expeditionary Fleet" },
+  { value: "home-guard", label: "Home Guard" },
+  { value: "reserve", label: "Reserve Fleet" },
+]
 
 const meta = {
   title: "Design System/Select",
@@ -12,8 +18,8 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   render: () => (
-    <Select>
-      <SelectTrigger className="w-64">
+    <Select items={FLEETS}>
+      <SelectTrigger aria-label="Fleet" className="w-64">
         <SelectValue placeholder="Choose a fleet" />
       </SelectTrigger>
       <SelectContent>
@@ -33,13 +39,50 @@ export const Default: Story = {
 
     await expect(trigger).toHaveTextContent("Choose a fleet")
     await userEvent.click(trigger)
-    await expect(body.getByRole("option", { name: "Expeditionary Fleet" })).toBeVisible()
-    await userEvent.keyboard("{ArrowDown}{Enter}")
+    await expect(await body.findByRole("option", { name: "Expeditionary Fleet" })).toBeVisible()
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{Enter}")
     await expect(trigger).toHaveTextContent("Home Guard")
+    await waitFor(async () => {
+      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    })
 
     await userEvent.click(trigger)
-    await userEvent.click(body.getByRole("option", { name: "Reserve Fleet" }))
+    await userEvent.click(await body.findByRole("option", { name: "Reserve Fleet" }))
     await expect(trigger).toHaveTextContent("Reserve Fleet")
+  },
+}
+
+/**
+ * The selected label must render before the popup has ever mounted.
+ */
+export const InitialSelection: Story = {
+  render: () => (
+    <Select items={FLEETS} defaultValue="home-guard">
+      <SelectTrigger aria-label="Fleet" className="w-64">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {FLEETS.map((fleet) => (
+          <SelectItem key={fleet.value} value={fleet.value}>
+            {fleet.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  ),
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const trigger = canvas.getByRole("combobox", { name: "Fleet" })
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(trigger).toHaveTextContent("Home Guard")
+    await userEvent.tab()
+    await userEvent.keyboard("{Enter}")
+    await expect(await body.findByRole("option", { name: "Home Guard" })).toHaveAttribute("aria-selected", "true")
+    await userEvent.keyboard("{Escape}")
+    await waitFor(async () => {
+      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    })
+    await expect(trigger).toHaveFocus()
+    await expect(trigger).toHaveTextContent("Home Guard")
   },
 }
 

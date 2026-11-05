@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
-import { expect, within } from "storybook/test"
+import { expect, waitFor, within } from "storybook/test"
 import { SearchSelect } from "./search-select.tsx"
 
 const SMALL_OPTIONS = [
@@ -37,14 +37,16 @@ export const Default: Story = {
 
     await expect(combobox).toHaveValue("")
     await userEvent.click(combobox)
-    await expect(body.getByRole("option", { name: "Home Guard" })).toBeVisible()
+    await expect(await body.findByRole("option", { name: "Home Guard" })).toBeVisible()
 
     await userEvent.type(combobox, "eXpEdItIoNaRy")
-    await expect(body.getByRole("option", { name: "Expeditionary Fleet" })).toBeVisible()
+    await expect(await body.findByRole("option", { name: "Expeditionary Fleet" })).toBeVisible()
     await expect(body.queryByRole("option", { name: "Home Guard" })).not.toBeInTheDocument()
     await userEvent.click(body.getByRole("option", { name: "Expeditionary Fleet" }))
     await expect(combobox).toHaveValue("Expeditionary Fleet")
-    await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    await waitFor(async () => {
+      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    })
 
     await userEvent.click(combobox)
     await userEvent.clear(combobox)
@@ -76,11 +78,13 @@ export const EscapePreservesSelection: Story = {
 
     await userEvent.click(combobox)
     await userEvent.type(combobox, "reserve")
-    await expect(body.getByRole("option", { name: "Reserve Fleet" })).toBeVisible()
+    await expect(await body.findByRole("option", { name: "Reserve Fleet" })).toBeVisible()
     await userEvent.keyboard("{Escape}")
 
     await expect(combobox).toHaveValue("Expeditionary Fleet")
-    await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    await waitFor(async () => {
+      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    })
   },
 }
 
@@ -92,16 +96,18 @@ export const LargeList: Story = {
 
     await userEvent.click(combobox)
     await expect(body.getAllByRole("option")).toHaveLength(50)
-    await expect(body.getByRole("option", { name: "Planet 0001" })).toBeVisible()
-    await expect(body.getByRole("option", { name: "Planet 0050" })).toBeVisible()
+    await expect(await body.findByRole("option", { name: "Planet 0001" })).toBeVisible()
+    await expect(await body.findByRole("option", { name: "Planet 0050" })).toBeVisible()
     await expect(body.getByText("Showing first 50 of 3000. Keep typing to narrow the list.")).toBeVisible()
 
     await userEvent.type(combobox, "planet 2999")
     await expect(body.getAllByRole("option")).toHaveLength(1)
-    await expect(body.getByRole("option", { name: "Planet 2999" })).toBeVisible()
+    await expect(await body.findByRole("option", { name: "Planet 2999" })).toBeVisible()
     await userEvent.click(body.getByRole("option", { name: "Planet 2999" }))
     await expect(combobox).toHaveValue("Planet 2999")
-    await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    await waitFor(async () => {
+      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    })
   },
 }
 
@@ -125,7 +131,38 @@ export const Disabled: Story = {
     await expect(combobox).toBeDisabled()
     await userEvent.click(combobox)
     await expect(combobox).toHaveValue("")
-    await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    await waitFor(async () => {
+      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    })
+  },
+}
+
+/**
+ * Tabbing out dismisses an unfinished search and keeps the selected value.
+ */
+export const TabPreservesSelection: Story = {
+  render: () => (
+    <div>
+      <SearchSelectExample label="Fleet target" options={SMALL_OPTIONS} placeholder="Choose fleet" />
+      <button type="button">Next control</button>
+    </div>
+  ),
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const combobox = canvas.getByRole("combobox", { name: "Fleet target" })
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(combobox)
+    await userEvent.click(await body.findByRole("option", { name: "Expeditionary Fleet" }))
+    await waitFor(async () => {
+      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    })
+    await userEvent.click(combobox)
+    await userEvent.type(combobox, "reserve")
+    await userEvent.tab()
+    await waitFor(async () => {
+      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    })
+    await expect(canvas.getByRole("button", { name: "Next control" })).toHaveFocus()
+    await expect(combobox).toHaveValue("Expeditionary Fleet")
   },
 }
 

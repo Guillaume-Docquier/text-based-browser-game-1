@@ -25,14 +25,12 @@ export function HomePage(): ReactElement {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <Button asChild size="lg">
-                <Link to="/games">
-                  Play for free
-                  <ArrowRight className="size-4" />
-                </Link>
+              <Button size="lg" render={<Link to="/games" />}>
+                Play for free
+                <ArrowRight className="size-4" />
               </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link to="/sign-up">Create account</Link>
+              <Button variant="outline" size="lg" render={<Link to="/sign-up" />}>
+                Create account
               </Button>
             </div>
           </CardContent>
