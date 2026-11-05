@@ -1,6 +1,6 @@
+import { cn } from "cn"
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 import * as React from "react"
-import { cn } from "@/lib/cn.ts"
 
 type ScrollAreaProps = React.ComponentProps<typeof ScrollAreaPrimitive.Root> & {
   readonly scrollbarStyle?: React.CSSProperties

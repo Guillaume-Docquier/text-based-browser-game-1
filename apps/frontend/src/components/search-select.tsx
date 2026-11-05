@@ -1,7 +1,7 @@
+import { cn } from "cn"
 import { CheckIcon, ChevronDownIcon } from "lucide-react"
 import { Popover } from "radix-ui"
 import { type JSX, useEffect, useId, useRef, useState } from "react"
-import { cn } from "@/lib/cn.ts"
 
 const MAX_VISIBLE_OPTIONS = 50
 

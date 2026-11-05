@@ -1,5 +1,6 @@
 import type { Action, ActionDefinition, Players, PlayerView, SelectedTargets, TargetTag } from "@api-types"
 import { branded } from "@guillaume-docquier/tools-ts"
+import { cn } from "cn"
 import { Check, Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { Button } from "@/components/button.tsx"
@@ -7,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RESOURCE_ICONS, sortCostsByResource } from "@/features/play/components/resourceIcons.ts"
 import { getTargetOptions, TargetPicker } from "@/features/play/components/TargetPicker.tsx"
 import { formatRulesetTerm, effectDefinitionsToRulesText } from "@/features/play/effectDefinitionToRulesText.ts"
-import { cn } from "@/lib/cn.ts"
 
 const ACTION_TIER_STYLES = {
   BASIC: {
