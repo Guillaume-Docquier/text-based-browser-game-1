@@ -43,6 +43,8 @@ Selection and refinement may span several turns. Keep the current choice and lat
 
 ## Integrate and finish
 
+When the user says to "fold" or "integrate" a selected one-pager, follow the steps:
+
 1. Resolve the chosen version from the user's request and current pages. Selection may be followed by further edits; integrate when the user asks to fold it into the map or otherwise clearly requests integration. Do not ask again after that instruction.
 2. Reinspect the chosen draft after the user's edits. Move its native root frame onto `Game design map`, preserving all children, text, and vectors. Prefer moving or cloning native nodes over recreating the design from a screenshot or incomplete export.
 3. Give the frame a clear concept name consistent with the map. Position it near its source concept, with space for the full frame and its connector.
