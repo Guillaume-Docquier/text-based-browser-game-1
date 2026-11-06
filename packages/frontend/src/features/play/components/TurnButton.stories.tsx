@@ -26,7 +26,7 @@ const meta = {
     disabled: false,
     onToggle: noop,
   },
-  play: async ({ args, canvas, userEvent }): Promise<void> => {
+  play: async ({ args, canvas, step, userEvent }): Promise<void> => {
     const button = canvas.getByRole("button", { name: args.isLockedIn ? "Cancel lock in" : "Lock in" })
     const nextControl = canvas.getByRole("button", { name: "Next control" })
     const action = canvas.getByText(args.isLockedIn ? "Cancel" : "Lock in", { exact: true })
@@ -42,6 +42,24 @@ const meta = {
       await expect(button).toBeDisabled()
     } else {
       await expect(button).toBeEnabled()
+    }
+
+    // Only the automated browser can move the real pointer and activate CSS :hover.
+    if (import.meta.env.MODE === "test") {
+      await step("Hover the turn button, then move the pointer away", async () => {
+        const { userEvent: pointer } = await import("vitest/browser")
+        await pointer.hover(button)
+        if (args.disabled && !args.isPending) {
+          await expect(clock).toBeVisible()
+          await expect(action).not.toBeVisible()
+        } else {
+          await expect(action).toBeVisible()
+          await expect(clock).not.toBeVisible()
+        }
+        await pointer.hover(nextControl)
+        await expect(clock).toBeVisible()
+        await expect(action).not.toBeVisible()
+      })
     }
 
     await userEvent.tab()
@@ -87,11 +105,13 @@ export const Interactive: Story = {
       />
     )
   },
-  play: async ({ canvas, userEvent }): Promise<void> => {
+  play: async (context): Promise<void> => {
+    await meta.play(context)
+    const { canvas, userEvent } = context
     const button = canvas.getByRole("button", { name: "Lock in" })
     const nextControl = canvas.getByRole("button", { name: "Next control" })
     await expect(button).toHaveAttribute("aria-pressed", "false")
-    await userEvent.tab()
+    await userEvent.tab({ shift: true })
     await expect(button).toHaveFocus()
     await userEvent.keyboard("{Enter}")
     await expect(button).toHaveAccessibleName("Cancel lock in")
