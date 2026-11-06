@@ -1,4 +1,4 @@
-import { Assert, noop } from "@guillaume-docquier/tools-ts"
+import { noop } from "@guillaume-docquier/tools-ts"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { type ReactElement, useState } from "react"
 import { expect } from "storybook/test"
@@ -26,27 +26,52 @@ const meta = {
     disabled: false,
     onToggle: noop,
   },
-  play: async ({ args, canvas, userEvent }): Promise<void> => {
+  play: async ({ args, canvas, step, userEvent }): Promise<void> => {
     const button = canvas.getByRole("button", { name: args.isLockedIn ? "Cancel lock in" : "Lock in" })
-    const clock = canvas.getByText(args.countdown).parentElement
-    Assert.isDefined(clock)
+    const nextControl = canvas.getByRole("button", { name: "Next control" })
+    const action = canvas.getByText(args.isLockedIn ? "Cancel" : "Lock in", { exact: true })
+    const clock = canvas.getByText(args.countdown)
     await expect(button).toHaveAttribute("aria-pressed", String(args.isLockedIn))
     await expect(button).toHaveAttribute("aria-busy", String(args.isPending))
     await expect(button).toHaveAttribute("title", args.deadline)
     await expect(button).toHaveAccessibleDescription(/02:17:43.*Turn 142/)
-    await expect(clock).toHaveTextContent(args.isLockedIn ? "Locked in" : "Next turn")
+    await expect(canvas.getByText(args.isLockedIn ? "Locked in" : "Next turn", { exact: true })).toBeVisible()
+    await expect(clock).toBeVisible()
+    await expect(action).not.toBeVisible()
     if (args.disabled) {
       await expect(button).toBeDisabled()
     } else {
       await expect(button).toBeEnabled()
     }
 
-    await userEvent.tab()
-    if (args.disabled) {
-      await expect(button).not.toHaveFocus()
-    } else {
-      await expect(button).toHaveFocus()
+    // Only the automated browser can move the real pointer and activate CSS :hover.
+    if (import.meta.env.MODE === "test") {
+      await step("Hover the turn button, then move the pointer away", async () => {
+        const { userEvent: pointer } = await import("vitest/browser")
+        await pointer.hover(button)
+        if (args.disabled && !args.isPending) {
+          await expect(clock).toBeVisible()
+          await expect(action).not.toBeVisible()
+        } else {
+          await expect(action).toBeVisible()
+          await expect(clock).not.toBeVisible()
+        }
+        await pointer.hover(nextControl)
+        await expect(clock).toBeVisible()
+        await expect(action).not.toBeVisible()
+      })
     }
+
+    await userEvent.tab()
+    if (!args.disabled) {
+      await expect(button).toHaveFocus()
+      await expect(action).toBeVisible()
+      await expect(clock).not.toBeVisible()
+      await userEvent.tab()
+    }
+    await expect(nextControl).toHaveFocus()
+    await expect(action).not.toBeVisible()
+    await expect(clock).toBeVisible()
   },
 } satisfies Meta<typeof TurnButton>
 
@@ -80,15 +105,18 @@ export const Interactive: Story = {
       />
     )
   },
-  play: async ({ canvas, userEvent }): Promise<void> => {
+  play: async (context): Promise<void> => {
+    await meta.play(context)
+    const { canvas, userEvent } = context
     const button = canvas.getByRole("button", { name: "Lock in" })
     const nextControl = canvas.getByRole("button", { name: "Next control" })
     await expect(button).toHaveAttribute("aria-pressed", "false")
-    await userEvent.tab()
+    await userEvent.tab({ shift: true })
     await expect(button).toHaveFocus()
     await userEvent.keyboard("{Enter}")
     await expect(button).toHaveAccessibleName("Cancel lock in")
     await expect(button).toHaveAttribute("aria-pressed", "true")
+    await expect(canvas.getByText("Cancel", { exact: true })).toBeVisible()
     await userEvent.tab()
     await expect(nextControl).toHaveFocus()
     await userEvent.tab({ shift: true })
@@ -96,6 +124,7 @@ export const Interactive: Story = {
     await userEvent.keyboard(" ")
     await expect(button).toHaveAccessibleName("Lock in")
     await expect(button).toHaveAttribute("aria-pressed", "false")
+    await expect(canvas.getByText("Lock in", { exact: true })).toBeVisible()
     await userEvent.tab()
     await expect(nextControl).toHaveFocus()
 
