@@ -1,5 +1,4 @@
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin"
-import react from "@vitejs/plugin-react"
 import { playwright } from "@vitest/browser-playwright"
 import { defineConfig, mergeConfig } from "vitest/config"
 import storybookViteConfig from "./.storybook/vite.config.ts"
@@ -21,22 +20,6 @@ export default mergeConfig(
           ],
           test: {
             name: "storybook",
-            browser: {
-              enabled: true,
-              provider: playwright(),
-              headless: true,
-              screenshotFailures: true,
-              instances: [{ browser: "chromium" }],
-            },
-          },
-        },
-        {
-          extends: true,
-          plugins: [react()],
-          test: {
-            name: "storybook-native",
-            include: ["src/**/*.browser.test.{ts,tsx}"],
-            setupFiles: ["./.storybook/vitest.setup.ts"],
             browser: {
               enabled: true,
               provider: playwright(),
