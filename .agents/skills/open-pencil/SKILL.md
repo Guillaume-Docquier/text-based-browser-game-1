@@ -22,6 +22,11 @@ openpencil tree design.fig
 
 Use `openpencil --help`, per-command help, and the connected MCP server’s tool schemas to check the installed version’s capabilities. See the [CLI reference](https://openpencil.dev/reference/cli) and [MCP guide](https://openpencil.dev/programmable/mcp-server) for current documentation.
 
+## Editing and verifying component instances and layers
+
+- Before editing a layer in a component instance, check whether a component property controls the value. For a change to one instance, set the property on the instance that owns it. A direct edit to the child layer can disappear when OpenPencil rebuilds the instance on load. Change the component default only when the intent is to change the shared default.
+- A child layer's position and rotation are relative to its parent. When grouping or reparenting a layer that should stay in place, record its canvas transform first. If the operation preserves that transform, keep the resulting local values. Otherwise, convert the recorded transform into the new parent's coordinate system, accounting for the parent's position and rotation on the canvas. Copying the old coordinates or subtracting positions alone can misplace the child under a rotated parent.
+
 ## Variable formulas
 
 Inside `eval`, use `openpencil.setVariableFormula('Spacing', 'large', '{base} * 2')` for numeric formulas or `openpencil.setVariableFormula('State', 'visible', '{viewport} > 1024 and not {loading}')` for Boolean formulas, which use `and`, `or`, `not` and number comparisons. Collections and variables must already exist. An optional fourth argument selects a mode by name; otherwise the default mode is edited. The call validates before mutation and returns the resolved value. Length formulas use stored pixels. The CSS stylesheet writes number formulas as `calc()`; design-token files hold the result with the formula in `$extensions`.
