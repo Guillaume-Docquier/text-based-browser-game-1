@@ -7,6 +7,7 @@
     "#shared/*": "./src/*"
   },
   "exports": {
+    "./rules-engine-poc/*": "./src/rules-engine-poc/*",
     "./domain/*": "./src/domain/*",
     "./galaxy-creation/*": "./src/galaxy-creation/*",
     "./action-submission/*": "./src/action-submission/*",

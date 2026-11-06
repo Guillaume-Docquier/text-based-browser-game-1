@@ -5,6 +5,7 @@ import type { OxlintConfig } from "oxlint"
 type Element = (typeof Elements)[keyof typeof Elements]
 type Policy = Required<Pick<DependenciesPolicy, "from" | "allow" | "disallow">>
 const Elements = {
+  RULES_ENGINE_POC: { type: "rules-engine-poc", pattern: "src/rules-engine-poc" },
   DOMAIN: { type: "domain", pattern: "src/domain" },
   TESTING: { type: "testing", pattern: "src/testing" },
   GALAXY_CREATION: { type: "galaxy-creation", pattern: "src/galaxy-creation" },
@@ -34,6 +35,10 @@ export const Boundaries = {
         checkInternals: true,
         policies: additivePolicies([
           policy({ from: fileCategory(TestFiles), onlyAllow: [Elements.TESTING] }),
+          policy({
+            from: element(Elements.RULES_ENGINE_POC),
+            onlyAllow: [Elements.RULES_ENGINE_POC, Elements.DOMAIN, Elements.TURN_RESOLUTION],
+          }),
           policy({ from: element(Elements.DOMAIN), onlyAllow: [Elements.DOMAIN] }),
           policy({ from: element(Elements.TESTING), onlyAllow: [Elements.TESTING, Elements.DOMAIN] }),
           policy({ from: element(Elements.GALAXY_CREATION), onlyAllow: [Elements.GALAXY_CREATION, Elements.DOMAIN] }),
