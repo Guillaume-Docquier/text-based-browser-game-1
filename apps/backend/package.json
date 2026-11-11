@@ -34,7 +34,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.14",
+    "@electric-sql/pglite": "^0.5.15",
     "@inquirer/prompts": "^8.7.5",
     "@testcontainers/postgresql": "^12.2.1",
     "@trpc/client": "^11.19.0",
@@ -43,7 +43,7 @@
     "@types/node": "^26.6.6",
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "catalog:",
-    "commander": "^15.0.0",
+    "commander": "^15.1.0",
     "drizzle-kit": "^0.31.11",
     "testcontainers": "^12.2.1",
     "type-fest": "catalog:",
