@@ -9,6 +9,8 @@ description: Develop a new game-concept one-pager for the OpenPencil Game Design
 
 Create an editable one-page design document that explains one game concept. Follow the one-pager approach used in Stone Librande's GDC talk: organize mechanics and design decisions so that the reader can understand their relationships at a glance. A one-pager is not a high fidelity mockup, but it must be appealing and pleasing to read. People should want to hang them on their office walls. Leverage tables, formulas, sequences, and diagrams to convey information.
 
+In visible one-pager content, use unnumbered section headings by default. Use numbers only for an explicit sequence of actions or stages where order matters and is an important concept to convey.
+
 ## Prepare three independent proposals
 
 Dispatch three subagents in parallel, one for A, B, and C. Give each a distinct layout direction suited to the content. Examples include a requirements table, an action sequence, a contribution matrix, or an annotated dependency diagram. Choose structures that explain the concept; do not produce three color variations or force the same three templates for every topic.
@@ -28,7 +30,7 @@ Each delegation must contain:
 - The assigned layout direction and why it suits the concept.
 - The theme, typography, page dimensions or width reference, and relevant read-only reference IDs.
 - The exact document ID, owned page/root IDs, and prohibition on changing other agents' pages, the game map, or document-wide settings and tokens.
-- Instructions to use native editable elements, concise copy, useful diagrams, and clear one-pager boundaries.
+- Instructions to use native editable elements, concise copy, useful diagrams, clear one-pager boundaries, and the heading and sequence numbering guidance in Outcome.
 - Instructions to inspect the rendered result, check overflow and lint, fix issues within the assigned page, and return the root ID, preview, and any unresolved issue.
 
 ## Review and refine

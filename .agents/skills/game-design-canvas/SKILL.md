@@ -1,9 +1,11 @@
 ---
 name: game-design-canvas
-description: Maintain the Game Design Canvas in OpenPencil. Use when updating the game design canvas or updating one pagers.
+description: Maintain the Heirs of Sol Game Design Canvas in OpenPencil. Use when updating the game design canvas or updating one pagers.
 ---
 
 # Game Design Canvas
+
+We are pivoting from "Cosmic Empires" to "Heirs of Sol". The Game Design Canvas is for Heirs of Sol, not Cosmic Empires and describes a slightly different game in a similar setting.
 
 ## Purpose and target
 
