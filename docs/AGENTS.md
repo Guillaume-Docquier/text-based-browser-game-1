@@ -24,17 +24,7 @@ ADRs live in `architecture/decisions/` and capture durable architecture decision
 GDDRs live in `game-design/decisions/` and capture durable game philosophy and mechanics.
 
 - GDDRs are human-initiated. Explain a candidate's durable impact and ask the human before creating one.
-- Read relevant GDDRs before gameplay work.
-- When implementation realizes a planned GDDR, change its status to `Implemented` and move its index entry.
-- If implementation differs from the planned decision, discuss the mismatch with the human before changing the record or game direction.
+- Read and follow relevant accepted GDDRs before gameplay work.
+- GDDR statuses describe design decisions. Implementation changes do not change their status.
+- If implementation differs from an accepted decision, discuss the mismatch with the human before changing the record or game direction.
 - Follow `game-design/decisions/how-to.md` when proposing, creating, or updating a GDDR.
-
-## Game Systems
-
-System documents live in `game-design/systems/` and describe how game mechanics work.
-
-- Update existing System documentation when implementation changes its behavior or status.
-- Creating a System requires explicit human approval. If a System appears to be missing, ask before creating it.
-- When implementation realizes a planned System, change its status to `Implemented` and move its Systems-index entry.
-- If implementation differs from the planned System, discuss the mismatch with the human before changing documentation or game direction.
-- Follow `game-design/systems/how-to.md` when creating or updating a System.

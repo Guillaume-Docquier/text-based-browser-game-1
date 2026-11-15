@@ -1,10 +1,8 @@
-# Space
+# Space Themed
 
 ## Status
 
-Implemented
-
-- [x] Space theme
+Accepted
 
 ## Context
 

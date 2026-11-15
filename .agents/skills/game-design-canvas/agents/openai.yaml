@@ -1,0 +1,4 @@
+interface:
+  display_name: "Game Design Canvas"
+  short_description: "Refine and arrange the shared Game Design Canvas"
+  default_prompt: "Use $game-design-canvas to update the existing concept pages using OpenPencil."
