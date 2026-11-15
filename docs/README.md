@@ -22,8 +22,7 @@ Use this map to find the smallest useful documentation set for a change. Do not 
 It all starts with game design:
 
 - `game-design/brainstorm/` is where we keep future and past ideas.
-- `game-design/decisions/` is where we keep track of game design decisions to understand why the game is the way it is, which leads to systems.
-- `game-design/systems/` is where we keep track of how the game mechanics work, in detail, and which decisions they support.
+- `game-design/decisions/` is where we keep durable decisions about the game's philosophy and direction.
 
 Then we derive the architecture:
 
@@ -32,6 +31,7 @@ Then we derive the architecture:
 ## Source Of Truth
 
 - The code is the source of truth for current behavior.
+- Accepted GDDRs are the source of truth for durable game design decisions.
 - Accepted ADRs are the source of truth for durable architecture decisions.
 - `AGENTS.md` is the source of truth for agent workflow, verification, commands, and project-specific gotchas.
 - Files under `game-design/brainstorm/` are design notes. They do not mean a feature is implemented.

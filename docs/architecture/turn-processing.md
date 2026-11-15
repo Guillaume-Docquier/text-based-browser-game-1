@@ -13,7 +13,7 @@ The turn processing pipeline doesn't know much about how turns are resolved. It 
 1. The worker calls `resolveTurn` with those inputs. The Rules Engine revalidates submissions, creates their Effects, and resolves them through engine-owned Phases.
 1. On success, the worker saves the resulting game state and moves the Turn to `COMPLETED`. If the game continues, it creates the next Turn, its Available Action Instances, and its processing queue row; otherwise it records the game as ended.
 
-The diagram shows the successful resolution path. See [System 001-turns](../game-design/systems/001-turns.md) for the Turn lifecycle. Failure-mode policy reconciliation remains tracked in [#433](https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/433).
+The diagram shows the successful resolution path. Failure-mode policy reconciliation remains tracked in [#433](https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/433).
 
 ```mermaid
 sequenceDiagram
@@ -43,6 +43,6 @@ A game's selected Ruleset supplies its Action Definitions, their costs and compo
 
 Phase order belongs to the Rules Engine and is the same for every Ruleset. `resolvePhases` fixes that sequence in code; each Phase coordinates its own Effects. Changing Phase order or adding unsupported behavior requires engine changes. A Ruleset cannot reorder Phases.
 
-Use the [Rules Engine guide](turn-resolution.md) for the implementation structure, [GDDR 009](../game-design/decisions/009-deterministic-data-driven-rules-engine.md) for the design decision, and [System 015-rules-engine](../game-design/systems/015-rules-engine.md) for the Phase table and current gameplay scope.
+Use the [Rules Engine guide](turn-resolution.md) for the implementation structure and Phase order.
 
-Rulesets are currently developer-authored and persisted. Immutable snapshots, versioning, and player-authored Rulesets remain future capabilities; System 015 records the current mutable-seed exception and planned authoring boundary.
+Rulesets are currently developer-authored and persisted.

@@ -65,8 +65,8 @@ Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. Thi
 - Read `docs/typescript-coding-standards.md` before writing TypeScript.
 - Read `docs/glossary.md` for project-specific terms. Update it when introducing new vocabulary.
 - Before changing architecture, read the ADR index and relevant accepted ADRs. Stop and discuss any contradiction with the human.
-- Before implementing gameplay, read the relevant GDDRs and game Systems. Keep their implementation status and indexes synchronized with live behavior, and flag design mismatches before changing direction.
-- New GDDRs and game Systems require explicit human approval. Follow `docs/AGENTS.md` when editing documentation.
+- Before implementing gameplay, read and follow the relevant accepted GDDRs. Discuss design mismatches with the human before changing direction.
+- New GDDRs require explicit human approval. Follow `docs/AGENTS.md` when editing documentation.
 
 ## Commands
 
