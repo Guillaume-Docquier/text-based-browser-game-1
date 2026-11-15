@@ -4,7 +4,7 @@
 
 Accepted
 
-Supersedes [ADR-010](./010-router-controller-repository.md).
+Supersedes [ADR-010](./deprecated/010-router-controller-repository.md).
 
 ## Context
 

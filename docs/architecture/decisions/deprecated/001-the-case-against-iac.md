@@ -2,7 +2,7 @@
 
 ## Status
 
-Superseded by [ADR-034](./034-use-railway-infrastructure-as-code.md).
+Superseded by [ADR-034](../034-use-railway-infrastructure-as-code.md).
 
 ### Amendment history
 

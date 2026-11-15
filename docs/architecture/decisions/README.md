@@ -34,17 +34,14 @@ This index summarizes all accepted ADRs. When applying the concepts, you should 
 | [033-router-use-case-repository](./033-router-use-case-repository.md)                                                   | Supersedes ADR-010; the evolution of the `backend/src/api/` structure.                                                                                                                         | You add a new feature to the backend API.                                        |
 | [034-use-railway-infrastructure-as-code](./034-use-railway-infrastructure-as-code.md)                                   | Use Railway's project-level Infrastructure as Code for the deployed environment.                                                                                                               | You change Railway infrastructure or deployment settings.                        |
 
-## Deprecated / Superseded ADRs
+## Deprecated / Superseded / Rejected ADRs
 
-| ADR                                                                       | Summary                                                                    | Use when                                                  |
-| ------------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------- |
-| [001-the-case-against-iac](./001-the-case-against-iac.md)                 | Superseded by [ADR-034](./034-use-railway-infrastructure-as-code.md).      | Reviewing the previous Railway configuration decision.    |
-| [003-manual-db-migrations](./003-manual-db-migrations.md)                 | DB migrations in production are done manually.                             | Making changes to the db schema.                          |
-| [004-duplicated-tools-versions](./004-duplicated-tools-versions.md)       | Some tools version are duplicated because of the Railway deployment setup. | Making changes to tools (pnpm, node) version.             |
-| [010-router-controller-repository](./010-router-controller-repository.md) | Superseded by [ADR-033](./033-router-use-case-repository.md).              | Reviewing the previous backend API architecture decision. |
+These records are kept in `deprecated/` for historical context.
 
-## Rejected ADRs
-
-| ADR                                                                                                         | Summary                                                                                                                                | Use when                                                            |
-| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| [032-use-explicit-ipv4-loopback-for-local-services](./032-use-explicit-ipv4-loopback-for-local-services.md) | Rejected because Vite's temporary wildcard port probes can trigger Windows Firewall even when the configured server binds to loopback. | Investigating Windows Firewall prompts during local server startup. |
+| ADR                                                                                                                    | Status                                                                                                                      |
+| ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| [001-the-case-against-iac](./deprecated/001-the-case-against-iac.md)                                                   | Superseded by [ADR-034](./034-use-railway-infrastructure-as-code.md).                                                       |
+| [003-manual-db-migrations](./deprecated/003-manual-db-migrations.md)                                                   | Superseded by [ADR-025](./025-backend-initiated-db-migrations.md).                                                          |
+| [004-duplicated-tools-versions](./deprecated/004-duplicated-tools-versions.md)                                         | Superseded by [ADR-014](./014-pnpm-workspaces-and-shared-railway-monorepo.md).                                              |
+| [010-router-controller-repository](./deprecated/010-router-controller-repository.md)                                   | Superseded by [ADR-033](./033-router-use-case-repository.md).                                                               |
+| [032-use-explicit-ipv4-loopback-for-local-services](./deprecated/032-use-explicit-ipv4-loopback-for-local-services.md) | Rejected because Vite's temporary wildcard port probes can trigger Windows Firewall even when the server binds to loopback. |

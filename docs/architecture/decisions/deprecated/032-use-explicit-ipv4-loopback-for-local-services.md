@@ -10,7 +10,7 @@ Rejected
 
 ## Context
 
-Local development and tests run directly on the host, following [ADR-002](./002-avoid-docker-for-dev.md). Autonomous agents create isolated Git worktrees with separate application ports and their own pnpm-managed Node executable paths.
+Local development and tests run directly on the host, following [ADR-002](../002-avoid-docker-for-dev.md). Autonomous agents create isolated Git worktrees with separate application ports and their own pnpm-managed Node executable paths.
 
 When a local server listens on all network interfaces, Windows Firewall can request permission for inbound network access. Its [application rules use full executable paths](https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/rules#applications-rules), so allowing Node in one worktree does not cover a different worktree's executable. Repeated prompts require a human to be present and interrupt unattended agent workflows.
 

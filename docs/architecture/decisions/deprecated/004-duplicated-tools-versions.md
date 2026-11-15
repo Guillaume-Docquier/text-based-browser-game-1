@@ -2,7 +2,7 @@
 
 ## Status
 
-Superseded by [014-pnpm-workspaces-and-shared-railway-monorepo](./014-pnpm-workspaces-and-shared-railway-monorepo.md)
+Superseded by [014-pnpm-workspaces-and-shared-railway-monorepo](../014-pnpm-workspaces-and-shared-railway-monorepo.md)
 
 ## Context
 

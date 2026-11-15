@@ -4,7 +4,7 @@
 
 Accepted
 
-Supersedes [004-duplicated-tools-versions](./004-duplicated-tools-versions.md)
+Supersedes [004-duplicated-tools-versions](./deprecated/004-duplicated-tools-versions.md)
 
 ### Amendment history
 

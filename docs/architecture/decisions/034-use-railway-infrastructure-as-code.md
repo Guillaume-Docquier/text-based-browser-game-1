@@ -4,7 +4,7 @@
 
 Accepted
 
-Supersedes [ADR-001](./001-the-case-against-iac.md).
+Supersedes [ADR-001](./deprecated/001-the-case-against-iac.md).
 
 ## Context
 
