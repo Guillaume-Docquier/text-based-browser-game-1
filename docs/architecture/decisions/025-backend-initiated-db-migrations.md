@@ -4,7 +4,7 @@
 
 Accepted
 
-Supersedes [003-manual-db-migrations](./003-manual-db-migrations.md)
+Supersedes [003-manual-db-migrations](./deprecated/003-manual-db-migrations.md)
 
 ## Context
 

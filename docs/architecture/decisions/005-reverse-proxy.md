@@ -27,7 +27,7 @@ We didn't configure it, but it works by:
 
 ### Configuration
 
-The [config.json](../../infra/reverse-proxy/config.json) file contains the configuration of the reverse proxy.
+The [config.json](../../../infra/reverse-proxy/config.json) file contains the configuration of the reverse proxy.
 
 This is not truly used to configure it, just to represent it.
 

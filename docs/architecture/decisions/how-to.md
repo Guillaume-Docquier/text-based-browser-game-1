@@ -95,7 +95,7 @@ Do not proceed to Phase 2 until the human confirms the summary.
 ### Phase 2: Draft the ADR
 
 1. Copy `docs/architecture/decisions/000-adr-template.md`.
-2. Choose the next numeric filename, using the existing `NNN-slug.md` convention.
+2. Choose the next numeric filename, using the existing `NNN-slug.md` convention. Include records in `deprecated/` when finding the next number; do not reuse an ADR number.
 3. Use a title that names the decision, not just the problem.
 4. Fill the template sections:
    - `Status`: Usually `Proposed` for a draft and `Accepted` once agreed. Use `Rejected`, `Deprecated`, or `Superseded` when updating old decisions.
@@ -158,4 +158,6 @@ To amend an accepted ADR:
 
 Status changes on accepted ADRs are amendments too. Record deprecation or supersession in the amendment history and explain the replacement path in the ADR body.
 
-Update `docs/architecture/decisions/README.md` when an ADR is accepted, deprecated, superseded, or otherwise changes how contributors should use the index.
+Keep proposed and accepted ADRs in `docs/architecture/decisions/`. Move rejected, deprecated, or superseded ADRs into `docs/architecture/decisions/deprecated/`, preserving their filenames. Update links to and from moved records.
+
+Update `docs/architecture/decisions/README.md` when an ADR is accepted, rejected, deprecated, superseded, or otherwise changes how contributors should use the index. Keep historical entries in the main index under the deprecated, superseded, and rejected ADRs section.

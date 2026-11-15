@@ -2,7 +2,7 @@
 
 ## Status
 
-Superseded by [ADR-033](./033-router-use-case-repository.md).
+Superseded by [ADR-033](../033-router-use-case-repository.md).
 
 ### Amendment history
 
