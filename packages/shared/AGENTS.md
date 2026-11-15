@@ -1,10 +1,10 @@
 # Shared Package Instructions
 
-The `shared` package contains persistence agnostic domain definitions and gameplay behavior used by the frontend and backend. Its behavioral areas include galaxy creation, action submission, and turn resolution. Its testing utilities include the independent Test Ruleset in `src/testing/test-ruleset`, used by shared tests and backend test setup.
+The `shared` package contains persistence agnostic domain definitions and gameplay behavior used by the frontend and backend. The package is pure and isomorphic.
 
 ## Architecture
 
-The package contains domain definitions and gameplay behavior shared by the frontend and backend, including galaxy creation, action submission, rulesets, and turn resolution. It uses Vitest for tests.
+The main concern of the shared package are galaxy creation and turn resolution. It uses Vitest for tests.
 
 There is no package build. Code must support isolated modules and erasable TypeScript syntax so it can run natively in Node and be bundled for the browser. Do not use features such as enums or decorators.
 

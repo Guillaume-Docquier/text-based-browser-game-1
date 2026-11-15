@@ -73,7 +73,7 @@ Use `Assert.isExhausted` for exhaustive union handling when TypeScript is not al
 
 Boundary code should always parse incoming data, and optionally validate it. Use Zod schemas for parsing and validation.
 
-Schemas that validate should return a branded type and an immutable data structure to capture the data validity. Parsing only schema don't have to return a branded type of immutable data structures.
+Branding is required for schema constraints not represented by the TypeScript type. The data should be immutable to preserve its validity. Most, if not all, schemas that perform validation will need a branded type. Parsing-only schemas don't have to return a branded type or immutable data structures.
 
 ## Branded types and correct construction
 
@@ -223,7 +223,7 @@ For persistence behavior, prefer PGLite/local DB-backed tests over hand-rolled i
 
 ## Imports, exports, and files
 
-Prefer direct imports from the file that owns the abstraction. Do not use barrel files or re-exports.
+Prefer direct imports from the file that owns the abstraction. Do not use barrel files or re-exports. The backend API types is the only file that can re-export, and it re-exports only types for the frontend.
 
 For domain modules, avoid namespace imports if you need to preserve the module shape. Export a const instead:
 
