@@ -7,10 +7,11 @@ Accepted
 ### Amendment history
 
 - 2026-09-28: Clarified that named backend API contract imports remain the type-only exception to the app boundary in amended ADR-007.
+- 2026-11-15: Updated the contract source path after moving the backend to `packages/backend`.
 
 ## Context
 
-The frontend consumes backend contracts through the tRPC router types exported from `apps/backend/src/api/types.ts`. [ADR-007](./007-code-sharing.md) allows this type-only import from the backend API while requiring runtime code shared between apps to live in workspace packages.
+The frontend consumes backend contracts through the tRPC router types exported from `packages/backend/src/api/types.ts`. [ADR-007](./007-code-sharing.md) allows this type-only import from the backend API while requiring runtime code shared between apps to live in workspace packages.
 
 Frontend features sometimes need a nested part of an API response, such as a Star System Body. Deriving that type locally with indexed access duplicates knowledge of the backend response structure:
 
@@ -22,9 +23,9 @@ This creates boilerplate, makes the type harder to reuse, and couples frontend f
 
 ## Decision
 
-`apps/backend/src/api/types.ts` is the catalog of named backend API contract types available to the frontend.
+`packages/backend/src/api/types.ts` is the catalog of named backend API contract types available to the frontend.
 
-When the frontend needs a complete response type or a nested type from a backend contract, that type must be exported with a reusable name from `apps/backend/src/api/types.ts`. Indexed-access derivation of backend contract types belongs in that file, not in frontend feature code.
+When the frontend needs a complete response type or a nested type from a backend contract, that type must be exported with a reusable name from `packages/backend/src/api/types.ts`. Indexed-access derivation of backend contract types belongs in that file, not in frontend feature code.
 
 Frontend code imports those named contract types with `import type` from `@api-types`. It must not import runtime code or other backend modules through this exception.
 
@@ -34,4 +35,4 @@ Frontend code may define types for frontend-only concerns, such as component sta
 
 Frontend features have shorter and more stable type declarations. Reusable API concepts have consistent names, and changes to nested backend response structures are localized to the API type boundary.
 
-`apps/backend/src/api/types.ts` contains exported aliases derived from the tRPC router output, providing a discoverable contract surface without spreading structural knowledge throughout the frontend. The type-only dependency makes backend API changes visible to frontend typechecking.
+`packages/backend/src/api/types.ts` contains exported aliases derived from the tRPC router output, providing a discoverable contract surface without spreading structural knowledge throughout the frontend. The type-only dependency makes backend API changes visible to frontend typechecking.

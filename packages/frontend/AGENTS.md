@@ -30,9 +30,9 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn 
 ## Backend API Types
 
 - Import named backend contract types with `import type` from `@api-types`. Do not use indexed access to extract nested API types in frontend code, or unroll/reconstruct their shapes locally.
-- When a needed contract type is missing, add a named export in `apps/backend/src/api/types.ts` derived from the tRPC router output (`inferRouterOutputs<TrpcRouter>`). Derive nested types there as well, so the frontend uses the actual API output type despite Zod inference quirks.
+- When a needed contract type is missing, add a named export in `packages/backend/src/api/types.ts` derived from the tRPC router output (`inferRouterOutputs<TrpcRouter>`). Derive nested types there as well, so the frontend uses the actual API output type despite Zod inference quirks.
 - Do not re-export other backend types as frontend contracts. Direct re-exports are reserved for simple branded scalar types, such as IDs and `TargetTag`.
-- This type-only API contract import is the exception to the app boundary. Runtime code shared with the backend belongs in `packages/`; do not import other backend modules. Frontend-only types for component state, rendering, and interactions may remain in the frontend. See ADR-007 and ADR-022.
+- This type-only API contract import is the exception to the app boundary. Runtime code shared with the backend belongs in `packages/shared/`; do not import other backend modules. Frontend-only types for component state, rendering, and interactions may remain in the frontend. See ADR-007 and ADR-022.
 
 ## End-to-end Tests
 

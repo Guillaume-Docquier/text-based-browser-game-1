@@ -265,7 +265,7 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
-  apps/backend:
+  packages/backend:
     dependencies:
       '@clerk/express':
         specifier: ^2.1.88
@@ -293,7 +293,7 @@ importers:
         version: 8.23.1
       shared:
         specifier: workspace:*
-        version: link:../../packages/shared
+        version: link:../shared
       uuid:
         specifier: 'catalog:'
         version: 14.0.3
@@ -347,7 +347,7 @@ importers:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.6)(@vitest/browser-playwright@5.0.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
-  apps/frontend:
+  packages/frontend:
     dependencies:
       '@base-ui/react':
         specifier: ^1.9.0
@@ -399,7 +399,7 @@ importers:
         version: 4.23.0(babel-plugin-macros@3.1.0)(supports-color@7.2.0)
       shared:
         specifier: workspace:*
-        version: link:../../packages/shared
+        version: link:../shared
       tailwindcss:
         specifier: ^4.3.5
         version: 4.3.5

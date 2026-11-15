@@ -21,10 +21,10 @@ pnpm --filter frontend e2e --add-reporter=list
 
 In other shells, set the same environment variables for the test command. These settings print tests and steps while preserving the HTML report without automatically serving it after failures.
 
-For a focused run, add a spec path relative to `apps/frontend`, such as `playwright/specs/planets.spec.ts`. Keep Playwright's setup dependencies enabled so Clerk authentication runs.
+For a focused run, add a spec path relative to `packages/frontend`, such as `playwright/specs/planets.spec.ts`. Keep Playwright's setup dependencies enabled so Clerk authentication runs.
 
 ## Progress and results
 
 Poll the returned terminal session with `write_stdin` until the command exits. Assess quiet intervals using the latest test or step, test timeout, and diagnostics; passing test output alone does not confirm server cleanup finished.
 
-Report the test counts, command exit code, and relevant failures or warnings. The HTML report is saved at `apps/frontend/playwright-report/index.html`.
+Report the test counts, command exit code, and relevant failures or warnings. The HTML report is saved at `packages/frontend/playwright-report/index.html`.

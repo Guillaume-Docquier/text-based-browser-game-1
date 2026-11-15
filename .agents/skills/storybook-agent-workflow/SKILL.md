@@ -5,11 +5,11 @@ description: Use Storybook's maintained guidance for frontend component, story, 
 
 # Storybook agent workflow
 
-Read [frontend AGENTS.md](../../../apps/frontend/AGENTS.md) for standing frontend conventions. This skill supplies the operating instructions and repository overrides for [ADR-031](../../../docs/architecture/decisions/031-storybook-agent-workflows.md).
+Read [frontend AGENTS.md](../../../packages/frontend/AGENTS.md) for standing frontend conventions. This skill supplies the operating instructions and repository overrides for [ADR-031](../../../docs/architecture/decisions/031-storybook-agent-workflows.md).
 
 ## Load maintained guidance
 
-Before UI work, read Storybook's installed skills from `apps/frontend`:
+Before UI work, read Storybook's installed skills from `packages/frontend`:
 
 ```powershell
 pnpm exec storybook skills stories
@@ -24,9 +24,9 @@ Run each `pnpm exec storybook tools <toolset> <tool>` command with `--help` befo
 
 1. Run `pnpm exec storybook tools docs list --withStoryIds true`, then `docs show --id <returned-component-id>` for relevant components. Reuse existing components and verify their props. If generated docs omit an API or show an unresolved example/import, read the actual component and colocated story; use this repository's imports.
 2. Develop with isolated stories and deterministic state. Import a colocated story's main component by relative path so the current metadata extractor resolves its API. Keep selective story coverage: add stories for meaningful shared or feature-component states, not every local JSX component or every prop combination. Explain a non-obvious scenario's purpose with a short story JSDoc comment.
-3. Use `stories changed` and `stories find-by-component` to find affected stories, including consumers of shared styles or utilities. `stories changed` examines uncommitted working-tree changes; for a committed branch or PR review, inspect `git diff <base-ref>...HEAD -- apps/frontend` instead. Verify coverage against that diff and map missing components or shared dependencies with `find-by-component`; an empty result does not prove no stories are affected.
+3. Use `stories changed` and `stories find-by-component` to find affected stories, including consumers of shared styles or utilities. `stories changed` examines uncommitted working-tree changes; for a committed branch or PR review, inspect `git diff <base-ref>...HEAD -- packages/frontend` instead. Verify coverage against that diff and map missing components or shared dependencies with `find-by-component`; an empty result does not prove no stories are affected.
 4. Run `test run --stories '[{"storyId":"<returned-story-id>"}]'` for focused feedback; the array contains objects, not bare IDs. If Chromium is missing, run `pnpm --filter frontend exec playwright install chromium` from the repository root. Focused Storybook runs omit `storybook-native`; run `pnpm --filter frontend storybook:test` before handoff when changing components, stories, or shared UI dependencies.
-5. Reuse a Storybook server from the same checkout, or start `pnpm storybook --no-open --port <chosen-port> --exact-port` from `apps/frontend`. Give concurrent worktrees separate ports; the worktree setup script does not assign a Storybook port. `--exact-port` prevents silently switching ports or prompting when the chosen port is occupied. Keep tool commands in that checkout's frontend directory. Use `stories preview` to obtain links, inspect affected states in a browser, and use `review create` for a focused local review when available. Leave the server running when sharing live links.
+5. Reuse a Storybook server from the same checkout, or start `pnpm storybook --no-open --port <chosen-port> --exact-port` from `packages/frontend`. Give concurrent worktrees separate ports; the worktree setup script does not assign a Storybook port. `--exact-port` prevents silently switching ports or prompting when the chosen port is occupied. Keep tool commands in that checkout's frontend directory. Use `stories preview` to obtain links, inspect affected states in a browser, and use `review create` for a focused local review when available. Leave the server running when sharing live links.
 
 ## Test quality overrides
 

@@ -38,7 +38,7 @@ export default defineRailway(() => {
     build: {
       builder: "RAILPACK",
       buildCommand: "pnpm --filter frontend build",
-      watchPatterns: ["apps/frontend/**", ...sharedWatchPatterns],
+      watchPatterns: ["packages/frontend/**", ...sharedWatchPatterns],
     },
     replicas: { "us-east4-eqdc4a": 1 },
     deploy: { sleepApplication: true },
@@ -49,7 +49,7 @@ export default defineRailway(() => {
     source: applicationSource,
     build: {
       builder: "RAILPACK",
-      watchPatterns: ["apps/backend/**", ...sharedWatchPatterns],
+      watchPatterns: ["packages/backend/**", ...sharedWatchPatterns],
     },
     start: "pnpm --filter backend start",
     replicas: { "us-east4-eqdc4a": 1 },

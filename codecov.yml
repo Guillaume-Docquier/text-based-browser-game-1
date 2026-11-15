@@ -1,7 +1,7 @@
 flags:
   backend:
     paths:
-      - apps/backend/src/
+      - packages/backend/src/
   shared:
     paths:
       - packages/shared/src/

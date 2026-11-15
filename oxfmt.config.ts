@@ -3,5 +3,5 @@ import { defineConfig } from "oxfmt"
 
 export default defineConfig({
   ...base,
-  ignorePatterns: ["pnpm-lock.yaml", "dist", ".pnpm-store", "*.gen.*", "apps/backend/drizzle/**"],
+  ignorePatterns: ["pnpm-lock.yaml", "dist", ".pnpm-store", "*.gen.*", "packages/backend/drizzle/**"],
 })
