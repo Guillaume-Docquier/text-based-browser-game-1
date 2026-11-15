@@ -577,3 +577,7 @@ Maybe players can build their "deck" and bring it in game? Need to be restrictiv
 - A trade can offer multiple things, but must request either Credits or Shares in exchange.
 - A small number of global currencies should make trades more likely to be accepted.
 - Trades take at least 2 Turns, encouraging infrequent trades with a large impact.
+
+## Transport contribution
+
+Should transportation be worth more the furthest the resource was extracted? Transporting something for 2 LY should be worth less than transporting across 50 LY. It can't be total transport distance because then you'll just zig zag to farm.
