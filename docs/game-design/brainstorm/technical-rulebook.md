@@ -568,3 +568,12 @@ Maybe players can build their "deck" and bring it in game? Need to be restrictiv
 - Example: A shared technology needs 100 more research points, and two players each contribute 100 research points in the same Turn.
 - Proposal: Use Initiative as a global modifier to determine resolution order. A simple starting rule could be that the player with the highest Initiative resolves first on any Action. This idea may need further development.
 - Open question: When players have equal Initiative, should resolution use a random order or split the remaining contribution equally between them? The choice may depend on the specific Effects.
+
+## Credits and Trade
+
+- Proposal: Use Credits as the single global Resource for building infrastructure and Ships and conducting research.
+- Shares and Credits are tradeable Resources. Technology (patents), Planet data, and Ships are also tradeable.
+- The trade board accepts bids to break ties.
+- A trade can offer multiple things, but must request either Credits or Shares in exchange.
+- A small number of global currencies should make trades more likely to be accepted.
+- Trades take at least 2 Turns, encouraging infrequent trades with a large impact.
