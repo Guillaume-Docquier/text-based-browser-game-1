@@ -9,6 +9,7 @@ Accepted
 - 2026-06-20: Clarified when a function should return a plain value instead of a `Result`.
 - 2026-09-02: Clarified when repositories don't need to wrap db calls in `Result.tryCatch`.
 - 2026-10-17: Clarified operation-specific rollback errors and their conversion to `Result` after rollback, matching the existing transaction boundary.
+- 2026-11-15: Updated backend source links after moving the app to `packages/backend`.
 
 ## Context
 
@@ -26,9 +27,9 @@ Use `Result` only when an operation has an expected failure that its caller must
 
 The only throwing allowed is fatal errors with the intent to crash the app, or operation-specific subclasses of `TransactionRollbackError` inside database transactions. Fatal errors should never be caught. API use cases define their rollback subclass in the companion `*.error.ts` module, as described in [ADR-033](./033-router-use-case-repository.md#use-case).
 
-Do not return `Result.Failure` from a transaction callback or catch a rollback error there. Let the error escape so Drizzle rolls back. Wrap the entire transaction promise in `Result.tryCatch`, as [createCreateTransaction](../../../apps/backend/src/lib/db/createDb.ts) does. After the transaction has rejected and rollback has completed, the use case may convert the resulting typed rollback error to its operation's `Result.Failure`.
+Do not return `Result.Failure` from a transaction callback or catch a rollback error there. Let the error escape so Drizzle rolls back. Wrap the entire transaction promise in `Result.tryCatch`, as [createCreateTransaction](../../../packages/backend/src/lib/db/createDb.ts) does. After the transaction has rejected and rollback has completed, the use case may convert the resulting typed rollback error to its operation's `Result.Failure`.
 
-For example, [UpdateActionSubmissionRollbackError](../../../apps/backend/src/api/gameplay/updateActionSubmission.error.ts) is defined in the operation's error module. [UpdateActionSubmissionUseCase](../../../apps/backend/src/api/gameplay/updateActionSubmission.useCase.ts) imports that subclass, throws it inside the transaction callback, then maps its `code` to `Result.Failure` after awaiting `createTransaction`.
+For example, [UpdateActionSubmissionRollbackError](../../../packages/backend/src/api/gameplay/updateActionSubmission.error.ts) is defined in the operation's error module. [UpdateActionSubmissionUseCase](../../../packages/backend/src/api/gameplay/updateActionSubmission.useCase.ts) imports that subclass, throws it inside the transaction callback, then maps its `code` to `Result.Failure` after awaiting `createTransaction`.
 
 ## Consequences
 

@@ -77,7 +77,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: storybook-test-results
-          path: apps/frontend/test-results/storybook/
+          path: packages/frontend/test-results/storybook/
           if-no-files-found: ignore
 
   e2e:
@@ -122,7 +122,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-videos
-          path: apps/frontend/test-results/**/*.webm
+          path: packages/frontend/test-results/**/*.webm
           if-no-files-found: ignore
 
   backend:
@@ -146,14 +146,14 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: backend-coverage
-          path: apps/backend/coverage/lcov.info
+          path: packages/backend/coverage/lcov.info
           if-no-files-found: error
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           fail_ci_if_error: true
-          files: ./apps/backend/coverage/lcov.info
+          files: ./packages/backend/coverage/lcov.info
           disable_search: true
           # Vitest already generated LCOV; skip unrelated native/Python coverage collectors.
           plugins: noop

@@ -2,12 +2,12 @@
 <module type="WEB_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
-      <excludeFolder url="file://$MODULE_DIR$/apps/backend/coverage" />
-      <excludeFolder url="file://$MODULE_DIR$/apps/frontend/playwright-report" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/backend/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/frontend/playwright-report" />
       <excludeFolder url="file://$MODULE_DIR$/generated" />
       <excludeFolder url="file://$MODULE_DIR$/show-me.html" />
       <excludeFolder url="file://$MODULE_DIR$/packages/game-rules/coverage" />
-      <excludeFolder url="file://$MODULE_DIR$/apps/frontend/playwright/.clerk" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/frontend/playwright/.clerk" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

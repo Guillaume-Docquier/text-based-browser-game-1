@@ -10,6 +10,8 @@ Accepted
 
 - 2026-10-01: Add browser component testing with the Vitest addon so isolated UI behavior can move out of end-to-end tests.
 
+- 2026-11-15: Updated the story discovery path after moving the frontend to `packages/frontend`.
+
 ## Context
 
 Reusable frontend components live in `frontend/src/components`, but inspecting them currently requires finding or creating an application page that renders each relevant state. This makes design-system review slower and couples component inspection to feature development.
@@ -20,7 +22,7 @@ The project needs an isolated sandbox for manually reviewing shared components a
 
 Use Storybook 10 with the React Vite framework as the local component-inspection sandbox, with Design System first in the sidebar and Application second.
 
-Stories are colocated with their components and use the `*.stories.tsx` suffix. Storybook discovers stories throughout `apps/frontend/src`. Shared components in `src/components` use titles starting with `Design System/`; feature components use `Application/`. Application is a broad section for now. Global application styles are loaded in the Storybook preview so components render with the same Tailwind, Shadcn, font, and theme definitions as the frontend.
+Stories are colocated with their components and use the `*.stories.tsx` suffix. Storybook discovers stories throughout `packages/frontend/src`. Shared components in `src/components` use titles starting with `Design System/`; feature components use `Application/`. Application is a broad section for now. Global application styles are loaded in the Storybook preview so components render with the same Tailwind, Shadcn, font, and theme definitions as the frontend.
 
 Storybook uses a minimal Vite configuration containing the Tailwind plugin instead of loading the application Vite configuration. This keeps component inspection independent from application environment variables, backend proxy configuration, and TanStack Router generation.
 

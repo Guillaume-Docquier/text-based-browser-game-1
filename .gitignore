@@ -147,10 +147,10 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # Playwright
-apps/frontend/blob-report/
-apps/frontend/playwright-report/
-apps/frontend/playwright/.clerk/
-apps/frontend/test-results/
+packages/frontend/blob-report/
+packages/frontend/playwright-report/
+packages/frontend/playwright/.clerk/
+packages/frontend/test-results/
 
 .codex/
 generated/
