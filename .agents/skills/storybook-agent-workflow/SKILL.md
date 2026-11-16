@@ -5,35 +5,37 @@ description: Use Storybook's maintained guidance for frontend component, story, 
 
 # Storybook agent workflow
 
-Read [frontend AGENTS.md](../../../packages/frontend/AGENTS.md) for standing frontend conventions. This skill supplies the operating instructions and repository overrides for [ADR-031](../../../docs/architecture/decisions/031-storybook-agent-workflows.md).
+Read [frontend AGENTS.md](../../../packages/frontend/AGENTS.md). Its conventions and the overrides below take precedence over upstream guidance, as required by [ADR-031](../../../docs/architecture/decisions/031-storybook-agent-workflows.md).
 
 ## Load maintained guidance
 
-Before UI work, read Storybook's installed skills from `packages/frontend`:
+From this checkout's `packages/frontend`, read the installed skills and run subsequent `pnpm exec storybook tools <toolset> <tool>` commands:
 
 ```powershell
 pnpm exec storybook skills stories
 pnpm exec storybook skills write-story
 ```
 
-Use their guidance with the repository overrides below. Use pnpm for upstream command examples, preserve the native TypeScript compiler and existing compiler API compatibility configuration, and do not install or upgrade tooling as a side effect of ordinary UI work.
+Use pnpm for upstream command examples. Read a tool's `--help` when its arguments are unclear. Use installed tooling without upgrading dependencies.
 
-Run each `pnpm exec storybook tools <toolset> <tool>` command with `--help` before its first use. Discover component and story IDs through the tools.
+## Repository overrides
 
-## Develop and review components
+- Follow frontend AGENTS.md for selective story coverage, static examples, play functions, and standalone browser tests. Visual examples do not automatically need assertions; cover implemented states without inventing defensive UI or exhaustive prop combinations.
+- Tests must detect a specific failure through an observable outcome. Prefer a controlled story harness over callback spies; assert callbacks when the callback itself is the public contract. Check CSS or geometry only when presentation behavior is the requirement.
+- Reuse deterministic domain stubs and mock only boundaries that cannot be exercised reliably, following [ADR-017](../../../docs/architecture/decisions/017-stubs-and-mocks.md).
+- Generated docs are advisory. When APIs or examples are missing or unresolved, inspect the component and colocated story. Import a story's main component by relative path so metadata extraction resolves its API.
+- `stories changed` examines uncommitted changes. For committed work, inspect `git diff <base-ref>...HEAD -- packages/frontend`. Map affected components and shared dependencies with `stories find-by-component`; an empty result does not establish that no stories are affected.
 
-1. Run `pnpm exec storybook tools docs list --withStoryIds true`, then `docs show --id <returned-component-id>` for relevant components. Reuse existing components and verify their props. If generated docs omit an API or show an unresolved example/import, read the actual component and colocated story; use this repository's imports.
-2. Develop with isolated stories and deterministic state. Import a colocated story's main component by relative path so the current metadata extractor resolves its API. Keep selective story coverage: add stories for meaningful shared or feature-component states, not every local JSX component or every prop combination. Explain a non-obvious scenario's purpose with a short story JSDoc comment.
-3. Use `stories changed` and `stories find-by-component` to find affected stories, including consumers of shared styles or utilities. `stories changed` examines uncommitted working-tree changes; for a committed branch or PR review, inspect `git diff <base-ref>...HEAD -- packages/frontend` instead. Verify coverage against that diff and map missing components or shared dependencies with `find-by-component`; an empty result does not prove no stories are affected.
-4. Run `test run --stories '[{"storyId":"<returned-story-id>"}]'` for focused story feedback; the array contains objects, not bare IDs. These tools do not run colocated `*.browser.test.tsx` files: also run `pnpm --filter frontend exec vitest run --project storybook-native <file>` when changing their components or stories. If Chromium is missing, run `pnpm --filter frontend exec playwright install chromium` from the repository root. Run `pnpm --filter frontend storybook:test` before handoff when changing components, stories, or shared UI dependencies; it includes both projects.
-5. Reuse a Storybook server from the same checkout, or start `pnpm storybook --no-open --port <chosen-port> --exact-port` from `packages/frontend`. Give concurrent worktrees separate ports; the worktree setup script does not assign a Storybook port. `--exact-port` prevents silently switching ports or prompting when the chosen port is occupied. Keep tool commands in that checkout's frontend directory. Use `stories preview` to obtain links, inspect affected states in a browser, and use `review create` for a focused local review when available. Leave the server running when sharing live links.
+## Validate and share
 
-## Test quality overrides
+For focused story feedback, use `test run --stories '[{"storyId":"<returned-story-id>"}]'`. Storybook's test tool excludes `*.browser.test.tsx`; run affected standalone tests using the command in frontend AGENTS.md. Before handing off component, story, or shared UI dependency changes, run `pnpm --filter frontend storybook:test` to cover both projects, overriding upstream's prohibition on package scripts.
 
-- Before adding a test, name the concrete regression and user-visible outcome it protects. Prefer one focused behavior or boundary per test. Keep visual examples static, with a stateful story for manual interaction when useful. Use play functions for sequences that demonstrate useful states; put verification-only sequences in colocated `*.browser.test.tsx` files that reuse portable stories. A visual example can remain a story without an extra visibility-only or enabled-only assertion.
-- In play functions, drive interactions with the play context's `userEvent` and use `storybook/test`. In standalone browser tests, use `vitest` assertions and native `vitest/browser` interactions, including for CSS hover; avoid test-mode branches in stories. Apply shared preview annotations through the browser setup file. Keep test controls in the test setup and establish a known pointer and focus state for independent cases.
-- Await interactions and assertions. Query by role and accessible name or label. Scope play queries to `canvas`; for portals, query `canvasElement.ownerDocument.body` with `within`. Standalone browser tests can use `page` locators in their isolated document.
-- Assert the resulting selection, value, accessible state, focus, or visible outcome. Prefer a controlled story harness over callback-spy assertions when it exposes the outcome. Assert callbacks only when the callback itself is the public contract.
-- Avoid CSS classes, private data attributes, DOM ancestry, broad snapshots, arbitrary delays, and duplicated production calculations. Check styles or geometry only when that presentation behavior is the requirement.
-- Keep fixtures deterministic and reuse domain stubs. Mock only uncontrollable boundaries through real seams, following [ADR-017](../../../docs/architecture/decisions/017-stubs-and-mocks.md). Cover implemented empty, disabled, pending, invalid, or boundary states when they change behavior; do not invent defensive UI or add a Cartesian matrix of props.
-- For a new regression test, verify it would fail for a plausible implementation defect. A small temporary mutation is useful when confidence is unclear; restore production code after the check. Never weaken a meaningful assertion merely to make the suite pass.
+Reuse a server from this checkout, or start one from `packages/frontend`:
+
+```powershell
+pnpm storybook --no-open
+```
+
+Do not specify a port, let storybook give you one that's available. Inspect affected states in a browser, use `stories preview` for links and `review create` for a focused local review when available. Leave the server running when sharing live links.
+
+For compiler changes, missing Chromium, portal queries, or native interaction isolation, read the relevant section of [repository notes](references/repository-notes.md).
