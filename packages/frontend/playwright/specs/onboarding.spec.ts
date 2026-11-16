@@ -20,7 +20,7 @@ test("the onboarding modal appears after the first successful status request", a
 })
 
 test.describe("onboarding status request failures", () => {
-  const expectedError = /^console error: .*ERROR: API request failed .*path: accounts\.isOnboarded, type: query,/
+  const expectedError = /^\[alice\] console error: .*ERROR: API request failed .*path: accounts\.isOnboarded, type: query,/
   test.use({ expectedBrowserDiagnostics: { messages: [expectedError, expectedError, expectedError, expectedError] } })
 
   test("the onboarding modal is not visible while fetching the onboarding status", async ({ alice }) => {

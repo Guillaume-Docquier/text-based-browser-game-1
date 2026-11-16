@@ -1,14 +1,6 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import {
-  expect,
-  test as base,
-  type Browser,
-  type BrowserContext,
-  type ConsoleMessage,
-  type TestInfo,
-  type WebError,
-} from "@playwright/test"
-import { users } from "./auth.ts"
+import { expect, test as base, type BrowserContext, type ConsoleMessage, type WebError } from "@playwright/test"
+import { type User, users } from "./auth.ts"
 import type { AuthenticatedUser } from "./AuthenticatedUser.ts"
 import { type PlaywrightEnv, parseEnv } from "./parseEnv.ts"
 
@@ -44,12 +36,17 @@ type TestFixtures = {
   expectedBrowserDiagnostics: { messages: readonly RegExp[] }
 
   /**
-   * Automatically fails the test on unexpected errors or warnings in any browser context.
+   * This fixture is automatic and should only be used by other fixtures.
+   *
+   * Creates authenticated users and owns context cleanup, diagnostics, and videos.
+   * Also monitors the default context automatically.
    */
-  browserDiagnostics: undefined
+  browserSessions: {
+    for: (user: User) => Promise<AuthenticatedUser>
+  }
 
   /**
-   * Using this will sign in bob and give you a page for bob.
+   * Using this will sign in alice and give you a page for alice.
    *
    * @example
    * ```ts
@@ -101,83 +98,79 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   ],
   // Test fixtures
   expectedBrowserDiagnostics: [{ messages: [] }, { option: true }],
-  browserDiagnostics: [
-    async ({ browser, expectedBrowserDiagnostics }, use): Promise<void> => {
-      // We can't use only browser.contexts() because it returns only the open contexts, and user contexts are closed before this fixture's teardown.
-      const contexts = new Set<BrowserContext>()
+  browserSessions: [
+    async ({ browser, context, expectedBrowserDiagnostics }, use, testInfo): Promise<void> => {
+      const sessions: Array<{ context: BrowserContext; user: AuthenticatedUser }> = []
       const diagnostics: string[] = []
+      const removeContextListeners: Array<() => void> = []
 
-      const recordPageError = (webError: WebError): void => {
-        const error = webError.error()
-        diagnostics.push(`page error: ${error.stack ?? error.message}`)
-      }
-      const recordConsoleMessage = (message: ConsoleMessage): void => {
-        if (message.type() === "warning" && isAllowedConsoleWarning(message.text())) {
-          return
+      const watchContext = (context: BrowserContext, label: string): void => {
+        const recordPageError = (webError: WebError): void => {
+          const error = webError.error()
+          diagnostics.push(`[${label}] page error: ${error.stack ?? error.message}`)
+        }
+        const recordConsoleMessage = (message: ConsoleMessage): void => {
+          if (message.type() === "warning" && isAllowedConsoleWarning(message.text())) {
+            return
+          }
+
+          if (message.type() === "error" || message.type() === "warning") {
+            diagnostics.push(`[${label}] console ${message.type()}: ${message.text()}`)
+          }
         }
 
-        if (message.type() === "error" || message.type() === "warning") {
-          diagnostics.push(`console ${message.type()}: ${message.text()}`)
-        }
-      }
-
-      const watchContext = (context: BrowserContext): void => {
-        contexts.add(context)
         context.on("weberror", recordPageError)
         context.on("console", recordConsoleMessage)
-      }
-      const unwatchContext = (context: BrowserContext): void => {
-        context.off("weberror", recordPageError)
-        context.off("console", recordConsoleMessage)
-      }
-
-      browser.on("context", watchContext)
-      browser.contexts().forEach(watchContext)
-
-      await use(undefined)
-
-      browser.off("context", watchContext)
-      for (const context of contexts) {
-        unwatchContext(context)
+        removeContextListeners.push(() => {
+          context.off("weberror", recordPageError)
+          context.off("console", recordConsoleMessage)
+        })
       }
 
-      expect(diagnostics, "Unexpected browser diagnostics").toEqual(
-        expectedBrowserDiagnostics.messages.map((pattern) => expect.stringMatching(pattern)),
-      )
+      watchContext(context, "default")
+
+      await use({
+        for: async (user) => {
+          const userContext = await browser.newContext({
+            storageState: user.authFilePath,
+            recordVideo: { dir: testInfo.outputPath("videos") },
+          })
+          watchContext(userContext, user.alias)
+          const authenticatedUser = { alias: user.alias, email: user.email, page: await userContext.newPage() }
+          sessions.push({ context: userContext, user: authenticatedUser })
+          return authenticatedUser
+        },
+      })
+
+      for (const session of sessions) {
+        await session.context.close()
+      }
+      for (const removeContextListener of removeContextListeners) {
+        removeContextListener()
+      }
+
+      // Update the test status without stopping teardown, so diagnostic failures retain videos.
+      expect
+        .soft(diagnostics, "Unexpected browser diagnostics")
+        .toEqual(expectedBrowserDiagnostics.messages.map((pattern) => expect.stringMatching(pattern)))
+
+      for (const { user } of sessions) {
+        const video = user.page.video()
+        Assert.isDefined(video)
+        testInfo.status === testInfo.expectedStatus
+          ? await video.delete()
+          : await testInfo.attach(user.alias, { path: await video.path(), contentType: "video/webm" })
+      }
     },
     { auto: true },
   ],
-  alice: async ({ browser }, use, testInfo) => {
-    await useAuthenticatedUser(browser, users.alice, use, testInfo)
+  alice: async ({ browserSessions }, use) => {
+    await use(await browserSessions.for(users.alice))
   },
-  bob: async ({ browser }, use, testInfo) => {
-    await useAuthenticatedUser(browser, users.bob, use, testInfo)
+  bob: async ({ browserSessions }, use) => {
+    await use(await browserSessions.for(users.bob))
   },
 })
-
-async function useAuthenticatedUser(
-  browser: Browser,
-  user: (typeof users)[keyof typeof users],
-  use: (user: AuthenticatedUser) => Promise<void>,
-  testInfo: TestInfo,
-): Promise<void> {
-  const context = await browser.newContext({
-    storageState: user.authFilePath,
-    recordVideo: { dir: testInfo.outputPath("videos") },
-  })
-  const page = await context.newPage()
-
-  await use({ alias: user.alias, email: user.email, page })
-
-  await context.close()
-
-  // Playwright doesn't automatically record videos for manually created contexts, we have to do it ourselves.
-  const video = page.video()
-  Assert.isDefined(video)
-  testInfo.status === testInfo.expectedStatus
-    ? await video.delete()
-    : await testInfo.attach(user.alias, { path: await video.path(), contentType: "video/webm" })
-}
 
 function isAllowedConsoleWarning(message: string): boolean {
   return allowedConsoleWarnings.some((allowedWarning) => allowedWarning.test(message))

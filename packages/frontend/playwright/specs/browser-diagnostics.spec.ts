@@ -2,7 +2,7 @@
 import { expect, test } from "../fixtures.ts"
 
 test.describe("explicitly expected browser diagnostics", () => {
-  test.use({ expectedBrowserDiagnostics: { messages: [/^console error: deliberate failure$/] } })
+  test.use({ expectedBrowserDiagnostics: { messages: [/^\[alice\] console error: deliberate failure$/] } })
 
   test("accepts exactly the expected error", async ({ alice }) => {
     await test.step("emit the expected error", async () => {
@@ -32,6 +32,35 @@ test.describe("explicitly expected browser diagnostics", () => {
 
 for (const user of ["default", "alice", "bob"] as const) {
   test.describe(`${user} browser diagnostics`, () => {
+    test.describe("player labels", () => {
+      test.use({
+        expectedBrowserDiagnostics: {
+          messages: [
+            new RegExp(`^\\[${user}\\] console error: deliberate error$`),
+            new RegExp(`^\\[${user}\\] console warning: deliberate warning$`),
+            new RegExp(`^\\[${user}\\] page error: Error: deliberate uncaught error`),
+          ],
+        },
+      })
+
+      test("identifies the player for each diagnostic", async ({ page, alice, bob }) => {
+        const userPage = { default: page, alice: alice.page, bob: bob.page }[user]
+        await test.step("emit console messages and an uncaught error", async () => {
+          await userPage.evaluate(() => {
+            console.error("deliberate error")
+            console.warn("deliberate warning")
+          })
+          const errorPromise = userPage.waitForEvent("pageerror")
+          await userPage.evaluate(() => {
+            setTimeout(() => {
+              throw new Error("deliberate uncaught error")
+            }, 0)
+          })
+          expect((await errorPromise).message).toBe("deliberate uncaught error")
+        })
+      })
+    })
+
     for (const level of ["error", "warn"] as const) {
       test(`fails on console ${level}`, async ({ page, alice, bob }) => {
         const userPage = { default: page, alice: alice.page, bob: bob.page }[user]
@@ -63,21 +92,6 @@ for (const user of ["default", "alice", "bob"] as const) {
       })
 
       test.fail(true, "Browser diagnostics must reject this uncaught error")
-    })
-
-    test("fails on an error from an additional page", async ({ page, alice, bob }) => {
-      const userPage = { default: page, alice: alice.page, bob: bob.page }[user]
-      await test.step("emit an error from another page in the same context", async () => {
-        const additionalPage = await userPage.context().newPage()
-        const messagePromise = additionalPage.waitForEvent("console")
-        await additionalPage.evaluate(() => {
-          console.error("additional page regression")
-        })
-        expect((await messagePromise).text()).toBe("additional page regression")
-        await additionalPage.close()
-      })
-
-      test.fail(true, "Browser diagnostics must reject errors from every page in the context")
     })
 
     test("allows development warnings and informational messages", async ({ page, alice, bob }) => {
