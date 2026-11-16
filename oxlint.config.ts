@@ -11,7 +11,7 @@ export default defineConfig({
   overrides: [
     {
       ...vitest,
-      files: ["**/*.test.ts"],
+      files: ["**/*.test.{ts,tsx}"],
     },
     {
       files: ["scripts/**/*"],

@@ -12,6 +12,21 @@ export default mergeConfig(
       attachmentsDir: "./test-results/storybook",
       projects: [
         {
+          extends: true,
+          test: {
+            name: "browser",
+            include: ["src/**/*.browser.test.{ts,tsx}"],
+            setupFiles: [".storybook/browser.setup.ts"],
+            browser: {
+              enabled: true,
+              provider: playwright(),
+              headless: true,
+              screenshotFailures: true,
+              instances: [{ browser: "chromium" }],
+            },
+          },
+        },
+        {
           plugins: [
             storybookTest({
               configDir: ".storybook",

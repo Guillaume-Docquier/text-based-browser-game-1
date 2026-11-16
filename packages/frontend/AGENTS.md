@@ -21,8 +21,10 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn 
 
 - Keep stories next to their components. Use `Design System/<Component>` for shared components in `src/components` and `Application/<Component>` for feature components.
 - Design System appears first in the sidebar. Application is a broad section for selected feature components whose states benefit from isolated inspection; not every feature component needs a story.
-- Write component assertions in story play functions using storybook/test. Run pnpm --filter frontend storybook:test for Chromium browser tests. Keep isolated UI state and presentation assertions here; E2E tests cover flows and resulting application state.
-- When a story tests CSS `:hover`, use the browser runner's native pointer in a play step guarded by `import.meta.env.MODE === "test"`. Import `vitest/browser` inside that step so the same story can open in the preview.
+- Keep visual examples static and provide a stateful story when manual interaction is useful. Use a play function when its sequence demonstrates a useful state; use `storybook/test` for assertions in those functions.
+- Put sequences that exist only for verification in colocated `*.browser.test.tsx` files. Reuse stories with `composeStories` from `@storybook/react-vite`; the browser test setup applies the shared preview annotations and styles. Import assertions from `vitest` and native interactions from `vitest/browser`. Keep test controls and decorators in the tests.
+- Test CSS `:hover` with native browser interactions in the `browser` Vitest project. Do not add test-mode branches to stories. Existing interaction stories can remain until their component needs this separation.
+- Run `pnpm --filter frontend storybook:test` for both story tests and standalone Chromium browser tests. For a focused standalone run, use `pnpm --filter frontend exec vitest run --project browser <file>`. E2E tests cover flows and resulting application state.
 - Story imports are checked by the frontend Oxlint override: use `@storybook/react-vite` for story types and `storybook/test` for instrumented assertions and test helpers.
 - Keep stories independent of live authentication and backend services. See [ADR-023](../../docs/architecture/decisions/023-storybook-for-design-system-inspection.md).
 - `pnpm --filter frontend storybook:build` must be run through a reviewed, one-command Codex sandbox exception (`require_escalated` with the exact prefix `pnpm --filter frontend storybook:build`) to avoid sandbox cache write issues.
