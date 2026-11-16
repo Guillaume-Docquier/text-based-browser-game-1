@@ -117,12 +117,12 @@ jobs:
           VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
 
-      - name: Upload Playwright videos
+      - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-videos
-          path: packages/frontend/test-results/**/*.webm
+          name: playwright-report
+          path: packages/frontend/playwright-report/
           if-no-files-found: ignore
 
   backend:
