@@ -1,4 +1,5 @@
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin"
+import react from "@vitejs/plugin-react"
 import { playwright } from "@vitest/browser-playwright"
 import { defineConfig, mergeConfig } from "vitest/config"
 import storybookViteConfig from "./.storybook/vite.config.ts"
@@ -12,11 +13,14 @@ export default mergeConfig(
       attachmentsDir: "./test-results/storybook",
       projects: [
         {
-          extends: true,
+          plugins: [
+            storybookTest({
+              configDir: ".storybook",
+              storybookScript: "pnpm storybook --no-open",
+            }),
+          ],
           test: {
-            name: "browser",
-            include: ["src/**/*.browser.test.{ts,tsx}"],
-            setupFiles: [".storybook/browser.setup.ts"],
+            name: "storybook",
             browser: {
               enabled: true,
               provider: playwright(),
@@ -27,14 +31,12 @@ export default mergeConfig(
           },
         },
         {
-          plugins: [
-            storybookTest({
-              configDir: ".storybook",
-              storybookScript: "pnpm storybook --no-open",
-            }),
-          ],
+          extends: true,
+          plugins: [react()],
           test: {
-            name: "storybook",
+            name: "storybook-native",
+            include: ["src/**/*.browser.test.{ts,tsx}"],
+            setupFiles: ["./.storybook/vitest.setup.ts"],
             browser: {
               enabled: true,
               provider: playwright(),

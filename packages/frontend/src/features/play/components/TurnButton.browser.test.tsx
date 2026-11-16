@@ -139,22 +139,58 @@ describe("TurnButton", () => {
     await expect.poll(isCountdownVisible).toBe(true)
   })
 
-  it("should lock in with a pointer click", async () => {
+  it("should lock in and cancel with successive pointer clicks", async () => {
     await renderStory(Interactive)
 
     await page.getByRole("button", { name: "Lock in" }).click()
 
     await expect.element(page.getByRole("button", { name: "Cancel lock in" })).toHaveAttribute("aria-pressed", "true")
     await expect.element(page.getByText("Cancel", { exact: true })).toBeVisible()
-  })
-
-  it("should cancel lock-in with a pointer click", async () => {
-    await Interactive.run({ args: { ...Interactive.args, isLockedIn: true } })
 
     await page.getByRole("button", { name: "Cancel lock in" }).click()
 
     await expect.element(page.getByRole("button", { name: "Lock in" })).toHaveAttribute("aria-pressed", "false")
     await expect.element(page.getByText("Lock in", { exact: true })).toBeVisible()
+  })
+
+  it("should restore the countdown and updated action when leaving and returning after a toggle", async () => {
+    await renderStory(Interactive)
+    const nextControl = page.getByRole("button", { name: "Next control" })
+
+    await userEvent.tab()
+    await expect.element(page.getByRole("button", { name: "Lock in" })).toHaveFocus()
+    await userEvent.keyboard("{Enter}")
+
+    const cancelButton = page.getByRole("button", { name: "Cancel lock in" })
+    await expect.element(cancelButton).toHaveFocus()
+    await expect.element(cancelButton).toHaveAttribute("aria-pressed", "true")
+    await expect.element(page.getByText("Cancel", { exact: true })).toBeVisible()
+    await expect.poll(isCountdownVisible).toBe(false)
+
+    await userEvent.tab()
+
+    await expect.element(nextControl).toHaveFocus()
+    await expect.element(page.getByText("Cancel", { exact: true })).not.toBeVisible()
+    await expect.poll(isCountdownVisible).toBe(true)
+
+    await userEvent.tab({ shift: true })
+
+    await expect.element(cancelButton).toHaveFocus()
+    await expect.element(page.getByText("Cancel", { exact: true })).toBeVisible()
+    await expect.poll(isCountdownVisible).toBe(false)
+
+    await userEvent.keyboard(" ")
+
+    const lockInButton = page.getByRole("button", { name: "Lock in" })
+    await expect.element(lockInButton).toHaveFocus()
+    await expect.element(lockInButton).toHaveAttribute("aria-pressed", "false")
+    await expect.element(page.getByText("Lock in", { exact: true })).toBeVisible()
+
+    await userEvent.tab()
+
+    await expect.element(nextControl).toHaveFocus()
+    await expect.element(page.getByText("Lock in", { exact: true })).not.toBeVisible()
+    await expect.poll(isCountdownVisible).toBe(true)
   })
 
   it.each([
