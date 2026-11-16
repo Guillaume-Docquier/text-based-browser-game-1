@@ -1,20 +1,34 @@
 # Frontend testing
 
-Stories describe component states. Vitest browser tests verify isolated component behavior. Playwright E2E tests verify complete application flows and their resulting state.
+We have 3 ways to test the frontend:
+
+- Playwright e2e tests
+- Storybook stories
+- Vitest Browser mode
+
+Playwright E2E tests verify complete application flows and their resulting state. Stories describe component states. Vitest browser tests verify isolated component behavior
+
+The architecture decisions are recorded in [ADR-023](../../docs/architecture/decisions/023-storybook-for-design-system-inspection.md) and [ADR-024](../../docs/architecture/decisions/024-playwright-for-frontend-end-to-end-tests.md).
+
+## Choosing the right scope
 
 Before adding a test, name the regression and the user-visible outcome it protects. Choose the smallest scope that can detect that regression. A component does not need every kind of test.
 
-## Choose the scope
-
 | Need                                                                                | Use                                          | Location                                    | Example                                                                               |
 | ----------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Verify behavior across routes, authentication, backend requests, or persisted state | Playwright E2E test                          | `playwright/specs/*.spec.ts`                | A player's readiness change reaches the backend and becomes visible to another player |
 | Inspect a meaningful component state                                                | Storybook story                              | Colocated `*.stories.tsx`                   | Turn button in normal, locked-in, pending, or resolving state                         |
 | Try a component manually                                                            | Stateful Storybook story                     | An `Interactive` export in the stories file | Click the turn button to lock in and cancel                                           |
 | Demonstrate a state that requires interaction to reach                              | Storybook story with a short `play` function | The stories file                            | Open a menu and leave it open for inspection                                          |
 | Verify isolated interaction or presentation behavior                                | Vitest browser test                          | Colocated `*.browser.test.tsx`              | Hover reveals the action; Enter toggles lock-in; Tab moves focus correctly            |
-| Verify behavior across routes, authentication, backend requests, or persisted state | Playwright E2E test                          | `playwright/specs/*.spec.ts`                | A player's readiness change reaches the backend and becomes visible to another player |
 
-The tools overlap: Vitest runs both component-test projects, and Playwright provides their Chromium browser driver. Here, **Playwright E2E** means the separate suite that exercises the full application.
+## Playwright: full application behavior
+
+Use E2E tests when the regression depends on the real application, including routing, authentication, backend integration, persistence, or multiple players. Assert the resulting application state. Keep E2E coverage for feature UI that has no suitable isolated component coverage.
+
+Use the existing authenticated fixtures and page objects. Page objects own actions, navigation, and semantic locators; specs own assertions and `test.step()` blocks. Follow [the frontend instructions](AGENTS.md) and [the page-object conventions](playwright/AGENTS.md).
+
+Keep detailed component mechanics in browser tests when they can protect the same behavior in isolation. An E2E readiness test should verify the application outcome; it does not need to repeat every hover and keyboard case for the turn button.
 
 ## Storybook: examples for inspection
 
@@ -42,31 +56,3 @@ Use the `storybook-native` project for sequences that exist to verify behavior, 
 CSS `:hover` requires native browser input. Ordinary Storybook preview code has no automation driver, so keep these checks in the browser tests. Vitest's `toBeVisible` treats `opacity: 0` as visible; use an opacity-aware visibility check when transparent content is the behavior under test. See [TurnButton.browser.test.tsx](src/features/play/components/TurnButton.browser.test.tsx).
 
 For pure calculations or parsing, prefer focused Vitest tests in the package that owns the logic. The frontend currently has no separate Node unit-test project, and an ordinary `*.test.ts` file is not included by its browser-test glob. Do not assume such a file will run or move domain logic into the frontend to test it.
-
-## Playwright: full application behavior
-
-Use E2E tests when the regression depends on the real application, including routing, authentication, backend integration, persistence, or multiple players. Assert the resulting application state. Keep E2E coverage for feature UI that has no suitable isolated component coverage.
-
-Use the existing authenticated fixtures and page objects. Page objects own actions, navigation, and semantic locators; specs own assertions and `test.step()` blocks. Follow [the frontend instructions](AGENTS.md) and [the page-object conventions](playwright/AGENTS.md).
-
-Keep detailed component mechanics in browser tests when they can protect the same behavior in isolation. An E2E readiness test should verify the application outcome; it does not need to repeat every hover and keyboard case for the turn button.
-
-## Run the checks
-
-Run these commands from the repository root:
-
-| Task                                                    | Command                                                                                                                      |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Open Storybook                                          | `pnpm --filter frontend storybook`                                                                                           |
-| Run all component tests, including both Vitest projects | `pnpm --filter frontend storybook:test`                                                                                      |
-| Watch both component-test projects                      | `pnpm --filter frontend storybook:test:watch`                                                                                |
-| Run the turn button's standalone browser tests          | `pnpm --filter frontend exec vitest run --project storybook-native src/features/play/components/TurnButton.browser.test.tsx` |
-| Run only story render/play tests                        | `pnpm --filter frontend exec vitest run --project storybook`                                                                 |
-| Run E2E tests                                           | `pnpm --filter frontend e2e`                                                                                                 |
-| Open the E2E test UI                                    | `pnpm --filter frontend e2e:ui`                                                                                              |
-
-Storybook's focused story-test tools do not run standalone browser tests. Run the combined component-test command before handing off component, story, or shared UI changes.
-
-Component tests need Chromium but do not need the application services. E2E tests need configured application and authentication environment variables and the database; use `pnpm db:up` if the database is stopped. Playwright starts or reuses the application servers. Agents running E2E tests must follow the [run-e2e-tests skill](../../.agents/skills/run-e2e-tests/SKILL.md).
-
-The architecture decisions are recorded in [ADR-023](../../docs/architecture/decisions/023-storybook-for-design-system-inspection.md) and [ADR-024](../../docs/architecture/decisions/024-playwright-for-frontend-end-to-end-tests.md).

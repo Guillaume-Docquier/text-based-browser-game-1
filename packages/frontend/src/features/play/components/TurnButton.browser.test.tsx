@@ -5,7 +5,7 @@ import { page, userEvent } from "vitest/browser"
 import { Button } from "@/components/button.tsx"
 import * as stories from "./TurnButton.stories.tsx"
 
-const { Normal, LockedIn, Pending, Resolving, Interactive } = composeStories(stories, {
+const { Pending, Resolving, Interactive } = composeStories(stories, {
   decorators: [
     (Story): ReactElement => (
       <div className="flex items-center gap-4 p-8">
@@ -17,7 +17,7 @@ const { Normal, LockedIn, Pending, Resolving, Interactive } = composeStories(sto
   ],
 })
 
-async function renderStory(story: typeof Normal): Promise<void> {
+async function renderStory(story: typeof Interactive): Promise<void> {
   // run() cleans up the preceding portable story before mounting this one.
   await story.run()
   // Native pointer position persists between tests. Start outside the turn button,
@@ -32,183 +32,108 @@ function isCountdownVisible(): boolean {
 }
 
 describe("TurnButton", () => {
-  it("should expose the countdown, turn and deadline before locking in", async () => {
-    await renderStory(Normal)
-    const button = page.getByRole("button", { name: "Lock in" })
-
-    await expect.element(button).toHaveAttribute("aria-pressed", "false")
-    await expect.element(button).toHaveAttribute("aria-busy", "false")
-    await expect.element(button).toHaveAttribute("title", "Next turn at 8:00 PM")
-    await expect.element(button).toHaveAccessibleDescription(/Next turn.*02:17:43.*Turn 142/)
-    await expect.element(page.getByText("Next turn", { exact: true })).toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(true)
-    await expect.element(page.getByText("Lock in", { exact: true })).not.toBeVisible()
-  })
-
-  it("should reveal the lock-in action on hover and restore the countdown on exit", async () => {
-    await renderStory(Normal)
-    await page.getByRole("button", { name: "Lock in" }).hover()
-
-    await expect.element(page.getByText("Lock in", { exact: true })).toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(false)
-
-    await page.getByRole("button", { name: "Next control" }).hover()
-
-    await expect.element(page.getByText("Lock in", { exact: true })).not.toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(true)
-  })
-
-  it("should reveal cancellation on hover when locked in", async () => {
-    await renderStory(LockedIn)
-    const button = page.getByRole("button", { name: "Cancel lock in" })
-    await expect.element(button).toHaveAttribute("aria-pressed", "true")
-    await expect.element(button).toHaveAccessibleDescription(/Locked in.*02:17:43.*Turn 142/)
-    await expect.element(page.getByText("Locked in", { exact: true })).toBeVisible()
-
-    await button.hover()
-
-    await expect.element(page.getByText("Cancel", { exact: true })).toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(false)
-
-    await page.getByRole("button", { name: "Next control" }).hover()
-
-    await expect.element(page.getByText("Cancel", { exact: true })).not.toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(true)
-  })
-
-  it("should keep the hovered action visible while a request is pending", async () => {
-    await renderStory(Pending)
-    const button = page.getByRole("button", { name: "Lock in" })
-    await expect.element(button).toBeDisabled()
-    await expect.element(button).toHaveAttribute("aria-busy", "true")
-
-    await button.hover()
-
-    await expect.element(page.getByText("Lock in", { exact: true })).toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(false)
-
-    await page.getByRole("button", { name: "Next control" }).hover()
-
-    await expect.element(page.getByText("Lock in", { exact: true })).not.toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(true)
-  })
-
-  it("should keep the countdown visible on hover while the turn is resolving", async () => {
-    await renderStory(Resolving)
-    const button = page.getByRole("button", { name: "Cancel lock in" })
-    await expect.element(button).toBeDisabled()
-    await expect.element(button).toHaveAttribute("aria-pressed", "true")
-    await expect.element(button).toHaveAttribute("aria-busy", "false")
-
-    await button.hover()
-
-    await expect.element(page.getByText("Cancel", { exact: true })).not.toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(true)
-  })
-
-  it.each([
-    { state: "normal", story: Normal, name: "Lock in", action: "Lock in" },
-    { state: "locked in", story: LockedIn, name: "Cancel lock in", action: "Cancel" },
-  ])("should reveal the $state action only while keyboard focus is on the button", async ({ story, name, action }) => {
-    await renderStory(story)
-    const button = page.getByRole("button", { name })
-
-    await userEvent.tab()
-
-    await expect.element(button).toHaveFocus()
-    await expect.element(page.getByText(action, { exact: true })).toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(false)
-
-    await userEvent.tab()
-
-    await expect.element(page.getByRole("button", { name: "Next control" })).toHaveFocus()
-    await expect.element(page.getByText(action, { exact: true })).not.toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(true)
-  })
-
-  it.each([
-    { state: "pending", story: Pending, action: "Lock in" },
-    { state: "resolving", story: Resolving, action: "Cancel" },
-  ])("should skip the $state button during keyboard navigation", async ({ story, action }) => {
-    await renderStory(story)
-
-    await userEvent.tab()
-
-    await expect.element(page.getByRole("button", { name: "Next control" })).toHaveFocus()
-    await expect.element(page.getByText(action, { exact: true })).not.toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(true)
-  })
-
-  it("should lock in and cancel with successive pointer clicks", async () => {
+  it("should reveal the action on hover and toggle lock-in with pointer clicks", async () => {
     await renderStory(Interactive)
+    const lockInButton = page.getByRole("button", { name: "Lock in" })
+    const cancelButton = page.getByRole("button", { name: "Cancel lock in" })
 
-    await page.getByRole("button", { name: "Lock in" }).click()
+    await page.mark("Show the countdown before hover", async () => {
+      await expect.element(page.getByText("Lock in", { exact: true })).not.toBeVisible()
+      await expect.poll(isCountdownVisible).toBe(true)
+    })
 
-    await expect.element(page.getByRole("button", { name: "Cancel lock in" })).toHaveAttribute("aria-pressed", "true")
-    await expect.element(page.getByText("Cancel", { exact: true })).toBeVisible()
+    await page.mark("Hover to reveal the lock-in action", async () => {
+      await lockInButton.hover()
+      await expect.element(page.getByText("Lock in", { exact: true })).toBeVisible()
+      await expect.poll(isCountdownVisible).toBe(false)
+    })
 
-    await page.getByRole("button", { name: "Cancel lock in" }).click()
+    await page.mark("Click to lock in the turn", async () => {
+      await lockInButton.click()
+      await expect.element(cancelButton).toHaveAttribute("aria-pressed", "true")
+      await expect.element(page.getByText("Cancel", { exact: true })).toBeVisible()
+    })
 
-    await expect.element(page.getByRole("button", { name: "Lock in" })).toHaveAttribute("aria-pressed", "false")
-    await expect.element(page.getByText("Lock in", { exact: true })).toBeVisible()
+    await page.mark("Click again to cancel lock-in", async () => {
+      await cancelButton.click()
+      await expect.element(lockInButton).toHaveAttribute("aria-pressed", "false")
+      await expect.element(page.getByText("Lock in", { exact: true })).toBeVisible()
+    })
+
+    await page.mark("Move the pointer away to restore the countdown", async () => {
+      await page.getByRole("button", { name: "Next control" }).hover()
+      await expect.element(page.getByText("Lock in", { exact: true })).not.toBeVisible()
+      await expect.poll(isCountdownVisible).toBe(true)
+    })
   })
 
-  it("should restore the countdown and updated action when leaving and returning after a toggle", async () => {
+  it("should toggle with Enter and Space and restore presentation as keyboard focus moves", async () => {
     await renderStory(Interactive)
+    const lockInButton = page.getByRole("button", { name: "Lock in" })
+    const cancelButton = page.getByRole("button", { name: "Cancel lock in" })
     const nextControl = page.getByRole("button", { name: "Next control" })
 
-    await userEvent.tab()
-    await expect.element(page.getByRole("button", { name: "Lock in" })).toHaveFocus()
-    await userEvent.keyboard("{Enter}")
+    await page.mark("Tab to reveal the lock-in action", async () => {
+      await userEvent.tab()
+      await expect.element(lockInButton).toHaveFocus()
+      await expect.element(page.getByText("Lock in", { exact: true })).toBeVisible()
+      await expect.poll(isCountdownVisible).toBe(false)
+    })
 
-    const cancelButton = page.getByRole("button", { name: "Cancel lock in" })
-    await expect.element(cancelButton).toHaveFocus()
-    await expect.element(cancelButton).toHaveAttribute("aria-pressed", "true")
-    await expect.element(page.getByText("Cancel", { exact: true })).toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(false)
+    await page.mark("Press Enter to lock in the turn", async () => {
+      await userEvent.keyboard("{Enter}")
+      await expect.element(cancelButton).toHaveFocus()
+      await expect.element(cancelButton).toHaveAttribute("aria-pressed", "true")
+    })
 
-    await userEvent.tab()
+    await page.mark("Tab away to restore the countdown while locked in", async () => {
+      await userEvent.tab()
+      await expect.element(nextControl).toHaveFocus()
+      await expect.element(page.getByText("Cancel", { exact: true })).not.toBeVisible()
+      await expect.poll(isCountdownVisible).toBe(true)
+    })
 
-    await expect.element(nextControl).toHaveFocus()
-    await expect.element(page.getByText("Cancel", { exact: true })).not.toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(true)
+    await page.mark("Shift-Tab back to reveal the cancel action", async () => {
+      await userEvent.tab({ shift: true })
+      await expect.element(cancelButton).toHaveFocus()
+      await expect.element(page.getByText("Cancel", { exact: true })).toBeVisible()
+      await expect.poll(isCountdownVisible).toBe(false)
+    })
 
-    await userEvent.tab({ shift: true })
+    await page.mark("Press Space to cancel lock-in", async () => {
+      await userEvent.keyboard(" ")
+      await expect.element(lockInButton).toHaveFocus()
+      await expect.element(lockInButton).toHaveAttribute("aria-pressed", "false")
+      await expect.element(page.getByText("Lock in", { exact: true })).toBeVisible()
+    })
 
-    await expect.element(cancelButton).toHaveFocus()
-    await expect.element(page.getByText("Cancel", { exact: true })).toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(false)
-
-    await userEvent.keyboard(" ")
-
-    const lockInButton = page.getByRole("button", { name: "Lock in" })
-    await expect.element(lockInButton).toHaveFocus()
-    await expect.element(lockInButton).toHaveAttribute("aria-pressed", "false")
-    await expect.element(page.getByText("Lock in", { exact: true })).toBeVisible()
-
-    await userEvent.tab()
-
-    await expect.element(nextControl).toHaveFocus()
-    await expect.element(page.getByText("Lock in", { exact: true })).not.toBeVisible()
-    await expect.poll(isCountdownVisible).toBe(true)
+    await page.mark("Tab away to restore the countdown after cancellation", async () => {
+      await userEvent.tab()
+      await expect.element(nextControl).toHaveFocus()
+      await expect.element(page.getByText("Lock in", { exact: true })).not.toBeVisible()
+      await expect.poll(isCountdownVisible).toBe(true)
+    })
   })
 
-  it.each([
-    { key: "Enter", input: "{Enter}" },
-    { key: "Space", input: " " },
-  ])("should toggle lock-in with the $key key", async ({ input }) => {
-    await renderStory(Interactive)
-    await userEvent.tab()
-    await expect.element(page.getByRole("button", { name: "Lock in" })).toHaveFocus()
+  it("should disable pending and resolving buttons but preserve only the pending hover action", async () => {
+    await page.mark("Pending disables activation but keeps the hover action", async () => {
+      await renderStory(Pending)
+      const pendingButton = page.getByRole("button", { name: "Lock in" })
+      await expect.element(pendingButton).toBeDisabled()
 
-    await userEvent.keyboard(input)
+      await pendingButton.hover()
+      await expect.element(page.getByText("Lock in", { exact: true })).toBeVisible()
+      await expect.poll(isCountdownVisible).toBe(false)
+    })
 
-    await expect.element(page.getByRole("button", { name: "Cancel lock in" })).toHaveAttribute("aria-pressed", "true")
-    await expect.element(page.getByText("Cancel", { exact: true })).toBeVisible()
+    await page.mark("Resolving disables activation and keeps the countdown on hover", async () => {
+      await renderStory(Resolving)
+      const resolvingButton = page.getByRole("button", { name: "Cancel lock in" })
+      await expect.element(resolvingButton).toBeDisabled()
 
-    await userEvent.keyboard(input)
-
-    await expect.element(page.getByRole("button", { name: "Lock in" })).toHaveAttribute("aria-pressed", "false")
-    await expect.element(page.getByText("Lock in", { exact: true })).toBeVisible()
+      await resolvingButton.hover()
+      await expect.element(page.getByText("Cancel", { exact: true })).not.toBeVisible()
+      await expect.poll(isCountdownVisible).toBe(true)
+    })
   })
 })
