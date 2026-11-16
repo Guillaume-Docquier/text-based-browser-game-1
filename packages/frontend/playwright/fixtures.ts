@@ -2,16 +2,11 @@ import { Assert } from "@guillaume-docquier/tools-ts"
 import { expect, test as base, type Browser, type ConsoleMessage, type TestInfo } from "@playwright/test"
 import { users } from "./auth.ts"
 import type { AuthenticatedUser } from "./AuthenticatedUser.ts"
-import { PlaywrightEnvSchema, type PlaywrightEnv } from "./parseEnv.ts"
+import { type PlaywrightEnv, parseEnv } from "./parseEnv.ts"
 
 const allowedConsoleWarnings = [/^Clerk: Clerk has been loaded with development keys\./]
 
-type Fixtures = {
-  /**
-   * Automatically fails the test on unexpected browser errors or warnings.
-   */
-  browserDiagnostics: undefined
-
+type WorkerFixtures = {
   /**
    * Should only be used within the fixtures.
    */
@@ -31,6 +26,13 @@ type Fixtures = {
    * Should only be needed by the global setup.
    */
   isCI: boolean
+}
+
+type TestFixtures = {
+  /**
+   * Automatically fails the test on unexpected browser errors or warnings.
+   */
+  browserDiagnostics: undefined
 
   /**
    * Using this will sign in bob and give you a page for bob.
@@ -59,7 +61,31 @@ type Fixtures = {
   bob: AuthenticatedUser
 }
 
-export const test = base.extend<Fixtures>({
+export const test = base.extend<TestFixtures, WorkerFixtures>({
+  // Worker fixtures
+  env: [
+    // oxlint-disable-next-line no-empty-pattern -- That's how playwright fixtures work
+    async ({}, use): Promise<void> => {
+      await use(parseEnv())
+    },
+    { scope: "worker" },
+  ],
+  clerkConfig: [
+    async ({ env }, use): Promise<void> => {
+      await use({
+        publishableKey: env.VITE_CLERK_PUBLISHABLE_KEY,
+        secretKey: env.CLERK_SECRET_KEY,
+      })
+    },
+    { scope: "worker" },
+  ],
+  isCI: [
+    async ({ env }, use): Promise<void> => {
+      await use(env.CI)
+    },
+    { scope: "worker" },
+  ],
+  // Test fixtures
   browserDiagnostics: [
     async ({ page }, use): Promise<void> => {
       const unexpectedDiagnostics: string[] = []
@@ -87,19 +113,6 @@ export const test = base.extend<Fixtures>({
     },
     { auto: true },
   ],
-  // oxlint-disable-next-line no-empty-pattern -- That's how playwright fixtures work
-  env: async ({}, use, testInfo) => {
-    await use(PlaywrightEnvSchema.parse(testInfo.config.metadata.env))
-  },
-  clerkConfig: async ({ env }, use) => {
-    await use({
-      publishableKey: env.VITE_CLERK_PUBLISHABLE_KEY,
-      secretKey: env.CLERK_SECRET_KEY,
-    })
-  },
-  isCI: async ({ env }, use) => {
-    await use(env.CI)
-  },
   alice: async ({ browser }, use, testInfo) => {
     await useAuthenticatedUser(browser, users.alice, use, testInfo)
   },

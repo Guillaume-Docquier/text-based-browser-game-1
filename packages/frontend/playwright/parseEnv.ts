@@ -5,7 +5,7 @@ export type PlaywrightEnv = z.infer<typeof PlaywrightEnvSchema>
  * The schema for environment variables required by Playwright.
  * It also serves as documentation for the env.
  */
-export const PlaywrightEnvSchema = z.object({
+const PlaywrightEnvSchema = z.object({
   /**
    * Used by Clerk's Playwright testing helpers.
    */

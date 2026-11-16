@@ -14,15 +14,13 @@ const frontendUrl = `http://localhost:${env.VITE_DEV_PORT}`
 const isUiMode = process.argv.includes("--ui")
 
 export default defineConfig({
-  metadata: {
-    env,
-  },
   testDir: "./playwright",
   fullyParallel: true,
   reporter: "html",
   use: {
     baseURL: frontendUrl,
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   webServer: [
     {
