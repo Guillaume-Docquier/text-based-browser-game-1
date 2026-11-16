@@ -69,8 +69,8 @@ jobs:
       - name: Install Playwright browser
         run: pnpm --filter frontend e2e:install
 
-      - name: Storybook component tests
-        run: pnpm --filter frontend storybook:test
+      - name: Component tests
+        run: pnpm --filter frontend test
 
       - name: Upload Storybook test failures
         if: failure()

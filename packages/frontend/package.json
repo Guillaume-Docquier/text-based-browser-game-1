@@ -11,8 +11,10 @@
     "e2e:ui": "playwright test --ui",
     "storybook": "storybook dev",
     "storybook:build": "storybook build",
-    "storybook:test": "vitest run --project storybook --project storybook-native",
-    "storybook:test:watch": "vitest --project storybook --project storybook-native",
+    "test": "vitest run --project render --project interactions",
+    "test:interactions": "vitest run --project interactions",
+    "test:interactions:ui": "vitest --project interactions --browser.headless=false --browser.traceView",
+    "test:render": "vitest run --project render",
     "typecheck": "tsc -b"
   },
   "dependencies": {

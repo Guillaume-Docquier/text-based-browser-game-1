@@ -39,11 +39,11 @@ Keep detailed component mechanics in browser tests when they can protect the sam
 - Keep stories independent of live authentication and backend services. Use deterministic fixtures.
 - Do not add test-mode branches to stories. Existing interaction stories can remain until their component needs this separation.
 
-The `storybook` Vitest project renders the stories and runs any play functions. A story without assertions still gets a render test; this does not compare its appearance against a screenshot baseline. A visual example does not automatically need an extra visibility or enabled-state assertion.
+The `render` Vitest project renders the stories and runs any play functions. A story without assertions still gets a render test; this does not compare its appearance against a screenshot baseline. A visual example does not automatically need an extra visibility or enabled-state assertion.
 
 ## Vitest: isolated component verification
 
-Use the `storybook-native` project for sequences that exist to verify behavior, including native hover, keyboard navigation, selection, validation, and component state changes.
+Use the `interactions` project for sequences that exist to verify behavior, including native hover, keyboard navigation, selection, validation, and component state changes.
 
 - Reuse stories with `composeStories` from `@storybook/react-vite`. The shared [setup file](.storybook/vitest.setup.ts) applies Storybook preview annotations and styles.
 - Import `describe`, `it`, and `expect` from `vitest`, and native interactions and locators from `vitest/browser`.

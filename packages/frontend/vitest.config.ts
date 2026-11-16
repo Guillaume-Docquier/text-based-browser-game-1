@@ -20,7 +20,7 @@ export default mergeConfig(
             }),
           ],
           test: {
-            name: "storybook",
+            name: "render",
             browser: {
               enabled: true,
               provider: playwright(),
@@ -34,7 +34,7 @@ export default mergeConfig(
           extends: true,
           plugins: [react()],
           test: {
-            name: "storybook-native",
+            name: "interactions",
             include: ["src/**/*.browser.test.{ts,tsx}"],
             setupFiles: ["./.storybook/vitest.setup.ts"],
             browser: {

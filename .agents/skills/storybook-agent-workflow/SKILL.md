@@ -28,7 +28,7 @@ Use pnpm for upstream command examples. Read a tool's `--help` when its argument
 
 ## Validate and share
 
-For focused story feedback, use `test run --stories '[{"storyId":"<returned-story-id>"}]'`. Storybook's test tool excludes `*.browser.test.tsx`; run affected standalone tests using the command in frontend AGENTS.md. Before handing off component, story, or shared UI dependency changes, run `pnpm --filter frontend storybook:test` to cover both projects, overriding upstream's prohibition on package scripts.
+For focused story feedback, use `test run --stories '[{"storyId":"<returned-story-id>"}]'`. Storybook's test tool excludes `*.browser.test.tsx`; run affected standalone tests using the command in frontend AGENTS.md. Before handing off component, story, or shared UI dependency changes, run `pnpm --filter frontend test` to cover both projects, overriding upstream's prohibition on package scripts.
 
 Reuse a server from this checkout, or start one from `packages/frontend`:
 
