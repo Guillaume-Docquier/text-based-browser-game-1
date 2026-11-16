@@ -33,6 +33,7 @@ On Windows with Codex, `CodexSandboxOffline` cannot access the Docker daemon pip
 - Never write repository tests or controller/use-case tests for these slices.
 - Never implement test repositories, including repositories that insert or modify game state solely for test setup.
 - Integration tests must set up and observe game state through the API. Create and start games with the test client, then submit actions and process turns to reach the required state. Use a fixed galaxy seed for deterministic scenarios.
+- Concurrency tests follow [ADR 016](../../docs/architecture/decisions/016-use-repositories-in-tests.md): use real PostgreSQL, temporary database locks, and observed blocking states to establish each schedule. Direct database access is allowed in scheduling infrastructure, but game setup and business assertions stay at the API boundary. Assert every competing operation's result. PGlite integration tests cannot verify row locking or `SKIP LOCKED`.
 - This router-only boundary takes precedence over the repository-testing guidance in [ADR 016](../../docs/architecture/decisions/016-use-repositories-in-tests.md) for backend API slices.
 
 ### General testing guidelines

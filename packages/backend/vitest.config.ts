@@ -66,8 +66,7 @@ export default defineConfig({
         test: {
           name: { label: "concurrency", color: "magenta" },
           include: ["**/*.concurrency.test.ts"],
-          setupFiles: ["./src/tests/vitest.concurrency.setup.ts"],
-          testTimeout: 30_000, // slow in CI
+          testTimeout: 60_000, // The first test initializes the worker container, including image download in CI.
         },
       },
     ],
