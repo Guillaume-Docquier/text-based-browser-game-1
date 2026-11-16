@@ -1,5 +1,13 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import { expect, test as base, type Browser, type ConsoleMessage, type TestInfo } from "@playwright/test"
+import {
+  expect,
+  test as base,
+  type Browser,
+  type BrowserContext,
+  type ConsoleMessage,
+  type TestInfo,
+  type WebError,
+} from "@playwright/test"
 import { users } from "./auth.ts"
 import type { AuthenticatedUser } from "./AuthenticatedUser.ts"
 import { type PlaywrightEnv, parseEnv } from "./parseEnv.ts"
@@ -30,7 +38,13 @@ type WorkerFixtures = {
 
 type TestFixtures = {
   /**
-   * Automatically fails the test on unexpected browser errors or warnings.
+   * Exact sequence of diagnostics deliberately produced by a failure-path test.
+   * Unexpected or missing messages still fail the test. Empty by default.
+   */
+  expectedBrowserDiagnostics: { messages: readonly RegExp[] }
+
+  /**
+   * Automatically fails the test on unexpected errors or warnings in any browser context.
    */
   browserDiagnostics: undefined
 
@@ -86,11 +100,16 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     { scope: "worker" },
   ],
   // Test fixtures
+  expectedBrowserDiagnostics: [{ messages: [] }, { option: true }],
   browserDiagnostics: [
-    async ({ page }, use): Promise<void> => {
-      const unexpectedDiagnostics: string[] = []
-      const recordPageError = (error: Error): void => {
-        unexpectedDiagnostics.push(`page error: ${error.stack ?? error.message}`)
+    async ({ browser, expectedBrowserDiagnostics }, use): Promise<void> => {
+      // We can't use only browser.contexts() because it returns only the open contexts, and user contexts are closed before this fixture's teardown.
+      const contexts = new Set<BrowserContext>()
+      const diagnostics: string[] = []
+
+      const recordPageError = (webError: WebError): void => {
+        const error = webError.error()
+        diagnostics.push(`page error: ${error.stack ?? error.message}`)
       }
       const recordConsoleMessage = (message: ConsoleMessage): void => {
         if (message.type() === "warning" && isAllowedConsoleWarning(message.text())) {
@@ -98,18 +117,33 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
         }
 
         if (message.type() === "error" || message.type() === "warning") {
-          unexpectedDiagnostics.push(`console ${message.type()}: ${message.text()}`)
+          diagnostics.push(`console ${message.type()}: ${message.text()}`)
         }
       }
 
-      page.on("pageerror", recordPageError)
-      page.on("console", recordConsoleMessage)
+      const watchContext = (context: BrowserContext): void => {
+        contexts.add(context)
+        context.on("weberror", recordPageError)
+        context.on("console", recordConsoleMessage)
+      }
+      const unwatchContext = (context: BrowserContext): void => {
+        context.off("weberror", recordPageError)
+        context.off("console", recordConsoleMessage)
+      }
+
+      browser.on("context", watchContext)
+      browser.contexts().forEach(watchContext)
 
       await use(undefined)
 
-      page.off("pageerror", recordPageError)
-      page.off("console", recordConsoleMessage)
-      expect(unexpectedDiagnostics, "Unexpected browser diagnostics").toEqual([])
+      browser.off("context", watchContext)
+      for (const context of contexts) {
+        unwatchContext(context)
+      }
+
+      expect(diagnostics, "Unexpected browser diagnostics").toEqual(
+        expectedBrowserDiagnostics.messages.map((pattern) => expect.stringMatching(pattern)),
+      )
     },
     { auto: true },
   ],

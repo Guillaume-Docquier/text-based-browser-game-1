@@ -19,46 +19,51 @@ test("the onboarding modal appears after the first successful status request", a
   })
 })
 
-test("the onboarding modal is not visible while fetching the onboarding status", async ({ alice }) => {
-  let statusRequestCount = 0
-  await alice.page.route(onboardingStatusRoute, async (route) => {
-    statusRequestCount++
-    await route.fulfill({
-      contentType: "application/json",
-      body: "{}",
+test.describe("onboarding status request failures", () => {
+  const expectedError = /^console error: .*ERROR: API request failed .*path: accounts\.isOnboarded, type: query,/
+  test.use({ expectedBrowserDiagnostics: { messages: [expectedError, expectedError, expectedError, expectedError] } })
+
+  test("the onboarding modal is not visible while fetching the onboarding status", async ({ alice }) => {
+    let statusRequestCount = 0
+    await alice.page.route(onboardingStatusRoute, async (route) => {
+      statusRequestCount++
+      await route.fulfill({
+        contentType: "application/json",
+        body: "{}",
+      })
     })
-  })
 
-  const createGamePage = await CreateGamePage.goto(alice.page)
+    const createGamePage = await CreateGamePage.goto(alice.page)
 
-  await test.step("Keep the requested page usable after the status request fails", async () => {
-    await expect(createGamePage.heading).toBeVisible()
-    await expect(createGamePage.onboarding.heading).not.toBeVisible()
-    await createGamePage.setGameName("Status failures stay unobtrusive")
-  })
+    await test.step("Keep the requested page usable after the status request fails", async () => {
+      await expect(createGamePage.heading).toBeVisible()
+      await expect(createGamePage.onboarding.heading).not.toBeVisible()
+      await createGamePage.setGameName("Status failures stay unobtrusive")
+    })
 
-  await test.step("Retry failures with a limited retry budget", async () => {
-    await expect.poll(() => statusRequestCount, { timeout: 10_000 }).toBe(4)
-  })
+    await test.step("Retry failures with a limited retry budget", async () => {
+      await expect.poll(() => statusRequestCount, { timeout: 10_000 }).toBe(4)
+    })
 
-  await test.step("Do not restart retries after focus or route remounts", async () => {
-    await alice.page.evaluate("document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('focus'))")
+    await test.step("Do not restart retries after focus or route remounts", async () => {
+      await alice.page.evaluate("document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('focus'))")
 
-    await createGamePage.navbar.homeLink.click()
-    const homePage = new HomePage(alice.page)
-    await expect(homePage.heading).toBeVisible()
-    await homePage.goBack()
+      await createGamePage.navbar.homeLink.click()
+      const homePage = new HomePage(alice.page)
+      await expect(homePage.heading).toBeVisible()
+      await homePage.goBack()
 
-    await expect(createGamePage.heading).toBeVisible()
-    await expect.poll(() => statusRequestCount).toBe(4)
-  })
+      await expect(createGamePage.heading).toBeVisible()
+      await expect.poll(() => statusRequestCount).toBe(4)
+    })
 
-  await test.step("Do not retry after a successful mutation", async () => {
-    const gameName = `Onboarding invalidation ${Date.now()}`
-    await createGamePage.setGameName(gameName)
-    const gameDetailsPage = await createGamePage.submit()
-    await expect(gameDetailsPage.gameNameHeading).toHaveText(gameName)
-    await expect.poll(() => statusRequestCount).toBe(4)
+    await test.step("Do not retry after a successful mutation", async () => {
+      const gameName = `Onboarding invalidation ${Date.now()}`
+      await createGamePage.setGameName(gameName)
+      const gameDetailsPage = await createGamePage.submit()
+      await expect(gameDetailsPage.gameNameHeading).toHaveText(gameName)
+      await expect.poll(() => statusRequestCount).toBe(4)
+    })
   })
 })
 
