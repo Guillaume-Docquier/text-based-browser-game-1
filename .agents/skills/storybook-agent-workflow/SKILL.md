@@ -5,7 +5,7 @@ description: Use Storybook's maintained guidance for frontend component, story, 
 
 # Storybook agent workflow
 
-Read [frontend AGENTS.md](../../../packages/frontend/AGENTS.md). Its conventions and the overrides below take precedence over upstream guidance, as required by [ADR-031](../../../docs/architecture/decisions/031-storybook-agent-workflows.md).
+Read [frontend TESTING.md](../../../packages/frontend/TESTING.md) for testing scope and guidelines. These instructions and the overrides below take precedence over upstream guidance, as required by [ADR-031](../../../docs/architecture/decisions/031-storybook-agent-workflows.md).
 
 ## Load maintained guidance
 
@@ -20,7 +20,7 @@ Use pnpm for upstream command examples. Read a tool's `--help` when its argument
 
 ## Repository overrides
 
-- Follow frontend AGENTS.md for selective story coverage, static examples, play functions, and standalone browser tests. Visual examples do not automatically need assertions; cover implemented states without inventing defensive UI or exhaustive prop combinations.
+- Follow frontend TESTING.md for selective story coverage, static examples, play functions, and standalone browser tests. Visual examples do not automatically need assertions; cover implemented states without inventing defensive UI or exhaustive prop combinations.
 - Tests must detect a specific failure through an observable outcome. Prefer a controlled story harness over callback spies; assert callbacks when the callback itself is the public contract. Check CSS or geometry only when presentation behavior is the requirement.
 - Reuse deterministic domain stubs and mock only boundaries that cannot be exercised reliably, following [ADR-017](../../../docs/architecture/decisions/017-stubs-and-mocks.md).
 - Generated docs are advisory. When APIs or examples are missing or unresolved, inspect the component and colocated story. Import a story's main component by relative path so metadata extraction resolves its API.
@@ -28,7 +28,7 @@ Use pnpm for upstream command examples. Read a tool's `--help` when its argument
 
 ## Validate and share
 
-For focused story feedback, use `test run --stories '[{"storyId":"<returned-story-id>"}]'`. Storybook's test tool excludes `*.browser.test.tsx`; run affected standalone tests using the command in frontend AGENTS.md. Before handing off component, story, or shared UI dependency changes, run `pnpm --filter frontend test` to cover both projects, overriding upstream's prohibition on package scripts.
+For focused story feedback, use `test run --stories '[{"storyId":"<returned-story-id>"}]'`. Storybook's test tool excludes `*.browser.test.tsx`. Before handing off component, story, or shared UI dependency changes, run `pnpm --filter frontend test` to cover both projects, overriding upstream's prohibition on package scripts.
 
 Reuse a server from this checkout, or start one from `packages/frontend`:
 
