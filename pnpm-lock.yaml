@@ -216,6 +216,8 @@ overrides:
   handlebars@4.7.9: ^4.7.10
 
 patchedDependencies:
+  picomatch@2.3.2: 465c6eae85caae56244a96f357df37c35f73756b416790c0d0fe496177fceb74
+  picomatch@4.0.7: 0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6
   railway@3.16.0: aa2f76b95092bf08bbd1787e3c048fe5856bb2112f3a508604198ecb7637470c
 
 importers:
@@ -6475,7 +6477,7 @@ snapshots:
     dependencies:
       handlebars: 4.7.10
       is-core-module: 2.17.0
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6)
 
   '@boundaries/policies@1.0.1':
     dependencies:
@@ -6577,11 +6579,11 @@ snapshots:
       enquirer: 2.4.1
       env-paths: 2.2.1
       execa: 5.1.1
-      fdir: 6.5.0(picomatch@4.0.7)
+      fdir: 6.5.0(picomatch@4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6))
       ignore: 5.3.2
       object-treeify: 1.1.33
       open: 8.4.2
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6)
       systeminformation: 5.33.16
       undici: 7.30.1
       which: 4.0.0
@@ -7711,7 +7713,7 @@ snapshots:
   '@rolldown/plugin-babel@0.2.4(@babel/core@8.1.0)(@babel/runtime@7.29.10)(rolldown@1.2.16)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
       '@babel/core': 8.1.0
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6)
       rolldown: 1.2.16
     optionalDependencies:
       '@babel/runtime': 7.29.10
@@ -7723,7 +7725,7 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.9
       estree-walker: 2.0.2
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6)
 
   '@sec-ant/readable-stream@0.4.1': {}
 
@@ -9400,9 +9402,9 @@ snapshots:
     dependencies:
       reusify: 1.1.0
 
-  fdir@6.5.0(picomatch@4.0.7):
+  fdir@6.5.0(picomatch@4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6)):
     optionalDependencies:
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6)
 
   fflate@0.8.3: {}
 
@@ -9821,7 +9823,7 @@ snapshots:
 
   lint-staged@17.6.0:
     dependencies:
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6)
       string-argv: 0.3.2
       tinyexec: 1.3.1
     optionalDependencies:
@@ -9892,7 +9894,7 @@ snapshots:
   micromatch@4.0.8:
     dependencies:
       braces: 3.0.3
-      picomatch: 2.3.2
+      picomatch: 2.3.2(patch_hash=465c6eae85caae56244a96f357df37c35f73756b416790c0d0fe496177fceb74)
 
   mime-db@1.54.0: {}
 
@@ -10301,9 +10303,9 @@ snapshots:
 
   picocolors@1.1.1: {}
 
-  picomatch@2.3.2: {}
+  picomatch@2.3.2(patch_hash=465c6eae85caae56244a96f357df37c35f73756b416790c0d0fe496177fceb74): {}
 
-  picomatch@4.0.7: {}
+  picomatch@4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6): {}
 
   pkg-up@3.1.0:
     dependencies:
@@ -10943,8 +10945,8 @@ snapshots:
 
   tinyglobby@0.2.17:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.7)
-      picomatch: 4.0.7
+      fdir: 6.5.0(picomatch@4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6))
+      picomatch: 4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6)
 
   tinypool@2.2.0: {}
 
@@ -11065,7 +11067,7 @@ snapshots:
   unplugin@3.5.0(esbuild@0.28.2)(rolldown@1.2.16)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       '@jridgewell/remapping': 2.3.5
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6)
       webpack-virtual-modules: 0.6.2
     optionalDependencies:
       esbuild: 0.28.2
@@ -11132,7 +11134,7 @@ snapshots:
   vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.33.0
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6)
       postcss: 8.5.32
       rolldown: 1.2.16
       tinyglobby: 0.2.17
@@ -11153,7 +11155,7 @@ snapshots:
       expect-type: 1.4.0
       magic-string: 1.4.4
       obug: 3.0.0
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=0cdd8c4e913211b272141b01277dcf4020808a580c7f6d121704b660d316bfe6)
       std-env: 4.3.0
       tinybench: 6.2.2
       tinyexec: 1.3.1
