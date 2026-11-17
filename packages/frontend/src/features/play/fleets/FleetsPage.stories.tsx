@@ -2,10 +2,10 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
 import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { expect, within } from "storybook/test"
-import { createPlayerStub } from "@/lib/api/Player.stub.ts"
 import { FleetsPageView } from "./FleetsPage.tsx"
 
 const alice = createPlayerStub()

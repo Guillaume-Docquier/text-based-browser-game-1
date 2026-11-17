@@ -1,7 +1,7 @@
 import type { Galaxy } from "@api-types"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
 import { createRulesetStub } from "shared/domain/ruleset/Ruleset.stub.ts"
-import { createPlayerStub } from "@/lib/api/Player.stub.ts"
 import type { PlayGameContextValue } from "./PlayContext.tsx"
 
 /**

@@ -1,13 +1,13 @@
 import { Distance, noop, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
+import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
 import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
 import { createStarSystemStub } from "shared/domain/world/StarSystem.stub.ts"
 import { StarSystemSchema } from "shared/domain/world/StarSystem.ts"
 import { Button } from "@/components/button.tsx"
-import { createPlayerStub } from "@/lib/api/Player.stub.ts"
 import { StarSystemMap } from "./StarSystemMap.tsx"
 
 const player = createPlayerStub()
