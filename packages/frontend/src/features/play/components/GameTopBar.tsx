@@ -148,7 +148,7 @@ function TurnControl({ gameDetails, playerView }: { gameDetails: GameDetails; pl
     <div className="relative h-full">
       <TurnButton
         turn={playerView.turn}
-        countdown={formatCountdown(timeLeft.duration)}
+        countdown={timeLeft.duration}
         deadline={turnEndsAtLabel}
         isLockedIn={playerView.player.isReady}
         isPending={updateReadiness.isPending}
@@ -204,11 +204,6 @@ function getWinnerLabel(winnerPlayerId: PlayerId, gameDetails: GameDetails): str
   }
 
   return winner.alias
-}
-
-function formatCountdown(duration: Temporal.Duration): string {
-  const hours = duration.days * 24 + duration.hours
-  return [hours, duration.minutes, duration.seconds].map((value) => value.toString().padStart(2, "0")).join(":")
 }
 
 type TimeLeft = {

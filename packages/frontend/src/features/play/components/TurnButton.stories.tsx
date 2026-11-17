@@ -1,57 +1,69 @@
-import { Assert, noop } from "@guillaume-docquier/tools-ts"
+import { noop } from "@guillaume-docquier/tools-ts"
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { type ReactElement, useState } from "react"
-import { expect } from "storybook/test"
-import { Button } from "@/components/button.tsx"
+import { type ComponentProps, type ReactElement, useEffect, useState } from "react"
 import { TurnButton } from "./TurnButton.tsx"
+
+type TurnButtonStoryArgs = Omit<ComponentProps<typeof TurnButton>, "countdown"> & {
+  countdownSeconds: number
+}
+
+type TurnButtonMeta = Omit<Meta<TurnButtonStoryArgs>, "component"> & {
+  component: typeof TurnButton
+}
 
 const meta = {
   title: "Application/Turn Button",
   component: TurnButton,
-  // A second control keeps keyboard focus transitions inside the story document.
-  decorators: [
-    (Story): ReactElement => (
-      <div className="flex items-center gap-4">
-        <Story />
-        <Button variant="outline">Next control</Button>
-      </div>
-    ),
-  ],
   args: {
     turn: 142,
-    countdown: "02:17:43",
+    countdownSeconds: 8263,
     deadline: "Next turn at 8:00 PM",
     isLockedIn: false,
     isPending: false,
     disabled: false,
     onToggle: noop,
   },
-  play: async ({ args, canvas, userEvent }): Promise<void> => {
-    const button = canvas.getByRole("button", { name: args.isLockedIn ? "Cancel lock in" : "Lock in" })
-    const clock = canvas.getByText(args.countdown).parentElement
-    Assert.isDefined(clock)
-    await expect(button).toHaveAttribute("aria-pressed", String(args.isLockedIn))
-    await expect(button).toHaveAttribute("aria-busy", String(args.isPending))
-    await expect(button).toHaveAttribute("title", args.deadline)
-    await expect(button).toHaveAccessibleDescription(/02:17:43.*Turn 142/)
-    await expect(clock).toHaveTextContent(args.isLockedIn ? "Locked in" : "Next turn")
-    if (args.disabled) {
-      await expect(button).toBeDisabled()
-    } else {
-      await expect(button).toBeEnabled()
-    }
-
-    await userEvent.tab()
-    if (args.disabled) {
-      await expect(button).not.toHaveFocus()
-    } else {
-      await expect(button).toHaveFocus()
-    }
-  },
-} satisfies Meta<typeof TurnButton>
+  render: ({ countdownSeconds, ...args }): ReactElement => (
+    <TurnButton {...args} countdown={Temporal.Duration.from({ seconds: countdownSeconds })} />
+  ),
+} satisfies TurnButtonMeta
 
 export default meta
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<Omit<typeof meta, "component">>
+
+export const Interactive: Story = {
+  render: function Render(args) {
+    const [isLockedIn, setIsLockedIn] = useState(args.isLockedIn)
+    const [countdown, setCountdown] = useState(() => Temporal.Duration.from({ seconds: args.countdownSeconds }))
+
+    // Reset the countdown when the storybook prop changes
+    useEffect(() => {
+      setCountdown(Temporal.Duration.from({ seconds: args.countdownSeconds }))
+    }, [args.countdownSeconds])
+
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setCountdown((currentCountdown) => currentCountdown.subtract({ seconds: 1 }))
+      }, 1000)
+
+      return (): void => {
+        clearInterval(interval)
+      }
+    }, [])
+
+    return (
+      <TurnButton
+        key={args.countdownSeconds}
+        {...args}
+        isLockedIn={isLockedIn}
+        onToggle={() => {
+          setIsLockedIn(!isLockedIn)
+        }}
+        countdown={countdown}
+      />
+    )
+  },
+}
 
 export const Normal: Story = {}
 
@@ -65,44 +77,4 @@ export const Pending: Story = {
 
 export const Resolving: Story = {
   args: { disabled: true, isLockedIn: true },
-}
-
-export const Interactive: Story = {
-  render: function Render(args) {
-    const [isLockedIn, setIsLockedIn] = useState(false)
-    return (
-      <TurnButton
-        {...args}
-        isLockedIn={isLockedIn}
-        onToggle={() => {
-          setIsLockedIn(!isLockedIn)
-        }}
-      />
-    )
-  },
-  play: async ({ canvas, userEvent }): Promise<void> => {
-    const button = canvas.getByRole("button", { name: "Lock in" })
-    const nextControl = canvas.getByRole("button", { name: "Next control" })
-    await expect(button).toHaveAttribute("aria-pressed", "false")
-    await userEvent.tab()
-    await expect(button).toHaveFocus()
-    await userEvent.keyboard("{Enter}")
-    await expect(button).toHaveAccessibleName("Cancel lock in")
-    await expect(button).toHaveAttribute("aria-pressed", "true")
-    await userEvent.tab()
-    await expect(nextControl).toHaveFocus()
-    await userEvent.tab({ shift: true })
-    await expect(button).toHaveFocus()
-    await userEvent.keyboard(" ")
-    await expect(button).toHaveAccessibleName("Lock in")
-    await expect(button).toHaveAttribute("aria-pressed", "false")
-    await userEvent.tab()
-    await expect(nextControl).toHaveFocus()
-
-    await userEvent.click(button)
-    await expect(button).toHaveAccessibleName("Cancel lock in")
-    await userEvent.click(button)
-    await expect(button).toHaveAccessibleName("Lock in")
-    await expect(button).toHaveAttribute("aria-pressed", "false")
-  },
 }

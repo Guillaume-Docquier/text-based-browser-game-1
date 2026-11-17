@@ -14,7 +14,7 @@ export function TurnButton({
   onToggle,
 }: {
   turn: number
-  countdown: string
+  countdown: Temporal.Duration
   deadline: string
   isLockedIn: boolean
   disabled: boolean
@@ -54,7 +54,7 @@ export function TurnButton({
         id={descriptionId}
       >
         <span className="text-[0.65rem] tracking-[0.16em] uppercase">{isLockedIn ? "Locked in" : "Next turn"}</span>
-        <span className="text-2xl leading-[1.2] tracking-[0.08em] tabular-nums">{countdown}</span>
+        <span className="text-2xl leading-[1.2] tracking-[0.08em] tabular-nums">{formatCountdown(countdown)}</span>
         <span className="text-[0.65rem] tracking-[0.16em] uppercase">Turn {turn}</span>
       </span>
       <span
@@ -70,4 +70,9 @@ export function TurnButton({
       </span>
     </button>
   )
+}
+
+function formatCountdown(duration: Temporal.Duration): string {
+  const countdown = duration.round({ largestUnit: "hours" })
+  return [countdown.hours, countdown.minutes, countdown.seconds].map((value) => value.toString().padStart(2, "0")).join(":")
 }
