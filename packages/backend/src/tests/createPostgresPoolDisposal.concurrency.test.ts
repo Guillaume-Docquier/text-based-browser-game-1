@@ -10,6 +10,7 @@ concurrencyTest(
     const pool = new Pool({ connectionString: databaseUrl })
     const closePool = createPostgresPoolDisposal(pool)
     onTestFinished(closePool)
+
     const disconnected: string[] = []
     const [removedClient, idleClient] = await Promise.all([pool.connect(), pool.connect()])
     removedClient.once("end", () => {
@@ -18,6 +19,7 @@ concurrencyTest(
     idleClient.once("end", () => {
       disconnected.push("idle")
     })
+
     removedClient.release(true)
     idleClient.release()
 
