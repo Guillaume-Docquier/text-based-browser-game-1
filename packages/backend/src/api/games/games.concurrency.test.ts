@@ -86,109 +86,84 @@ describe("lobby concurrency", () => {
     },
   )
 
-  concurrencyTest(
-    "join before start includes the joining player in the initialized game",
-    async ({ postgresDatabase: { concurrency }, participants: { creator, alice } }) => {
-      // Arrange
-      const { createdGameId: gameId } = await creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
-      })
-
-      // Act
-      const [first, second] = await runLobbyRace(
-        concurrency,
-        { table: playersTable, command: "insert", run: async () => await alice.client.games.join.mutate({ gameId }) },
-        async () => await creator.client.games.startGame.mutate({ gameId }),
-      )
-
-      // Assert
-      expect(first).toStrictEqual(Result.Success(undefined))
-      expect(second).toStrictEqual(Result.Success(undefined))
-      await expectStartedPlayers(creator, gameId, [creator, alice])
+  concurrencyTest.for([
+    {
+      name: "join before start includes the joining player in the initialized game",
+      aliceAlreadyJoined: false,
+      first: "join",
+      second: "start",
+      firstWrite: { table: playersTable, command: "insert" },
+      expectedSecond: Result.Success(undefined),
+      expectedPlayers: ["creator", "alice"],
     },
-  )
-
-  concurrencyTest(
-    "start before join rejects the join and initializes only existing players",
-    async ({ postgresDatabase: { concurrency }, participants: { creator, alice } }) => {
-      // Arrange
-      const { createdGameId: gameId } = await creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
-      })
-
-      // Act
-      const [first, second] = await runLobbyRace(
-        concurrency,
-        { table: turnsTable, command: "insert", run: async () => await creator.client.games.startGame.mutate({ gameId }) },
-        async () => await alice.client.games.join.mutate({ gameId }),
-      )
-
-      // Assert
-      expect(first).toStrictEqual(Result.Success(undefined))
-      expect(second).toStrictEqual(
-        Result.Failure(
-          expect.objectContaining({
-            message: "You cannot join a game that has already started.",
-            data: expect.objectContaining({ code: "CONFLICT" }),
-          }),
-        ),
-      )
-      await expectStartedPlayers(creator, gameId, [creator])
+    {
+      name: "start before join rejects the join and initializes only existing players",
+      aliceAlreadyJoined: false,
+      first: "start",
+      second: "join",
+      firstWrite: { table: turnsTable, command: "insert" },
+      expectedSecond: Result.Failure(
+        expect.objectContaining({
+          message: "You cannot join a game that has already started.",
+          data: expect.objectContaining({ code: "CONFLICT" }),
+        }),
+      ),
+      expectedPlayers: ["creator"],
     },
-  )
-
-  concurrencyTest(
-    "leave before start excludes the departing player from the initialized game",
-    async ({ postgresDatabase: { concurrency }, participants: { creator, alice } }) => {
-      // Arrange
-      const { createdGameId: gameId } = await creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
-      })
+    {
+      name: "leave before start excludes the departing player from the initialized game",
+      aliceAlreadyJoined: true,
+      first: "leave",
+      second: "start",
+      firstWrite: { table: playersTable, command: "delete" },
+      expectedSecond: Result.Success(undefined),
+      expectedPlayers: ["creator"],
+    },
+    {
+      name: "start before leave rejects the leave and initializes all existing players",
+      aliceAlreadyJoined: true,
+      first: "start",
+      second: "leave",
+      firstWrite: { table: turnsTable, command: "insert" },
+      expectedSecond: Result.Failure(
+        expect.objectContaining({
+          message: "You cannot leave a game that has already started.",
+          data: expect.objectContaining({ code: "CONFLICT" }),
+        }),
+      ),
+      expectedPlayers: ["creator", "alice"],
+    },
+  ] as const)("$name", async (scenario, { postgresDatabase: { concurrency }, participants }) => {
+    // Arrange
+    const { creator, alice } = participants
+    const { createdGameId: gameId } = await creator.client.games.create.mutate({
+      configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
+    })
+    if (scenario.aliceAlreadyJoined) {
       await alice.client.games.join.mutate({ gameId })
+    }
+    const operations = {
+      join: async (): Promise<void> => await alice.client.games.join.mutate({ gameId }),
+      leave: async (): Promise<void> => await alice.client.games.leave.mutate({ gameId }),
+      start: async (): Promise<void> => await creator.client.games.startGame.mutate({ gameId }),
+    }
 
-      // Act
-      const [first, second] = await runLobbyRace(
-        concurrency,
-        { table: playersTable, command: "delete", run: async () => await alice.client.games.leave.mutate({ gameId }) },
-        async () => await creator.client.games.startGame.mutate({ gameId }),
-      )
+    // Act
+    const [first, second] = await runLobbyRace(
+      concurrency,
+      { ...scenario.firstWrite, run: operations[scenario.first] },
+      operations[scenario.second],
+    )
 
-      // Assert
-      expect(first).toStrictEqual(Result.Success(undefined))
-      expect(second).toStrictEqual(Result.Success(undefined))
-      await expectStartedPlayers(creator, gameId, [creator])
-    },
-  )
-
-  concurrencyTest(
-    "start before leave rejects the leave and initializes all existing players",
-    async ({ postgresDatabase: { concurrency }, participants: { creator, alice } }) => {
-      // Arrange
-      const { createdGameId: gameId } = await creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
-      })
-      await alice.client.games.join.mutate({ gameId })
-
-      // Act
-      const [first, second] = await runLobbyRace(
-        concurrency,
-        { table: turnsTable, command: "insert", run: async () => await creator.client.games.startGame.mutate({ gameId }) },
-        async () => await alice.client.games.leave.mutate({ gameId }),
-      )
-
-      // Assert
-      expect(first).toStrictEqual(Result.Success(undefined))
-      expect(second).toStrictEqual(
-        Result.Failure(
-          expect.objectContaining({
-            message: "You cannot leave a game that has already started.",
-            data: expect.objectContaining({ code: "CONFLICT" }),
-          }),
-        ),
-      )
-      await expectStartedPlayers(creator, gameId, [creator, alice])
-    },
-  )
+    // Assert
+    expect(first).toStrictEqual(Result.Success(undefined))
+    expect(second).toStrictEqual(scenario.expectedSecond)
+    await expectStartedPlayers(
+      creator,
+      gameId,
+      scenario.expectedPlayers.map((name) => participants[name]),
+    )
+  })
 })
 
 /** Hold the first write until the competing operation waits for its game-row lock. */
