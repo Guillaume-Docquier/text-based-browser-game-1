@@ -6,6 +6,9 @@ import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { GameDetailsPage } from "../pages/GameDetailsPage.ts"
 
 test("fleet origin and destination links open their planets in the galaxy view", async ({ alice, bob }) => {
+  // This scenario completes two turns, each observed through five-second polling.
+  test.setTimeout(60_000)
+
   const aliceGameDetailsPage = await test.step("Create a game", async () =>
     await CreateGamePage.createGame({
       creator: alice,
