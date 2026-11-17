@@ -3,17 +3,22 @@ import { PostgreSqlContainer } from "@testcontainers/postgresql"
 // Keep aligned with production and infra/docker-compose.yaml.
 export const POSTGRES_IMAGE = "postgres:18.4"
 
-// With isolate: false, cache the preload across test files in the same worker.
+// This is leveraging `isolate: false` by putting the preload in the worker scope
+// beforeAll runs before every test files, even in the same worker, so we cache the preload promise
 let preloading: Promise<void> | undefined
 
 export const TestContainers = {
-  /** Download missing images before test timing starts. */
+  /**
+   * This will download the postgres image if it's not on the system already to avoid the first test looking like it's stuck
+   */
   preload: async (): Promise<void> => {
     await (preloading ??= (async (): Promise<void> => {
       const postgresContainer = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
       await postgresContainer.stop()
     })())
   },
-  // Image downloads in CI have a separate timeout from the tests.
+  /**
+   * Downloading the postgres image in CI can take a bit of time
+   */
   timeoutMs: 60_000,
 }
