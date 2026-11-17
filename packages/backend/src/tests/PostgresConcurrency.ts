@@ -2,25 +2,35 @@ import { setTimeout as delay } from "node:timers/promises"
 import { Assert, FatalError } from "@guillaume-docquier/tools-ts"
 import { getTableName } from "drizzle-orm"
 import type { PgTable } from "drizzle-orm/pg-core"
-import type { Pool, PoolClient } from "pg"
+import { escapeIdentifier, type Pool } from "pg"
 
 const SCHEDULE_TIMEOUT_MS = 5_000
+const TABLE_CLAUSES = {
+  select: "from",
+  insert: "into",
+  delete: "from",
+  update: "update",
+}
 
 type Session = {
   pid: number
   query: string
   state: string
   waitEvent: string | null
-  waitEventType: string | null
   blockers: number[]
 }
 
 type BlockedQuery = {
   blockedBy: number
-  command: "select" | "insert" | "delete" | "update"
+  command: keyof typeof TABLE_CLAUSES
   table: PgTable
   lock: "table" | "row"
-  excludingPids?: readonly number[]
+  excludingPid?: number
+}
+
+type PostgresWriteBlock = AsyncDisposable & {
+  readonly pid: number
+  release: () => Promise<void>
 }
 
 /** Controls scheduling only. Game state is created and checked through the API. */
@@ -32,130 +42,81 @@ export class PostgresConcurrency {
   }
 
   public async blockWrites(table: PgTable): Promise<PostgresWriteBlock> {
+    const tableIdentifier = escapeIdentifier(getTableName(table))
     const client = await this.pool.connect()
-    const block = new PostgresWriteBlock(client)
-    // Register disposal before acquiring the lock, including when acquisition fails.
-    await using _acquisition = {
-      [Symbol.asyncDispose]: async (): Promise<void> => {
-        if (!block.acquired) {
-          await block.release()
-        }
-      },
+    try {
+      await client.query(`
+        BEGIN;
+        SET LOCAL lock_timeout = '${SCHEDULE_TIMEOUT_MS}ms';
+        LOCK TABLE ${tableIdentifier} IN SHARE MODE
+      `)
+      const backendQuery = await client.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")
+      const backend = backendQuery.rows[0]
+      Assert.isDefined(backend)
+
+      let rollback: Promise<unknown>
+      const release = async (): Promise<void> => {
+        await (rollback ??= client.query("ROLLBACK").finally(() => {
+          client.release(true)
+        }))
+      }
+      return { pid: backend.pid, release, [Symbol.asyncDispose]: release }
+    } catch (error) {
+      client.release(true)
+      throw error
     }
-    await client.query("BEGIN")
-    await client.query("SET LOCAL lock_timeout = '5s'")
-    const tableName = getTableName(table).replaceAll('"', '""')
-    await client.query(`LOCK TABLE "${tableName}" IN SHARE MODE`)
-    const result = await client.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")
-    Assert.isDefined(result.rows[0])
-    block.markAcquired(result.rows[0].pid)
-    return block
   }
 
-  /** A timeout is a failed schedule, never evidence that a request was blocked. */
   public async waitForBlockedQuery(expected: BlockedQuery): Promise<number> {
     const deadline = performance.now() + SCHEDULE_TIMEOUT_MS
     const tableName = getTableName(expected.table)
-    let sessions: Session[] = []
+    const tableClause = `${TABLE_CLAUSES[expected.command]} ${escapeIdentifier(tableName)}`
+    const waitEvents = expected.lock === "table" ? ["relation"] : ["transactionid", "tuple"]
+    const details = { ...expected, table: tableName }
+    let sessions: Session[]
     do {
       sessions = await this.readSessions()
-      const matching = sessions.filter((session) => matchesBlockedQuery(session, expected))
-      if (matching.length === 1) {
-        Assert.isDefined(matching[0])
-        return matching[0].pid
+      // Match the SQL emitted by Drizzle and confirm PostgreSQL reports the expected blocker.
+      const [match, other] = sessions.filter(
+        ({ pid, query, waitEvent, blockers }) =>
+          pid !== expected.excludingPid &&
+          blockers.includes(expected.blockedBy) &&
+          waitEvents.some((event) => event === waitEvent) &&
+          query.startsWith(`${expected.command} `) &&
+          query.includes(tableClause),
+      )
+      if (other !== undefined) {
+        throw new FatalError("More than one session matches the expected blocked query", { expected: details, sessions })
       }
-      if (matching.length > 1) {
-        throw new FatalError("More than one session matches the expected blocked query", {
-          expected: { ...expected, table: tableName },
-          sessions,
-        })
+      if (match !== undefined) {
+        return match.pid
       }
       await delay(10)
     } while (performance.now() < deadline)
 
-    throw new FatalError("Concurrency schedule was not established", { expected: { ...expected, table: tableName }, sessions })
+    throw new FatalError("Concurrency schedule was not established", { expected: details, sessions })
   }
 
-  /** Used when SKIP LOCKED must let another processor finish before releasing the first. */
+  /** Verify that a processor can finish while the first remains blocked. */
   public async waitForCompletion<T>(operation: Promise<T>): Promise<T> {
-    const deadline = Promise.withResolvers<undefined>()
+    const timedOut = Symbol("timed out")
+    const deadline = Promise.withResolvers<typeof timedOut>()
     using _timer = setTimeout(() => {
-      deadline.resolve(undefined)
+      deadline.resolve(timedOut)
     }, SCHEDULE_TIMEOUT_MS)
-    const completed = await Promise.race([operation.then((value) => ({ value })), deadline.promise])
-    if (completed === undefined) {
+    const completed = await Promise.race([operation, deadline.promise])
+    if (completed === timedOut) {
       throw new FatalError("Concurrent operation did not finish while the first remained blocked", { sessions: await this.readSessions() })
     }
-    return completed.value
+    return completed
   }
 
   private async readSessions(): Promise<Session[]> {
     const result = await this.pool.query<Session>(`
-      SELECT pid, query, state, wait_event AS "waitEvent", wait_event_type AS "waitEventType",
-             pg_blocking_pids(pid) AS blockers
+      SELECT pid, query, state, wait_event AS "waitEvent", pg_blocking_pids(pid) AS blockers
       FROM pg_stat_activity
       WHERE datname = current_database() AND pid <> pg_backend_pid()
-      ORDER BY pid
     `)
     return result.rows
-  }
-}
-
-function matchesBlockedQuery(session: Session, expected: BlockedQuery): boolean {
-  const waitEvents = { table: ["relation"], row: ["transactionid", "tuple"] }
-  return (
-    session.state === "active" &&
-    session.waitEventType === "Lock" &&
-    waitEvents[expected.lock].includes(session.waitEvent ?? "") &&
-    session.blockers.includes(expected.blockedBy) &&
-    !(expected.excludingPids ?? []).includes(session.pid) &&
-    matchesQuery(session.query, expected)
-  )
-}
-
-function matchesQuery(sql: string, expected: BlockedQuery): boolean {
-  const query = sql.toLowerCase().replaceAll(/\s+/g, " ").trim()
-  const tableClauses = { select: "from", delete: "from", insert: "into", update: "update" }
-  return query.startsWith(`${expected.command} `) && query.includes(`${tableClauses[expected.command]} "${getTableName(expected.table)}"`)
-}
-
-class PostgresWriteBlock {
-  private readonly client: PoolClient
-  private backendPid: number | undefined
-  private released = false
-
-  public constructor(client: PoolClient) {
-    this.client = client
-  }
-
-  public get acquired(): boolean {
-    return this.backendPid !== undefined
-  }
-
-  public get pid(): number {
-    Assert.isDefined(this.backendPid)
-    return this.backendPid
-  }
-
-  public markAcquired(pid: number): void {
-    this.backendPid = pid
-  }
-
-  public async release(): Promise<void> {
-    if (this.released) {
-      return
-    }
-    this.released = true
-    // Destroying the connection also releases its lock if ROLLBACK fails.
-    using _connection = {
-      [Symbol.dispose]: (): void => {
-        this.client.release(true)
-      },
-    }
-    await this.client.query("ROLLBACK")
-  }
-
-  public async [Symbol.asyncDispose](): Promise<void> {
-    await this.release()
   }
 }

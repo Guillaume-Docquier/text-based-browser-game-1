@@ -13,8 +13,8 @@ import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import type { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
 import { concurrencyTest as baseTest } from "#tests/vitest.concurrency.fixture.ts"
 
-const concurrencyTest = baseTest.extend("participants", async ({ postgresDatabase }, { onCleanup }) => {
-  const server = await ConcurrencyTestApiServer.create(postgresDatabase)
+const concurrencyTest = baseTest.extend("participants", async ({ postgres }, { onCleanup }) => {
+  const server = await ConcurrencyTestApiServer.create(postgres)
   onCleanup(async () => {
     await server[Symbol.asyncDispose]()
   })
@@ -27,7 +27,7 @@ const concurrencyTest = baseTest.extend("participants", async ({ postgresDatabas
 describe("lobby concurrency", () => {
   concurrencyTest(
     "two joins competing for the last seat return success and lobby full",
-    async ({ postgresDatabase: { concurrency }, participants: { creator, alice, bob } }) => {
+    async ({ postgres: { concurrency }, participants: { creator, alice, bob } }) => {
       // Arrange
       const { createdGameId: gameId } = await creator.client.games.create.mutate({
         configuration: createGameConfigurationStub({ nbSeats: 2, mapGenerationSeed: 1234 }),
@@ -58,7 +58,7 @@ describe("lobby concurrency", () => {
 
   concurrencyTest(
     "two joins with available seats both succeed with distinct colors",
-    async ({ postgresDatabase: { concurrency }, participants: { creator, alice, bob } }) => {
+    async ({ postgres: { concurrency }, participants: { creator, alice, bob } }) => {
       // Arrange
       const { createdGameId: gameId } = await creator.client.games.create.mutate({
         configuration: createGameConfigurationStub({ nbSeats: 3, mapGenerationSeed: 1234 }),
@@ -133,7 +133,7 @@ describe("lobby concurrency", () => {
       ),
       expectedPlayers: ["creator", "alice"],
     },
-  ] as const)("$name", async (scenario, { postgresDatabase: { concurrency }, participants }) => {
+  ] as const)("$name", async (scenario, { postgres: { concurrency }, participants }) => {
     // Arrange
     const { creator, alice } = participants
     const { createdGameId: gameId } = await creator.client.games.create.mutate({

@@ -15,7 +15,7 @@ import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 describe("TurnProcessor concurrency", () => {
   concurrencyTest(
     "a second processor skips the claimed turn and processes a different due turn",
-    async ({ postgresDatabase: { db, concurrency } }) => {
+    async ({ postgres: { db, concurrency } }) => {
       // Arrange
       const clock = new ControlledClock()
       // Use the production API composition without its automatic worker: this test starts the processors explicitly.
@@ -39,7 +39,7 @@ describe("TurnProcessor concurrency", () => {
         command: "update",
         table: turnsTable,
         lock: "table",
-        excludingPids: [firstPid],
+        excludingPid: firstPid,
       })
       await block.release()
 
@@ -52,35 +52,32 @@ describe("TurnProcessor concurrency", () => {
     },
   )
 
-  concurrencyTest(
-    "a second processor returns idle while the only due turn is claimed",
-    async ({ postgresDatabase: { db, concurrency } }) => {
-      // Arrange
-      const clock = new ControlledClock()
-      using server = new ApiServer(await createApiStub({ db, clock }))
-      const player = await server.createClient({ authenticated: true })
-      const gameId = await createGameWithSubmittedAction(player, 50)
-      const firstProcessor = await createTurnProcessorStub({ db, clock })
-      const secondProcessor = await createTurnProcessorStub({ db, clock })
-      clock.increment({ time: Time.create(50, UnitOfTime.SECONDS) })
-      await firstProcessor.turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-      await using block = await concurrency.blockWrites(turnsTable)
+  concurrencyTest("a second processor returns idle while the only due turn is claimed", async ({ postgres: { db, concurrency } }) => {
+    // Arrange
+    const clock = new ControlledClock()
+    using server = new ApiServer(await createApiStub({ db, clock }))
+    const player = await server.createClient({ authenticated: true })
+    const gameId = await createGameWithSubmittedAction(player, 50)
+    const firstProcessor = await createTurnProcessorStub({ db, clock })
+    const secondProcessor = await createTurnProcessorStub({ db, clock })
+    clock.increment({ time: Time.create(50, UnitOfTime.SECONDS) })
+    await firstProcessor.turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+    await using block = await concurrency.blockWrites(turnsTable)
 
-      // Act & Assert
-      const first = Result.tryCatch(firstProcessor.turnProcessor.processNextDueTurn())
-      await concurrency.waitForBlockedQuery({ blockedBy: block.pid, command: "update", table: turnsTable, lock: "table" })
-      // Completion before release proves SKIP LOCKED worked; a timeout fails with database diagnostics.
-      const second = await concurrency.waitForCompletion(secondProcessor.turnProcessor.processNextDueTurn())
-      expect(second).toBe("idle")
-      await block.release()
-      expect(await first).toStrictEqual(Result.Success("processed"))
-      await expectProcessedOnce(player, gameId)
-      expect(await secondProcessor.turnProcessor.processNextDueTurn()).toBe("idle")
-    },
-  )
+    // Act & Assert
+    const first = Result.tryCatch(firstProcessor.turnProcessor.processNextDueTurn())
+    await concurrency.waitForBlockedQuery({ blockedBy: block.pid, command: "update", table: turnsTable, lock: "table" })
+    // Completion before release proves SKIP LOCKED worked; a timeout fails with database diagnostics.
+    const second = await concurrency.waitForCompletion(secondProcessor.turnProcessor.processNextDueTurn())
+    expect(second).toBe("idle")
+    await block.release()
+    expect(await first).toStrictEqual(Result.Success("processed"))
+    await expectProcessedOnce(player, gameId)
+    expect(await secondProcessor.turnProcessor.processNextDueTurn()).toBe("idle")
+  })
   concurrencyTest(
     "a second processor skips a committed claim while its result is still being saved",
-    async ({ postgresDatabase: { db, concurrency } }) => {
+    async ({ postgres: { db, concurrency } }) => {
       // Arrange
       const clock = new ControlledClock()
       using server = new ApiServer(await createApiStub({ db, clock }))

@@ -15,7 +15,7 @@ export const concurrencyTest = test
   .extend("logger", { scope: "worker", auto: true }, async () => {
     return await configureLogger({ scope: "concurrency-test", nonBlocking: false })
   })
-  .extend("postgres", { scope: "worker" }, async ({ logger: _logger }, { onCleanup }) => {
+  .extend("postgresInternal", { scope: "worker" }, async ({ logger: _logger }, { onCleanup }) => {
     const container = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
 
     const adminDb = createDb({ databaseUrl: container.getConnectionUri() })
@@ -36,12 +36,12 @@ export const concurrencyTest = test
       },
     }
   })
-  .extend("postgresDatabase", async ({ postgres, logger }, { onCleanup }) => {
+  .extend("postgres", async ({ postgresInternal, logger }, { onCleanup }) => {
     // A database per test permits table-wide scheduling locks without cross-test interference.
     const databaseName = `test_${randomUUID().replaceAll("-", "")}`
-    const dropSqlDb = await postgres.createSqlDb(databaseName)
+    const dropSqlDb = await postgresInternal.createSqlDb(databaseName)
 
-    const databaseUrl = new URL(postgres.container.getConnectionUri())
+    const databaseUrl = new URL(postgresInternal.container.getConnectionUri())
     databaseUrl.pathname = `/${databaseName}`
 
     const db = createDb({ databaseUrl: databaseUrl.toString() })
