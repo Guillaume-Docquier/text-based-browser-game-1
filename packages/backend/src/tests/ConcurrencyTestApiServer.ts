@@ -27,13 +27,14 @@ export class ConcurrencyTestApiServer {
 
   public static async create({ databaseUrl, db }: { databaseUrl: string; db: Database }): Promise<ConcurrencyTestApiServer> {
     const server = await forkApiServer({ databaseUrl })
+    const accountsRepository = new AccountsRepository({ db, logger: Logger.get() })
 
-    return new ConcurrencyTestApiServer({ server, db })
+    return new ConcurrencyTestApiServer({ server, accountsRepository })
   }
 
-  private constructor({ server, db }: { server: ForkedServer; db: Database }) {
+  private constructor({ server, accountsRepository }: { server: ForkedServer; accountsRepository: AccountsRepository }) {
     this.server = server
-    this.accountsRepository = new AccountsRepository({ db, logger: Logger.get() })
+    this.accountsRepository = accountsRepository
   }
 
   public async createClient(args: { authenticated: true }): Promise<AuthenticatedApiClient>
