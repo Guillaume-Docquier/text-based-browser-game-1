@@ -86,7 +86,7 @@ jobs:
 
     services:
       db:
-        # Needs to be in sync with the concurrency test image in ConcurrencyTestApiServer.ts, prod and docker-compose
+        # Needs to be in sync with the concurrency test image in POSTGRES_IMAGE.ts, prod and docker-compose
         image: postgres:18.4
         env:
           POSTGRES_USER: user
