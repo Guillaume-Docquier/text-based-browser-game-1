@@ -73,18 +73,18 @@ export class PostgresConcurrency {
     const tableClause = `${TABLE_CLAUSES[expected.command]} ${escapeIdentifier(tableName)}`
     const waitEvents = expected.lock === "table" ? ["relation"] : ["transactionid", "tuple"]
     const details = { ...expected, table: tableName }
+    // Match the SQL emitted by Drizzle and confirm PostgreSQL reports the expected blocker.
+    const matchesExpectedBlockedQuery = ({ pid, query, waitEvent, blockers }: Session): boolean =>
+      pid !== expected.excludingPid &&
+      blockers.includes(expected.blockedBy) &&
+      waitEvents.some((event) => event === waitEvent) &&
+      query.startsWith(`${expected.command} `) &&
+      query.includes(tableClause)
+
     let sessions: Session[]
     do {
       sessions = await this.readSessions()
-      // Match the SQL emitted by Drizzle and confirm PostgreSQL reports the expected blocker.
-      const [match, other] = sessions.filter(
-        ({ pid, query, waitEvent, blockers }) =>
-          pid !== expected.excludingPid &&
-          blockers.includes(expected.blockedBy) &&
-          waitEvents.some((event) => event === waitEvent) &&
-          query.startsWith(`${expected.command} `) &&
-          query.includes(tableClause),
-      )
+      const [match, other] = sessions.filter(matchesExpectedBlockedQuery)
       if (other !== undefined) {
         throw new FatalError("More than one session matches the expected blocked query", { expected: details, sessions })
       }
