@@ -6,7 +6,7 @@ Accepted
 
 ### Amendment history
 
-- 2026-11-16: Require the deterministic PostgreSQL concurrency test strategy from ADR 016 when verifying these locks.
+- 2026-11-16: Require the deterministic PostgreSQL concurrency test strategy when verifying these locks.
 
 ## Context
 
@@ -51,7 +51,7 @@ The branded model shows that the locking read happened. TypeScript cannot prove 
 
 Small operations may use one repository method when the rule and write can be done safely in one database statement. They must still lock or update the owning game or Turn row when they need to be ordered with other operations on that game.
 
-Verify these ordering rules with the [PostgreSQL-controlled concurrency tests in ADR 016](./016-use-repositories-in-tests.md). Establish and observe a specific competing-operation schedule before checking API outcomes and final state. PGlite tests and simultaneous request bursts do not establish that the intended lock contention occurred.
+Verify these ordering rules with concurrency tests. Establish and observe a specific competing-operation schedule before checking API outcomes and final state. PGlite tests and simultaneous request bursts do not establish that the intended lock contention occurred.
 
 ## Consequences
 
