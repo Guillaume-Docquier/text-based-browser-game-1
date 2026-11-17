@@ -9,9 +9,7 @@ import { createDb } from "#lib/db/createDb.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { createPostgresPoolDisposal } from "#tests/createPostgresPoolDisposal.ts"
 import { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
-
-// Keep aligned with production and infra/docker-compose.yaml.
-const POSTGRES_IMAGE = "postgres:18.4"
+import { POSTGRES_IMAGE } from "#tests/vitest.concurrency.setup.test-containers.ts"
 
 export const concurrencyTest = test
   .extend("logger", { scope: "worker", auto: true }, async () => {
