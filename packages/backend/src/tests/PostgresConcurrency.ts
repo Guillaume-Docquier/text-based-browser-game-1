@@ -70,16 +70,8 @@ export class PostgresConcurrency {
   public async waitForBlockedQuery(expected: BlockedQuery): Promise<number> {
     const deadline = performance.now() + SCHEDULE_TIMEOUT_MS
     const tableName = getTableName(expected.table)
-    const tableClause = `${TABLE_CLAUSES[expected.command]} ${escapeIdentifier(tableName)}`
-    const waitEvents = expected.lock === "table" ? ["relation"] : ["transactionid", "tuple"]
     const details = { ...expected, table: tableName }
-    // Match the SQL emitted by Drizzle and confirm PostgreSQL reports the expected blocker.
-    const matchesExpectedBlockedQuery = ({ pid, query, waitEvent, blockers }: Session): boolean =>
-      pid !== expected.excludingPid &&
-      blockers.includes(expected.blockedBy) &&
-      waitEvents.some((event) => event === waitEvent) &&
-      query.startsWith(`${expected.command} `) &&
-      query.includes(tableClause)
+    const matchesExpectedBlockedQuery = createBlockedQueryPredicate(expected)
 
     let sessions: Session[]
     do {
@@ -119,4 +111,17 @@ export class PostgresConcurrency {
     `)
     return result.rows
   }
+}
+
+function createBlockedQueryPredicate(expected: BlockedQuery): (session: Session) => boolean {
+  const tableClause = `${TABLE_CLAUSES[expected.command]} ${escapeIdentifier(getTableName(expected.table))}`
+  const waitEvents = expected.lock === "table" ? ["relation"] : ["transactionid", "tuple"]
+
+  // Match the SQL emitted by Drizzle and confirm PostgreSQL reports the expected blocker.
+  return ({ pid, query, waitEvent, blockers }: Session): boolean =>
+    pid !== expected.excludingPid &&
+    blockers.includes(expected.blockedBy) &&
+    waitEvents.some((event) => event === waitEvent) &&
+    query.startsWith(`${expected.command} `) &&
+    query.includes(tableClause)
 }
