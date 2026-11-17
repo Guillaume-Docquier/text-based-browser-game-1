@@ -7,6 +7,7 @@ import { test } from "vitest"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb } from "#lib/db/createDb.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
+import { createPostgresPoolDisposal } from "#tests/createPostgresPoolDisposal.ts"
 import { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
 
 // Keep aligned with production and infra/docker-compose.yaml.
@@ -19,8 +20,9 @@ export const concurrencyTest = test
   .extend("postgres", { scope: "worker" }, async ({ logger: _logger }, { onCleanup }) => {
     const container = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
     const admin = createDb({ databaseUrl: container.getConnectionUri() })
+    const adminDisposal = createPostgresPoolDisposal(admin.$client)
     onCleanup(async () => {
-      await admin.$client.end()
+      await adminDisposal[Symbol.asyncDispose]()
       await container.stop()
     })
     return { container, admin }
@@ -32,9 +34,10 @@ export const concurrencyTest = test
     const databaseUrl = new URL(postgres.container.getConnectionUri())
     databaseUrl.pathname = `/${databaseName}`
     const db = createDb({ databaseUrl: databaseUrl.toString() })
+    const dbDisposal = createPostgresPoolDisposal(db.$client)
     onCleanup(async () => {
-      await db.$client.end()
-      await postgres.admin.$client.query(`DROP DATABASE "${databaseName}" WITH (FORCE)`)
+      await dbDisposal[Symbol.asyncDispose]()
+      await postgres.admin.$client.query(`DROP DATABASE "${databaseName}"`)
     })
     await migrate(db, { migrationsFolder: "./drizzle/" })
     const rulesetsRepository = new RulesetsRepository({ db, logger })
