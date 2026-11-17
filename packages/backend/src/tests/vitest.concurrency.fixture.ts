@@ -8,8 +8,8 @@ import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb } from "#lib/db/createDb.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { createPostgresPoolDisposal } from "#tests/createPostgresPoolDisposal.ts"
+import { POSTGRES_IMAGE } from "#tests/POSTGRES_IMAGE.ts"
 import { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
-import { POSTGRES_IMAGE } from "#tests/vitest.concurrency.setup.test-containers.ts"
 
 export const concurrencyTest = test
   .extend("logger", { scope: "worker", auto: true }, async () => {

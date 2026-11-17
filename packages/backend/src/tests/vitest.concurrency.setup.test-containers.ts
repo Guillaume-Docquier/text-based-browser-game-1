@@ -1,7 +1,5 @@
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
-
-// Keep aligned with production and infra/docker-compose.yaml.
-export const POSTGRES_IMAGE = "postgres:18.4"
+import { POSTGRES_IMAGE } from "#tests/POSTGRES_IMAGE.ts"
 
 // This is leveraging `isolate: false` by putting the preload in the worker scope
 // beforeAll runs before every test files, even in the same worker, so we cache the preload promise
