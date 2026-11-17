@@ -1,0 +1,34 @@
+diff --git a/lib/parse.js b/lib/parse.js
+index caa2b86aa5a567df33cef4bda3c7a97794f439f8..ba03329b58f5c53343dbee207733e9621fdb562c 100644
+--- a/lib/parse.js
++++ b/lib/parse.js
+@@ -313,6 +313,18 @@ const analyzeRepeatedExtglob = (body, options) => {
+     }
+   }
+ 
++  // A star in a single literal branch can absorb further repetitions.
++  // Leave paths, quotes, and other glob or regex syntax to the existing parser.
++  if (
++    branches.length === 1 &&
++    branches[0].includes('*') &&
++    !branches[0].includes('**') &&
++    !/[\\/"?()[\]{}|!+@]/.test(branches[0])
++  ) {
++    // Collapsing changes repeated captures, so use the existing literal fallback in capture mode.
++    return options.capture === true ? { risky: true } : { risky: false, collapse: true };
++  }
++
+   return { risky: false };
+ };
+ 
+@@ -536,6 +548,10 @@ const parse = (input, options) => {
+       return;
+     }
+ 
++    if (analysis.collapse === true && (token.type === 'plus' || token.type === 'star')) {
++      token.close = token.type === 'plus' ? ')' : ')?';
++    }
++
+     let output = token.close + (opts.capture ? ')' : '');
+     let rest;
+ 
