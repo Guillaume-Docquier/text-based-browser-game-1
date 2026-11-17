@@ -17,7 +17,7 @@ const system = StarSystemSchema.parse(
     star: createStarStub({ id: "00000000-0000-4000-8000-000000000001", name: "Sol" }),
     planets: [
       createPlanetStub({ id: "00000000-0000-4000-8000-000000000002", name: "Terra", x: orbit, y: 0 }),
-      createPlanetStub({ id: "00000000-0000-4000-8000-000000000003", name: "Mars", x: -orbit * 2, y: 0 }),
+      createPlanetStub({ id: "00000000-0000-4000-8000-000000000003", name: "Mars", biome: "VOLCANIC", x: -orbit * 2, y: 0 }),
     ],
   }),
 )
