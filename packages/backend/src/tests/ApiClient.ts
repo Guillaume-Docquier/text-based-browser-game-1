@@ -21,6 +21,7 @@ type CreateApiClientArgs = {
   port: number
   accountsRepository: AccountsRepository
   id?: string | undefined
+  alias?: string
   authenticated: boolean
 }
 
@@ -33,6 +34,7 @@ export async function createApiClient({
   port,
   accountsRepository,
   id,
+  alias,
 }: CreateApiClientArgs): Promise<AuthenticatedApiClient | AnonymousApiClient> {
   if (!authenticated) {
     return {
@@ -41,7 +43,8 @@ export async function createApiClient({
     }
   }
 
-  const account = extractSuccess(await accountsRepository.createAccount(createAccountStub({ id: id ?? v4() })))
+  const accountStub = createAccountStub({ id: id ?? v4(), ...(alias === undefined ? {} : { alias }) })
+  const account = extractSuccess(await accountsRepository.createAccount(accountStub))
 
   return {
     client: createTrpcClient({ port, authId: account.authId }),
