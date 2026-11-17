@@ -16,6 +16,8 @@ There is no backend build. Node 26+ runs TypeScript natively, so code requires i
 
 Turn Processing is isolated so workers can scale independently or move to another runtime later. Turn Processing must not depend on the API.
 
+Everything is in TypeScript. Never write JavaScript files if you can do it in TypeScript.
+
 ## Commands
 
 - `pnpm --filter backend test --project unit`: runs fast in memory unit tests without a database.
