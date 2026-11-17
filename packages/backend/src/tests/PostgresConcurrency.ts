@@ -119,7 +119,7 @@ function matchesQuery(sql: string, expected: BlockedQuery): boolean {
   return query.startsWith(`${expected.command} `) && query.includes(`${tableClauses[expected.command]} "${getTableName(expected.table)}"`)
 }
 
-export class PostgresWriteBlock {
+class PostgresWriteBlock {
   private readonly client: PoolClient
   private backendPid: number | undefined
   private released = false
