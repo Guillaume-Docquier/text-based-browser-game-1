@@ -3,7 +3,7 @@ import { POSTGRES_IMAGE } from "#tests/POSTGRES_IMAGE.ts"
 
 // This is leveraging `isolate: false` by putting the preload in the worker scope
 // beforeAll runs before every test files, even in the same worker, so we cache the preload promise
-let preloading: Promise<void> | undefined
+let preloading: Promise<void>
 
 export const TestContainers = {
   /**
