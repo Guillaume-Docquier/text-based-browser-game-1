@@ -17,29 +17,47 @@ export const concurrencyTest = test
   })
   .extend("postgres", { scope: "worker" }, async ({ logger: _logger }, { onCleanup }) => {
     const container = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
-    const admin = createDb({ databaseUrl: container.getConnectionUri() })
-    const adminDisposal = createPostgresPoolDisposal(admin.$client)
+
+    const adminDb = createDb({ databaseUrl: container.getConnectionUri() })
+    const adminDisposal = createPostgresPoolDisposal(adminDb.$client)
     onCleanup(async () => {
       await adminDisposal[Symbol.asyncDispose]()
       await container.stop()
     })
-    return { container, admin }
+
+    return {
+      container,
+      createSqlDb: async (dbName: string): Promise<() => Promise<void>> => {
+        await adminDb.$client.query(`CREATE DATABASE "${dbName}"`)
+
+        return async () => {
+          await adminDb.$client.query(`DROP DATABASE "${dbName}"`)
+        }
+      },
+    }
   })
   .extend("postgresDatabase", async ({ postgres, logger }, { onCleanup }) => {
     // A database per test permits table-wide scheduling locks without cross-test interference.
     const databaseName = `test_${randomUUID().replaceAll("-", "")}`
-    await postgres.admin.$client.query(`CREATE DATABASE "${databaseName}"`)
+    const dropSqlDb = await postgres.createSqlDb(databaseName)
+
     const databaseUrl = new URL(postgres.container.getConnectionUri())
     databaseUrl.pathname = `/${databaseName}`
+
     const db = createDb({ databaseUrl: databaseUrl.toString() })
     const dbDisposal = createPostgresPoolDisposal(db.$client)
     onCleanup(async () => {
       await dbDisposal[Symbol.asyncDispose]()
-      await postgres.admin.$client.query(`DROP DATABASE "${databaseName}"`)
+      await dropSqlDb()
     })
+
     await migrate(db, { migrationsFolder: "./drizzle/" })
     const rulesetsRepository = new RulesetsRepository({ db, logger })
     Assert.isSuccess(await rulesetsRepository.upsertRuleset(TestRuleset))
 
-    return { db, databaseUrl: databaseUrl.toString(), concurrency: new PostgresConcurrency(db.$client) }
+    return {
+      db,
+      databaseUrl: databaseUrl.toString(),
+      concurrency: new PostgresConcurrency(db.$client),
+    }
   })
