@@ -4,6 +4,7 @@ import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import type { GameConfiguration } from "shared/domain/games/GameConfiguration.ts"
 import type { GameId } from "shared/domain/games/GameId.ts"
 import type { GameStatus } from "shared/domain/games/GameStatus.ts"
+import type { Player } from "shared/domain/players/Player.ts"
 import type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import type { ResourceType } from "shared/domain/resources/ResourceType.ts"
@@ -14,7 +15,7 @@ import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import type { Galaxy } from "shared/domain/world/Galaxy.ts"
 import type { GameCreationConfirmation } from "#api/games/GameCreationConfirmation.ts"
 import type { GameCreationSettings } from "#api/games/gameCreationSettings.ts"
-import type { GameDetails, GameDetailsPlayer } from "#api/games/GameDetails.ts"
+import type { GameDetails } from "#api/games/GameDetails.ts"
 import { GetGameByIdError } from "#api/games/getGameById.error.ts"
 import { GetGameCreationSettingsError } from "#api/games/getGameCreationSettings.error.ts"
 import { GetGameListingsError } from "#api/games/getGameListings.error.ts"
@@ -571,7 +572,7 @@ function toGameDetailsWithoutOps({
 }: {
   gameRow: GameRow
   ruleset: RulesetSummary
-  players: GameDetailsPlayer[]
+  players: Player[]
 }): GameDetailsWithoutOps {
   const creator = players.find((player) => player.id === branded(gameRow.createdByAccountId))
   Assert.isDefined(creator)

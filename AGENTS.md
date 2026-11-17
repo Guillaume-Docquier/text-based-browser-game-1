@@ -56,6 +56,8 @@ We use:
 - oxlint for linting
 - typescript 7
 
+Always use enum members instead of their literal values, for example `PlayerColor.TURQUOISE` instead of `"TURQUOISE"`.
+
 ### @guillaume-docquier/tools-ts
 
 Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. This is a TypeScript library of utilities made by us. Their README.md contains a high-level view of the available utilities, read it.
