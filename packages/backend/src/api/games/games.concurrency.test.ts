@@ -26,11 +26,15 @@ describe("lobby concurrency", () => {
     })
 
     // Act
-    const [first, second] = await runLobbyRace(
-      postgres.concurrency,
-      { table: playersTable, command: "insert", run: async () => await alice.client.games.join.mutate({ gameId }) },
-      async () => await bob.client.games.join.mutate({ gameId }),
-    )
+    const [first, second] = await runLobbyRace({
+      concurrency: postgres.concurrency,
+      firstOperation: {
+        table: playersTable,
+        command: "insert",
+        run: async () => await alice.client.games.join.mutate({ gameId }),
+      },
+      secondOperation: async () => await bob.client.games.join.mutate({ gameId }),
+    })
 
     // Assert
     expect(first).toStrictEqual(Result.Success(undefined))
@@ -59,11 +63,15 @@ describe("lobby concurrency", () => {
     })
 
     // Act
-    const [first, second] = await runLobbyRace(
-      postgres.concurrency,
-      { table: playersTable, command: "insert", run: async () => await alice.client.games.join.mutate({ gameId }) },
-      async () => await bob.client.games.join.mutate({ gameId }),
-    )
+    const [first, second] = await runLobbyRace({
+      concurrency: postgres.concurrency,
+      firstOperation: {
+        table: playersTable,
+        command: "insert",
+        run: async () => await alice.client.games.join.mutate({ gameId }),
+      },
+      secondOperation: async () => await bob.client.games.join.mutate({ gameId }),
+    })
 
     // Assert
     expect(first).toStrictEqual(Result.Success(undefined))
@@ -147,29 +155,33 @@ describe("lobby concurrency", () => {
     }
 
     // Act
-    const [first, second] = await runLobbyRace(
-      postgres.concurrency,
-      { ...scenario.firstWrite, run: operations[scenario.first] },
-      operations[scenario.second],
-    )
+    const [first, second] = await runLobbyRace({
+      concurrency: postgres.concurrency,
+      firstOperation: { ...scenario.firstWrite, run: operations[scenario.first] },
+      secondOperation: operations[scenario.second],
+    })
 
     // Assert
     expect(first).toStrictEqual(Result.Success(undefined))
     expect(second).toStrictEqual(scenario.expectedSecond)
-    await expectStartedPlayers(
-      participants.creator,
+    await expectStartedPlayers({
+      creator: participants.creator,
       gameId,
-      scenario.expectedPlayers.map((name) => participants[name]),
-    )
+      participants: scenario.expectedPlayers.map((name) => participants[name]),
+    })
   })
 })
 
 /** Hold the first write until the competing operation waits for its game-row lock. */
-async function runLobbyRace(
-  concurrency: PostgresConcurrency,
-  firstOperation: { table: PgTable; command: "insert" | "delete"; run: () => Promise<void> },
-  secondOperation: () => Promise<void>,
-): Promise<[Result<void, unknown>, Result<void, unknown>]> {
+async function runLobbyRace({
+  concurrency,
+  firstOperation,
+  secondOperation,
+}: {
+  concurrency: PostgresConcurrency
+  firstOperation: { table: PgTable; command: "insert" | "delete"; run: () => Promise<void> }
+  secondOperation: () => Promise<void>
+}): Promise<[Result<void, unknown>, Result<void, unknown>]> {
   await using block = await concurrency.blockWrites(firstOperation.table)
   const first = Result.tryCatch(firstOperation.run())
   const firstPid = await concurrency.waitForBlockedQuery({
@@ -184,11 +196,15 @@ async function runLobbyRace(
   return await Promise.all([first, second])
 }
 
-async function expectStartedPlayers(
-  creator: AuthenticatedApiClient,
-  gameId: GameId,
-  participants: readonly AuthenticatedApiClient[],
-): Promise<void> {
+async function expectStartedPlayers({
+  creator,
+  gameId,
+  participants,
+}: {
+  creator: AuthenticatedApiClient
+  gameId: GameId
+  participants: readonly AuthenticatedApiClient[]
+}): Promise<void> {
   const lobby = await creator.client.games.getDetails.query({ gameId })
   expect(lobby.status).toBe(GameStatus.IN_PROGRESS)
   expect(lobby.players.map(({ alias }) => alias).sort()).toStrictEqual(participants.map(({ account }) => account.alias).sort())
