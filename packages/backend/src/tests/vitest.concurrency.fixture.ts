@@ -19,9 +19,9 @@ export const concurrencyTest = test
     const container = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
 
     const adminDb = createDb({ databaseUrl: container.getConnectionUri() })
-    const adminDisposal = createPostgresPoolDisposal(adminDb.$client)
+    const closeAdminPool = createPostgresPoolDisposal(adminDb.$client)
     onCleanup(async () => {
-      await adminDisposal[Symbol.asyncDispose]()
+      await closeAdminPool()
       await container.stop()
     })
 
@@ -45,9 +45,9 @@ export const concurrencyTest = test
     databaseUrl.pathname = `/${databaseName}`
 
     const db = createDb({ databaseUrl: databaseUrl.toString() })
-    const dbDisposal = createPostgresPoolDisposal(db.$client)
+    const closePool = createPostgresPoolDisposal(db.$client)
     onCleanup(async () => {
-      await dbDisposal[Symbol.asyncDispose]()
+      await closePool()
       await dropSqlDb()
     })
 

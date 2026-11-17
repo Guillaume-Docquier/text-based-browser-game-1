@@ -1,5 +1,5 @@
 import { Pool } from "pg"
-import { expect } from "vitest"
+import { expect, onTestFinished } from "vitest"
 import { createPostgresPoolDisposal } from "#tests/createPostgresPoolDisposal.ts"
 import { concurrencyTest } from "#tests/vitest.concurrency.fixture.ts"
 
@@ -8,7 +8,8 @@ concurrencyTest(
   async ({ postgresDatabase: { databaseUrl } }) => {
     // Arrange
     const pool = new Pool({ connectionString: databaseUrl })
-    await using disposal = createPostgresPoolDisposal(pool)
+    const closePool = createPostgresPoolDisposal(pool)
+    onTestFinished(closePool)
     const disconnected: string[] = []
     const [removedClient, idleClient] = await Promise.all([pool.connect(), pool.connect()])
     removedClient.once("end", () => {
@@ -21,7 +22,7 @@ concurrencyTest(
     idleClient.release()
 
     // Act
-    await disposal[Symbol.asyncDispose]()
+    await closePool()
 
     // Assert
     expect(disconnected.sort()).toStrictEqual(["idle", "removed"])

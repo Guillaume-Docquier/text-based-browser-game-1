@@ -2,7 +2,7 @@ import { Assert } from "@guillaume-docquier/tools-ts"
 import type { Pool, PoolClient } from "pg"
 
 /** Register before the first connection so disposal also waits for clients removed from the pool earlier. */
-export function createPostgresPoolDisposal(pool: Pool): AsyncDisposable {
+export function createPostgresPoolDisposal(pool: Pool): () => Promise<void> {
   Assert.isTrue(pool.totalCount === 0)
   const disconnects = new Set<Promise<undefined>>()
   const trackConnection = (client: PoolClient): void => {
@@ -16,14 +16,13 @@ export function createPostgresPoolDisposal(pool: Pool): AsyncDisposable {
   pool.on("connect", trackConnection)
 
   let closing: Promise<void> | undefined
-  return {
-    async [Symbol.asyncDispose](): Promise<void> {
-      await (closing ??= (async (): Promise<void> => {
-        // pg-pool removes clients from its list before their sockets have finished closing.
-        await pool.end()
-        await Promise.all(disconnects)
-        pool.off("connect", trackConnection)
-      })())
-    },
+  return async (): Promise<void> => {
+    await (closing ??= (async (): Promise<void> => {
+      // pg-pool removes clients from its list before their sockets have finished closing.
+      // Work around https://github.com/brianc/node-postgres/issues/3287 until pool.end() waits for them.
+      await pool.end()
+      await Promise.all(disconnects)
+      pool.off("connect", trackConnection)
+    })())
   }
 }
