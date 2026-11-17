@@ -3,13 +3,14 @@ import { createMemoryHistory, createRootRoute, createRoute, createRouter, Router
 import type { ReactElement } from "react"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
+import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { expect, within } from "storybook/test"
 import { FleetsPageView } from "./FleetsPage.tsx"
 
 const alice = createPlayerStub()
-const bob = createPlayerStub({ id: "00000000-0000-4000-8000-000000000002", alias: "Bob", color: "PINK" })
+const bob = createPlayerStub({ id: "00000000-0000-4000-8000-000000000002", alias: "Bob", color: PlayerColor.PINK })
 const origin = createPlanetStub({ id: "planet-earth", name: "Earth", coordinates: "1:2:3" })
 const destination = createPlanetStub({ id: "planet-mars", name: "Mars", coordinates: "4:5:6" })
 const distantPlanet = createPlanetStub({ id: "planet-venus", name: "Venus", coordinates: "7:8:9" })

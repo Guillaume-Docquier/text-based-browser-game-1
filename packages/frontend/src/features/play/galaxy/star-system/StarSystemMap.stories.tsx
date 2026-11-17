@@ -4,6 +4,7 @@ import { useState } from "react"
 import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
 import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
+import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
 import { createStarSystemStub } from "shared/domain/world/StarSystem.stub.ts"
 import { StarSystemSchema } from "shared/domain/world/StarSystem.ts"
@@ -17,7 +18,7 @@ const system = StarSystemSchema.parse(
     star: createStarStub({ id: "00000000-0000-4000-8000-000000000001", name: "Sol" }),
     planets: [
       createPlanetStub({ id: "00000000-0000-4000-8000-000000000002", name: "Terra", x: orbit, y: 0 }),
-      createPlanetStub({ id: "00000000-0000-4000-8000-000000000003", name: "Mars", biome: "VOLCANIC", x: -orbit * 2, y: 0 }),
+      createPlanetStub({ id: "00000000-0000-4000-8000-000000000003", name: "Mars", biome: PlanetBiome.VOLCANIC, x: -orbit * 2, y: 0 }),
     ],
   }),
 )

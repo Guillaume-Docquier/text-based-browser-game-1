@@ -1,7 +1,9 @@
 import type { Galaxy } from "@api-types"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
 import { createRulesetStub } from "shared/domain/ruleset/Ruleset.stub.ts"
+import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import type { PlayGameContextValue } from "./PlayContext.tsx"
 
 /**
@@ -21,7 +23,7 @@ export function createPlayGameContextStub({ galaxy = { systems: [] } }: { galaxy
       endedAt: null,
       creator: player,
       players: [player],
-      status: "IN_PROGRESS",
+      status: GameStatus.IN_PROGRESS,
       canJoin: false,
       canLeave: false,
       canStart: false,
@@ -34,7 +36,7 @@ export function createPlayGameContextStub({ galaxy = { systems: [] } }: { galaxy
       galaxy,
       fleets: [],
       turn: 1,
-      turnStatus: "COLLECTING_ACTIONS",
+      turnStatus: TurnStatus.COLLECTING_ACTIONS,
       turnEndsAt: "2026-01-01T01:00:00Z",
       resources: {
         INFLUENCE: { total: 0, uncommitted: 0 },
