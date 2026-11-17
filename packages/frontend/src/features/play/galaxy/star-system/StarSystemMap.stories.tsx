@@ -11,7 +11,7 @@ import { createPlayerStub } from "@/lib/api/Player.stub.ts"
 import { StarSystemMap } from "./StarSystemMap.tsx"
 
 const player = createPlayerStub()
-const orbit = Distance.convert(Distance.create(5, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS).value
+const orbit = Distance.in(Distance.create(5, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS)
 const system = StarSystemSchema.parse(
   createStarSystemStub({
     star: createStarStub({ id: "00000000-0000-4000-8000-000000000001", name: "Sol" }),
