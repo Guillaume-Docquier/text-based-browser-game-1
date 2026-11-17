@@ -1,4 +1,5 @@
 import { Result } from "@guillaume-docquier/tools-ts"
+import type { PgTable } from "drizzle-orm/pg-core"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import type { GameId } from "shared/domain/games/GameId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
@@ -9,6 +10,7 @@ import { createPlayerViewResourcesStub } from "#api/gameplay/PlayerViewResources
 import { gamesTable, playersTable, turnsTable } from "#lib/db/schema.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
+import type { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
 import { concurrencyTest as baseTest } from "#tests/vitest.concurrency.fixture.ts"
 
 const concurrencyTest = baseTest.extend("participants", async ({ postgresDatabase }, { onCleanup }) => {
@@ -30,23 +32,17 @@ describe("lobby concurrency", () => {
       const { createdGameId: gameId } = await creator.client.games.create.mutate({
         configuration: createGameConfigurationStub({ nbSeats: 2, mapGenerationSeed: 1234 }),
       })
-      await using block = await concurrency.blockWrites(playersTable)
 
       // Act
-      const first = Result.tryCatch(alice.client.games.join.mutate({ gameId }))
-      const firstPid = await concurrency.waitForBlockedQuery({
-        blockedBy: block.pid,
-        command: "insert",
-        table: playersTable,
-        lock: "table",
-      })
-      const second = Result.tryCatch(bob.client.games.join.mutate({ gameId }))
-      await concurrency.waitForBlockedQuery({ blockedBy: firstPid, command: "select", table: gamesTable, lock: "row" })
-      await block.release()
+      const [first, second] = await runLobbyRace(
+        concurrency,
+        { table: playersTable, command: "insert", run: async () => await alice.client.games.join.mutate({ gameId }) },
+        async () => await bob.client.games.join.mutate({ gameId }),
+      )
 
       // Assert
-      expect(await first).toStrictEqual(Result.Success(undefined))
-      expect(await second).toStrictEqual(
+      expect(first).toStrictEqual(Result.Success(undefined))
+      expect(second).toStrictEqual(
         Result.Failure(
           expect.objectContaining({
             message: "The lobby is full.",
@@ -67,23 +63,17 @@ describe("lobby concurrency", () => {
       const { createdGameId: gameId } = await creator.client.games.create.mutate({
         configuration: createGameConfigurationStub({ nbSeats: 3, mapGenerationSeed: 1234 }),
       })
-      await using block = await concurrency.blockWrites(playersTable)
 
       // Act
-      const first = Result.tryCatch(alice.client.games.join.mutate({ gameId }))
-      const firstPid = await concurrency.waitForBlockedQuery({
-        blockedBy: block.pid,
-        command: "insert",
-        table: playersTable,
-        lock: "table",
-      })
-      const second = Result.tryCatch(bob.client.games.join.mutate({ gameId }))
-      await concurrency.waitForBlockedQuery({ blockedBy: firstPid, command: "select", table: gamesTable, lock: "row" })
-      await block.release()
+      const [first, second] = await runLobbyRace(
+        concurrency,
+        { table: playersTable, command: "insert", run: async () => await alice.client.games.join.mutate({ gameId }) },
+        async () => await bob.client.games.join.mutate({ gameId }),
+      )
 
       // Assert
-      expect(await first).toStrictEqual(Result.Success(undefined))
-      expect(await second).toStrictEqual(Result.Success(undefined))
+      expect(first).toStrictEqual(Result.Success(undefined))
+      expect(second).toStrictEqual(Result.Success(undefined))
       const lobby = await creator.client.games.getDetails.query({ gameId })
       expect(lobby.status).toBe(GameStatus.READY_TO_START)
       expect(lobby.players.map(({ alias, color }) => ({ alias, color })).sort((a, b) => a.alias.localeCompare(b.alias))).toStrictEqual(
@@ -103,23 +93,17 @@ describe("lobby concurrency", () => {
       const { createdGameId: gameId } = await creator.client.games.create.mutate({
         configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
       })
-      await using block = await concurrency.blockWrites(playersTable)
 
       // Act
-      const first = Result.tryCatch(alice.client.games.join.mutate({ gameId }))
-      const firstPid = await concurrency.waitForBlockedQuery({
-        blockedBy: block.pid,
-        command: "insert",
-        table: playersTable,
-        lock: "table",
-      })
-      const second = Result.tryCatch(creator.client.games.startGame.mutate({ gameId }))
-      await concurrency.waitForBlockedQuery({ blockedBy: firstPid, command: "select", table: gamesTable, lock: "row" })
-      await block.release()
+      const [first, second] = await runLobbyRace(
+        concurrency,
+        { table: playersTable, command: "insert", run: async () => await alice.client.games.join.mutate({ gameId }) },
+        async () => await creator.client.games.startGame.mutate({ gameId }),
+      )
 
       // Assert
-      expect(await first).toStrictEqual(Result.Success(undefined))
-      expect(await second).toStrictEqual(Result.Success(undefined))
+      expect(first).toStrictEqual(Result.Success(undefined))
+      expect(second).toStrictEqual(Result.Success(undefined))
       await expectStartedPlayers(creator, gameId, [creator, alice])
     },
   )
@@ -131,18 +115,17 @@ describe("lobby concurrency", () => {
       const { createdGameId: gameId } = await creator.client.games.create.mutate({
         configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
       })
-      await using block = await concurrency.blockWrites(turnsTable)
 
       // Act
-      const first = Result.tryCatch(creator.client.games.startGame.mutate({ gameId }))
-      const firstPid = await concurrency.waitForBlockedQuery({ blockedBy: block.pid, command: "insert", table: turnsTable, lock: "table" })
-      const second = Result.tryCatch(alice.client.games.join.mutate({ gameId }))
-      await concurrency.waitForBlockedQuery({ blockedBy: firstPid, command: "select", table: gamesTable, lock: "row" })
-      await block.release()
+      const [first, second] = await runLobbyRace(
+        concurrency,
+        { table: turnsTable, command: "insert", run: async () => await creator.client.games.startGame.mutate({ gameId }) },
+        async () => await alice.client.games.join.mutate({ gameId }),
+      )
 
       // Assert
-      expect(await first).toStrictEqual(Result.Success(undefined))
-      expect(await second).toStrictEqual(
+      expect(first).toStrictEqual(Result.Success(undefined))
+      expect(second).toStrictEqual(
         Result.Failure(
           expect.objectContaining({
             message: "You cannot join a game that has already started.",
@@ -162,23 +145,17 @@ describe("lobby concurrency", () => {
         configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
       })
       await alice.client.games.join.mutate({ gameId })
-      await using block = await concurrency.blockWrites(playersTable)
 
       // Act
-      const first = Result.tryCatch(alice.client.games.leave.mutate({ gameId }))
-      const firstPid = await concurrency.waitForBlockedQuery({
-        blockedBy: block.pid,
-        command: "delete",
-        table: playersTable,
-        lock: "table",
-      })
-      const second = Result.tryCatch(creator.client.games.startGame.mutate({ gameId }))
-      await concurrency.waitForBlockedQuery({ blockedBy: firstPid, command: "select", table: gamesTable, lock: "row" })
-      await block.release()
+      const [first, second] = await runLobbyRace(
+        concurrency,
+        { table: playersTable, command: "delete", run: async () => await alice.client.games.leave.mutate({ gameId }) },
+        async () => await creator.client.games.startGame.mutate({ gameId }),
+      )
 
       // Assert
-      expect(await first).toStrictEqual(Result.Success(undefined))
-      expect(await second).toStrictEqual(Result.Success(undefined))
+      expect(first).toStrictEqual(Result.Success(undefined))
+      expect(second).toStrictEqual(Result.Success(undefined))
       await expectStartedPlayers(creator, gameId, [creator])
     },
   )
@@ -191,18 +168,17 @@ describe("lobby concurrency", () => {
         configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
       })
       await alice.client.games.join.mutate({ gameId })
-      await using block = await concurrency.blockWrites(turnsTable)
 
       // Act
-      const first = Result.tryCatch(creator.client.games.startGame.mutate({ gameId }))
-      const firstPid = await concurrency.waitForBlockedQuery({ blockedBy: block.pid, command: "insert", table: turnsTable, lock: "table" })
-      const second = Result.tryCatch(alice.client.games.leave.mutate({ gameId }))
-      await concurrency.waitForBlockedQuery({ blockedBy: firstPid, command: "select", table: gamesTable, lock: "row" })
-      await block.release()
+      const [first, second] = await runLobbyRace(
+        concurrency,
+        { table: turnsTable, command: "insert", run: async () => await creator.client.games.startGame.mutate({ gameId }) },
+        async () => await alice.client.games.leave.mutate({ gameId }),
+      )
 
       // Assert
-      expect(await first).toStrictEqual(Result.Success(undefined))
-      expect(await second).toStrictEqual(
+      expect(first).toStrictEqual(Result.Success(undefined))
+      expect(second).toStrictEqual(
         Result.Failure(
           expect.objectContaining({
             message: "You cannot leave a game that has already started.",
@@ -214,6 +190,26 @@ describe("lobby concurrency", () => {
     },
   )
 })
+
+/** Hold the first write until the competing operation waits for its game-row lock. */
+async function runLobbyRace(
+  concurrency: PostgresConcurrency,
+  firstOperation: { table: PgTable; command: "insert" | "delete"; run: () => Promise<void> },
+  secondOperation: () => Promise<void>,
+): Promise<[Result<void, unknown>, Result<void, unknown>]> {
+  await using block = await concurrency.blockWrites(firstOperation.table)
+  const first = Result.tryCatch(firstOperation.run())
+  const firstPid = await concurrency.waitForBlockedQuery({
+    blockedBy: block.pid,
+    command: firstOperation.command,
+    table: firstOperation.table,
+    lock: "table",
+  })
+  const second = Result.tryCatch(secondOperation())
+  await concurrency.waitForBlockedQuery({ blockedBy: firstPid, command: "select", table: gamesTable, lock: "row" })
+  await block.release()
+  return await Promise.all([first, second])
+}
 
 async function expectStartedPlayers(
   creator: AuthenticatedApiClient,

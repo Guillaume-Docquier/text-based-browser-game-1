@@ -59,22 +59,7 @@ export class PostgresConcurrency {
     let sessions: Session[] = []
     do {
       sessions = await this.readSessions()
-      const matching = sessions.filter((session) => {
-        const query = session.query.toLowerCase().replaceAll(/\s+/g, " ").trim()
-        const tableClause =
-          expected.command === "select" || expected.command === "delete" ? "from" : expected.command === "insert" ? "into" : "update"
-        return (
-          session.state === "active" &&
-          session.waitEventType === "Lock" &&
-          (expected.lock === "table"
-            ? session.waitEvent === "relation"
-            : session.waitEvent === "transactionid" || session.waitEvent === "tuple") &&
-          session.blockers.includes(expected.blockedBy) &&
-          !(expected.excludingPids ?? []).includes(session.pid) &&
-          query.startsWith(`${expected.command} `) &&
-          query.includes(`${tableClause} "${tableName}"`)
-        )
-      })
+      const matching = sessions.filter((session) => matchesBlockedQuery(session, expected))
       if (matching.length === 1) {
         Assert.isDefined(matching[0])
         return matching[0].pid
@@ -114,6 +99,24 @@ export class PostgresConcurrency {
     `)
     return result.rows
   }
+}
+
+function matchesBlockedQuery(session: Session, expected: BlockedQuery): boolean {
+  const waitEvents = { table: ["relation"], row: ["transactionid", "tuple"] }
+  return (
+    session.state === "active" &&
+    session.waitEventType === "Lock" &&
+    waitEvents[expected.lock].includes(session.waitEvent ?? "") &&
+    session.blockers.includes(expected.blockedBy) &&
+    !(expected.excludingPids ?? []).includes(session.pid) &&
+    matchesQuery(session.query, expected)
+  )
+}
+
+function matchesQuery(sql: string, expected: BlockedQuery): boolean {
+  const query = sql.toLowerCase().replaceAll(/\s+/g, " ").trim()
+  const tableClauses = { select: "from", delete: "from", insert: "into", update: "update" }
+  return query.startsWith(`${expected.command} `) && query.includes(`${tableClauses[expected.command]} "${getTableName(expected.table)}"`)
 }
 
 export class PostgresWriteBlock {
