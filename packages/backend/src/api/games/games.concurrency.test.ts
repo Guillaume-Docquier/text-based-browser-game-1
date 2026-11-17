@@ -11,80 +11,73 @@ import { gamesTable, playersTable, turnsTable } from "#lib/db/schema.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import type { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
-import { concurrencyTest as baseTest } from "#tests/vitest.concurrency.fixture.ts"
-
-const concurrencyTest = baseTest.extend("participants", async ({ postgres }, { onCleanup }) => {
-  const server = await ConcurrencyTestApiServer.create(postgres)
-  onCleanup(async () => {
-    await server[Symbol.asyncDispose]()
-  })
-  const creator = await server.createClient({ authenticated: true })
-  const alice = await server.createClient({ authenticated: true })
-  const bob = await server.createClient({ authenticated: true })
-  return { creator, alice, bob }
-})
+import { concurrencyTest } from "#tests/vitest.concurrency.fixture.ts"
 
 describe("lobby concurrency", () => {
-  concurrencyTest(
-    "two joins competing for the last seat return success and lobby full",
-    async ({ postgres: { concurrency }, participants: { creator, alice, bob } }) => {
-      // Arrange
-      const { createdGameId: gameId } = await creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ nbSeats: 2, mapGenerationSeed: 1234 }),
-      })
+  concurrencyTest("two joins competing for the last seat return success and lobby full", async ({ postgres }) => {
+    // Arrange
+    await using server = await ConcurrencyTestApiServer.create(postgres)
+    const creator = await server.createClient({ authenticated: true })
+    const alice = await server.createClient({ authenticated: true })
+    const bob = await server.createClient({ authenticated: true })
 
-      // Act
-      const [first, second] = await runLobbyRace(
-        concurrency,
-        { table: playersTable, command: "insert", run: async () => await alice.client.games.join.mutate({ gameId }) },
-        async () => await bob.client.games.join.mutate({ gameId }),
-      )
+    const { createdGameId: gameId } = await creator.client.games.create.mutate({
+      configuration: createGameConfigurationStub({ nbSeats: 2, mapGenerationSeed: 1234 }),
+    })
 
-      // Assert
-      expect(first).toStrictEqual(Result.Success(undefined))
-      expect(second).toStrictEqual(
-        Result.Failure(
-          expect.objectContaining({
-            message: "The lobby is full.",
-            data: expect.objectContaining({ code: "CONFLICT" }),
-          }),
-        ),
-      )
-      const lobby = await creator.client.games.getDetails.query({ gameId })
-      expect(lobby.status).toBe(GameStatus.READY_TO_START)
-      expect(lobby.players.map(({ alias }) => alias).sort()).toStrictEqual([creator.account.alias, alice.account.alias].sort())
-    },
-  )
+    // Act
+    const [first, second] = await runLobbyRace(
+      postgres.concurrency,
+      { table: playersTable, command: "insert", run: async () => await alice.client.games.join.mutate({ gameId }) },
+      async () => await bob.client.games.join.mutate({ gameId }),
+    )
 
-  concurrencyTest(
-    "two joins with available seats both succeed with distinct colors",
-    async ({ postgres: { concurrency }, participants: { creator, alice, bob } }) => {
-      // Arrange
-      const { createdGameId: gameId } = await creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ nbSeats: 3, mapGenerationSeed: 1234 }),
-      })
+    // Assert
+    expect(first).toStrictEqual(Result.Success(undefined))
+    expect(second).toStrictEqual(
+      Result.Failure(
+        expect.objectContaining({
+          message: "The lobby is full.",
+          data: expect.objectContaining({ code: "CONFLICT" }),
+        }),
+      ),
+    )
+    const lobby = await creator.client.games.getDetails.query({ gameId })
+    expect(lobby.status).toBe(GameStatus.READY_TO_START)
+    expect(lobby.players.map(({ alias }) => alias).sort()).toStrictEqual([creator.account.alias, alice.account.alias].sort())
+  })
 
-      // Act
-      const [first, second] = await runLobbyRace(
-        concurrency,
-        { table: playersTable, command: "insert", run: async () => await alice.client.games.join.mutate({ gameId }) },
-        async () => await bob.client.games.join.mutate({ gameId }),
-      )
+  concurrencyTest("two joins with available seats both succeed with distinct colors", async ({ postgres }) => {
+    // Arrange
+    await using server = await ConcurrencyTestApiServer.create(postgres)
+    const creator = await server.createClient({ authenticated: true })
+    const alice = await server.createClient({ authenticated: true })
+    const bob = await server.createClient({ authenticated: true })
 
-      // Assert
-      expect(first).toStrictEqual(Result.Success(undefined))
-      expect(second).toStrictEqual(Result.Success(undefined))
-      const lobby = await creator.client.games.getDetails.query({ gameId })
-      expect(lobby.status).toBe(GameStatus.READY_TO_START)
-      expect(lobby.players.map(({ alias, color }) => ({ alias, color })).sort((a, b) => a.alias.localeCompare(b.alias))).toStrictEqual(
-        [
-          { alias: creator.account.alias, color: PlayerColor.TURQUOISE },
-          { alias: alice.account.alias, color: PlayerColor.PINK },
-          { alias: bob.account.alias, color: PlayerColor.YELLOW },
-        ].sort((a, b) => a.alias.localeCompare(b.alias)),
-      )
-    },
-  )
+    const { createdGameId: gameId } = await creator.client.games.create.mutate({
+      configuration: createGameConfigurationStub({ nbSeats: 3, mapGenerationSeed: 1234 }),
+    })
+
+    // Act
+    const [first, second] = await runLobbyRace(
+      postgres.concurrency,
+      { table: playersTable, command: "insert", run: async () => await alice.client.games.join.mutate({ gameId }) },
+      async () => await bob.client.games.join.mutate({ gameId }),
+    )
+
+    // Assert
+    expect(first).toStrictEqual(Result.Success(undefined))
+    expect(second).toStrictEqual(Result.Success(undefined))
+    const lobby = await creator.client.games.getDetails.query({ gameId })
+    expect(lobby.status).toBe(GameStatus.READY_TO_START)
+    expect(lobby.players.map(({ alias, color }) => ({ alias, color })).sort((a, b) => a.alias.localeCompare(b.alias))).toStrictEqual(
+      [
+        { alias: creator.account.alias, color: PlayerColor.TURQUOISE },
+        { alias: alice.account.alias, color: PlayerColor.PINK },
+        { alias: bob.account.alias, color: PlayerColor.YELLOW },
+      ].sort((a, b) => a.alias.localeCompare(b.alias)),
+    )
+  })
 
   concurrencyTest.for([
     {
@@ -133,24 +126,29 @@ describe("lobby concurrency", () => {
       ),
       expectedPlayers: ["creator", "alice"],
     },
-  ] as const)("$name", async (scenario, { postgres: { concurrency }, participants }) => {
+  ] as const)("$name", async (scenario, { postgres }) => {
     // Arrange
-    const { creator, alice } = participants
-    const { createdGameId: gameId } = await creator.client.games.create.mutate({
+    await using server = await ConcurrencyTestApiServer.create(postgres)
+    const participants = {
+      creator: await server.createClient({ authenticated: true }),
+      alice: await server.createClient({ authenticated: true }),
+    }
+
+    const { createdGameId: gameId } = await participants.creator.client.games.create.mutate({
       configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
     })
     if (scenario.aliceAlreadyJoined) {
-      await alice.client.games.join.mutate({ gameId })
+      await participants.alice.client.games.join.mutate({ gameId })
     }
     const operations = {
-      join: async (): Promise<void> => await alice.client.games.join.mutate({ gameId }),
-      leave: async (): Promise<void> => await alice.client.games.leave.mutate({ gameId }),
-      start: async (): Promise<void> => await creator.client.games.startGame.mutate({ gameId }),
+      join: async (): Promise<void> => await participants.alice.client.games.join.mutate({ gameId }),
+      leave: async (): Promise<void> => await participants.alice.client.games.leave.mutate({ gameId }),
+      start: async (): Promise<void> => await participants.creator.client.games.startGame.mutate({ gameId }),
     }
 
     // Act
     const [first, second] = await runLobbyRace(
-      concurrency,
+      postgres.concurrency,
       { ...scenario.firstWrite, run: operations[scenario.first] },
       operations[scenario.second],
     )
@@ -159,7 +157,7 @@ describe("lobby concurrency", () => {
     expect(first).toStrictEqual(Result.Success(undefined))
     expect(second).toStrictEqual(scenario.expectedSecond)
     await expectStartedPlayers(
-      creator,
+      participants.creator,
       gameId,
       scenario.expectedPlayers.map((name) => participants[name]),
     )
