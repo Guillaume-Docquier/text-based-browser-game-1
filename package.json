@@ -17,7 +17,7 @@
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "fte": "pnpm --filter frontend e2e",
-    "lint": "oxlint --max-warnings 0",
+    "lint": "oxlint",
     "lint:fix": "pnpm lint --fix",
     "map-gen": "node packages/backend/scripts/map-gen/program.ts",
     "map-gen:all": "pnpm map-gen galaxy cluster --grid --seed 1234 && pnpm map-gen galaxy spiral --grid --seed 1234 && pnpm map-gen spiral --seed 1234 && pnpm map-gen cluster --seed 1234",

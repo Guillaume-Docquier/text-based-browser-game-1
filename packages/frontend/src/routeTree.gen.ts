@@ -1,5 +1,3 @@
-/* oxlint-disable */
-
 // @ts-nocheck
 
 // noinspection JSUnusedGlobalSymbols

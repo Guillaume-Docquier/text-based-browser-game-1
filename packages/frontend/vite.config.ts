@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
       tanstackRouter({
         target: "react",
         autoCodeSplitting: true,
-        routeTreeFileHeader: ["/* oxlint-disable */", "// @ts-nocheck", "// noinspection JSUnusedGlobalSymbols"],
+        routeTreeFileHeader: ["// @ts-nocheck", "// noinspection JSUnusedGlobalSymbols"],
       }),
       react(),
       babel({ presets: [reactCompilerPreset()] }),
