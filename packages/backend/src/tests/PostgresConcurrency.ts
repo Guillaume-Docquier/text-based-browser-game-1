@@ -1,6 +1,7 @@
 import { setTimeout as delay } from "node:timers/promises"
 import { Assert, FatalError } from "@guillaume-docquier/tools-ts"
-import { getTableName } from "drizzle-orm"
+import { getTableName, type SQL, sql } from "drizzle-orm"
+import { drizzle } from "drizzle-orm/node-postgres"
 import type { PgTable } from "drizzle-orm/pg-core"
 import { escapeIdentifier, type Pool } from "pg"
 
@@ -25,7 +26,6 @@ type BlockedQuery = {
   command: keyof typeof TABLE_CLAUSES
   table: PgTable
   lock: "table" | "row"
-  excludingPid?: number
 }
 
 type PostgresWriteBlock = AsyncDisposable & {
@@ -42,14 +42,21 @@ export class PostgresConcurrency {
   }
 
   public async blockWrites(table: PgTable): Promise<PostgresWriteBlock> {
-    const tableIdentifier = escapeIdentifier(getTableName(table))
+    return await this.holdLock(sql`LOCK TABLE ${table} IN SHARE MODE`)
+  }
+
+  public async blockRowWrites(table: PgTable, where: SQL): Promise<PostgresWriteBlock> {
+    return await this.holdLock(sql`SELECT 1 FROM ${table} WHERE ${where} FOR NO KEY UPDATE`)
+  }
+
+  private async holdLock(lock: SQL): Promise<PostgresWriteBlock> {
     const client = await this.pool.connect()
     try {
       await client.query(`
         BEGIN;
         SET LOCAL lock_timeout = '${SCHEDULE_TIMEOUT_MS}ms';
-        LOCK TABLE ${tableIdentifier} IN SHARE MODE
       `)
+      await drizzle(client).execute(lock)
       const backendQuery = await client.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")
       const backend = backendQuery.rows[0]
       Assert.isDefined(backend)
@@ -118,8 +125,7 @@ function createBlockedQueryPredicate(expected: BlockedQuery): (session: Session)
   const waitEvents = expected.lock === "table" ? ["relation"] : ["transactionid", "tuple"]
 
   // Match the SQL emitted by Drizzle and confirm PostgreSQL reports the expected blocker.
-  return ({ pid, query, waitEvent, blockers }: Session): boolean =>
-    pid !== expected.excludingPid &&
+  return ({ query, waitEvent, blockers }: Session): boolean =>
     blockers.includes(expected.blockedBy) &&
     waitEvents.some((event) => event === waitEvent) &&
     query.startsWith(`${expected.command} `) &&
