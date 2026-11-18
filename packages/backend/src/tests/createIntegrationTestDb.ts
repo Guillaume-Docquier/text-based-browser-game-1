@@ -8,29 +8,45 @@ import type { Database } from "#lib/db/createDb.ts"
 import * as schema from "#lib/db/schema.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
-// With isolate: false, every test file in the worker can restore this seeded snapshot.
-let template: Blob | undefined
+// This is leveraging `isolate: false` by putting the preload in the worker scope
+// beforeAll runs before every test files, even in the same worker, so we cache the template
+let loadDataDir: Blob
 
 export async function prepareIntegrationTestDb(): Promise<void> {
-  if (template !== undefined) {
-    return
-  }
+  Assert.isTrue(loadDataDir === undefined)
+
+  // Blocking logs make failures visible before the test process exits.
   const logger = await configureLogger({ scope: "integration-test", nonBlocking: false })
-  await using pglite = await PGlite.create()
-  const db = pgliteToDb(pglite)
+
+  await using pgliteTemplate = new PGlite()
+
+  const db = pgliteToDb(pgliteTemplate)
   const push = await pushSchema(schema, db)
   await push.apply()
-  Assert.isSuccess(await new RulesetsRepository({ db, logger }).upsertRuleset(TestRuleset))
-  template = await pglite.dumpDataDir("none")
+
+  // We push the test ruleset in the main db copy, so all tests can use it afterward.
+  // Core ruleset are pre-seeded data in production, so this replicates what we expect in production, but we only upsert the test ruleset for speed.
+  const rulesetRepository = new RulesetsRepository({ db, logger })
+  await rulesetRepository.upsertRuleset(TestRuleset)
+
+  loadDataDir = await pgliteTemplate.dumpDataDir("none")
 }
 
 export async function createIntegrationTestDb(): Promise<Database & AsyncDisposable> {
-  Assert.isDefined(template)
-  const clone = await PGlite.create({ loadDataDir: template })
-  return Object.assign(pgliteToDb(clone), { [Symbol.asyncDispose]: clone.close.bind(clone) })
+  Assert.isDefined(loadDataDir)
+
+  const pgliteClone = await PGlite.create({ loadDataDir })
+  return Object.assign(pgliteToDb(pgliteClone), { [Symbol.asyncDispose]: pgliteClone.close.bind(pgliteClone) })
 }
 
 function pgliteToDb(pglite: PGlite): Database {
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The integration tests exercise our node-postgres queries through the PGlite driver.
+  // TS2375: Type
+  // PgliteDatabase<Record<string, never>> & {
+  //   $client: PGlite;
+  // }
+  // is not assignable to type Database<Record<string, never>> with 'exactOptionalPropertyTypes: true'.
+  // Consider adding undefined to the types of the target's properties.
+  //
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- In reality the types work, and this is for testing, so if it doesn't work, it should be obvious.
   return drizzle(pglite) as unknown as Database
 }

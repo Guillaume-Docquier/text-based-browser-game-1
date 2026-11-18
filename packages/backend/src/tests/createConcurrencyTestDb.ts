@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto"
-import { Assert, type Logger } from "@guillaume-docquier/tools-ts"
+import { Assert, Logger } from "@guillaume-docquier/tools-ts"
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
+import type { Pool } from "pg"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
@@ -10,46 +11,60 @@ import { createPostgresPoolDisposal } from "#tests/createPostgresPoolDisposal.ts
 import { POSTGRES_IMAGE } from "#tests/POSTGRES_IMAGE.ts"
 import { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
 
-let postgres: { connectionUri: string; logger: Logger } | undefined
+// This is leveraging `isolate: false` by putting the preload in the worker scope
+// beforeAll runs before every test files, even in the same worker, so we cache the container
+let connectionUri: string
 
 export async function prepareConcurrencyTestDb(): Promise<void> {
-  if (postgres !== undefined) {
-    return
-  }
-  const logger = await configureLogger({ scope: "concurrency-test", nonBlocking: false })
-  // Testcontainers' resource reaper removes the shared container after the worker exits.
+  Assert.isTrue(connectionUri === undefined)
+
+  // Blocking logs make failures visible before the test process exits.
+  await configureLogger({ scope: "concurrency-test", nonBlocking: false })
+
+  // This will download the Postgres image if it's not on the system already to avoid the first test looking like it's stuck
+  // On the CI, this can take >30s
   const container = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
-  postgres = { connectionUri: container.getConnectionUri(), logger }
+
+  connectionUri = container.getConnectionUri()
 }
 
 export async function createConcurrencyTestDb(): Promise<
   AsyncDisposable & { db: Database; databaseUrl: string; concurrency: PostgresConcurrency }
 > {
-  Assert.isDefined(postgres)
-  const { connectionUri, logger } = postgres
+  const adminPool = createDb({ databaseUrl: connectionUri }).$client
+  const cleanupAdminPool = createPostgresPoolDisposal(adminPool)
+
   // A database per test keeps table-wide scheduling locks isolated.
-  const name = `test_${randomUUID().replaceAll("-", "")}`
-  await using cleanup = new AsyncDisposableStack()
-  const admin = createDb({ databaseUrl: connectionUri }).$client
-  cleanup.defer(createPostgresPoolDisposal(admin))
-  await admin.query(`CREATE DATABASE "${name}"`)
-  cleanup.defer(async () => {
-    await admin.query(`DROP DATABASE "${name}"`)
-  })
+  const databaseName = `test_${randomUUID().replaceAll("-", "")}`
+  const cleanupSqlDb = await createSqlDb(adminPool, databaseName)
+
   const url = new URL(connectionUri)
-  url.pathname = `/${name}`
+  url.pathname = `/${databaseName}`
   const databaseUrl = url.toString()
+
   const db = createDb({ databaseUrl })
-  cleanup.defer(createPostgresPoolDisposal(db.$client))
+  const cleanupDbPool = createPostgresPoolDisposal(db.$client)
 
   await migrate(db, { migrationsFolder: "./drizzle/" })
-  Assert.isSuccess(await new RulesetsRepository({ db, logger }).upsertRuleset(TestRuleset))
+  const rulesetsRepository = new RulesetsRepository({ db, logger: Logger.get() })
+  Assert.isSuccess(await rulesetsRepository.upsertRuleset(TestRuleset))
 
-  const disposal = cleanup.move()
   return {
     db,
     databaseUrl,
     concurrency: new PostgresConcurrency(db.$client),
-    [Symbol.asyncDispose]: disposal.disposeAsync.bind(disposal),
+    [Symbol.asyncDispose]: async () => {
+      await cleanupDbPool()
+      await cleanupSqlDb()
+      await cleanupAdminPool()
+    },
+  }
+}
+
+async function createSqlDb(adminPool: Pool, dbName: string): Promise<() => Promise<void>> {
+  await adminPool.query(`CREATE DATABASE "${dbName}"`)
+
+  return async () => {
+    await adminPool.query(`DROP DATABASE "${dbName}"`)
   }
 }
