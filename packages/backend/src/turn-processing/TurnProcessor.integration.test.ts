@@ -136,7 +136,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -183,7 +183,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -231,7 +231,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -279,7 +279,7 @@ describe("TurnProcessor", () => {
         })
       }
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       expect(await turnProcessor.processNextDueTurn()).toBe("processed")
       const fundedView = await player.client.gameplay.getPlayerView.query({ gameId })
 
@@ -295,7 +295,7 @@ describe("TurnProcessor", () => {
         })
       }
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       expect(await turnProcessor.processNextDueTurn()).toBe("processed")
       const builtView = await player.client.gameplay.getPlayerView.query({ gameId })
       const fleet = builtView.fleets[0]
@@ -313,7 +313,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       const firstTurnResult = await turnProcessor.processNextDueTurn()
       const inTransitView = await player.client.gameplay.getPlayerView.query({ gameId })
 
@@ -326,7 +326,7 @@ describe("TurnProcessor", () => {
         }),
       })
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       const secondTurnResult = await turnProcessor.processNextDueTurn()
       const landedView = await player.client.gameplay.getPlayerView.query({ gameId })
 
@@ -380,7 +380,7 @@ describe("TurnProcessor", () => {
         })
       }
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       expect(await turnProcessor.processNextDueTurn()).toBe("processed")
       const fundedView = await player.client.gameplay.getPlayerView.query({ gameId })
 
@@ -396,7 +396,7 @@ describe("TurnProcessor", () => {
         })
       }
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       expect(await turnProcessor.processNextDueTurn()).toBe("processed")
       const builtView = await player.client.gameplay.getPlayerView.query({ gameId })
       const movingFleet = builtView.fleets[0]
@@ -413,7 +413,7 @@ describe("TurnProcessor", () => {
         }),
       })
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       expect(await turnProcessor.processNextDueTurn()).toBe("processed")
       const awayView = await player.client.gameplay.getPlayerView.query({ gameId })
       expect(awayView.fleets).toStrictEqual([{ ...movingFleet, originPlanetId: nearbyPlanet.id }])
@@ -424,7 +424,7 @@ describe("TurnProcessor", () => {
         submittedActionTargets: getActionToSubmintegrationTest(awayView, BuildFleetStandard.id, { planet: homePlanet.id }),
       })
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       expect(await turnProcessor.processNextDueTurn()).toBe("processed")
       const returnView = await player.client.gameplay.getPlayerView.query({ gameId })
       const stationedFleet = returnView.fleets.find(({ originPlanetId }) => originPlanetId === homePlanet.id)
@@ -444,7 +444,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       const turnResult = await turnProcessor.processNextDueTurn()
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId })
 
@@ -479,7 +479,7 @@ describe("TurnProcessor", () => {
 
         // Act
         clock.increment({ time: timeIncrement })
-        await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+        await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
         await turnProcessor.processNextDueTurn()
 
         // Assert
@@ -521,7 +521,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       const result = await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -552,7 +552,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: Time.create(200, UnitOfTime.SECONDS) })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -583,11 +583,11 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -621,7 +621,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: successfulTurnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -680,7 +680,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -739,7 +739,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       const failedProcessingResult = await turnProcessor.processNextDueTurn()
       const playerViewAfterFailedSave = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
