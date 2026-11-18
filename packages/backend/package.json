@@ -34,8 +34,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.15",
-    "@inquirer/prompts": "^8.7.5",
+    "@electric-sql/pglite": "^0.5.16",
+    "@inquirer/prompts": "^8.8.0",
     "@testcontainers/postgresql": "^12.2.1",
     "@trpc/client": "^11.19.0",
     "@types/compression": "^1.8.1",
