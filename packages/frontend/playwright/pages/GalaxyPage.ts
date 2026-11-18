@@ -1,7 +1,6 @@
 import { Assert, branded, type Branded } from "@guillaume-docquier/tools-ts"
-import type { Locator } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 import { GamePage } from "./GamePage.ts"
-import type { GamePages } from "./GamePages.ts"
 import type { LocatorIndex } from "./LocatorIndex.ts"
 
 type StarLocator = Branded<"GalaxyStarLocator", Locator>
@@ -33,9 +32,8 @@ export class GalaxyPage extends GamePage {
   public readonly ownedPlanets: Locator
   public readonly unclaimedPlanets: Locator
 
-  public constructor(pages: GamePages) {
-    super(pages)
-    const { page } = pages
+  public constructor(page: Page) {
+    super(page)
     this.heading = page.getByRole("heading", { name: "Galaxy", exact: true })
     this.map = page.getByRole("group", { name: "Galaxy map" })
     this.galaxyFleetMarkers = this.map.locator("[data-fleet-marker]")

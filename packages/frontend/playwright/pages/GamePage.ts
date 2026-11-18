@@ -1,15 +1,13 @@
-import type { Locator } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 import type { ActionsPage } from "./ActionsPage.ts"
 import { BasePage } from "./BasePage.ts"
 import type { FleetsPage } from "./FleetsPage.ts"
 import type { GalaxyPage } from "./GalaxyPage.ts"
-import type { GamePages } from "./GamePages.ts"
 import type { PlanetsPage } from "./PlanetsPage.ts"
 import type { PlayersPage } from "./PlayersPage.ts"
 
 /** Shared game layout and navigation available from every gameplay page. */
 export abstract class GamePage extends BasePage {
-  protected readonly pages: GamePages
   private readonly gameTopBar: Locator
   private readonly galaxyLink: Locator
   private readonly planetsLink: Locator
@@ -21,10 +19,8 @@ export abstract class GamePage extends BasePage {
   public readonly resources: Locator
   private readonly turnButton: Locator
 
-  protected constructor(pages: GamePages) {
-    super(pages.page)
-    this.pages = pages
-    const { page } = pages
+  protected constructor(page: Page) {
+    super(page)
 
     this.gameTopBar = page.getByRole("banner")
     this.gameNameHeading = this.gameTopBar.getByRole("heading", { level: 1 })
@@ -59,26 +55,36 @@ export abstract class GamePage extends BasePage {
 
   public async openGalaxy(): Promise<GalaxyPage> {
     await this.galaxyLink.click()
-    return this.pages.galaxy()
+    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    const { GalaxyPage } = await import("./GalaxyPage.ts")
+    return new GalaxyPage(this.page)
   }
 
   public async openPlanets(): Promise<PlanetsPage> {
     await this.planetsLink.click()
-    return this.pages.planets()
+    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    const { PlanetsPage } = await import("./PlanetsPage.ts")
+    return new PlanetsPage(this.page)
   }
 
   public async openFleets(): Promise<FleetsPage> {
     await this.fleetsLink.click()
-    return this.pages.fleets()
+    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    const { FleetsPage } = await import("./FleetsPage.ts")
+    return new FleetsPage(this.page)
   }
 
   public async openActions(): Promise<ActionsPage> {
     await this.actionsLink.click()
-    return this.pages.actions()
+    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    const { ActionsPage } = await import("./ActionsPage.ts")
+    return new ActionsPage(this.page)
   }
 
   public async openPlayers(): Promise<PlayersPage> {
     await this.playersLink.click()
-    return this.pages.players()
+    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    const { PlayersPage } = await import("./PlayersPage.ts")
+    return new PlayersPage(this.page)
   }
 }

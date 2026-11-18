@@ -1,8 +1,7 @@
 import { Assert, branded, type Branded } from "@guillaume-docquier/tools-ts"
-import type { Locator } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 import type { GalaxyPage } from "./GalaxyPage.ts"
 import { GamePage } from "./GamePage.ts"
-import type { GamePages } from "./GamePages.ts"
 import type { LocatorIndex } from "./LocatorIndex.ts"
 
 type FleetRowLocator = Branded<"FleetRowLocator", Locator>
@@ -19,9 +18,8 @@ export class FleetsPage extends GamePage {
   public readonly table: Locator
   public readonly rows: Locator
 
-  public constructor(pages: GamePages) {
-    super(pages)
-    const { page } = pages
+  public constructor(page: Page) {
+    super(page)
     this.heading = page.getByRole("heading", { name: "Fleets", exact: true })
     this.table = page.getByRole("table", { name: "Fleets" })
     this.rows = this.table.locator("tbody tr").filter({ has: page.getByRole("link") })
@@ -61,11 +59,15 @@ export class FleetsPage extends GamePage {
 
   public async openOriginPlanet(row: FleetRowLocator): Promise<GalaxyPage> {
     await this.originPlanetLink(row).click()
-    return this.pages.galaxy()
+    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    const { GalaxyPage } = await import("./GalaxyPage.ts")
+    return new GalaxyPage(this.page)
   }
 
   public async openDestinationPlanet(row: FleetRowLocator): Promise<GalaxyPage> {
     await this.destinationPlanetLink(row).click()
-    return this.pages.galaxy()
+    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    const { GalaxyPage } = await import("./GalaxyPage.ts")
+    return new GalaxyPage(this.page)
   }
 }

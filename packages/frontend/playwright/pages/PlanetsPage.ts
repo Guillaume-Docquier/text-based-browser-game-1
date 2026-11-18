@@ -1,8 +1,7 @@
 import { Assert, branded, type Branded } from "@guillaume-docquier/tools-ts"
-import type { Locator } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 import type { GalaxyPage } from "./GalaxyPage.ts"
 import { GamePage } from "./GamePage.ts"
-import type { GamePages } from "./GamePages.ts"
 import type { LocatorIndex } from "./LocatorIndex.ts"
 
 type PlanetColumnName = "planetName" | "ownerName" | "coordinates" | "fertility" | "metal" | "fuel" | "energy" | "maxPopulation" | "area"
@@ -30,9 +29,8 @@ export class PlanetsPage extends GamePage {
   public readonly table: Locator
   public readonly rows: Locator
 
-  public constructor(pages: GamePages) {
-    super(pages)
-    const { page } = pages
+  public constructor(page: Page) {
+    super(page)
     this.heading = page.getByRole("heading", { name: "Planets", exact: true })
     this.searchInput = page.getByRole("textbox", { name: "Search planets" })
     this.ownerFilter = page.getByRole("combobox", { name: "Owner" })
@@ -103,6 +101,8 @@ export class PlanetsPage extends GamePage {
 
   public async openCoordinate(row: PlanetRowLocator): Promise<GalaxyPage> {
     await this.coordinate(row).click()
-    return this.pages.galaxy()
+    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    const { GalaxyPage } = await import("./GalaxyPage.ts")
+    return new GalaxyPage(this.page)
   }
 }

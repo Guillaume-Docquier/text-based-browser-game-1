@@ -1,15 +1,13 @@
-import type { Locator } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 import { GamePage } from "./GamePage.ts"
-import type { GamePages } from "./GamePages.ts"
 
 export class ActionsPage extends GamePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId/play/actions" })
 
   public readonly heading: Locator
 
-  public constructor(pages: GamePages) {
-    super(pages)
-    const { page } = pages
+  public constructor(page: Page) {
+    super(page)
     this.heading = page.getByRole("heading", { name: "Actions", exact: true })
   }
 
