@@ -125,10 +125,7 @@ export class TurnsRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "turns-repository" })
   }
 
-  /**
-   * Moves all due turns to AWAITING_PROCESSING.
-   */
-  public async markDueTurnsAwaitingProcessing({ since }: { since: Date }, db: PostgresRepository["db"] = this.db): Promise<void> {
+  public async moveDueTurnsToAwaitingProcessing({ since }: { since: Date }, db: PostgresRepository["db"] = this.db): Promise<void> {
     // We can't do .for("no key update", { skipLocked: true }) on an update statement
     // This will wait until all rows are unlocked
     // It shouldn't happen a lot, and it should resolve really quickly

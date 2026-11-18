@@ -16,6 +16,8 @@ There is no backend build. Node 26+ runs TypeScript natively, so code requires i
 
 Turn Processing is isolated so workers can scale independently or move to another runtime later. Turn Processing must not depend on the API.
 
+Everything is in TypeScript. Never write JavaScript files if you can do it in TypeScript.
+
 ## Commands
 
 - `pnpm --filter backend test --project unit`: runs fast in memory unit tests without a database.
@@ -33,7 +35,7 @@ On Windows with Codex, `CodexSandboxOffline` cannot access the Docker daemon pip
 - Never write repository tests or controller/use-case tests for these slices.
 - Never implement test repositories, including repositories that insert or modify game state solely for test setup.
 - Integration tests must set up and observe game state through the API. Create and start games with the test client, then submit actions and process turns to reach the required state. Use a fixed galaxy seed for deterministic scenarios.
-- This router-only boundary takes precedence over the repository-testing guidance in [ADR 016](../../docs/architecture/decisions/016-use-repositories-in-tests.md) for backend API slices.
+- Concurrency tests use real PostgreSQL and access the database directly to acquire temporary locks to ensure the race conditions under test are created.
 
 ### General testing guidelines
 

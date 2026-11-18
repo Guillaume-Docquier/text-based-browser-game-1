@@ -43,7 +43,7 @@ export class TurnProcessor {
    * - creates next turns and schedules their processing
    */
   public async processTurnsForever({ interval }: { interval: Time }): Promise<void> {
-    await this.turnsRepository.markDueTurnsAwaitingProcessing({ since: this.clock.now() })
+    await this.turnsRepository.moveDueTurnsToAwaitingProcessing({ since: this.clock.now() })
 
     let turnProcessingOutcome = await this.processNextDueTurn()
     while (turnProcessingOutcome === "processed") {

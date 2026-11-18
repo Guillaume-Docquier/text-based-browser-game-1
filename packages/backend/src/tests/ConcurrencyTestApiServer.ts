@@ -2,15 +2,11 @@ import { fork } from "node:child_process"
 import { once } from "node:events"
 import { setTimeout } from "node:timers/promises"
 import { Assert, FatalError, Logger } from "@guillaume-docquier/tools-ts"
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { PortListeningMessageSchema } from "#api/PortListeningMessage.ts"
-import { createDb, type Database } from "#lib/db/createDb.ts"
+import type { Database } from "#lib/db/createDb.ts"
 import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
 
-// Needs to be in sync with the GitHub Actions, prod and docker-compose
-// See infra/docker-compose.yaml
-export const POSTGRES_IMAGE = "postgres:18.4"
 /**
  * Set to "ignore" to lower the noise
  * Set to "inherit" to debug what's going on inside the apiServer
@@ -26,39 +22,31 @@ const API_START_TIMEOUT_MS = 30_000
 const ANY_UNUSED_PORT = 0
 
 export class ConcurrencyTestApiServer {
-  private readonly postgresContainer: StartedPostgreSqlContainer
   private readonly server: ForkedServer
-  private readonly db: Database
   private readonly accountsRepository: AccountsRepository
 
-  public static async create(): Promise<ConcurrencyTestApiServer> {
-    const postgresContainer = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
-    const databaseUrl = postgresContainer.getConnectionUri()
+  public static async create({ databaseUrl, db }: { databaseUrl: string; db: Database }): Promise<ConcurrencyTestApiServer> {
     const server = await forkApiServer({ databaseUrl })
-    const db = createDb({ databaseUrl })
+    const accountsRepository = new AccountsRepository({ db, logger: Logger.get() })
 
-    return new ConcurrencyTestApiServer({ postgresContainer, server, db })
+    return new ConcurrencyTestApiServer({ server, accountsRepository })
   }
 
-  private constructor({
-    postgresContainer,
-    server,
-    db,
-  }: {
-    postgresContainer: StartedPostgreSqlContainer
-    server: ForkedServer
-    db: Database
-  }) {
-    this.postgresContainer = postgresContainer
+  private constructor({ server, accountsRepository }: { server: ForkedServer; accountsRepository: AccountsRepository }) {
     this.server = server
-    this.db = db
-    this.accountsRepository = new AccountsRepository({ db, logger: Logger.get() })
+    this.accountsRepository = accountsRepository
   }
 
-  public async createClient(args: { authenticated: true }): Promise<AuthenticatedApiClient>
+  public async createClient(args: { authenticated: true; alias?: string }): Promise<AuthenticatedApiClient>
   public async createClient(args: { authenticated: false }): Promise<AnonymousApiClient>
-  public async createClient({ authenticated }: { authenticated: boolean }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
-    return await createApiClient({ port: this.server.port, accountsRepository: this.accountsRepository, authenticated })
+  public async createClient({
+    authenticated,
+    alias,
+  }: {
+    authenticated: boolean
+    alias?: string
+  }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
+    return await createApiClient({ port: this.server.port, accountsRepository: this.accountsRepository, authenticated, alias })
   }
 
   public async [Symbol.asyncDispose](): Promise<void> {
@@ -67,8 +55,7 @@ export class ConcurrencyTestApiServer {
       await setTimeout(100)
     }
 
-    await Promise.all([this.server.stop(), this.db.$client.end()])
-    await this.postgresContainer.stop()
+    await this.server.stop()
   }
 }
 
