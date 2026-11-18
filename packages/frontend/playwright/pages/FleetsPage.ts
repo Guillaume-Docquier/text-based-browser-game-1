@@ -59,12 +59,14 @@ export class FleetsPage extends GamePage {
 
   public async openOriginPlanet(row: FleetRowLocator): Promise<GalaxyPage> {
     await this.originPlanetLink(row).click()
+    // oxlint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
     const { GalaxyPage } = await import("./GalaxyPage.ts")
     return new GalaxyPage(this.page)
   }
 
   public async openDestinationPlanet(row: FleetRowLocator): Promise<GalaxyPage> {
     await this.destinationPlanetLink(row).click()
+    // oxlint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
     const { GalaxyPage } = await import("./GalaxyPage.ts")
     return new GalaxyPage(this.page)
   }

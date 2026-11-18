@@ -5,7 +5,7 @@ import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
-import { describe, expect } from "vitest"
+import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { GetPlayerViewError, GetPlayerViewErrorResponses } from "#api/gameplay/getPlayerView.error.ts"
 import { createPlayerViewResourcesStub } from "#api/gameplay/PlayerViewResources.stub.ts"
@@ -21,12 +21,13 @@ import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.
 import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "#lib/rulesets/standard/action-definitions/move-fleet.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
-import { integrationTest } from "#tests/vitest.integration.fixture.ts"
+import { createIntegrationTestDb } from "#tests/createIntegrationTestDb.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 
 describe("gameplay.router", () => {
-  integrationTest("should reject all gameplay routes when the authenticated player has not joined the game", async ({ db }) => {
+  it("should reject all gameplay routes when the authenticated player has not joined the game", async () => {
     // Arrange
+    await using db = await createIntegrationTestDb()
     using apiServer = new ApiServer(await createApiStub({ db }))
     const creator = await apiServer.createClient({ authenticated: true })
     const nonPlayer = await apiServer.createClient({ authenticated: true })
@@ -49,8 +50,9 @@ describe("gameplay.router", () => {
   })
 
   describe("getPlayerView", () => {
-    integrationTest("should report a missing Turn for a member of an unstarted game", async ({ db }) => {
+    it("should report a missing Turn for a member of an unstarted game", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.games.create.mutate({
@@ -64,8 +66,9 @@ describe("gameplay.router", () => {
       await expect(playerView).rejects.toMatchErrorResponse(GetPlayerViewErrorResponses[GetPlayerViewError.TURN_NOT_FOUND])
     })
 
-    integrationTest("should get the authenticated player's state for a started game", async ({ db }) => {
+    it("should get the authenticated player's state for a started game", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
@@ -81,72 +84,17 @@ describe("gameplay.router", () => {
 
       // Assert
       const expectedActions = [
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainInfluence.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: WinTheGame.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainEnergy.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainFuel.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainMetal.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetStandard.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetStandard.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
+        { id: expect.any(String), actionDefinitionId: GainInfluence.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: WinTheGame.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: GainEnergy.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: GainFuel.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: GainMetal.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: BuildFleetStandard.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: BuildFleetImproved.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: BuildFleetExceptional.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: MoveFleetStandard.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: MoveFleetImproved.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: MoveFleetExceptional.id, selectedTargets: null, canAfford: false },
       ]
       expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
@@ -172,8 +120,9 @@ describe("gameplay.router", () => {
       expect(repeatedGetPlayerViewResult.actions).toStrictEqual(getPlayerViewResult.actions)
     })
 
-    integrationTest("should expose uncommitted resources and use them to determine Action affordability", async ({ db }) => {
+    it("should expose uncommitted resources and use them to determine Action affordability", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
@@ -208,8 +157,9 @@ describe("gameplay.router", () => {
       expect(extractMetal.canAfford).toBe(false)
     })
 
-    integrationTest("should expose the current player and every opponent with their colors", async ({ db }) => {
+    it("should expose the current player and every opponent with their colors", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const firstOpponent = await apiServer.createClient({ authenticated: true })
@@ -234,8 +184,9 @@ describe("gameplay.router", () => {
       })
     })
 
-    integrationTest("should reject invalid game ids", async ({ db }) => {
+    it("should reject invalid game ids", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -247,8 +198,9 @@ describe("gameplay.router", () => {
       await expect(getPlayerView).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    integrationTest("should reject anonymous game state reads", async ({ db }) => {
+    it("should reject anonymous game state reads", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
@@ -261,8 +213,9 @@ describe("gameplay.router", () => {
   })
 
   describe("updateActionSubmission", () => {
-    integrationTest("should submit an action with valid planet targets", async ({ db }) => {
+    it("should submit an action with valid planet targets", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
 
       const player = await apiServer.createClient({ authenticated: true })
@@ -294,8 +247,9 @@ describe("gameplay.router", () => {
       expect(playerView.actions.find(({ id }) => id === buildFleet.id)?.selectedTargets).toStrictEqual({ planet: homePlanet.id })
     })
 
-    integrationTest("should update only the submitting player's Action when players share stable Action IDs", async ({ db }) => {
+    it("should update only the submitting player's Action when players share stable Action IDs", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const opponent = await apiServer.createClient({ authenticated: true })
@@ -329,8 +283,9 @@ describe("gameplay.router", () => {
       ).toMatchObject({ selectedTargets: null })
     })
 
-    integrationTest("should submit and deselect multiple actions", async ({ db }) => {
+    it("should submit and deselect multiple actions", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
@@ -363,150 +318,41 @@ describe("gameplay.router", () => {
 
       // Assert
       const expectedSelectedActions = [
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainInfluence.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: WinTheGame.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainEnergy.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainFuel.id,
-          selectedTargets: {},
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainMetal.id,
-          selectedTargets: {},
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetStandard.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetStandard.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
+        { id: expect.any(String), actionDefinitionId: GainInfluence.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: WinTheGame.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: GainEnergy.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: GainFuel.id, selectedTargets: {}, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: GainMetal.id, selectedTargets: {}, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: BuildFleetStandard.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: BuildFleetImproved.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: BuildFleetExceptional.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: MoveFleetStandard.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: MoveFleetImproved.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: MoveFleetExceptional.id, selectedTargets: null, canAfford: false },
       ]
       expect(selectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedSelectedActions))
       expect(selectedPlayerView.actions).toHaveLength(expectedSelectedActions.length)
 
       const expectedDeselectedActions = [
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainInfluence.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: WinTheGame.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainEnergy.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainFuel.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainMetal.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetStandard.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetStandard.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
+        { id: expect.any(String), actionDefinitionId: GainInfluence.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: WinTheGame.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: GainEnergy.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: GainFuel.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: GainMetal.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: BuildFleetStandard.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: BuildFleetImproved.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: BuildFleetExceptional.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: MoveFleetStandard.id, selectedTargets: null, canAfford: true },
+        { id: expect.any(String), actionDefinitionId: MoveFleetImproved.id, selectedTargets: null, canAfford: false },
+        { id: expect.any(String), actionDefinitionId: MoveFleetExceptional.id, selectedTargets: null, canAfford: false },
       ]
       expect(deselectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedDeselectedActions))
       expect(deselectedPlayerView.actions).toHaveLength(expectedDeselectedActions.length)
     })
 
-    integrationTest("should reject an action with invalid planet targets", async ({ db }) => {
+    it("should reject an action with invalid planet targets", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
 
       const player = await apiServer.createClient({ authenticated: true })
@@ -534,8 +380,9 @@ describe("gameplay.router", () => {
       )
     })
 
-    integrationTest("should reject setting an action for a stale turn", async ({ db }) => {
+    it("should reject setting an action for a stale turn", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -558,8 +405,9 @@ describe("gameplay.router", () => {
       )
     })
 
-    integrationTest("should reject setting an action after the turn deadline", async ({ db }) => {
+    it("should reject setting an action after the turn deadline", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
@@ -586,8 +434,9 @@ describe("gameplay.router", () => {
       )
     })
 
-    integrationTest("should reject an action the player cannot afford", async ({ db }) => {
+    it("should reject an action the player cannot afford", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
@@ -609,8 +458,9 @@ describe("gameplay.router", () => {
       )
     })
 
-    integrationTest("should reject an action that is not available to the player", async ({ db }) => {
+    it("should reject an action that is not available to the player", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
@@ -636,8 +486,9 @@ describe("gameplay.router", () => {
   // This test suite is often failing, but only in the CI. Not sure if it is hanging or just taking longer.
   // If we get timeouts on a 20s budget, this is definitely hanging and there's an issue running on the CI that we should address.
   describe("updateReadiness", { timeout: 20_000 }, () => {
-    integrationTest.for([true, false])("should set the player readiness to %s", async (isReady, { db }) => {
+    it.each([true, false])("should set the player readiness to %s", async (isReady) => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true })
@@ -665,8 +516,9 @@ describe("gameplay.router", () => {
       })
     })
 
-    integrationTest("should close the turn and submit for processing when all players are ready", async ({ db }) => {
+    it("should close the turn and submit for processing when all players are ready", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const logger = Logger.get()
       const clock = new ControlledClock()
       const turnsRepository = new TurnsRepository({ db, logger })
@@ -726,8 +578,9 @@ describe("gameplay.router", () => {
       expect(turnForProcessing).toStrictEqual<typeof turnForProcessing>(Result.Success(branded({ gameId: createdGameId, turn: 1 })))
     })
 
-    integrationTest("should reject readiness for the wrong turn", async ({ db }) => {
+    it("should reject readiness for the wrong turn", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
@@ -747,8 +600,9 @@ describe("gameplay.router", () => {
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })
 
-    integrationTest("should reject readiness past the deadline", async ({ db }) => {
+    it("should reject readiness past the deadline", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const creator = await apiServer.createClient({ authenticated: true })
@@ -774,8 +628,9 @@ describe("gameplay.router", () => {
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })
 
-    integrationTest("should reject readiness for players not in the game", async ({ db }) => {
+    it("should reject readiness for players not in the game", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const creator = await apiServer.createClient({ authenticated: true })

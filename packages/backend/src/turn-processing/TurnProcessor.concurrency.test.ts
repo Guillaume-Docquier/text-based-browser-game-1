@@ -3,58 +3,59 @@ import { sql } from "drizzle-orm"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import type { GameId } from "shared/domain/games/GameId.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
-import { describe, expect } from "vitest"
+import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { resourcesTable, turnsTable } from "#lib/db/schema.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
-import { concurrencyTest } from "#tests/vitest.concurrency.fixture.ts"
+import { createConcurrencyTestDb } from "#tests/createConcurrencyTestDb.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 
 describe("TurnProcessor concurrency", () => {
-  concurrencyTest(
-    "should process a later due turn while another worker claims the earlier turn",
-    async ({ postgres: { db, concurrency } }) => {
-      // Arrange
-      const clock = new ControlledClock()
-      using server = new ApiServer(await createApiStub({ db, clock }))
-      const player = await server.createClient({ authenticated: true })
-      const earlierGameId = await startGame(player, 50)
-      const laterGameId = await startGame(player, 100)
-      const { turnProcessor: firstProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-      const { turnProcessor: secondProcessor } = await createTurnProcessorStub({ db, clock })
-
-      clock.increment({ time: Time.create(100, UnitOfTime.SECONDS) })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-
-      // Pause the first worker's status update after it locks the queue entry for the earlier turn.
-      await using claimBlock = await concurrency.blockRowWrites(
-        turnsTable,
-        sql`${turnsTable.gameId} = ${earlierGameId} AND ${turnsTable.turn} = 1`,
-      )
-
-      // Act & Assert
-      const firstOutcome = Result.tryCatch(firstProcessor.processNextDueTurn())
-      await concurrency.waitForBlockedQuery({ blockedBy: claimBlock.pid, command: "update", table: turnsTable, lock: "row" })
-
-      expect(await concurrency.waitForCompletion(secondProcessor.processNextDueTurn())).toBe("processed")
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
-        turn: 2,
-        turnStatus: TurnStatus.COLLECTING_ACTIONS,
-      })
-
-      await claimBlock.release()
-      expect(await firstOutcome).toStrictEqual(Result.Success("processed"))
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
-        turn: 2,
-        turnStatus: TurnStatus.COLLECTING_ACTIONS,
-      })
-    },
-  )
-
-  concurrencyTest("should return idle while another worker claims the only due turn", async ({ postgres: { db, concurrency } }) => {
+  it("should process a later due turn while another worker claims the earlier turn", async () => {
     // Arrange
+    await using postgres = await createConcurrencyTestDb()
+    const { db, concurrency } = postgres
+    const clock = new ControlledClock()
+    using server = new ApiServer(await createApiStub({ db, clock }))
+    const player = await server.createClient({ authenticated: true })
+    const earlierGameId = await startGame(player, 50)
+    const laterGameId = await startGame(player, 100)
+    const { turnProcessor: firstProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+    const { turnProcessor: secondProcessor } = await createTurnProcessorStub({ db, clock })
+
+    clock.increment({ time: Time.create(100, UnitOfTime.SECONDS) })
+    await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
+
+    // Pause the first worker's status update after it locks the queue entry for the earlier turn.
+    await using claimBlock = await concurrency.blockRowWrites(
+      turnsTable,
+      sql`${turnsTable.gameId} = ${earlierGameId} AND ${turnsTable.turn} = 1`,
+    )
+
+    // Act & Assert
+    const firstOutcome = Result.tryCatch(firstProcessor.processNextDueTurn())
+    await concurrency.waitForBlockedQuery({ blockedBy: claimBlock.pid, command: "update", table: turnsTable, lock: "row" })
+
+    expect(await concurrency.waitForCompletion(secondProcessor.processNextDueTurn())).toBe("processed")
+    expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
+      turn: 2,
+      turnStatus: TurnStatus.COLLECTING_ACTIONS,
+    })
+
+    await claimBlock.release()
+    expect(await firstOutcome).toStrictEqual(Result.Success("processed"))
+    expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
+      turn: 2,
+      turnStatus: TurnStatus.COLLECTING_ACTIONS,
+    })
+  })
+
+  it("should return idle while another worker claims the only due turn", async () => {
+    // Arrange
+    await using postgres = await createConcurrencyTestDb()
+    const { db, concurrency } = postgres
     const clock = new ControlledClock()
     using server = new ApiServer(await createApiStub({ db, clock }))
     const player = await server.createClient({ authenticated: true })
@@ -80,8 +81,10 @@ describe("TurnProcessor concurrency", () => {
     })
   })
 
-  concurrencyTest("should return idle while another worker saves the only due turn", async ({ postgres: { db, concurrency } }) => {
+  it("should return idle while another worker saves the only due turn", async () => {
     // Arrange
+    await using postgres = await createConcurrencyTestDb()
+    const { db, concurrency } = postgres
     const clock = new ControlledClock()
     using server = new ApiServer(await createApiStub({ db, clock }))
     const player = await server.createClient({ authenticated: true })

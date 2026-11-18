@@ -8,15 +8,15 @@ import { GainInfluence } from "shared/testing/test-ruleset/action-definitions/ga
 import { GainMetal } from "shared/testing/test-ruleset/action-definitions/gain-metal.ts"
 import { MoveFleetImproved } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 import { WinTheGame } from "shared/testing/test-ruleset/action-definitions/win-the-game.ts"
-import { afterEach, describe, expect, vi } from "vitest"
+import { afterEach, describe, expect, vi, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createPlayerViewResourcesStub } from "#api/gameplay/PlayerViewResources.stub.ts"
 import type { SubmittedActionTargets } from "#api/gameplay/SubmittedActionTargets.ts"
 import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
+import { createIntegrationTestDb } from "#tests/createIntegrationTestDb.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
-import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import { type ProcessedTurnModel, TurnsRepository } from "#turn-processing/turns.repository.ts"
 
@@ -27,8 +27,9 @@ describe("TurnProcessor", () => {
       vi.useRealTimers()
     })
 
-    integrationTest("should process all currently due turns before waiting", async ({ db }) => {
+    it("should process all currently due turns before waiting", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
@@ -67,8 +68,9 @@ describe("TurnProcessor", () => {
       })
     })
 
-    integrationTest("should wait before retrying when the selected turn processing fails", async ({ db }) => {
+    it("should wait before retrying when the selected turn processing fails", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
@@ -112,8 +114,9 @@ describe("TurnProcessor", () => {
   })
 
   describe("processNextDueTurn", () => {
-    integrationTest("should process the current turn and queue the next one", async ({ db }) => {
+    it("should process the current turn and queue the next one", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       const { api, accountsRepository } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
@@ -131,7 +134,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 1,
-        submittedActionTargets: getActionToSubmintegrationTest(initialPlayerView, GainInfluence.id),
+        submittedActionTargets: getActionToSubmit(initialPlayerView, GainInfluence.id),
       })
 
       // Act
@@ -158,8 +161,9 @@ describe("TurnProcessor", () => {
       expect(repeatedPlayerView.actions).toStrictEqual(playerView.actions)
     })
 
-    integrationTest("should process multiple submitted actions", async ({ db }) => {
+    it("should process multiple submitted actions", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
@@ -175,7 +179,7 @@ describe("TurnProcessor", () => {
         await player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
           turn: initialPlayerView.turn,
-          submittedActionTargets: getActionToSubmintegrationTest(initialPlayerView, actionDefinitionId),
+          submittedActionTargets: getActionToSubmit(initialPlayerView, actionDefinitionId),
         })
       }
 
@@ -196,8 +200,9 @@ describe("TurnProcessor", () => {
       })
     })
 
-    integrationTest("should process actions that build fleets", async ({ db }) => {
+    it("should process actions that build fleets", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
@@ -248,8 +253,9 @@ describe("TurnProcessor", () => {
       ])
     })
 
-    integrationTest("should persist a fleet in transit and land it after another turn", async ({ db }) => {
+    it("should persist a fleet in transit and land it after another turn", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
@@ -275,7 +281,7 @@ describe("TurnProcessor", () => {
         await player.client.gameplay.updateActionSubmission.mutate({
           gameId,
           turn: initialView.turn,
-          submittedActionTargets: getActionToSubmintegrationTest(initialView, actionDefinitionId),
+          submittedActionTargets: getActionToSubmit(initialView, actionDefinitionId),
         })
       }
       clock.increment({ time: turnInterval })
@@ -284,9 +290,9 @@ describe("TurnProcessor", () => {
       const fundedView = await player.client.gameplay.getPlayerView.query({ gameId })
 
       for (const submittedActionTargets of [
-        getActionToSubmintegrationTest(fundedView, BuildFleetStandard.id, { planet: origin.id }),
-        getActionToSubmintegrationTest(fundedView, GainFuel.id),
-        getActionToSubmintegrationTest(fundedView, GainInfluence.id),
+        getActionToSubmit(fundedView, BuildFleetStandard.id, { planet: origin.id }),
+        getActionToSubmit(fundedView, GainFuel.id),
+        getActionToSubmit(fundedView, GainInfluence.id),
       ]) {
         await player.client.gameplay.updateActionSubmission.mutate({
           gameId,
@@ -305,7 +311,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId,
         turn: builtView.turn,
-        submittedActionTargets: getActionToSubmintegrationTest(builtView, MoveFleetImproved.id, {
+        submittedActionTargets: getActionToSubmit(builtView, MoveFleetImproved.id, {
           fleet: fleet.id,
           planet: destination.id,
         }),
@@ -320,7 +326,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId,
         turn: inTransitView.turn,
-        submittedActionTargets: getActionToSubmintegrationTest(inTransitView, MoveFleetImproved.id, {
+        submittedActionTargets: getActionToSubmit(inTransitView, MoveFleetImproved.id, {
           fleet: fleet.id,
           planet: destination.id,
         }),
@@ -350,8 +356,9 @@ describe("TurnProcessor", () => {
       ])
     })
 
-    integrationTest("should merge an arriving fleet with the player's fleet at the destination in one turn", async ({ db }) => {
+    it("should merge an arriving fleet with the player's fleet at the destination in one turn", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
@@ -376,7 +383,7 @@ describe("TurnProcessor", () => {
         await player.client.gameplay.updateActionSubmission.mutate({
           gameId,
           turn: initialView.turn,
-          submittedActionTargets: getActionToSubmintegrationTest(initialView, actionDefinitionId),
+          submittedActionTargets: getActionToSubmit(initialView, actionDefinitionId),
         })
       }
       clock.increment({ time: turnInterval })
@@ -385,9 +392,9 @@ describe("TurnProcessor", () => {
       const fundedView = await player.client.gameplay.getPlayerView.query({ gameId })
 
       for (const submittedActionTargets of [
-        getActionToSubmintegrationTest(fundedView, BuildFleetStandard.id, { planet: homePlanet.id }),
-        getActionToSubmintegrationTest(fundedView, GainFuel.id),
-        getActionToSubmintegrationTest(fundedView, GainInfluence.id),
+        getActionToSubmit(fundedView, BuildFleetStandard.id, { planet: homePlanet.id }),
+        getActionToSubmit(fundedView, GainFuel.id),
+        getActionToSubmit(fundedView, GainInfluence.id),
       ]) {
         await player.client.gameplay.updateActionSubmission.mutate({
           gameId,
@@ -407,7 +414,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId,
         turn: builtView.turn,
-        submittedActionTargets: getActionToSubmintegrationTest(builtView, MoveFleetImproved.id, {
+        submittedActionTargets: getActionToSubmit(builtView, MoveFleetImproved.id, {
           fleet: movingFleet.id,
           planet: nearbyPlanet.id,
         }),
@@ -421,7 +428,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId,
         turn: awayView.turn,
-        submittedActionTargets: getActionToSubmintegrationTest(awayView, BuildFleetStandard.id, { planet: homePlanet.id }),
+        submittedActionTargets: getActionToSubmit(awayView, BuildFleetStandard.id, { planet: homePlanet.id }),
       })
       clock.increment({ time: turnInterval })
       await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
@@ -436,7 +443,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId,
         turn: returnView.turn,
-        submittedActionTargets: getActionToSubmintegrationTest(returnView, MoveFleetImproved.id, {
+        submittedActionTargets: getActionToSubmit(returnView, MoveFleetImproved.id, {
           fleet: movingFleet.id,
           planet: homePlanet.id,
         }),
@@ -459,13 +466,14 @@ describe("TurnProcessor", () => {
       ])
     })
 
-    integrationTest.for([
+    it.each([
       { turnInterval: Time.create(100, UnitOfTime.SECONDS), timeIncrement: Time.create(116, UnitOfTime.SECONDS) },
       { turnInterval: Time.create(100, UnitOfTime.MINUTES), timeIncrement: Time.create(103, UnitOfTime.MINUTES) },
     ])(
       "should schedule the next turn from the current time when the delay exceeds 15 percent of the interval, capped at 2 minutes",
-      async ({ turnInterval, timeIncrement }, { db }) => {
+      async ({ turnInterval, timeIncrement }) => {
         // Arrange
+        await using db = await createIntegrationTestDb()
         const clock = new ControlledClock()
         using apiServer = new ApiServer(await createApiStub({ db, clock }))
         const player = await apiServer.createClient({ authenticated: true })
@@ -490,8 +498,9 @@ describe("TurnProcessor", () => {
       },
     )
 
-    integrationTest("should fail the turn when a locked action submission is no longer affordable", async ({ db }) => {
+    it("should fail the turn when a locked action submission is no longer affordable", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
@@ -508,7 +517,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 1,
-        submittedActionTargets: getActionToSubmintegrationTest(initialPlayerView, GainMetal.id),
+        submittedActionTargets: getActionToSubmit(initialPlayerView, GainMetal.id),
       })
       Assert.isSuccess(
         await resourcesRepository.updateResource({
@@ -528,8 +537,9 @@ describe("TurnProcessor", () => {
       expect(result).toBe("failed")
     })
 
-    integrationTest("should process only the earliest scheduled turn in one invocation", async ({ db }) => {
+    it("should process only the earliest scheduled turn in one invocation", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
@@ -567,8 +577,9 @@ describe("TurnProcessor", () => {
       })
     })
 
-    integrationTest("should be able to process the same turn over time", async ({ db }) => {
+    it("should be able to process the same turn over time", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
@@ -597,8 +608,9 @@ describe("TurnProcessor", () => {
       })
     })
 
-    integrationTest("should not process another turn when the selected turn processing fails", async ({ db }) => {
+    it("should not process another turn when the selected turn processing fails", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
@@ -636,8 +648,9 @@ describe("TurnProcessor", () => {
       })
     })
 
-    integrationTest("should fully process every player and select at most one deterministic winner", async ({ db }) => {
+    it("should fully process every player and select at most one deterministic winner", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
@@ -671,7 +684,7 @@ describe("TurnProcessor", () => {
         await player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
           turn: 1,
-          submittedActionTargets: getActionToSubmintegrationTest(playerView, WinTheGame.id),
+          submittedActionTargets: getActionToSubmit(playerView, WinTheGame.id),
         })
       }
 
@@ -714,8 +727,9 @@ describe("TurnProcessor", () => {
       })
     })
 
-    integrationTest("should not do anything in case of failure", async ({ db }) => {
+    it("should not do anything in case of failure", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
@@ -730,7 +744,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 1,
-        submittedActionTargets: getActionToSubmintegrationTest(playerView, GainInfluence.id),
+        submittedActionTargets: getActionToSubmit(playerView, GainInfluence.id),
       })
 
       const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId: createdGameId })
@@ -767,7 +781,7 @@ describe("TurnProcessor", () => {
   })
 })
 
-function getActionToSubmintegrationTest(
+function getActionToSubmit(
   playerView: PlayerView,
   actionDefinitionId: ActionDefinitionId,
   selectedTargets: DeepUnbranded<SubmittedActionTargets["selectedTargets"]> = {},

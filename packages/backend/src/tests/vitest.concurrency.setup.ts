@@ -1,5 +1,5 @@
 import { beforeAll } from "vitest"
-import { TestContainers } from "#tests/vitest.concurrency.setup.test-containers.ts"
+import { prepareConcurrencyTestDb } from "#tests/createConcurrencyTestDb.ts"
 
-// This cannot be a fixture because the fixture is part of the test, and we want the preload time to not be included in the test time
-beforeAll(TestContainers.preload, TestContainers.timeoutMs)
+// Allow the worker to pull the PostgreSQL image before the first test starts.
+beforeAll(prepareConcurrencyTestDb, 60_000)

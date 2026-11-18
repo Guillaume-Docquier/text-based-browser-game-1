@@ -1,6 +1,11 @@
 import { typescript, vitest } from "@guillaume-docquier/oxlint"
 import { defineConfig, type OxlintConfig } from "oxlint"
 
+const noVitestFixtures = {
+  property: "extend",
+  message: "Do not use Vitest custom fixtures because oxlint vitest rules don't support them (see ADR-035).",
+}
+
 export default defineConfig({
   extends: [typescript],
   options: {
@@ -9,6 +14,13 @@ export default defineConfig({
   },
   ignorePatterns: ["*.gen.*"],
   overrides: [
+    {
+      files: ["**/*"],
+      excludeFiles: ["**/playwright/**/*"],
+      rules: {
+        "no-restricted-properties": ["error", { object: "test", ...noVitestFixtures }, { object: "it", ...noVitestFixtures }],
+      },
+    },
     {
       ...vitest,
       files: ["**/*.test.{ts,tsx}"],
@@ -20,4 +32,10 @@ export default defineConfig({
       },
     },
   ],
+  rules: {
+    "eslint-js/no-restricted-syntax": [
+      ...typescript.rules["eslint-js/no-restricted-syntax"],
+      { selector: "ImportExpression", message: "Use a static import declaration." },
+    ],
+  },
 } satisfies OxlintConfig)

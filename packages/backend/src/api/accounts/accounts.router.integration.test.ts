@@ -1,13 +1,14 @@
-import { describe, expect } from "vitest"
+import { describe, expect, it } from "vitest"
 import { FinishOnboardingError, FinishOnboardingErrorResponses } from "#api/accounts/finishOnboarding.error.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
-import { integrationTest } from "#tests/vitest.integration.fixture.ts"
+import { createIntegrationTestDb } from "#tests/createIntegrationTestDb.ts"
 
 describe("accounts.router", () => {
   describe("isOnboarded", () => {
-    integrationTest("should reject anonymous accounts", async ({ db }) => {
+    it("should reject anonymous accounts", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
@@ -18,8 +19,9 @@ describe("accounts.router", () => {
       await expect(isOnboarded).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } })
     })
 
-    integrationTest("should return false for a new authenticated account", async ({ db }) => {
+    it("should return false for a new authenticated account", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const account = await apiServer.createClient({ authenticated: true })
 
@@ -32,8 +34,9 @@ describe("accounts.router", () => {
   })
 
   describe("finishOnboarding", () => {
-    integrationTest("should safely set a trimmed alias containing symbols and spaces", async ({ db }) => {
+    it("should safely set a trimmed alias containing symbols and spaces", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const account = await apiServer.createClient({ authenticated: true })
 
@@ -44,8 +47,9 @@ describe("accounts.router", () => {
       await expect(account.client.accounts.isOnboarded.query()).resolves.toBe(true)
     })
 
-    integrationTest.for(["a", "a".repeat(36)])("should accept the boundary-length alias %j", async (alias, { db }) => {
+    it.each(["a", "a".repeat(36)])("should accept the boundary-length alias %j", async (alias) => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const account = await apiServer.createClient({ authenticated: true })
 
@@ -56,8 +60,9 @@ describe("accounts.router", () => {
       await expect(finishOnboarding).resolves.toBeUndefined()
     })
 
-    integrationTest.for([" ", "a".repeat(37), "Null\0Alias"])("should reject the invalid alias %j", async (alias, { db }) => {
+    it.each([" ", "a".repeat(37), "Null\0Alias"])("should reject the invalid alias %j", async (alias) => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const account = await apiServer.createClient({ authenticated: true })
 
@@ -69,8 +74,9 @@ describe("accounts.router", () => {
       await expect(account.client.accounts.isOnboarded.query()).resolves.toBe(false)
     })
 
-    integrationTest("should reject an alias already used with different casing", async ({ db }) => {
+    it("should reject an alias already used with different casing", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const firstAccount = await apiServer.createClient({ authenticated: true })
       const secondAccount = await apiServer.createClient({ authenticated: true })
@@ -84,8 +90,9 @@ describe("accounts.router", () => {
       await expect(secondAccount.client.accounts.isOnboarded.query()).resolves.toBe(false)
     })
 
-    integrationTest("should reject replacing an existing alias", async ({ db }) => {
+    it("should reject replacing an existing alias", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const account = await apiServer.createClient({ authenticated: true })
       await account.client.accounts.finishOnboarding.mutate({ alias: "Nova" })

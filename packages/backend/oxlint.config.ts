@@ -1,6 +1,19 @@
 import { defineConfig, type OxlintConfig, type OxlintOverride } from "oxlint"
 import baseConfig from "../../oxlint.config.ts"
 
+const noRollbackError = {
+  group: ["**/TransactionRollbackError", "**/TransactionRollbackError.*"],
+  message: "TransactionRollbackError can only be used in *.error.ts files. Use a specific rollback error instead.",
+}
+const noIntegrationDb = {
+  group: ["**/createIntegrationTestDb", "**/createIntegrationTestDb.*"],
+  message: "Use createIntegrationTestDb only in *.integration.test.ts files.",
+}
+const noConcurrencyDb = {
+  group: ["**/createConcurrencyTestDb", "**/createConcurrencyTestDb.*"],
+  message: "Use createConcurrencyTestDb only in *.concurrency.test.ts files.",
+}
+
 export default defineConfig({
   extends: [baseConfig],
   ignorePatterns: baseConfig.ignorePatterns,
@@ -8,25 +21,23 @@ export default defineConfig({
     node: true,
   },
   plugins: ["vitest"],
-  jsPlugins: ["./oxlint-vitest-fixtures.ts"],
   overrides: [
-    {
+    noRestrictedImports({ files: ["**/*"], patterns: [noIntegrationDb, noConcurrencyDb] }),
+    noRestrictedImports({
       files: ["**/*.ts"],
       excludeFiles: ["**/*.error.ts"],
-      rules: {
-        "no-restricted-imports": [
-          "error",
-          {
-            patterns: [
-              {
-                group: ["**/TransactionRollbackError", "**/TransactionRollbackError.*"],
-                message: "TransactionRollbackError can only be used in *.error.ts files. Use a specific rollback error instead.",
-              },
-            ],
-          },
-        ],
-      },
-    },
+      patterns: [noRollbackError, noIntegrationDb, noConcurrencyDb],
+    }),
+    noRestrictedImports({ files: ["src/**/*.integration.test.ts"], patterns: [noRollbackError, noConcurrencyDb] }),
+    noRestrictedImports({ files: ["src/**/*.concurrency.test.ts"], patterns: [noRollbackError, noIntegrationDb] }),
+    noRestrictedImports({
+      files: ["src/tests/vitest.integration.setup.ts"],
+      patterns: [noRollbackError, noConcurrencyDb, { ...noIntegrationDb, allowImportNames: ["prepareIntegrationTestDb"] }],
+    }),
+    noRestrictedImports({
+      files: ["src/tests/vitest.concurrency.setup.ts"],
+      patterns: [noRollbackError, noIntegrationDb, { ...noConcurrencyDb, allowImportNames: ["prepareConcurrencyTestDb"] }],
+    }),
     {
       files: ["src/api/**/*.router*.ts"],
       rules: {
@@ -48,26 +59,21 @@ export default defineConfig({
         "no-restricted-globals": ["error", { name: "Date", message: "Use an injected clock instead." }],
       },
     },
-    fixtureOverrides({ files: ["src/**/*.integration.test.ts"], fixtureName: "integrationTest" }),
-    fixtureOverrides({ files: ["src/**/*.concurrency.test.ts"], fixtureName: "concurrencyTest" }),
   ],
 } satisfies OxlintConfig)
 
-/**
- * Some vitest rules don't understand fixtures and won't apply.
- *
- * See:
- * - https://github.com/oxc-project/oxc/issues/22323
- * - https://github.com/oxc-project/oxc/issues/26675
- */
-function fixtureOverrides({ files, fixtureName }: { files: string[]; fixtureName: string }): OxlintOverride {
-  const testCalls = [fixtureName, `${fixtureName}.for`]
+type RestrictedImportPattern = {
+  group: string[]
+  message: string
+  allowImportNames?: string[]
+}
+
+function noRestrictedImports({
+  patterns,
+  ...scope
+}: Pick<OxlintOverride, "files" | "excludeFiles"> & { patterns: RestrictedImportPattern[] }): OxlintOverride {
   return {
-    files,
-    rules: {
-      "vitest/require-hook": ["error", { allowedFunctionCalls: testCalls }],
-      "vitest/no-standalone-expect": ["error", { additionalTestBlockFunctions: testCalls }],
-      "vitest-fixtures/no-conditional-in-test": ["error", { fixtureName }],
-    },
+    ...scope,
+    rules: { "no-restricted-imports": ["error", { patterns }] },
   }
 }

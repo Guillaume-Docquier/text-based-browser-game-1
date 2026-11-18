@@ -1,29 +1,33 @@
 import { Pool } from "pg"
-import { expect, onTestFinished } from "vitest"
+import { describe, expect, it } from "vitest"
+import { createConcurrencyTestDb } from "#tests/createConcurrencyTestDb.ts"
 import { createPostgresPoolDisposal } from "#tests/createPostgresPoolDisposal.ts"
-import { concurrencyTest } from "#tests/vitest.concurrency.fixture.ts"
 
-concurrencyTest("should wait for idle and previously removed connections to close during pool disposal", async ({ postgres }) => {
-  // Arrange
-  const pool = new Pool({ connectionString: postgres.databaseUrl })
-  const closePool = createPostgresPoolDisposal(pool)
-  onTestFinished(closePool)
+describe("createPostgresPoolDisposal", () => {
+  it("should wait for idle and previously removed connections to close during pool disposal", async () => {
+    // Arrange
+    await using postgres = await createConcurrencyTestDb()
+    const pool = new Pool({ connectionString: postgres.databaseUrl })
+    const closePool = createPostgresPoolDisposal(pool)
+    await using cleanup = new AsyncDisposableStack()
+    cleanup.defer(closePool)
 
-  const disconnected: string[] = []
-  const [removedClient, idleClient] = await Promise.all([pool.connect(), pool.connect()])
-  removedClient.once("end", () => {
-    disconnected.push("removed")
+    const disconnected: string[] = []
+    const [removedClient, idleClient] = await Promise.all([pool.connect(), pool.connect()])
+    removedClient.once("end", () => {
+      disconnected.push("removed")
+    })
+    idleClient.once("end", () => {
+      disconnected.push("idle")
+    })
+
+    removedClient.release(true)
+    idleClient.release()
+
+    // Act
+    await closePool()
+
+    // Assert
+    expect(disconnected.sort()).toStrictEqual(["idle", "removed"])
   })
-  idleClient.once("end", () => {
-    disconnected.push("idle")
-  })
-
-  removedClient.release(true)
-  idleClient.release()
-
-  // Act
-  await closePool()
-
-  // Assert
-  expect(disconnected.sort()).toStrictEqual(["idle", "removed"])
 })

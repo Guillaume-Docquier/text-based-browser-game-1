@@ -101,6 +101,7 @@ export class PlanetsPage extends GamePage {
 
   public async openCoordinate(row: PlanetRowLocator): Promise<GalaxyPage> {
     await this.coordinate(row).click()
+    // oxlint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
     const { GalaxyPage } = await import("./GalaxyPage.ts")
     return new GalaxyPage(this.page)
   }
