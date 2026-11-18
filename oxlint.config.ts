@@ -1,7 +1,10 @@
 import { typescript, vitest } from "@guillaume-docquier/oxlint"
 import { defineConfig, type OxlintConfig } from "oxlint"
 
-const noVitestFixtures = { property: "extend", message: "Use native Vitest tests and explicit resource helpers (ADR-035)." }
+const noVitestFixtures = {
+  property: "extend",
+  message: "Do not use Vitest custom fixtures because oxlint vitest rules don't support them (see ADR-035).",
+}
 
 export default defineConfig({
   extends: [typescript],
@@ -10,13 +13,6 @@ export default defineConfig({
     denyWarnings: true,
   },
   ignorePatterns: ["*.gen.*"],
-  rules: {
-    "no-restricted-properties": ["error", { object: "test", ...noVitestFixtures }, { object: "it", ...noVitestFixtures }],
-    "eslint-js/no-restricted-syntax": [
-      ...typescript.rules["eslint-js/no-restricted-syntax"],
-      { selector: "ImportExpression", message: "Use a static import declaration." },
-    ],
-  },
   overrides: [
     {
       ...vitest,
@@ -29,4 +25,11 @@ export default defineConfig({
       },
     },
   ],
+  rules: {
+    "no-restricted-properties": ["error", { object: "test", ...noVitestFixtures }, { object: "it", ...noVitestFixtures }],
+    "eslint-js/no-restricted-syntax": [
+      ...typescript.rules["eslint-js/no-restricted-syntax"],
+      { selector: "ImportExpression", message: "Use a static import declaration." },
+    ],
+  },
 } satisfies OxlintConfig)
