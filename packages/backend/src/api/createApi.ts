@@ -10,12 +10,10 @@ import type { AuthService } from "#api/auth/auth.service.ts"
 import type { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
 import { GetPlayerViewUseCase } from "#api/gameplay/getPlayerView.useCase.ts"
-import { UpdateActionSubmissionUseCase } from "#api/gameplay/updateActionSubmission.useCase.ts"
 import { UpdateReadinessUseCase } from "#api/gameplay/updateReadiness.useCase.ts"
 import { CreateGameUseCase } from "#api/games/createGame.useCase.ts"
 import type { GamesRepository } from "#api/games/games.repository.ts"
 import { createGamesRouter } from "#api/games/games.router.ts"
-import { GetGameCreationSettingsUseCase } from "#api/games/getGameCreationSettings.useCase.ts"
 import { GetGameDetailsUseCase } from "#api/games/getGameDetailsUseCase.ts"
 import { GetGameListingsUseCase } from "#api/games/getGameListings.useCase.ts"
 import { JoinGameUseCase } from "#api/games/joinGame.useCase.ts"
@@ -24,7 +22,6 @@ import { StartGameUseCase } from "#api/games/startGame.useCase.ts"
 import { createHealthRouter } from "#api/health/health.router.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import type { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { createTrpc, createTrpcContext } from "./trpc.ts"
 
 /**
@@ -48,7 +45,6 @@ export async function createApi({
   accountsRepository: AccountsRepository
   gamesRepository: GamesRepository
   gameplayRepository: GameplayRepository
-  rulesetsRepository: RulesetsRepository
 }): Promise<Express> {
   const applicationServices = { ...services, createTransaction }
   const useCases = {
@@ -56,12 +52,10 @@ export async function createApi({
     getGameListingsUseCase: new GetGameListingsUseCase(applicationServices),
     createGameUseCase: new CreateGameUseCase(applicationServices),
     getGameDetailsUseCase: new GetGameDetailsUseCase(applicationServices),
-    getGameCreationSettingsUseCase: new GetGameCreationSettingsUseCase(applicationServices),
     joinGameUseCase: new JoinGameUseCase(applicationServices),
     leaveGameUseCase: new LeaveGameUseCase(applicationServices),
     getPlayerViewUseCase: new GetPlayerViewUseCase(applicationServices),
     startGameUseCase: new StartGameUseCase(applicationServices),
-    updateActionSubmissionUseCase: new UpdateActionSubmissionUseCase(applicationServices),
     updateReadinessUseCase: new UpdateReadinessUseCase(applicationServices),
   }
 
@@ -94,13 +88,11 @@ function createTrpcRouter({
   getGameListingsUseCase: GetGameListingsUseCase
   createGameUseCase: CreateGameUseCase
   getGameDetailsUseCase: GetGameDetailsUseCase
-  getGameCreationSettingsUseCase: GetGameCreationSettingsUseCase
   joinGameUseCase: JoinGameUseCase
   leaveGameUseCase: LeaveGameUseCase
   gamesRepository: GamesRepository
   getPlayerViewUseCase: GetPlayerViewUseCase
   startGameUseCase: StartGameUseCase
-  updateActionSubmissionUseCase: UpdateActionSubmissionUseCase
   updateReadinessUseCase: UpdateReadinessUseCase
   logger: Logger
 }) {

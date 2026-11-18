@@ -1,22 +1,9 @@
 import { type Branded, Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { and, desc, eq, gt, inArray } from "drizzle-orm"
+import { and, desc, eq, gt } from "drizzle-orm"
 import type { GameId } from "shared/domain/games/GameId.ts"
 import type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
-import type { Resources } from "shared/domain/resources/Resources.ts"
-import { ResourceType } from "shared/domain/resources/ResourceType.ts"
-import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
-import type { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
-import type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
-import type { Action } from "shared/domain/turns/actions/Action.ts"
-import type { ActionId } from "shared/domain/turns/actions/ActionId.ts"
-import type { SelectedTargets } from "shared/domain/turns/actions/SelectedTargets.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
-import type { Fleet } from "shared/domain/world/fleets/Fleet.ts"
-import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
-import type { Galaxy } from "shared/domain/world/Galaxy.ts"
-import type { Planet } from "shared/domain/world/planets/Planet.ts"
-import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import type { Star } from "shared/domain/world/stars/Star.ts"
 import { GetPlayerViewError, GetPlayerViewRollbackError } from "#api/gameplay/getPlayerView.error.ts"
 import type { PlayerView } from "#api/gameplay/PlayerView.ts"
@@ -24,45 +11,7 @@ import { UpdateReadinessError, UpdateReadinessRollbackError } from "#api/gamepla
 import type { Clock } from "#lib/Clock.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import {
-  actionsTable,
-  fleetsTable,
-  gamesTable,
-  planetsTable,
-  playersTable,
-  resourcesTable,
-  starsTable,
-  turnsTable,
-  turnsProcessingTable,
-  rulesetsTable,
-} from "#lib/db/schema.ts"
-import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
-import { UpdateActionSubmissionError, UpdateActionSubmissionRollbackError } from "./updateActionSubmission.error.ts"
-
-type ResourceRow = typeof resourcesTable.$inferSelect
-
-export type ActionSubmissionsForUpdate = Branded<
-  "ActionsForSubmission",
-  Readonly<{
-    gameId: GameId
-    playerId: PlayerId
-    turn: number
-    resources: Readonly<Resources>
-    actions: readonly Action[]
-    ruleset: Ruleset
-  }>
->
-
-export type UpdateActionSubmissionsModel = Readonly<{
-  /**
-   * The ActionsForSubmission must be acquired in the same transaction.
-   */
-  context: ActionSubmissionsForUpdate
-  /**
-   * The actions to update, can be newly selected, selected target updates or de-selected.
-   */
-  actions: ReadonlyArray<Pick<Action, "id" | "selectedTargets">>
-}>
+import { planetsTable, playersTable, starsTable, turnsTable, turnsProcessingTable } from "#lib/db/schema.ts"
 
 type PlayerViewPlayerModel = Readonly<{
   id: PlayerId
@@ -80,19 +29,6 @@ export type ReadinessForUpdate = Branded<
   }>
 >
 
-type PlayerViewActionModel = Readonly<{
-  id: ActionId
-  actionDefinitionId: ActionDefinitionId
-  selectedTargets: SelectedTargets | null
-}>
-
-export type PlayerViewModel = Omit<PlayerView, "galaxy" | "resources" | "actions"> &
-  Readonly<{
-    galaxy: Galaxy
-    resources: Resources
-    actions: readonly PlayerViewActionModel[]
-  }>
-
 export class GameplayRepository extends PostgresRepository {
   private readonly logger: Logger
   private readonly clock: Clock
@@ -106,7 +42,7 @@ export class GameplayRepository extends PostgresRepository {
   public async getPlayerView(
     { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<PlayerViewModel, GetPlayerViewError>> {
+  ): Promise<Result<PlayerView, GetPlayerViewError>> {
     const playerViewResult = await Result.tryCatch(
       db.transaction(
         async (tx) => {
@@ -127,15 +63,6 @@ export class GameplayRepository extends PostgresRepository {
             throw new GetPlayerViewRollbackError(GetPlayerViewError.TURN_NOT_FOUND)
           }
 
-          const gameRows = await tx.select({ rulesetId: gamesTable.rulesetId }).from(gamesTable).where(eq(gamesTable.id, gameId))
-          Assert.isTrue(gameRows.length === 1)
-          Assert.isDefined(gameRows[0])
-
-          const ruleset = await this.getRuleset({ rulesetId: gameRows[0].rulesetId }, tx)
-          if (ruleset === undefined) {
-            throw new GetPlayerViewRollbackError(GetPlayerViewError.RULESET_NOT_FOUND)
-          }
-
           const players = await tx
             .select({
               id: playersTable.playerId,
@@ -148,37 +75,17 @@ export class GameplayRepository extends PostgresRepository {
           Assert.isDefined(player)
           const opponents = Object.fromEntries(players.filter(({ id }) => id !== playerId).map((opponent) => [opponent.id, opponent]))
 
-          const playerResources = await tx
-            .select()
-            .from(resourcesTable)
-            .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
-
-          const availableActionRows = await tx
-            .select({
-              id: actionsTable.id,
-              actionDefinitionId: actionsTable.actionDefinitionId,
-              selectedTargets: actionsTable.selectedTargets,
-            })
-            .from(actionsTable)
-            .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn.turn)))
-            .orderBy(actionsTable.id)
-
           const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
           const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
-          const fleetRows = await tx.select().from(fleetsTable).where(eq(fleetsTable.gameId, gameId)).orderBy(fleetsTable.id)
 
           return {
             player,
             opponents,
             galaxy: toGalaxyModel({ stars, planets }),
-            fleets: fleetRows.map(toFleet),
             gameId,
             turn: turn.turn,
             turnStatus: turn.status,
             turnEndsAt: turn.endsAt,
-            resources: toResourceBag(playerResources),
-            actions: availableActionRows,
-            ruleset,
           }
         },
         { isolationLevel: "repeatable read" },
@@ -195,102 +102,6 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     return playerViewResult
-  }
-
-  public async getActionSubmissionsForUpdate(
-    { gameId, playerId, turn }: { gameId: GameId; playerId: PlayerId; turn: number },
-    tx: Transaction,
-  ): Promise<ActionSubmissionsForUpdate> {
-    const gameTurns = await tx
-      .select({ gameId: turnsTable.gameId, turn: turnsTable.turn, endsAt: turnsTable.endsAt })
-      .from(turnsTable)
-      .where(
-        and(
-          eq(turnsTable.gameId, gameId),
-          eq(turnsTable.turn, turn),
-          eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS),
-          gt(turnsTable.endsAt, this.clock.now()),
-        ),
-      )
-      .for("no key update")
-    Assert.isTrue(gameTurns.length <= 1)
-
-    const gameTurn = gameTurns[0]
-    if (gameTurn === undefined) {
-      throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.TURN_NOT_OPEN)
-    }
-
-    const players = await tx
-      .select({ isReady: playersTable.isReady })
-      .from(playersTable)
-      .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, playerId)))
-    Assert.isTrue(players.length === 1)
-    Assert.isDefined(players[0])
-    if (players[0].isReady) {
-      throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.PLAYER_READY)
-    }
-
-    const games = await tx
-      .select({
-        rulesetId: gamesTable.rulesetId,
-      })
-      .from(gamesTable)
-      .where(eq(gamesTable.id, gameId))
-    Assert.isTrue(games.length === 1)
-    Assert.isDefined(games[0])
-
-    const ruleset = await this.getRuleset({ rulesetId: games[0].rulesetId }, tx)
-    if (ruleset === undefined) {
-      throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.RULESET_NOT_FOUND)
-    }
-
-    const resourceRows = await tx
-      .select()
-      .from(resourcesTable)
-      .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
-
-    const actions = await tx
-      .select()
-      .from(actionsTable)
-      .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn)))
-
-    return branded({
-      gameId,
-      playerId,
-      turn,
-      resources: toResourceBag(resourceRows),
-      actions,
-      ruleset,
-    })
-  }
-
-  public async getPlanetsByIds(
-    { gameId, planetIds }: { gameId: GameId; planetIds: readonly PlanetId[] },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Planet[]> {
-    if (planetIds.length === 0) {
-      return []
-    }
-
-    return await db
-      .select()
-      .from(planetsTable)
-      .where(and(eq(planetsTable.gameId, gameId), inArray(planetsTable.id, planetIds)))
-  }
-
-  public async getFleetsByIds(
-    { gameId, fleetIds }: { gameId: GameId; fleetIds: readonly FleetId[] },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Fleet[]> {
-    if (fleetIds.length === 0) {
-      return []
-    }
-
-    const fleetRows = await db
-      .select()
-      .from(fleetsTable)
-      .where(and(eq(fleetsTable.gameId, gameId), inArray(fleetsTable.id, fleetIds)))
-    return fleetRows.map(toFleet)
   }
 
   public async getReadinessForUpdate(
@@ -348,50 +159,6 @@ export class GameplayRepository extends PostgresRepository {
       .set({ scheduledFor: closedAt })
       .where(and(eq(turnsProcessingTable.gameId, context.gameId), eq(turnsProcessingTable.turn, context.turn)))
   }
-
-  public async updateActionSubmissions({ context, actions }: UpdateActionSubmissionsModel, tx: Transaction): Promise<void> {
-    const updatedAt = this.clock.now()
-
-    // Not super great, drizzle doesn't support batch updates very well, could use sql statements probably
-    // A transaction uses one PostgreSQL connection, so its queries must run sequentially.
-    for (const action of actions) {
-      await tx
-        .update(actionsTable)
-        .set({ selectedTargets: action.selectedTargets, updatedAt })
-        .where(
-          and(
-            eq(actionsTable.gameId, context.gameId),
-            eq(actionsTable.playerId, context.playerId),
-            eq(actionsTable.turn, context.turn),
-            eq(actionsTable.id, action.id),
-          ),
-        )
-    }
-  }
-
-  /**
-   * Gets the ruleset by id.
-   * Does not assume that the ruleset must exist.
-   */
-  private async getRuleset({ rulesetId }: { rulesetId: RulesetId }, tx: Transaction): Promise<Ruleset | undefined> {
-    const rulesetRows = await tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, rulesetId))
-    Assert.isTrue(rulesetRows.length <= 1)
-    if (rulesetRows[0] === undefined) {
-      return undefined
-    }
-
-    return RulesetsRepository.toRuleset(rulesetRows[0])
-  }
-}
-
-function toResourceBag(resourceRows: readonly ResourceRow[]): Resources {
-  const entries = Object.values(ResourceType).map((resourceType) => {
-    const resource = resourceRows.find((row) => row.resourceType === resourceType)
-    return [resourceType, resource?.amount ?? 0] as const
-  })
-
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot infer Object.fromEntries completeness.
-  return Object.fromEntries(entries) as Resources
 }
 
 function toGalaxyModel({
@@ -400,7 +167,7 @@ function toGalaxyModel({
 }: {
   stars: ReadonlyArray<typeof starsTable.$inferSelect>
   planets: ReadonlyArray<typeof planetsTable.$inferSelect>
-}): Galaxy {
+}): PlayerView["galaxy"] {
   const planetsByStarId = Map.groupBy(planets, (planet) => planet.starId)
   const systems = stars.map((star) => ({
     star: toStarModel(star),
@@ -412,12 +179,4 @@ function toGalaxyModel({
 
 function toStarModel({ id, name, coordinates, x, y }: typeof starsTable.$inferSelect): Star {
   return { id, name, coordinates, x, y }
-}
-
-function toFleet({ destinationPlanetId, distanceToEnd, ...fleet }: typeof fleetsTable.$inferSelect): Fleet {
-  return {
-    ...fleet,
-    destinationPlanetId: destinationPlanetId ?? undefined,
-    distanceToEnd: distanceToEnd ?? undefined,
-  }
 }

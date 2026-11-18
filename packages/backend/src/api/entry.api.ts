@@ -1,5 +1,5 @@
 import type { AddressInfo } from "node:net"
-import { Assert, Logger } from "@guillaume-docquier/tools-ts"
+import { Logger } from "@guillaume-docquier/tools-ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
@@ -15,8 +15,6 @@ import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
 import { BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
-import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
-import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { startTurnProcessing } from "#turn-processing/entry.turn-processing.ts"
 import { createApi } from "./createApi.ts"
 
@@ -47,11 +45,7 @@ async function main(): Promise<void> {
     accountsRepository: new AccountsRepository({ db, logger }),
     gamesRepository: new GamesRepository({ db, logger }),
     gameplayRepository: new GameplayRepository({ db, logger, clock }),
-    rulesetsRepository: new RulesetsRepository({ db, logger }),
   }
-
-  logger.info("Performing database seeding")
-  await seedDatabase({ rulesetsRepository: repositories.rulesetsRepository, logger })
 
   const authService = new AuthService({
     logger,
@@ -102,23 +96,6 @@ async function migrateDatabase(db: Database, { migrationsFolder, logger }: { mig
       },
     },
   )
-}
-
-/**
- * Seeding on backend boot might not be the smartest thing. If we start having replicas, that might be stupid?
- * I'm not too sure what the ideal hook in Railway would be for this to seed on deploy only once, then boot all replicas.
- * For now, this'll do.
- */
-async function seedDatabase({ rulesetsRepository, logger }: { rulesetsRepository: RulesetsRepository; logger: Logger }): Promise<void> {
-  logger.debug("Rulesets")
-  logger.debug("├ Upserting core rulesets")
-
-  for (const ruleset of CoreRulesets) {
-    logger.debug(`├— ${ruleset.name}`)
-    Assert.isSuccess(await rulesetsRepository.upsertRuleset(ruleset))
-  }
-
-  logger.debug("└ Done")
 }
 
 function createAuthProvider({ provider, logger }: { provider: "clerk" | "test-header"; logger: Logger }): AuthProvider {

@@ -44,7 +44,7 @@ Use E2E tests when the regression depends on the real application. End-to-end te
 - Expose semantic locators for assertions only. Tests must perform interactions through page-object methods. Prefer locator assertions over boolean state methods for automatic waiting and diagnostics.
 - Put reusable page-specific actions on the corresponding page object. Do not create `utils` or `helpers` directories for behavior that belongs to a page. Use a precisely named shared module only for behavior that spans pages.
 - Use component objects for cohesive shared UI, not individual elements.
-- Follow the [Playwright page-object conventions](playwright/AGENTS.md), including branded locators at page-object method boundaries and parameterized action selection instead of methods for individual Actions.
+- Follow the [Playwright page-object conventions](playwright/AGENTS.md), including branded locators at page-object method boundaries.
 
 Run E2E tests with `pnpm --filter frontend e2e`.
 

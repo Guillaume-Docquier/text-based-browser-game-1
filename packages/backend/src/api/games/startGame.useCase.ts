@@ -1,8 +1,6 @@
 import { Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } from "@guillaume-docquier/tools-ts"
-import { computeAvailableActions } from "shared/action-submission/computeAvailableActions.ts"
 import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
-import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { createGalaxy } from "shared/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "shared/galaxy-creation/GalaxyCreationSettings.ts"
 import type { Clock } from "#lib/Clock.ts"
@@ -13,7 +11,7 @@ import type { StartGameCommand } from "./startGame.command.ts"
 import { StartGameError, StartGameRollbackError } from "./startGame.error.ts"
 
 /**
- * Starts a game and initializes its galaxy, resources, and first Turn atomically.
+ * Starts a game and initializes its galaxy and first Turn atomically.
  */
 export class StartGameUseCase {
   private readonly logger: Logger
@@ -56,12 +54,6 @@ export class StartGameUseCase {
       const startedAt = this.clock.now()
       const turnEndsAt = Datetime.increment({ date: startedAt, time: gameForStart.turnInterval })
 
-      const startingResources = Object.values(ResourceType).map((resourceType) => ({
-        resourceType,
-        amount: gameForStart.ruleset.startingResources[resourceType],
-      }))
-      const playerResources = gameForStart.playerIds.flatMap((playerId) => startingResources.map((resource) => ({ playerId, ...resource })))
-
       const startTime = Timer.start()
       const rng = Rng.create(mulberry32Prng(gameForStart.mapGenerationSeed))
       const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: gameForStart.playerIds, rng })
@@ -75,11 +67,6 @@ export class StartGameUseCase {
           turnEndsAt,
           // Do not reuse the map generation seed, use a "secret" one, otherwise the game can be controlled by the creator
           rngState: { generatorState: UInt32.random(), spareNormal: null },
-          playerResources,
-          availableActions: computeAvailableActions({
-            playerIds: gameForStart.playerIds,
-            ruleset: gameForStart.ruleset,
-          }),
           galaxy,
         },
         tx,

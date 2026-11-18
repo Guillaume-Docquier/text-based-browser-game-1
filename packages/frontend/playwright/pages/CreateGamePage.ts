@@ -1,7 +1,7 @@
 import { Assert, type Time, type UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
 import type { AuthenticatedUser } from "../AuthenticatedUser.ts"
-import { DETERMINISTIC_GALAXY_SEED, TEST_RULESET_NAME } from "../constants.ts"
+import { DETERMINISTIC_GALAXY_SEED } from "../constants.ts"
 import { GameDetailsPage } from "./GameDetailsPage.ts"
 import { WebsitePage } from "./WebsitePage.ts"
 
@@ -26,7 +26,6 @@ export class CreateGamePage extends WebsitePage {
   private readonly maxPlayersInput: Locator
   private readonly turnLengthInput: Locator
   private readonly turnLengthUnitSelect: Locator
-  private readonly rulesetSelect: Locator
 
   public readonly heading: Locator
   public readonly createButton: Locator
@@ -38,7 +37,6 @@ export class CreateGamePage extends WebsitePage {
     this.maxPlayersInput = page.getByRole("spinbutton", { name: "Max number of players" })
     this.turnLengthInput = page.getByRole("spinbutton", { name: "Turn length" })
     this.turnLengthUnitSelect = page.getByRole("combobox", { name: "Turn length unit" })
-    this.rulesetSelect = page.getByRole("combobox", { name: "Ruleset" })
     this.createButton = page.getByRole("button", { name: "Create", exact: true })
   }
 
@@ -53,7 +51,6 @@ export class CreateGamePage extends WebsitePage {
     const createGamePage = await CreateGamePage.goto(creator.page)
 
     await createGamePage.setGameName(settings.gameName ?? `E2E-${crypto.randomUUID()}`)
-    await createGamePage.selectRuleset(TEST_RULESET_NAME)
 
     if (settings.maxPlayers !== undefined) {
       await createGamePage.setMaxPlayers(settings.maxPlayers)
@@ -91,11 +88,6 @@ export class CreateGamePage extends WebsitePage {
     await this.turnLengthInput.fill(value.toString())
     await this.turnLengthUnitSelect.click()
     await this.page.getByRole("option", { name: unit, exact: true }).click()
-  }
-
-  public async selectRuleset(name: string): Promise<void> {
-    await this.rulesetSelect.click()
-    await this.page.getByRole("option", { name, exact: true }).click()
   }
 
   public async setRange({ label, min, max }: { label: string; min: number; max: number }): Promise<void> {

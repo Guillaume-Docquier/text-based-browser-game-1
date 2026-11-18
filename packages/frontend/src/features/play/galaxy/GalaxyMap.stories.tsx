@@ -21,8 +21,6 @@ const meta = {
         ],
       }),
     ),
-    fleets: [],
-    players: [],
     currentPlayerId: branded("00000000-0000-4000-8000-000000000002"),
     resetSignal: 0,
     onSelectSystem: noop,

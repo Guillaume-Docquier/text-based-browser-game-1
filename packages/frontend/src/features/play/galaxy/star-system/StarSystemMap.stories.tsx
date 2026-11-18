@@ -2,7 +2,6 @@ import { Distance, noop, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
 import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
-import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
@@ -28,16 +27,6 @@ const meta = {
   component: StarSystemMap,
   args: {
     system,
-    systems: [system],
-    fleets: [
-      createFleetStub({
-        id: "home-guard",
-        name: "Home Guard",
-        ownerPlayerId: player.id,
-        originPlanetId: "00000000-0000-4000-8000-000000000002",
-        strength: 10,
-      }),
-    ],
     players: [player],
     resetSignal: 0,
     onSelectGalaxy: noop,

@@ -1,12 +1,9 @@
 import { randomUUID } from "node:crypto"
-import { Assert, Logger } from "@guillaume-docquier/tools-ts"
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import type { Pool } from "pg"
-import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
-import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { createPostgresPoolDisposal } from "#tests/createPostgresPoolDisposal.ts"
 import { POSTGRES_IMAGE } from "#tests/POSTGRES_IMAGE.ts"
 import { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
@@ -49,8 +46,6 @@ export async function createConcurrencyTestDb(): Promise<
   const cleanupDbPool = createPostgresPoolDisposal(db.$client)
 
   await migrate(db, { migrationsFolder: "./drizzle/" })
-  const rulesetsRepository = new RulesetsRepository({ db, logger: Logger.get() })
-  Assert.isSuccess(await rulesetsRepository.upsertRuleset(TestRuleset))
 
   return {
     db,

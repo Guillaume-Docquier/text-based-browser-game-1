@@ -8,6 +8,8 @@ Accepted
 
 - 2026-11-16: Require the deterministic PostgreSQL concurrency test strategy when verifying these locks.
 
+- 2026-11-18: Updated the active-game example to use Readiness after the legacy Action Submission implementation was removed.
+
 ## Context
 
 Many lobby operations read game state, check rules, and then write to several tables. Examples include joining, leaving, and starting a game. Active gameplay operations also need a stable lock while they read and write the current Turn.
@@ -20,11 +22,11 @@ Requests for the same game can run at the same time. A transaction alone does no
 
 Use the row in `gamesTable` as the shared lock for lobby operations on one game that need to be atomic. This includes joining, leaving, and starting a game.
 
-Use the current row in `turnsTable` as the shared lock for active gameplay operations, including Action submission and Turn processing. The Turn row is the authoritative source for the current turn status and deadline. These operations must not acquire the game row lock.
+Use the current row in `turnsTable` as the shared lock for active gameplay operations, including Readiness and Turn Processing. The Turn row is the authoritative source for the current turn status and deadline. These operations must not acquire the game row lock.
 
 The operation must start a transaction and lock its owning row before it reads state used for a decision. Use a row-level lock such as `FOR NO KEY UPDATE`. An update to the row also takes a row-level lock. Operations on different games can still run at the same time.
 
-The TurnProcessor first promotes expired collecting turns to `AWAITING_PROCESSING` with an update that locks each matching turn row. It then claims a queued turn with `SKIP LOCKED` and changes it to `PROCESSING`. Action submission locks the same turn row and checks that it is still collecting actions and its deadline is in the future. Whichever transaction acquires the lock first determines whether the submission is accepted before the turn is closed.
+The TurnProcessor first promotes expired collecting turns to `AWAITING_PROCESSING` with an update that locks each matching turn row. It then claims a queued turn with `SKIP LOCKED` and changes it to `PROCESSING`. Readiness updates lock the same Turn row and check that the Turn is still open and its deadline is in the future. This orders Readiness updates and Turn closure.
 
 When a lobby operation also locks other rows, lock the game row first. Active gameplay operations lock the Turn row instead. Keep the transaction open until all reads and writes for the operation are done. Do not perform network calls or other slow work while holding the lock.
 
@@ -55,7 +57,7 @@ Verify these ordering rules with concurrency tests. Establish and observe a spec
 
 ## Consequences
 
-Lobby operations on the same game run one at a time while they hold the game-row lock. Active gameplay operations on the same turn run one at a time while they hold the turn-row lock, which prevents action submission from racing with turn closure or processing.
+Lobby operations on the same game run one at a time while they hold the game-row lock. Active gameplay operations on the same turn run one at a time while they hold the turn-row lock, which orders Readiness updates with Turn closure and processing.
 
 The lock rule is easy to find and does not depend on which child tables an operation uses. New lobby operations have one clear row to lock first, and active gameplay operations have one current-turn row to lock first.
 

@@ -10,6 +10,8 @@ Accepted
 - 2026-10-01: Established the `packages/shared` package as the owner of reusable domain definitions and shared gameplay behavior, while keeping application projections, API contracts and persistence mappings with their owning apps.
 - 2026-11-15: Updated paths for the sibling workspace layout under `packages/`; import boundaries remain unchanged.
 
+- 2026-11-18: Removed the legacy Action Submission implementation from the shared package examples.
+
 ## Context
 
 The frontend and backend both need reusable code. We initially published shared utilities in [@guillaume-docquier/tools-ts](https://github.com/Guillaume-Docquier/tools-ts) because Railway built each service from only its project folder, and the backend ran native TypeScript without a bundler. Those deployment constraints made local code sharing impractical.
@@ -18,7 +20,7 @@ The frontend and backend both need reusable code. We initially published shared 
 
 ## Decision
 
-The frontend and backend may both depend on `packages/shared`. Put runtime code that needs to run in both apps in the `packages/shared` package with an explicit public API. The package owns reusable domain definitions and shared gameplay behavior such as galaxy creation, action submission, turn resolution. Its domain definitions are persistence agnostic and must not depend on either app or on application infrastructure.
+The frontend and backend may both depend on `packages/shared`. Put runtime code that needs to run in both apps in the `packages/shared` package with an explicit public API. The package owns reusable domain definitions and shared gameplay behavior such as galaxy creation and turn resolution. Its domain definitions are persistence agnostic and must not depend on either app or on application infrastructure.
 
 Application-specific projections, API request and response contracts, repository models and database rows and mappings remain owned by the application that consumes or persists them. Sharing a noun or a field shape does not make those application models part of the shared package.
 

@@ -1,7 +1,6 @@
 import type { Logger } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { GameCreationConfirmationSchema } from "#api/games/GameCreationConfirmation.ts"
-import { GameCreationSettingsSchema } from "#api/games/gameCreationSettings.ts"
 import { NO_INPUT, NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
 import { CreateGameCommandSchema } from "./createGame.command.ts"
 import { CreateGameErrorResponses } from "./createGame.error.ts"
@@ -10,8 +9,6 @@ import { GameDetailsSchema } from "./GameDetails.ts"
 import { GameListingSchema } from "./GameListing.ts"
 import { GetGameByIdErrorResponses } from "./getGameById.error.ts"
 import { GetGameByIdQuerySchema } from "./getGameById.query.ts"
-import { GetGameCreationSettingsErrorResponses } from "./getGameCreationSettings.error.ts"
-import type { GetGameCreationSettingsUseCase } from "./getGameCreationSettings.useCase.ts"
 import type { GetGameDetailsUseCase } from "./getGameDetailsUseCase.ts"
 import { GetGameListingsErrorResponses } from "./getGameListings.error.ts"
 import type { GetGameListingsUseCase } from "./getGameListings.useCase.ts"
@@ -32,7 +29,6 @@ export function createGamesRouter({
   startGameUseCase,
   createGameUseCase,
   getGameDetailsUseCase,
-  getGameCreationSettingsUseCase,
   joinGameUseCase,
   leaveGameUseCase,
 }: {
@@ -41,7 +37,6 @@ export function createGamesRouter({
   startGameUseCase: StartGameUseCase
   createGameUseCase: CreateGameUseCase
   getGameDetailsUseCase: GetGameDetailsUseCase
-  getGameCreationSettingsUseCase: GetGameCreationSettingsUseCase
   joinGameUseCase: JoinGameUseCase
   leaveGameUseCase: LeaveGameUseCase
   logger: Logger
@@ -60,7 +55,7 @@ export function createGamesRouter({
       ),
 
     /**
-     * Starts a lobby and initializes its galaxy, player resources, and first Turn.
+     * Starts a lobby and initializes its galaxy and first Turn.
      * Use when the game creator chooses to start play from the lobby.
      */
     startGame: trpc.inGameProcedure
@@ -70,15 +65,6 @@ export function createGamesRouter({
         async ({ input, ctx: { account } }) =>
           await toTrpcOutput(startGameUseCase.execute(input, { requesterAccountId: account.id }), StartGameErrorResponses),
       ),
-
-    /**
-     * Returns the available rulesets and maximum seat count for an authenticated account.
-     * Use to populate the game creation form before submitting a new lobby.
-     */
-    getCreationSettings: trpc.privateProcedure
-      .input(NO_INPUT)
-      .output(GameCreationSettingsSchema)
-      .query(async () => await toTrpcOutput(getGameCreationSettingsUseCase.execute(), GetGameCreationSettingsErrorResponses)),
 
     /**
      * Creates a lobby with the supplied configuration and joins the authenticated account as its creator.

@@ -9,7 +9,6 @@
   "exports": {
     "./domain/*": "./src/domain/*",
     "./galaxy-creation/*": "./src/galaxy-creation/*",
-    "./action-submission/*": "./src/action-submission/*",
     "./turn-resolution/*": "./src/turn-resolution/*",
     "./testing/*": "./src/testing/*"
   },

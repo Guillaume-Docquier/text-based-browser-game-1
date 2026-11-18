@@ -1,5 +1,4 @@
 import { Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import { TEST_RULESET_NAME } from "../constants.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
@@ -35,7 +34,6 @@ test("the game creation page can create a game and opens the galaxy view when st
     await createGamePage.setGameName(gameName)
     await createGamePage.setMaxPlayers(3)
     await createGamePage.setTurnLength(Time.create(2, UnitOfTime.HOURS))
-    await createGamePage.selectRuleset(TEST_RULESET_NAME)
     return await createGamePage.submit()
   })
 
@@ -43,7 +41,6 @@ test("the game creation page can create a game and opens the galaxy view when st
     await expect(gameDetailsPage.gameNameHeading).toHaveText(gameName)
     await expect(gameDetailsPage.configurationValue("Number of seats")).toHaveText("3 players")
     await expect(gameDetailsPage.configurationValue("Time per turn")).toHaveText("2 hr")
-    await expect(gameDetailsPage.configurationValue("Ruleset")).toContainText(TEST_RULESET_NAME)
   })
 
   const galaxyPage = await test.step("Start the game", async () => {

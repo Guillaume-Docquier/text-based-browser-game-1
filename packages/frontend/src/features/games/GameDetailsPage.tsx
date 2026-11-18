@@ -1,5 +1,4 @@
 import type * as ApiTypes from "@api-types"
-import { branded } from "@guillaume-docquier/tools-ts"
 import { Navigate, useNavigate } from "@tanstack/react-router"
 import type { ReactElement, ReactNode } from "react"
 import { Button } from "@/components/button.tsx"
@@ -48,9 +47,6 @@ function GameDetails({ gameDetails }: { gameDetails: ApiTypes.GameDetails }): Re
             <DetailBlock label="Status" value={<GameStatusBadge status={gameDetails.status} />} />
           </div>
           <GameConfigurationDetails gameConfigurationDetails={gameDetails.configuration} />
-          {gameDetails.winnerAccountId !== null ? (
-            <DetailBlock label="Winner" value={getWinnerLabel(branded(gameDetails.winnerAccountId), gameDetails)} />
-          ) : null}
           <GameDetailsActions gameDetails={gameDetails} />
           <Separator />
           <div className="space-y-3">
@@ -131,7 +127,6 @@ function GameConfigurationDetails({
     <div className="grid gap-4 md:grid-cols-3">
       <DetailBlock label="Number of seats" value={`${gameConfigurationDetails.nbSeats} players`} />
       <DetailBlock label="Time per turn" value={formatTurnInterval(gameConfigurationDetails.turnIntervalSeconds)} />
-      <DetailBlock label="Ruleset" value={gameConfigurationDetails.ruleset.name} />
     </div>
   )
 }
@@ -166,7 +161,7 @@ function Player({ player }: { player: ApiTypes.Player }): ReactElement {
 function GameDetailsLoadingState(): ReactElement {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <PageHeader title="Loading game" description="Fetching lobby details and available actions." />
+      <PageHeader title="Loading game" description="Fetching lobby details." />
       <Card className="border border-border/60">
         <CardContent className="flex flex-col gap-6">
           <div className="grid gap-4 md:grid-cols-3">
@@ -187,15 +182,6 @@ function GameDetailsLoadingState(): ReactElement {
       </Card>
     </div>
   )
-}
-
-function getWinnerLabel(winnerPlayerId: ApiTypes.PlayerId, gameDetails: ApiTypes.GameDetails): string {
-  const winner = [gameDetails.creator, ...gameDetails.players].find((player) => player.id === winnerPlayerId)
-  if (winner === undefined) {
-    return `Player ${winnerPlayerId}`
-  }
-
-  return winner.alias
 }
 
 function formatTurnInterval(turnIntervalSeconds: number): string {

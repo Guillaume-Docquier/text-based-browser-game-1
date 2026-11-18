@@ -7,41 +7,20 @@ import type { GameStatus } from "shared/domain/games/GameStatus.ts"
 import type { Player } from "shared/domain/players/Player.ts"
 import type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
-import type { ResourceType } from "shared/domain/resources/ResourceType.ts"
-import type { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
-import type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
-import type { AvailableAction } from "shared/domain/turns/actions/Action.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import type { Galaxy } from "shared/domain/world/Galaxy.ts"
 import type { GameCreationConfirmation } from "#api/games/GameCreationConfirmation.ts"
-import type { GameCreationSettings } from "#api/games/gameCreationSettings.ts"
 import type { GameDetails } from "#api/games/GameDetails.ts"
 import { GetGameByIdError } from "#api/games/getGameById.error.ts"
-import { GetGameCreationSettingsError } from "#api/games/getGameCreationSettings.error.ts"
 import { GetGameListingsError } from "#api/games/getGameListings.error.ts"
-import type { RulesetSummary } from "#api/games/RulesetSummary.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import {
-  accountsTable,
-  gamesTable,
-  playersTable,
-  rulesetsTable,
-  actionsTable,
-  turnsTable,
-  turnsProcessingTable,
-  resourcesTable,
-  starsTable,
-  planetsTable,
-} from "#lib/db/schema.ts"
-import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
+import { accountsTable, gamesTable, playersTable, turnsTable, turnsProcessingTable, starsTable, planetsTable } from "#lib/db/schema.ts"
 import { CreateGameError } from "./createGame.error.ts"
 import { JoinGameError, JoinGameRollbackError } from "./joinGame.error.ts"
 import { LeaveGameError, LeaveGameRollbackError } from "./leaveGame.error.ts"
 import { StartGameError, StartGameRollbackError } from "./startGame.error.ts"
 
-type NewActionRow = typeof actionsTable.$inferInsert
-type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTurnRow = typeof turnsTable.$inferInsert
 type NewTurnProcessingRow = typeof turnsProcessingTable.$inferInsert
 
@@ -125,7 +104,6 @@ export type GameForStart = Branded<
     readonly status: GameStatus
     readonly turnInterval: Time
     readonly playerIds: readonly PlayerId[]
-    readonly ruleset: Ruleset
   }
 >
 
@@ -144,15 +122,6 @@ export type StartGameModel = {
    * The rng state to use for the first turn's processing
    */
   readonly rngState: RngState<number>
-  readonly playerResources: ReadonlyArray<{
-    readonly playerId: PlayerId
-    readonly resourceType: ResourceType
-    readonly amount: number
-  }>
-  /**
-   * Eventually will probably be per player, might not all have the same starting conditions
-   */
-  readonly availableActions: readonly AvailableAction[]
   readonly galaxy: Galaxy
 }
 
@@ -217,7 +186,6 @@ export class GamesRepository extends PostgresRepository {
         mapGenerationSeed: gamesTable.mapGenerationSeed,
         status: gamesTable.status,
         turnIntervalSeconds: gamesTable.turnIntervalSeconds,
-        rulesetId: gamesTable.rulesetId,
       })
       .from(gamesTable)
       .where(eq(gamesTable.id, gameId))
@@ -237,11 +205,6 @@ export class GamesRepository extends PostgresRepository {
 
     const playerIds: readonly PlayerId[] = playerIdRows.map(({ playerId }) => playerId)
 
-    const ruleset = await this.getRuleset({ rulesetId: gameForStart.rulesetId }, tx)
-    if (ruleset === undefined) {
-      throw new StartGameRollbackError(StartGameError.RULESET_NOT_FOUND)
-    }
-
     return branded({
       gameId: gameForStart.id,
       createdByAccountId: gameForStart.createdByAccountId,
@@ -249,7 +212,6 @@ export class GamesRepository extends PostgresRepository {
       status: gameForStart.status,
       turnInterval: Time.create(gameForStart.turnIntervalSeconds, UnitOfTime.SECONDS),
       playerIds,
-      ruleset,
     })
   }
 
@@ -274,16 +236,6 @@ export class GamesRepository extends PostgresRepository {
       scheduledFor: gameTurn.endsAt,
     }
 
-    const resources: NewResourceRow[] = startGameModel.playerResources.map((playerResource) => ({
-      ...playerResource,
-      gameId: startGameModel.context.gameId,
-    }))
-    const availableActions: NewActionRow[] = startGameModel.availableActions.map((availableAction) => ({
-      ...availableAction,
-      gameId: startGameModel.context.gameId,
-      turn: gameTurn.turn,
-      selectedTargets: null,
-    }))
     const stars = startGameModel.galaxy.systems.map(({ star }) => ({
       gameId: startGameModel.context.gameId,
       ...star,
@@ -306,10 +258,6 @@ export class GamesRepository extends PostgresRepository {
 
     await tx.insert(turnsTable).values(gameTurn)
     await tx.insert(turnsProcessingTable).values(turnProcessing)
-    await tx.insert(resourcesTable).values(resources)
-    if (availableActions.length > 0) {
-      await tx.insert(actionsTable).values(availableActions)
-    }
     await tx.insert(starsTable).values(stars)
     for (let index = 0; index < planets.length; index += PLANET_INSERT_BATCH_SIZE) {
       await tx.insert(planetsTable).values(planets.slice(index, index + PLANET_INSERT_BATCH_SIZE))
@@ -351,28 +299,6 @@ export class GamesRepository extends PostgresRepository {
     return listingsResult
   }
 
-  public async getGameCreationSettings(
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GameCreationSettings, GetGameCreationSettingsError>> {
-    const rulesetSummariesResult = await Result.tryCatch(
-      db
-        .select({
-          id: rulesetsTable.id,
-          name: rulesetsTable.name,
-          isDefault: rulesetsTable.isDefault,
-        })
-        .from(rulesetsTable),
-    )
-    if (Result.isFailure(rulesetSummariesResult)) {
-      this.logger.error("Could not get ruleset summaries", { error: rulesetSummariesResult.error })
-      return Result.Failure(GetGameCreationSettingsError.UNKNOWN)
-    }
-
-    return Result.Success({
-      rulesets: rulesetSummariesResult.value,
-    })
-  }
-
   public async createGame(
     createGameModel: CreateGameModel,
     db: PostgresRepository["db"] = this.db,
@@ -406,35 +332,17 @@ export class GamesRepository extends PostgresRepository {
     { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<GameDetailsWithoutOps, GetGameByIdError>> {
-    const gameRowResult = await Result.tryCatch(
-      db
-        .select({
-          game: gamesTable,
-          ruleset: {
-            id: rulesetsTable.id,
-            name: rulesetsTable.name,
-            isDefault: rulesetsTable.isDefault,
-          },
-        })
-        .from(gamesTable)
-        .leftJoin(rulesetsTable, eq(rulesetsTable.id, gamesTable.rulesetId))
-        .where(eq(gamesTable.id, gameId)),
-    )
+    const gameRowResult = await Result.tryCatch(db.select().from(gamesTable).where(eq(gamesTable.id, gameId)))
     if (Result.isFailure(gameRowResult)) {
       this.logger.error("Failed to get game", { gameId, error: gameRowResult.error })
       return Result.Failure(GetGameByIdError.UNKNOWN)
     }
     Assert.isTrue(gameRowResult.value.length <= 1)
 
-    const gameWithRuleset = gameRowResult.value[0]
-    if (gameWithRuleset === undefined) {
+    const gameRow = gameRowResult.value[0]
+    if (gameRow === undefined) {
       this.logger.error("No game found", { gameId })
       return Result.Failure(GetGameByIdError.GAME_NOT_FOUND)
-    }
-
-    if (gameWithRuleset.ruleset === null) {
-      this.logger.error("Missing ruleset for existing game", { gameId })
-      return Result.Failure(GetGameByIdError.RULESET_NOT_FOUND)
     }
 
     const playersResult = await Result.tryCatch(
@@ -453,9 +361,7 @@ export class GamesRepository extends PostgresRepository {
       return Result.Failure(GetGameByIdError.FAILED_TO_GET_PLAYERS)
     }
 
-    return Result.Success(
-      toGameDetailsWithoutOps({ gameRow: gameWithRuleset.game, ruleset: gameWithRuleset.ruleset, players: playersResult.value }),
-    )
+    return Result.Success(toGameDetailsWithoutOps({ gameRow, players: playersResult.value }))
   }
 
   /**
@@ -540,20 +446,6 @@ export class GamesRepository extends PostgresRepository {
       Assert.isTrue(updatedGames.length === 1)
     }
   }
-
-  /**
-   * Gets the ruleset by id.
-   * Does not assume that the ruleset must exist.
-   */
-  private async getRuleset({ rulesetId }: { rulesetId: RulesetId }, tx: Transaction): Promise<Ruleset | undefined> {
-    const rulesetRows = await tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, rulesetId))
-    Assert.isTrue(rulesetRows.length <= 1)
-    if (rulesetRows[0] === undefined) {
-      return undefined
-    }
-
-    return RulesetsRepository.toRuleset(rulesetRows[0])
-  }
 }
 
 function toCreateGameRow(createGameModel: CreateGameModel): CreateGameRow {
@@ -565,15 +457,7 @@ function toCreateGameRow(createGameModel: CreateGameModel): CreateGameRow {
   }
 }
 
-function toGameDetailsWithoutOps({
-  gameRow,
-  ruleset,
-  players,
-}: {
-  gameRow: GameRow
-  ruleset: RulesetSummary
-  players: Player[]
-}): GameDetailsWithoutOps {
+function toGameDetailsWithoutOps({ gameRow, players }: { gameRow: GameRow; players: Player[] }): GameDetailsWithoutOps {
   const creator = players.find((player) => player.id === branded(gameRow.createdByAccountId))
   Assert.isDefined(creator)
 
@@ -582,13 +466,11 @@ function toGameDetailsWithoutOps({
     createdAt: gameRow.createdAt,
     startedAt: gameRow.startedAt,
     endedAt: gameRow.endedAt,
-    winnerAccountId: gameRow.winnerAccountId,
     status: gameRow.status,
     configuration: {
       name: gameRow.name,
       nbSeats: gameRow.nbSeats,
       turnIntervalSeconds: gameRow.turnIntervalSeconds,
-      ruleset,
     },
     creator,
     players,

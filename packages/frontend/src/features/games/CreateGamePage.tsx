@@ -1,4 +1,3 @@
-import type * as ApiTypes from "@api-types"
 import type { Enumify } from "@guillaume-docquier/tools-ts"
 import { type ReactElement, useState } from "react"
 import { MAX_NB_SEATS } from "shared/domain/games/GameConfiguration.ts"
@@ -7,10 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/input.tsx"
 import { Label } from "@/components/label.tsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select.tsx"
-import { Skeleton } from "@/components/skeleton.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
 import { useCreateGameMutation } from "@/lib/api/useCreateGameMutation.ts"
-import { useGameCreationSettingsQuery } from "@/lib/api/useGameCreationSettingsQuery.ts"
 
 type TurnIntervalUnit = Enumify<typeof TurnIntervalUnit>
 const TurnIntervalUnit = {
@@ -20,40 +17,12 @@ const TurnIntervalUnit = {
 } as const
 
 export function CreateGamePage({ mapGenerationSeed }: { mapGenerationSeed: number | undefined }): ReactElement {
-  const creationSettingsQuery = useGameCreationSettingsQuery()
-
-  if (creationSettingsQuery.isPending || creationSettingsQuery.isFetching) {
-    return <CreateGameLoadingState />
-  }
-
-  if (creationSettingsQuery.isError) {
-    return (
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        <PageHeader title="Create a new game" description="The game creation settings could not be loaded." />
-      </div>
-    )
-  }
-
-  return <CreateGameForm creationSettings={creationSettingsQuery.data} mapGenerationSeed={mapGenerationSeed} />
-}
-
-function CreateGameForm({
-  creationSettings,
-  mapGenerationSeed,
-}: {
-  creationSettings: ApiTypes.GameCreationSettings
-  mapGenerationSeed: number | undefined
-}): ReactElement {
   const [name, setName] = useState("")
   const [nbSeats, setNbSeats] = useState(5)
   const [turnIntervalMultiplier, setTurnIntervalMultiplier] = useState(1)
   const [turnIntervalUnit, setTurnIntervalUnit] = useState<TurnIntervalUnit>(TurnIntervalUnit.days)
-  const [rulesetId, setRulesetId] = useState<ApiTypes.RulesetId | undefined>(
-    creationSettings.rulesets.find(({ isDefault }) => isDefault)?.id,
-  )
   const createGame = useCreateGameMutation()
-  const selectedRuleset = creationSettings.rulesets.find(({ id }) => id === rulesetId)
-  const isCreateDisabled = name === "" || nbSeats < 2 || nbSeats > MAX_NB_SEATS || selectedRuleset === undefined
+  const isCreateDisabled = name === "" || nbSeats < 2 || nbSeats > MAX_NB_SEATS
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
@@ -75,27 +44,6 @@ function CreateGameForm({
               }}
               placeholder="Galactic trade league"
             />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Ruleset</Label>
-            <Select
-              value={rulesetId ?? null}
-              items={creationSettings.rulesets.map((ruleset) => ({ value: ruleset.id, label: ruleset.name }))}
-              onValueChange={(value) => {
-                setRulesetId(value ?? undefined)
-              }}
-            >
-              <SelectTrigger aria-label="Ruleset">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {creationSettings.rulesets.map((ruleset) => (
-                  <SelectItem key={ruleset.id} value={ruleset.id}>
-                    {ruleset.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="nb-seats">Max number of players</Label>
@@ -123,17 +71,12 @@ function CreateGameForm({
         <Button
           disabled={isCreateDisabled || createGame.isPending}
           onClick={() => {
-            if (selectedRuleset === undefined) {
-              return
-            }
-
             createGame.mutate({
               configuration: {
                 name,
                 nbSeats,
                 turnIntervalSeconds: Temporal.Duration.from({ [turnIntervalUnit]: turnIntervalMultiplier }).total("seconds"),
                 mapGenerationSeed,
-                rulesetId: selectedRuleset.id,
               },
             })
           }}
@@ -191,16 +134,6 @@ function TurnLengthFields({
           </SelectContent>
         </Select>
       </div>
-    </div>
-  )
-}
-
-function CreateGameLoadingState(): ReactElement {
-  return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-      <PageHeader title="Create a new game" description="Loading game creation settings." />
-      <Skeleton className="h-64 w-full rounded-4xl" />
-      <Skeleton className="h-150 w-full rounded-4xl" />
     </div>
   )
 }

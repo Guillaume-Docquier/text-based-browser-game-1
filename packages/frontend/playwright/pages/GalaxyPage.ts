@@ -6,7 +6,6 @@ import type { LocatorIndex } from "./LocatorIndex.ts"
 type StarLocator = Branded<"GalaxyStarLocator", Locator>
 type StarSystemStarLocator = Branded<"StarSystemStarLocator", Locator>
 type PlanetLocator = Branded<"GalaxyPlanetLocator", Locator>
-type FleetMarkerLocator = Branded<"GalaxyFleetMarkerLocator", Locator>
 
 export class GalaxyPage extends GamePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId/play/galaxy" })
@@ -17,7 +16,6 @@ export class GalaxyPage extends GamePage {
 
   public readonly heading: Locator
   public readonly map: Locator
-  public readonly galaxyFleetMarkers: Locator
 
   public readonly ownStars: Locator
   public readonly opponentStars: Locator
@@ -36,7 +34,6 @@ export class GalaxyPage extends GamePage {
     super(page)
     this.heading = page.getByRole("heading", { name: "Galaxy", exact: true })
     this.map = page.getByRole("group", { name: "Galaxy map" })
-    this.galaxyFleetMarkers = this.map.locator("[data-fleet-marker]")
     this.stars = page.getByRole("button", { name: /^View .+ Star System/ })
 
     this.ownStars = this.stars.filter({ has: page.locator('[data-ownership-marker="own"]') })
@@ -103,17 +100,5 @@ export class GalaxyPage extends GamePage {
 
   public planetOwnershipLabel(planet: PlanetLocator): Locator {
     return planet.locator(":scope > text")
-  }
-
-  public fleetMarkersOnPlanet(planet: PlanetLocator): FleetMarkerLocator {
-    return branded(planet.locator("[data-fleet-marker]"))
-  }
-
-  public fleetStrength(marker: FleetMarkerLocator): Locator {
-    return marker.locator("text")
-  }
-
-  public fleetIcon(marker: FleetMarkerLocator): Locator {
-    return marker.locator("svg")
   }
 }

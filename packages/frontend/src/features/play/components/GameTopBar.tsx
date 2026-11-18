@@ -1,13 +1,12 @@
-import type { GameDetails, PlayerId, PlayerView } from "@api-types"
-import { branded } from "@guillaume-docquier/tools-ts"
-import { Crown, RefreshCw } from "lucide-react"
+import type { GameDetails, PlayerView } from "@api-types"
+import { RefreshCw } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
+import { GameStatus } from "shared/domain/games/GameStatus.ts"
+import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
-import { RESOURCE_ICONS, sortCostsByResource } from "@/features/play/components/resourceIcons.ts"
 import { TurnButton } from "@/features/play/components/TurnButton.tsx"
 import { TurnStatusBadge } from "@/features/play/components/TurnStatusBadge.tsx"
-import { formatRulesetTerm } from "@/features/play/effectDefinitionToRulesText.ts"
 import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
 import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
@@ -28,70 +27,8 @@ export function GameTopBar({ gameDetails, playerView }: { gameDetails: GameDetai
         <div className="min-w-0 justify-self-center self-stretch">
           <TurnControl gameDetails={gameDetails} playerView={playerView} />
         </div>
-        <div className="min-w-0 justify-self-end py-3 sm:py-0">
-          <ResourcesFact resources={playerView.resources} />
-        </div>
       </div>
-      {gameDetails.winnerAccountId === null ? null : (
-        <div className="mb-3 flex items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
-          <Crown className="size-4" />
-          <span>{getWinnerLabel(branded(gameDetails.winnerAccountId), gameDetails)} has won the game.</span>
-        </div>
-      )}
     </header>
-  )
-}
-
-function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): ReactElement {
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.entries preserves the keys of the typed resource record at runtime.
-  const resourceEntries = Object.entries(resources) as Array<[keyof typeof resources, (typeof resources)[keyof typeof resources]]>
-  const sortedResources = sortCostsByResource(
-    resourceEntries.map(([resourceType, { total, uncommitted }]) => ({
-      resourceType,
-      total,
-      uncommitted,
-    })),
-  )
-
-  return (
-    <div className="group/resources relative">
-      <div className="flex flex-wrap justify-end gap-x-3 gap-y-2">
-        {sortedResources.map(({ resourceType, total, uncommitted }) => {
-          const ResourceIcon = RESOURCE_ICONS[resourceType]
-          const resourceName = formatRulesetTerm(resourceType)
-
-          return (
-            <div
-              key={resourceType}
-              className="flex items-center gap-1 text-sm font-medium"
-              aria-label={`${uncommitted} available of ${total} ${resourceName}`}
-            >
-              <span>
-                {uncommitted} / {total}
-              </span>
-              <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
-            </div>
-          )
-        })}
-      </div>
-      <div className="invisible absolute top-full right-0 z-20 w-full pt-2 opacity-0 transition-opacity group-hover/resources:visible group-hover/resources:opacity-100">
-        <div className="grid grid-cols-[max-content_1rem_max-content] justify-start gap-x-1 gap-y-1 rounded-md border border-border/70 bg-card px-3 py-2 shadow-lg">
-          {sortedResources.map(({ resourceType, total, uncommitted }) => {
-            const ResourceIcon = RESOURCE_ICONS[resourceType]
-
-            return (
-              <div key={resourceType} className="col-span-3 grid grid-cols-subgrid items-center text-sm font-medium">
-                <span className="text-right">
-                  {uncommitted} available of {total}
-                </span>
-                <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
-                <span className="text-left">{formatRulesetTerm(resourceType)}</span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -152,7 +89,9 @@ function TurnControl({ gameDetails, playerView }: { gameDetails: GameDetails; pl
         deadline={turnEndsAtLabel}
         isLockedIn={playerView.player.isReady}
         isPending={updateReadiness.isPending}
-        disabled={updateReadiness.isPending || playerView.turnStatus !== "COLLECTING_ACTIONS" || gameDetails.winnerAccountId !== null}
+        disabled={
+          updateReadiness.isPending || playerView.turnStatus !== TurnStatus.COLLECTING_ACTIONS || gameDetails.status === GameStatus.ENDED
+        }
         onToggle={() => {
           updateReadiness.mutate({ gameId: gameDetails.id, turn: playerView.turn, isReady: !playerView.player.isReady })
         }}
@@ -195,15 +134,6 @@ function NextTurnRefreshButton({
       </div>
     </Button>
   )
-}
-
-function getWinnerLabel(winnerPlayerId: PlayerId, gameDetails: GameDetails): string {
-  const winner = [gameDetails.creator, ...gameDetails.players].find((player) => player.id === winnerPlayerId)
-  if (winner === undefined) {
-    return `Player ${winnerPlayerId}`
-  }
-
-  return winner.alias
 }
 
 type TimeLeft = {
