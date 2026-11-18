@@ -13,7 +13,10 @@ import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 let loadDataDir: Blob
 
 export async function prepareIntegrationTestDb(): Promise<void> {
-  Assert.isTrue(loadDataDir === undefined)
+  if (loadDataDir !== undefined) {
+    // beforeAll gets called multiple times in the same isolate, but we only need to initialize once
+    return
+  }
 
   // Blocking logs make failures visible before the test process exits.
   const logger = await configureLogger({ scope: "integration-test", nonBlocking: false })

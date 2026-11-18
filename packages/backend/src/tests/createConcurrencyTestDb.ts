@@ -16,7 +16,10 @@ import { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
 let connectionUri: string
 
 export async function prepareConcurrencyTestDb(): Promise<void> {
-  Assert.isTrue(connectionUri === undefined)
+  if (connectionUri !== undefined) {
+    // beforeAll gets called multiple times in the same isolate, but we only need to initialize once
+    return
+  }
 
   // Blocking logs make failures visible before the test process exits.
   await configureLogger({ scope: "concurrency-test", nonBlocking: false })
