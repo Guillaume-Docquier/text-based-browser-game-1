@@ -39,8 +39,14 @@ export class ConcurrencyTestApiServer {
 
   public async createClient(args: { authenticated: true; alias?: string }): Promise<AuthenticatedApiClient>
   public async createClient(args: { authenticated: false }): Promise<AnonymousApiClient>
-  public async createClient(args: { authenticated: boolean; alias?: string }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
-    return await createApiClient({ ...args, port: this.server.port, accountsRepository: this.accountsRepository })
+  public async createClient({
+    authenticated,
+    alias,
+  }: {
+    authenticated: boolean
+    alias?: string
+  }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
+    return await createApiClient({ port: this.server.port, accountsRepository: this.accountsRepository, authenticated, alias })
   }
 
   public async [Symbol.asyncDispose](): Promise<void> {
