@@ -121,7 +121,7 @@ async function renderGalaxy({
     ],
     points: systemPoints,
     boundary: { shape: "square", size },
-    ...(renderGrid ? { grid: { size } } : {}),
+    grid: renderGrid ? { size } : undefined,
     origin,
   })
 

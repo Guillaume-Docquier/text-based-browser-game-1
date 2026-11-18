@@ -15,7 +15,7 @@ type RenderOptions = {
   readonly text: readonly string[]
   readonly points: readonly XY[]
   readonly boundary: { readonly shape: "circle"; readonly radius: number } | { readonly shape: "square"; readonly size: number }
-  readonly grid?: { readonly size: number }
+  readonly grid?: { readonly size: number } | undefined
   readonly origin: XY
 }
 

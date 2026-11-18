@@ -417,7 +417,7 @@ function toStarModel({ id, name, coordinates, x, y }: typeof starsTable.$inferSe
 function toFleet({ destinationPlanetId, distanceToEnd, ...fleet }: typeof fleetsTable.$inferSelect): Fleet {
   return {
     ...fleet,
-    ...(destinationPlanetId === null ? {} : { destinationPlanetId }),
-    ...(distanceToEnd === null ? {} : { distanceToEnd }),
+    destinationPlanetId: destinationPlanetId ?? undefined,
+    distanceToEnd: distanceToEnd ?? undefined,
   }
 }
