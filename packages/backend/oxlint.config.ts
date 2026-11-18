@@ -1,5 +1,18 @@
-import { defineConfig, type OxlintConfig } from "oxlint"
+import { defineConfig, type OxlintConfig, type OxlintOverride } from "oxlint"
 import baseConfig from "../../oxlint.config.ts"
+
+const rollbackError = {
+  group: ["**/TransactionRollbackError", "**/TransactionRollbackError.*"],
+  message: "TransactionRollbackError can only be used in *.error.ts files. Use a specific rollback error instead.",
+}
+const integrationDb = {
+  group: ["**/createIntegrationTestDb", "**/createIntegrationTestDb.*"],
+  message: "Use createIntegrationTestDb only in *.integration.test.ts files.",
+}
+const concurrencyDb = {
+  group: ["**/createConcurrencyTestDb", "**/createConcurrencyTestDb.*"],
+  message: "Use createConcurrencyTestDb only in *.concurrency.test.ts files.",
+}
 
 export default defineConfig({
   extends: [baseConfig],
@@ -9,23 +22,21 @@ export default defineConfig({
   },
   plugins: ["vitest"],
   overrides: [
-    {
-      files: ["**/*.ts"],
-      excludeFiles: ["**/*.error.ts"],
-      rules: {
-        "no-restricted-imports": [
-          "error",
-          {
-            patterns: [
-              {
-                group: ["**/TransactionRollbackError", "**/TransactionRollbackError.*"],
-                message: "TransactionRollbackError can only be used in *.error.ts files. Use a specific rollback error instead.",
-              },
-            ],
-          },
-        ],
+    // Each matching override replaces the full no-restricted-imports rule.
+    ...[
+      { files: ["**/*"], patterns: [integrationDb, concurrencyDb] },
+      { files: ["**/*.ts"], excludeFiles: ["**/*.error.ts"], patterns: [rollbackError, integrationDb, concurrencyDb] },
+      { files: ["src/**/*.integration.test.ts"], patterns: [rollbackError, concurrencyDb] },
+      { files: ["src/**/*.concurrency.test.ts"], patterns: [rollbackError, integrationDb] },
+      {
+        files: ["src/tests/vitest.integration.setup.ts"],
+        patterns: [rollbackError, concurrencyDb, { ...integrationDb, allowImportNames: ["prepareIntegrationTestDb"] }],
       },
-    },
+      {
+        files: ["src/tests/vitest.concurrency.setup.ts"],
+        patterns: [rollbackError, integrationDb, { ...concurrencyDb, allowImportNames: ["prepareConcurrencyTestDb"] }],
+      },
+    ].map(({ patterns, ...scope }): OxlintOverride => ({ ...scope, rules: { "no-restricted-imports": ["error", { patterns }] } })),
     {
       files: ["src/api/**/*.router*.ts"],
       rules: {
