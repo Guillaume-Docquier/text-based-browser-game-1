@@ -224,6 +224,9 @@ importers:
 
   .:
     devDependencies:
+      '@eslint-community/eslint-utils':
+        specifier: 4.10.1
+        version: 4.10.1(eslint@10.13.0(jiti@2.7.0)(supports-color@7.2.0))
       '@guillaume-docquier/oxfmt':
         specifier: ^1.0.20
         version: 1.0.20(oxfmt@0.77.0)
@@ -236,6 +239,9 @@ importers:
       '@types/node':
         specifier: ^26.6.6
         version: 26.6.6
+      eslint:
+        specifier: 10.13.0
+        version: 10.13.0(jiti@2.7.0)(supports-color@7.2.0)
       eslint-import-resolver-typescript:
         specifier: ^4.4.5
         version: 4.4.5(eslint@10.13.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)

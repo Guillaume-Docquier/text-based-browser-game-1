@@ -7,7 +7,7 @@ export function defineWorkerResource<T>(create: (cleanup: AsyncDisposableStack) 
   get: () => T
 } {
   let current: T | undefined
-  // oxlint-disable-next-line no-empty-pattern -- Vitest requires object destructuring even when the fixture has no dependencies.
+  // oxlint-disable-next-line project/no-vitest-fixtures, no-empty-pattern -- ADR-035 permits this worker fixture. Vitest requires destructuring even with no dependencies.
   const worker = test.extend("resource", { scope: "worker" }, async ({}, { onCleanup }) => {
     const cleanup = new AsyncDisposableStack()
     onCleanup(async () => {
