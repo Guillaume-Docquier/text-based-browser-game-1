@@ -60,7 +60,7 @@ function createTrpcClient({ port, authId }: { port: number; authId: string | und
         url: `http://localhost:${port}/trpc`,
         // The AUTH_ID_HEADER is serialized as "undefined" if the value is undefined
         // We have to avoid setting it when there is no account
-        ...(authId === undefined ? {} : { headers: { [AUTH_ID_HEADER]: authId } }),
+        headers: authId === undefined ? {} : { [AUTH_ID_HEADER]: authId },
       }),
     ],
   })

@@ -484,7 +484,7 @@ function toTurnToProcessModel({
 function toTurnToProcessFleetModel({ destinationPlanetId, distanceToEnd, ...fleet }: FleetRow): TurnToProcessFleetModel {
   return {
     ...fleet,
-    ...(destinationPlanetId === null ? {} : { destinationPlanetId }),
-    ...(distanceToEnd === null ? {} : { distanceToEnd }),
+    destinationPlanetId: destinationPlanetId ?? undefined,
+    distanceToEnd: distanceToEnd ?? undefined,
   }
 }

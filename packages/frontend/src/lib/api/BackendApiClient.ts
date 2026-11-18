@@ -24,11 +24,19 @@ export function createBackendApiClient({
         loggerLink({
           enabled: (opts) => isDevelopment || (opts.direction === "down" && opts.result instanceof Error),
           logger: (opts) => {
-            const context = {
+            const context: {
+              requestId: number
+              path: string
+              type: "mutation" | "query" | "subscription"
+              input?: unknown
+            } = {
               requestId: opts.id,
               path: opts.path,
               type: opts.type,
-              ...(isDevelopment ? { input: opts.input } : {}),
+            }
+
+            if (isDevelopment) {
+              context.input = opts.input
             }
 
             if (opts.direction === "up") {

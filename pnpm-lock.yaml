@@ -190,8 +190,8 @@ settings:
 catalogs:
   default:
     '@guillaume-docquier/tools-ts':
-      specifier: ^10.1.8
-      version: 10.1.10
+      specifier: ^10.2.0
+      version: 10.2.0
     '@vitest/coverage-v8':
       specifier: ^5.0.5
       version: 5.0.5
@@ -228,8 +228,8 @@ importers:
         specifier: ^1.0.20
         version: 1.0.20(oxfmt@0.77.0)
       '@guillaume-docquier/oxlint':
-        specifier: ^1.10.6
-        version: 1.10.6(oxlint-tsgolint@7.0.2006)(oxlint@1.92.0(oxlint-tsgolint@7.0.2006))
+        specifier: ^1.11.1
+        version: 1.11.1(oxlint-plugin-eslint@1.94.0)(oxlint-tsgolint@7.0.2006)(oxlint@1.92.0(oxlint-tsgolint@7.0.2006))
       '@guillaume-docquier/show-me':
         specifier: ^1.7.1
         version: 1.7.1(graphology-types@0.24.8)
@@ -274,7 +274,7 @@ importers:
         version: 2.1.88(express@5.3.0(supports-color@7.2.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 10.1.10(zod@4.6.7)
+        version: 10.2.0(zod@4.6.7)
       '@trpc/server':
         specifier: ^11.19.0
         version: 11.19.0(typescript@7.0.2)
@@ -365,7 +365,7 @@ importers:
         version: 5.3.0
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 10.1.10(zod@4.6.7)
+        version: 10.2.0(zod@4.6.7)
       '@tanstack/react-query':
         specifier: ^5.107.1
         version: 5.107.1(@types/react@19.3.0)(react@19.3.1)
@@ -480,7 +480,7 @@ importers:
     dependencies:
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 10.1.10(zod@4.6.7)
+        version: 10.2.0(zod@4.6.7)
       transformation-matrix:
         specifier: ^3.1.0
         version: 3.1.0
@@ -1294,18 +1294,19 @@ packages:
     peerDependencies:
       oxfmt: '>=0.75.0'
 
-  '@guillaume-docquier/oxlint@1.10.6':
-    resolution: {integrity: sha512-xftKW6iCI4YjWAhGd3dK7EAtIXLmLmV69+y/rFJRtdYxRo3JvJt+xIrdgcEZPJRrfgFTRzbDT52gIvMa3XVVUA==}
+  '@guillaume-docquier/oxlint@1.11.1':
+    resolution: {integrity: sha512-FhgXRnwXURrRNUmQowRS586CaDNPkUbzfuv1rbQc/SrsV/weLQxTWcWqDbNIWsxW0XDxFpQ+cfPZiGUgx9/A0g==}
     peerDependencies:
       oxlint: ^1.90.0
+      oxlint-plugin-eslint: ^1.94.0
       oxlint-tsgolint: ^7.0.2005
 
   '@guillaume-docquier/show-me@1.7.1':
     resolution: {integrity: sha512-EsW2bN6YZeWQc5zn3jc5adhRykj6I7S3efWKD7ee63EwDa2eQb7Tq4SBOJ+rINV2UcNjrXiPPWLyMhq8GVwrWA==}
     hasBin: true
 
-  '@guillaume-docquier/tools-ts@10.1.10':
-    resolution: {integrity: sha512-GzGvZdQ9eOXwdxuC5Wo3jESzKRVihcIEk3C9pQ9O/InmDWKZ30NSRY+MTXR5QSXsfP0avQvUUdiGkGMGPExqeA==}
+  '@guillaume-docquier/tools-ts@10.2.0':
+    resolution: {integrity: sha512-5dTzt6h+lTP/Cwm1CSGvOZ1p4QBJWGNMcjLD8b2BZHmvN8hL1cjUxmOVObtzmO3dj8V3EL0FSyMFVVMiFuXTLA==}
     peerDependencies:
       zod: ^4.6.7
     peerDependenciesMeta:
@@ -5108,6 +5109,10 @@ packages:
       vite-plus:
         optional: true
 
+  oxlint-plugin-eslint@1.94.0:
+    resolution: {integrity: sha512-H7wS6QlHsNO0MwmQAcpjcArx9ruaM5pnRn2LKeXVcYmLV6vj/sebxNLKfSCsvIlYGzk/mBCQTk3ujOp2yn9i0g==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+
   oxlint-tsgolint@7.0.2006:
     resolution: {integrity: sha512-5B3UtH71kycPHUC1kFEIffivEAs49SUmkJuHZOZnTY0NPj4legp0bcsCQucuLVNCoJzDucS68P2C4WIhP+LypQ==}
     hasBin: true
@@ -6967,9 +6972,10 @@ snapshots:
     dependencies:
       oxfmt: 0.77.0
 
-  '@guillaume-docquier/oxlint@1.10.6(oxlint-tsgolint@7.0.2006)(oxlint@1.92.0(oxlint-tsgolint@7.0.2006))':
+  '@guillaume-docquier/oxlint@1.11.1(oxlint-plugin-eslint@1.94.0)(oxlint-tsgolint@7.0.2006)(oxlint@1.92.0(oxlint-tsgolint@7.0.2006))':
     dependencies:
       oxlint: 1.92.0(oxlint-tsgolint@7.0.2006)
+      oxlint-plugin-eslint: 1.94.0
       oxlint-tsgolint: 7.0.2006
 
   '@guillaume-docquier/show-me@1.7.1(graphology-types@0.24.8)':
@@ -6989,7 +6995,7 @@ snapshots:
     transitivePeerDependencies:
       - graphology-types
 
-  '@guillaume-docquier/tools-ts@10.1.10(zod@4.6.7)':
+  '@guillaume-docquier/tools-ts@10.2.0(zod@4.6.7)':
     dependencies:
       '@logtape/logtape': 2.4.2
       '@logtape/redaction': 2.4.2(@logtape/logtape@2.4.2)
@@ -10160,6 +10166,8 @@ snapshots:
       '@oxfmt/binding-win32-arm64-msvc': 0.77.0
       '@oxfmt/binding-win32-ia32-msvc': 0.77.0
       '@oxfmt/binding-win32-x64-msvc': 0.77.0
+
+  oxlint-plugin-eslint@1.94.0: {}
 
   oxlint-tsgolint@7.0.2006:
     optionalDependencies:
