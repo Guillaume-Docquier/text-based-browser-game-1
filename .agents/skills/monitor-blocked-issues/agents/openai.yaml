@@ -1,0 +1,6 @@
+interface:
+  display_name: "Monitor Blocked Issues"
+  short_description: "Move tasks from Blocked to Todo when they become workable"
+
+policy:
+  allow_implicit_invocation: false
