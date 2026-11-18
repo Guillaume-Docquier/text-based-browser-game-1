@@ -11,13 +11,13 @@ import { concurrencyTest } from "#tests/vitest.concurrency.fixture.ts"
 describe("lobby concurrency", () => {
   concurrencyTest.for([
     {
-      name: "two joins competing for the last seat return success and lobby full",
+      name: "should accept one join and report a full lobby for the other when both compete for the last seat",
       nbSeats: 2,
       expectedSecondRaceResult: conflict("The lobby is full."),
       expectedLobbyAliases: ["alice", "creator"],
     },
     {
-      name: "two joins with available seats both succeed with distinct colors",
+      name: "should accept both joins and assign distinct colors when seats are available",
       nbSeats: 3,
       expectedSecondRaceResult: ok(),
       expectedLobbyAliases: ["alice", "bob", "creator"],
@@ -52,7 +52,7 @@ describe("lobby concurrency", () => {
 
   concurrencyTest.for([
     {
-      name: "join before start includes the joining player in the initialized game",
+      name: "should let a player join before the game starts",
       setup: [],
       first: "join",
       second: "start",
@@ -60,7 +60,7 @@ describe("lobby concurrency", () => {
       expectedLobbyAliases: ["alice", "creator"],
     },
     {
-      name: "join after start rejects the join and initializes only existing players",
+      name: "should reject the join while the game is starting",
       setup: [],
       first: "start",
       second: "join",
@@ -68,7 +68,7 @@ describe("lobby concurrency", () => {
       expectedLobbyAliases: ["creator"],
     },
     {
-      name: "leave before start excludes the departing player from the initialized game",
+      name: "should let a player leave before the game starts",
       setup: ["join"],
       first: "leave",
       second: "start",
@@ -76,7 +76,7 @@ describe("lobby concurrency", () => {
       expectedLobbyAliases: ["creator"],
     },
     {
-      name: "leave after start rejects the leave and initializes all existing players",
+      name: "should reject the leave while the game is starting",
       setup: ["join"],
       first: "start",
       second: "leave",

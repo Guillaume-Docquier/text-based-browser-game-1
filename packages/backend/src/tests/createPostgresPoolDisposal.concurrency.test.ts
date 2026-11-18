@@ -3,7 +3,7 @@ import { expect, onTestFinished } from "vitest"
 import { createPostgresPoolDisposal } from "#tests/createPostgresPoolDisposal.ts"
 import { concurrencyTest } from "#tests/vitest.concurrency.fixture.ts"
 
-concurrencyTest("pool disposal waits for idle and previously removed connections to close", async ({ postgres }) => {
+concurrencyTest("should wait for idle and previously removed connections to close during pool disposal", async ({ postgres }) => {
   // Arrange
   const pool = new Pool({ connectionString: postgres.databaseUrl })
   const closePool = createPostgresPoolDisposal(pool)

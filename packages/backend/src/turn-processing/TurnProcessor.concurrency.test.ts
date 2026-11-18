@@ -13,57 +13,54 @@ import { concurrencyTest } from "#tests/vitest.concurrency.fixture.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 
 describe("TurnProcessor concurrency", () => {
-  concurrencyTest(
-    "a second processor skips the claimed turn and processes a different due turn",
-    async ({ postgres: { db, concurrency } }) => {
-      // Arrange
-      const clock = new ControlledClock()
-      using server = new ApiServer(await createApiStub({ db, clock }))
+  concurrencyTest("should skip a claimed turn and process a different due turn", async ({ postgres: { db, concurrency } }) => {
+    // Arrange
+    const clock = new ControlledClock()
+    using server = new ApiServer(await createApiStub({ db, clock }))
 
-      const player = await server.createClient({ authenticated: true })
-      const earlierGameId = await createGameWithSubmittedAction(player, 50)
-      const laterGameId = await createGameWithSubmittedAction(player, 100)
+    const player = await server.createClient({ authenticated: true })
+    const earlierGameId = await createGameWithSubmittedAction(player, 50)
+    const laterGameId = await createGameWithSubmittedAction(player, 100)
 
-      const firstProcessor = await createTurnProcessorStub({ db, clock })
-      const secondProcessor = await createTurnProcessorStub({ db, clock })
+    const firstProcessor = await createTurnProcessorStub({ db, clock })
+    const secondProcessor = await createTurnProcessorStub({ db, clock })
 
-      clock.increment({ time: Time.create(100, UnitOfTime.SECONDS) })
+    clock.increment({ time: Time.create(100, UnitOfTime.SECONDS) })
 
-      await firstProcessor.turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      await using block = await concurrency.blockWrites(turnsTable)
+    await firstProcessor.turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
+    await using block = await concurrency.blockWrites(turnsTable)
 
-      // Act
-      const firstTurnProcessing = Result.tryCatch(firstProcessor.turnProcessor.processNextDueTurn())
-      const firstPid = await concurrency.waitForBlockedQuery({ blockedBy: block.pid, command: "update", table: turnsTable, lock: "table" })
+    // Act
+    const firstTurnProcessing = Result.tryCatch(firstProcessor.turnProcessor.processNextDueTurn())
+    const firstPid = await concurrency.waitForBlockedQuery({ blockedBy: block.pid, command: "update", table: turnsTable, lock: "table" })
 
-      const secondTurnProcessing = Result.tryCatch(secondProcessor.turnProcessor.processNextDueTurn())
-      await concurrency.waitForBlockedQuery({
-        blockedBy: block.pid,
-        command: "update",
-        table: turnsTable,
-        lock: "table",
-        excludingPid: firstPid,
-      })
+    const secondTurnProcessing = Result.tryCatch(secondProcessor.turnProcessor.processNextDueTurn())
+    await concurrency.waitForBlockedQuery({
+      blockedBy: block.pid,
+      command: "update",
+      table: turnsTable,
+      lock: "table",
+      excludingPid: firstPid,
+    })
 
-      await block.release()
+    await block.release()
 
-      // Assert
-      expect(await firstTurnProcessing).toStrictEqual(Result.Success("processed"))
-      expect(await secondTurnProcessing).toStrictEqual(Result.Success("processed"))
+    // Assert
+    expect(await firstTurnProcessing).toStrictEqual(Result.Success("processed"))
+    expect(await secondTurnProcessing).toStrictEqual(Result.Success("processed"))
 
-      const turn2 = {
-        turn: 2,
-        turnStatus: "COLLECTING_ACTIONS",
-        resources: { [ResourceType.INFLUENCE]: { total: 8, uncommitted: 8 } },
-      }
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject(turn2)
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject(turn2)
+    const turn2 = {
+      turn: 2,
+      turnStatus: "COLLECTING_ACTIONS",
+      resources: { [ResourceType.INFLUENCE]: { total: 8, uncommitted: 8 } },
+    }
+    expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject(turn2)
+    expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject(turn2)
 
-      expect(await firstProcessor.turnProcessor.processNextDueTurn()).toBe("idle")
-    },
-  )
+    expect(await firstProcessor.turnProcessor.processNextDueTurn()).toBe("idle")
+  })
 
-  concurrencyTest("a second processor returns idle while the only due turn is claimed", async ({ postgres: { db, concurrency } }) => {
+  concurrencyTest("should return idle while the only due turn is claimed", async ({ postgres: { db, concurrency } }) => {
     // Arrange
     const clock = new ControlledClock()
     using server = new ApiServer(await createApiStub({ db, clock }))
@@ -96,46 +93,43 @@ describe("TurnProcessor concurrency", () => {
     expect(await secondProcessor.turnProcessor.processNextDueTurn()).toBe("idle")
   })
 
-  concurrencyTest(
-    "a second processor skips a committed claim while its result is still being saved",
-    async ({ postgres: { db, concurrency } }) => {
-      // Arrange
-      const clock = new ControlledClock()
-      using server = new ApiServer(await createApiStub({ db, clock }))
+  concurrencyTest("should skip a claimed turn while it is saving its result", async ({ postgres: { db, concurrency } }) => {
+    // Arrange
+    const clock = new ControlledClock()
+    using server = new ApiServer(await createApiStub({ db, clock }))
 
-      const player = await server.createClient({ authenticated: true })
-      const gameId = await createGameWithSubmittedAction(player, 50)
+    const player = await server.createClient({ authenticated: true })
+    const gameId = await createGameWithSubmittedAction(player, 50)
 
-      const firstProcessor = await createTurnProcessorStub({ db, clock })
-      const secondProcessor = await createTurnProcessorStub({ db, clock })
+    const firstProcessor = await createTurnProcessorStub({ db, clock })
+    const secondProcessor = await createTurnProcessorStub({ db, clock })
 
-      clock.increment({ time: Time.create(50, UnitOfTime.SECONDS) })
+    clock.increment({ time: Time.create(50, UnitOfTime.SECONDS) })
 
-      await firstProcessor.turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      await using block = await concurrency.blockWrites(resourcesTable)
+    await firstProcessor.turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
+    await using block = await concurrency.blockWrites(resourcesTable)
 
-      // Act & Assert
-      const firstTurnProcessing = Result.tryCatch(firstProcessor.turnProcessor.processNextDueTurn())
-      await concurrency.waitForBlockedQuery({ blockedBy: block.pid, command: "insert", table: resourcesTable, lock: "table" })
-      expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
-        turn: 1,
-        turnStatus: "PROCESSING",
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
-      })
+    // Act & Assert
+    const firstTurnProcessing = Result.tryCatch(firstProcessor.turnProcessor.processNextDueTurn())
+    await concurrency.waitForBlockedQuery({ blockedBy: block.pid, command: "insert", table: resourcesTable, lock: "table" })
+    expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
+      turn: 1,
+      turnStatus: "PROCESSING",
+      resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
+    })
 
-      expect(await concurrency.waitForCompletion(secondProcessor.turnProcessor.processNextDueTurn())).toBe("idle")
-      await block.release()
+    expect(await concurrency.waitForCompletion(secondProcessor.turnProcessor.processNextDueTurn())).toBe("idle")
+    await block.release()
 
-      expect(await firstTurnProcessing).toStrictEqual(Result.Success("processed"))
-      expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
-        turn: 2,
-        turnStatus: "COLLECTING_ACTIONS",
-        resources: { [ResourceType.INFLUENCE]: { total: 8, uncommitted: 8 } },
-      })
+    expect(await firstTurnProcessing).toStrictEqual(Result.Success("processed"))
+    expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
+      turn: 2,
+      turnStatus: "COLLECTING_ACTIONS",
+      resources: { [ResourceType.INFLUENCE]: { total: 8, uncommitted: 8 } },
+    })
 
-      expect(await secondProcessor.turnProcessor.processNextDueTurn()).toBe("idle")
-    },
-  )
+    expect(await secondProcessor.turnProcessor.processNextDueTurn()).toBe("idle")
+  })
 })
 
 async function createGameWithSubmittedAction(player: AuthenticatedApiClient, turnIntervalSeconds: number): Promise<GameId> {
