@@ -1,5 +1,6 @@
 import type { Locator, Page } from "@playwright/test"
 import { GalaxyPage } from "./GalaxyPage.ts"
+import { GamePages } from "./GamePages.ts"
 import { WebsitePage } from "./WebsitePage.ts"
 
 export class GameDetailsPage extends WebsitePage {
@@ -33,7 +34,7 @@ export class GameDetailsPage extends WebsitePage {
   public async startGame(): Promise<GalaxyPage> {
     await this.startGameButton.click()
     await this.page.waitForURL(GalaxyPage.urlPattern)
-    return new GalaxyPage(this.page)
+    return new GamePages(this.page).galaxy()
   }
 
   public async getGameId(): Promise<number> {
@@ -52,6 +53,6 @@ export class GameDetailsPage extends WebsitePage {
 
   public async openGame(): Promise<GalaxyPage> {
     await this.openGameButton.click()
-    return new GalaxyPage(this.page)
+    return new GamePages(this.page).galaxy()
   }
 }

@@ -8,6 +8,12 @@ export default defineConfig({
     denyWarnings: true,
   },
   ignorePatterns: ["*.gen.*"],
+  rules: {
+    "eslint-js/no-restricted-syntax": [
+      ...typescript.rules["eslint-js/no-restricted-syntax"],
+      { selector: "ImportExpression", message: "Use a static import declaration." },
+    ],
+  },
   overrides: [
     {
       ...vitest,

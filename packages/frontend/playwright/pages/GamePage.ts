@@ -1,13 +1,15 @@
-import type { Locator, Page } from "@playwright/test"
+import type { Locator } from "@playwright/test"
 import type { ActionsPage } from "./ActionsPage.ts"
 import { BasePage } from "./BasePage.ts"
 import type { FleetsPage } from "./FleetsPage.ts"
 import type { GalaxyPage } from "./GalaxyPage.ts"
+import type { GamePages } from "./GamePages.ts"
 import type { PlanetsPage } from "./PlanetsPage.ts"
 import type { PlayersPage } from "./PlayersPage.ts"
 
 /** Shared game layout and navigation available from every gameplay page. */
 export abstract class GamePage extends BasePage {
+  protected readonly pages: GamePages
   private readonly gameTopBar: Locator
   private readonly galaxyLink: Locator
   private readonly planetsLink: Locator
@@ -19,8 +21,10 @@ export abstract class GamePage extends BasePage {
   public readonly resources: Locator
   private readonly turnButton: Locator
 
-  protected constructor(page: Page) {
-    super(page)
+  protected constructor(pages: GamePages) {
+    super(pages.page)
+    this.pages = pages
+    const { page } = pages
 
     this.gameTopBar = page.getByRole("banner")
     this.gameNameHeading = this.gameTopBar.getByRole("heading", { level: 1 })
@@ -55,31 +59,26 @@ export abstract class GamePage extends BasePage {
 
   public async openGalaxy(): Promise<GalaxyPage> {
     await this.galaxyLink.click()
-    const { GalaxyPage } = await import("./GalaxyPage.ts") // Avoids circular dependencies issues because GamePage is the base class
-    return new GalaxyPage(this.page)
+    return this.pages.galaxy()
   }
 
   public async openPlanets(): Promise<PlanetsPage> {
     await this.planetsLink.click()
-    const { PlanetsPage } = await import("./PlanetsPage.ts") // Avoids circular dependencies issues because GamePage is the base class
-    return new PlanetsPage(this.page)
+    return this.pages.planets()
   }
 
   public async openFleets(): Promise<FleetsPage> {
     await this.fleetsLink.click()
-    const { FleetsPage } = await import("./FleetsPage.ts") // Avoids circular dependencies issues because GamePage is the base class
-    return new FleetsPage(this.page)
+    return this.pages.fleets()
   }
 
   public async openActions(): Promise<ActionsPage> {
     await this.actionsLink.click()
-    const { ActionsPage } = await import("./ActionsPage.ts") // Avoids circular dependencies issues because GamePage is the base class
-    return new ActionsPage(this.page)
+    return this.pages.actions()
   }
 
   public async openPlayers(): Promise<PlayersPage> {
     await this.playersLink.click()
-    const { PlayersPage } = await import("./PlayersPage.ts") // Avoids circular dependencies issues because GamePage is the base class
-    return new PlayersPage(this.page)
+    return this.pages.players()
   }
 }

@@ -1,5 +1,6 @@
-import type { Locator, Page } from "@playwright/test"
+import type { Locator } from "@playwright/test"
 import { GamePage } from "./GamePage.ts"
+import type { GamePages } from "./GamePages.ts"
 
 export class PlayersPage extends GamePage {
   public readonly readyButton: Locator
@@ -7,8 +8,9 @@ export class PlayersPage extends GamePage {
   public readonly opponentNotReady: Locator
   public readonly turn: Locator
 
-  public constructor(page: Page) {
-    super(page)
+  public constructor(pages: GamePages) {
+    super(pages)
+    const { page } = pages
     this.readyButton = page.getByRole("button", { name: "Ready", exact: true })
     this.opponentReady = page.getByRole("img", { name: "Ready", exact: true })
     this.opponentNotReady = page.getByRole("img", { name: "Not ready", exact: true })
