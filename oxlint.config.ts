@@ -15,6 +15,13 @@ export default defineConfig({
   ignorePatterns: ["*.gen.*"],
   overrides: [
     {
+      files: ["**/*"],
+      excludeFiles: ["**/playwright/**/*"],
+      rules: {
+        "no-restricted-properties": ["error", { object: "test", ...noVitestFixtures }, { object: "it", ...noVitestFixtures }],
+      },
+    },
+    {
       ...vitest,
       files: ["**/*.test.{ts,tsx}"],
     },
@@ -26,7 +33,6 @@ export default defineConfig({
     },
   ],
   rules: {
-    "no-restricted-properties": ["error", { object: "test", ...noVitestFixtures }, { object: "it", ...noVitestFixtures }],
     "eslint-js/no-restricted-syntax": [
       ...typescript.rules["eslint-js/no-restricted-syntax"],
       { selector: "ImportExpression", message: "Use a static import declaration." },

@@ -7,10 +7,6 @@ export default defineConfig({
   ignorePatterns: baseConfig.ignorePatterns,
   overrides: [
     {
-      files: ["playwright/**/*"],
-      rules: { "no-restricted-properties": "off" },
-    },
-    {
       files: ["**/*.stories.{ts,tsx}"],
       rules: {
         "no-restricted-imports": [
