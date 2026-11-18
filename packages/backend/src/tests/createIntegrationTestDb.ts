@@ -7,26 +7,26 @@ import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import * as schema from "#lib/db/schema.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
-import { defineWorkerResource } from "#tests/defineWorkerResource.ts"
 
-const template = defineWorkerResource(async (cleanup) => {
+// With isolate: false, every test file in the worker can restore this seeded snapshot.
+let template: Blob | undefined
+
+export async function prepareIntegrationTestDb(): Promise<void> {
+  if (template !== undefined) {
+    return
+  }
   const logger = await configureLogger({ scope: "integration-test", nonBlocking: false })
-  const pglite = new PGlite()
-  cleanup.defer(async () => {
-    await pglite.close()
-  })
+  await using pglite = await PGlite.create()
   const db = pgliteToDb(pglite)
   const push = await pushSchema(schema, db)
   await push.apply()
   Assert.isSuccess(await new RulesetsRepository({ db, logger }).upsertRuleset(TestRuleset))
-  return pglite
-})
-
-export const prepareIntegrationTestDb = template.register
+  template = await pglite.dumpDataDir("none")
+}
 
 export async function createIntegrationTestDb(): Promise<Database & AsyncDisposable> {
-  const clone = await template.get().clone()
-  Assert.isTrue(clone instanceof PGlite)
+  Assert.isDefined(template)
+  const clone = await PGlite.create({ loadDataDir: template })
   return Object.assign(pgliteToDb(clone), { [Symbol.asyncDispose]: clone.close.bind(clone) })
 }
 
