@@ -2,28 +2,29 @@ import { type Failure, Result, type Success } from "@guillaume-docquier/tools-ts
 import type { PgTable } from "drizzle-orm/pg-core"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
-import { describe, expect } from "vitest"
+import { describe, expect, it } from "vitest"
 import { gamesTable, playersTable, turnsTable } from "#lib/db/schema.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
+import { createConcurrencyTestDb } from "#tests/createConcurrencyTestDb.ts"
 import type { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
-import { concurrencyTest } from "#tests/vitest.concurrency.fixture.ts"
 
 describe("lobby concurrency", () => {
-  concurrencyTest.for([
+  it.each([
     {
-      name: "should accept one join and report a full lobby for the other when both compete for the last seat",
+      name: "accept one join and report a full lobby for the other when both compete for the last seat",
       nbSeats: 2,
       expectedSecondRaceResult: conflict("The lobby is full."),
       expectedLobbyAliases: ["alice", "creator"],
     },
     {
-      name: "should accept both joins and assign distinct colors when seats are available",
+      name: "accept both joins and assign distinct colors when seats are available",
       nbSeats: 3,
       expectedSecondRaceResult: ok(),
       expectedLobbyAliases: ["alice", "bob", "creator"],
     },
-  ] as const)("$name", async ({ nbSeats, expectedSecondRaceResult, expectedLobbyAliases }, { postgres }) => {
+  ] as const)("should $name", async ({ nbSeats, expectedSecondRaceResult, expectedLobbyAliases }) => {
     // Arrange
+    await using postgres = await createConcurrencyTestDb()
     await using server = await ConcurrencyTestApiServer.create(postgres)
     const creator = await server.createClient({ authenticated: true, alias: "creator" })
     const alice = await server.createClient({ authenticated: true, alias: "alice" })
@@ -50,9 +51,9 @@ describe("lobby concurrency", () => {
     expect(new Set(lobby.players.map(({ color }) => color)).size).toBe(expectedLobbyAliases.length)
   })
 
-  concurrencyTest.for([
+  it.each([
     {
-      name: "should let a player join before the game starts",
+      name: "let a player join before the game starts",
       setup: [],
       first: "join",
       second: "start",
@@ -60,7 +61,7 @@ describe("lobby concurrency", () => {
       expectedLobbyAliases: ["alice", "creator"],
     },
     {
-      name: "should reject the join while the game is starting",
+      name: "reject the join while the game is starting",
       setup: [],
       first: "start",
       second: "join",
@@ -68,7 +69,7 @@ describe("lobby concurrency", () => {
       expectedLobbyAliases: ["creator"],
     },
     {
-      name: "should let a player leave before the game starts",
+      name: "let a player leave before the game starts",
       setup: ["join"],
       first: "leave",
       second: "start",
@@ -76,15 +77,16 @@ describe("lobby concurrency", () => {
       expectedLobbyAliases: ["creator"],
     },
     {
-      name: "should reject the leave while the game is starting",
+      name: "reject the leave while the game is starting",
       setup: ["join"],
       first: "start",
       second: "leave",
       expectedSecondRaceResult: conflict("You cannot leave a game that has already started."),
       expectedLobbyAliases: ["alice", "creator"],
     },
-  ] as const)("$name", async (scenario, { postgres }) => {
+  ] as const)("should $name", async (scenario) => {
     // Arrange
+    await using postgres = await createConcurrencyTestDb()
     await using server = await ConcurrencyTestApiServer.create(postgres)
     const participants = {
       creator: await server.createClient({ authenticated: true, alias: "creator" }),

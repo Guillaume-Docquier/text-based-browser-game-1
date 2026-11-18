@@ -8,7 +8,7 @@ import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
-import { describe, expect } from "vitest"
+import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { CreateGameError, CreateGameErrorResponses } from "#api/games/createGame.error.ts"
 import { GetGameByIdError, GetGameByIdErrorResponses } from "#api/games/getGameById.error.ts"
@@ -19,7 +19,7 @@ import { StartGameError, StartGameErrorResponses } from "#api/games/startGame.er
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
-import { integrationTest } from "#tests/vitest.integration.fixture.ts"
+import { createIntegrationTestDb } from "#tests/createIntegrationTestDb.ts"
 
 const TEST_RULESET_SUMMARY: RulesetSummary = {
   id: TestRuleset.id,
@@ -29,8 +29,9 @@ const TEST_RULESET_SUMMARY: RulesetSummary = {
 
 describe("games.router", () => {
   describe("getListings", () => {
-    integrationTest("should get game listings when anonymous", async ({ db }) => {
+    it("should get game listings when anonymous", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
 
       const anonymous = await apiServer.createClient({ authenticated: false })
@@ -58,8 +59,9 @@ describe("games.router", () => {
       ])
     })
 
-    integrationTest("should get game listings when authenticated", async ({ db }) => {
+    it("should get game listings when authenticated", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
 
       const creator = await apiServer.createClient({ authenticated: true })
@@ -101,8 +103,9 @@ describe("games.router", () => {
     })
   })
   describe("startGame", () => {
-    integrationTest("should reject starting a game as an account that has not joined", async ({ db }) => {
+    it("should reject starting a game as an account that has not joined", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const nonPlayer = await apiServer.createClient({ authenticated: true })
@@ -115,8 +118,9 @@ describe("games.router", () => {
       await expect(startGame).rejects.toMatchObject({ data: { code: "FORBIDDEN" } })
     })
 
-    integrationTest("should generate a deterministic galaxy from the game's seed", async ({ db }) => {
+    it("should generate a deterministic galaxy from the game's seed", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true, id: "7f80447c-442a-4229-8d52-39b675b3e80c" })
       const { createdGameId } = await player.client.games.create.mutate({
@@ -161,8 +165,9 @@ describe("games.router", () => {
       expect(playerView.galaxy).toMatchSnapshot()
     })
 
-    integrationTest("should start a game", async ({ db }) => {
+    it("should start a game", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
@@ -187,8 +192,9 @@ describe("games.router", () => {
       )
     })
 
-    integrationTest("should assign one unique Home Planet to every player", async ({ db }) => {
+    it("should assign one unique Home Planet to every player", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
 
       const creator = await apiServer.createClient({ authenticated: true })
@@ -217,8 +223,9 @@ describe("games.router", () => {
       )
     })
 
-    integrationTest("should reject starting a game as a non-creator", async ({ db }) => {
+    it("should reject starting a game as a non-creator", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
@@ -233,8 +240,9 @@ describe("games.router", () => {
       await expect(startGame).rejects.toMatchErrorResponse(StartGameErrorResponses[StartGameError.NOT_GAME_CREATOR])
     })
 
-    integrationTest("should reject starting a game that has already started", async ({ db }) => {
+    it("should reject starting a game that has already started", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
@@ -248,8 +256,9 @@ describe("games.router", () => {
       await expect(startGame).rejects.toMatchErrorResponse(StartGameErrorResponses[StartGameError.INVALID_GAME_STATUS])
     })
 
-    integrationTest("should reject anonymous game start", async ({ db }) => {
+    it("should reject anonymous game start", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
@@ -262,8 +271,9 @@ describe("games.router", () => {
   })
 
   describe("getCreationSettings", () => {
-    integrationTest("should return backend-driven defaults and limits", async ({ db }) => {
+    it("should return backend-driven defaults and limits", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -278,8 +288,9 @@ describe("games.router", () => {
   })
 
   describe("create", () => {
-    integrationTest.for([0, UInt32.max])("should accept the UInt32 seed %i", async (mapGenerationSeed, { db }) => {
+    it.each([0, UInt32.max])("should accept the UInt32 seed %i", async (mapGenerationSeed) => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
@@ -292,8 +303,9 @@ describe("games.router", () => {
       expect(createGameResult).toStrictEqual<typeof createGameResult>({ createdGameId: expect.any(Number) })
     })
 
-    integrationTest.for([-1, UInt32.max + 1, 1.5])("should reject the invalid seed %i", async (mapGenerationSeed, { db }) => {
+    it.each([-1, UInt32.max + 1, 1.5])("should reject the invalid seed %i", async (mapGenerationSeed) => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
@@ -304,8 +316,9 @@ describe("games.router", () => {
       await expect(createGame).rejects.toMatchErrorResponse(CreateGameErrorResponses[CreateGameError.INVALID_MAP_SEED])
     })
 
-    integrationTest("should reject an unknown Ruleset", async ({ db }) => {
+    it("should reject an unknown Ruleset", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
@@ -318,8 +331,9 @@ describe("games.router", () => {
       await expect(createGame).rejects.toMatchErrorResponse(CreateGameErrorResponses[CreateGameError.UNKNOWN])
     })
 
-    integrationTest("should create a game for the authenticated player", async ({ db }) => {
+    it("should create a game for the authenticated player", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
@@ -360,8 +374,9 @@ describe("games.router", () => {
       })
     })
 
-    integrationTest("should create a one-seat game ready to start", async ({ db }) => {
+    it("should create a one-seat game ready to start", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
@@ -375,8 +390,9 @@ describe("games.router", () => {
       expect(lobby.status).toBe(GameStatus.READY_TO_START)
     })
 
-    integrationTest("should create a game with MAX_NB_SEATS seats", async ({ db }) => {
+    it("should create a game with MAX_NB_SEATS seats", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
@@ -390,8 +406,9 @@ describe("games.router", () => {
       expect(lobby.configuration.nbSeats).toBe(MAX_NB_SEATS)
     })
 
-    integrationTest("should reject a game with MAX_NB_SEATS + 1 seats", async ({ db }) => {
+    it("should reject a game with MAX_NB_SEATS + 1 seats", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
@@ -404,8 +421,9 @@ describe("games.router", () => {
       await expect(createGame).rejects.toMatchErrorResponse(CreateGameErrorResponses[CreateGameError.TOO_MANY_SEATS])
     })
 
-    integrationTest("should reject anonymous game creation", async ({ db }) => {
+    it("should reject anonymous game creation", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
@@ -420,8 +438,9 @@ describe("games.router", () => {
   })
 
   describe("getById", () => {
-    integrationTest("should get a lobby by id when authenticated", async ({ db }) => {
+    it("should get a lobby by id when authenticated", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const viewer = await apiServer.createClient({ authenticated: true })
@@ -460,8 +479,9 @@ describe("games.router", () => {
       })
     })
 
-    integrationTest("should get a lobby by id anonymously", async ({ db }) => {
+    it("should get a lobby by id anonymously", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const anonymous = await apiServer.createClient({ authenticated: false })
@@ -500,8 +520,9 @@ describe("games.router", () => {
       })
     })
 
-    integrationTest("should only allow joined players to open a started game", async ({ db }) => {
+    it("should only allow joined players to open a started game", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const viewer = await apiServer.createClient({ authenticated: true })
@@ -527,8 +548,9 @@ describe("games.router", () => {
       })
     })
 
-    integrationTest("should return not found when getting a missing lobby by id", async ({ db }) => {
+    it("should return not found when getting a missing lobby by id", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
@@ -541,8 +563,9 @@ describe("games.router", () => {
   })
 
   describe("join", () => {
-    integrationTest("should allocate high-contrast colors first in a small lobby", async ({ db }) => {
+    it("should allocate high-contrast colors first in a small lobby", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const firstJoiner = await apiServer.createClient({ authenticated: true })
@@ -566,8 +589,9 @@ describe("games.router", () => {
       expect(colorsByPlayerId.get(branded<PlayerId>(thirdJoiner.account.id))).toBe(PlayerColor.ORANGE)
     })
 
-    integrationTest("should assign every player color in a maximum sized lobby", async ({ db }) => {
+    it("should assign every player color in a maximum sized lobby", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiners = await Promise.all(
@@ -585,8 +609,9 @@ describe("games.router", () => {
       expect(new Set(lobby.players.map(({ color }) => color))).toStrictEqual(new Set(Object.values(PlayerColor)))
     })
 
-    integrationTest("should assign every player color in a maximum sized lobby as players leave and rejoin", async ({ db }) => {
+    it("should assign every player color in a maximum sized lobby as players leave and rejoin", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiners = await Promise.all(
@@ -610,8 +635,9 @@ describe("games.router", () => {
       expect(new Set(lobby.players.map(({ color }) => color))).toStrictEqual(new Set(Object.values(PlayerColor)))
     })
 
-    integrationTest("should join a game", async ({ db }) => {
+    it("should join a game", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
@@ -657,8 +683,9 @@ describe("games.router", () => {
       })
     })
 
-    integrationTest("should reject joining a game that is full", async ({ db }) => {
+    it("should reject joining a game that is full", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       const { api, accountsRepository } = await createApiStub({ db })
       using apiServer = new ApiServer({ api, accountsRepository })
       const creator = await apiServer.createClient({ authenticated: true })
@@ -681,8 +708,9 @@ describe("games.router", () => {
       expect(lobby.players).toHaveLength(2)
     })
 
-    integrationTest("should reject joining a game that has started", async ({ db }) => {
+    it("should reject joining a game that has started", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
@@ -700,8 +728,9 @@ describe("games.router", () => {
       expect(lobby.players).toHaveLength(1)
     })
 
-    integrationTest("should successfully join a game the player is already in without joining twice", async ({ db }) => {
+    it("should successfully join a game the player is already in without joining twice", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
@@ -720,8 +749,9 @@ describe("games.router", () => {
       expect(lobby.status).toBe(GameStatus.WAITING_FOR_PLAYERS)
     })
 
-    integrationTest("should reject anonymous game join", async ({ db }) => {
+    it("should reject anonymous game join", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
@@ -734,8 +764,9 @@ describe("games.router", () => {
   })
 
   describe("leave", () => {
-    integrationTest("should leave a game", async ({ db }) => {
+    it("should leave a game", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
@@ -778,8 +809,9 @@ describe("games.router", () => {
       })
     })
 
-    integrationTest("should reject leaving a game that has started", async ({ db }) => {
+    it("should reject leaving a game that has started", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
@@ -795,8 +827,9 @@ describe("games.router", () => {
       await expect(leaveGame).rejects.toMatchErrorResponse(LeaveGameErrorResponses[LeaveGameError.GAME_ALREADY_STARTED])
     })
 
-    integrationTest("should reject leaving a game as its creator", async ({ db }) => {
+    it("should reject leaving a game as its creator", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -809,8 +842,9 @@ describe("games.router", () => {
       await expect(leaveGame).rejects.toMatchErrorResponse(LeaveGameErrorResponses[LeaveGameError.CREATOR_CANNOT_LEAVE])
     })
 
-    integrationTest("should successfully leave a game the player has not joined", async ({ db }) => {
+    it("should successfully leave a game the player has not joined", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const nonPlayer = await apiServer.createClient({ authenticated: true })
@@ -825,8 +859,9 @@ describe("games.router", () => {
       expect(lobby.players).toHaveLength(1)
     })
 
-    integrationTest("should reject anonymous game leave", async ({ db }) => {
+    it("should reject anonymous game leave", async () => {
       // Arrange
+      await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
