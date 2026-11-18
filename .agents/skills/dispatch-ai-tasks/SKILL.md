@@ -11,7 +11,7 @@ Invocation authorizes creating implementation chats. Only discover and dispatch;
 2. Use `list_projects` to resolve the repository's local project on the current host. Immediately before each creation, recheck eligibility and existing chats for duplicates. Skip previously dispatched issues; report blocked or failed chats for human attention instead of redispatching. Do not rely on previous run history being present.
 3. Call `create_thread` once per remaining eligible issue, without a batch limit or waiting for implementations:
    - Target: resolved project, environment `local`; workers handle worktree setup.
-   - Model: `gpt-6.1-sol`; `thinking`: `high`.
+   - Model: `gpt-6.2-sol`; `thinking`: `high`.
    - Title: `Implement #<issue-number>: <issue-title>`.
    - Entire prompt: `Implement <full GitHub issue URL>`.
 
