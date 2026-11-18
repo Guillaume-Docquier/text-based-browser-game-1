@@ -55,35 +55,35 @@ export abstract class GamePage extends BasePage {
 
   public async openGalaxy(): Promise<GalaxyPage> {
     await this.galaxyLink.click()
-    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    // oxlint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
     const { GalaxyPage } = await import("./GalaxyPage.ts")
     return new GalaxyPage(this.page)
   }
 
   public async openPlanets(): Promise<PlanetsPage> {
     await this.planetsLink.click()
-    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    // oxlint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
     const { PlanetsPage } = await import("./PlanetsPage.ts")
     return new PlanetsPage(this.page)
   }
 
   public async openFleets(): Promise<FleetsPage> {
     await this.fleetsLink.click()
-    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    // oxlint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
     const { FleetsPage } = await import("./FleetsPage.ts")
     return new FleetsPage(this.page)
   }
 
   public async openActions(): Promise<ActionsPage> {
     await this.actionsLink.click()
-    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    // oxlint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
     const { ActionsPage } = await import("./ActionsPage.ts")
     return new ActionsPage(this.page)
   }
 
   public async openPlayers(): Promise<PlayersPage> {
     await this.playersLink.click()
-    // eslint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
+    // oxlint-disable-next-line eslint-js/no-restricted-syntax -- Avoid circular dependencies between GamePage and its subclasses.
     const { PlayersPage } = await import("./PlayersPage.ts")
     return new PlayersPage(this.page)
   }
