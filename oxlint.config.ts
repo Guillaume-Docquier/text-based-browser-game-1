@@ -8,8 +8,8 @@ const noVitestFixtures = {
 }
 
 const allowedComments = {
-  prefixes: ["INTENT:", "CONSTRAINT:", "VERIFY:", "oxlint-disable", "@ts-expect-error"],
-  message: "Code comments are restricted. Only INTENT:, CONSTRAINT:, VERIFY:, oxlint-disable, or @ts-expect-error are allowed.",
+  prefixes: ["INTENT:", "CONSTRAINT:", "oxlint-disable", "@ts-expect-error"],
+  message: "Code comments are restricted. Only INTENT:, CONSTRAINT:, oxlint-disable, or @ts-expect-error are allowed.",
 }
 
 export default defineConfig({

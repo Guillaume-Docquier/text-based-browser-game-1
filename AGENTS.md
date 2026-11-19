@@ -41,7 +41,7 @@ Across workspace projects, runtime imports from the apps may only target shared 
 
 Before changing files in a subtree, read the nearest `AGENTS.md` in that subtree.
 
-### CI/CD
+## CI/CD
 
 All code changes require a pull request before merging to main. A CI enforces the quality gates there.
 
@@ -69,6 +69,18 @@ Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. Thi
 - Before changing architecture, read the ADR index and relevant accepted ADRs. Stop and discuss any contradiction with the human.
 - Before implementing gameplay, read and follow the relevant accepted GDDRs. Discuss design mismatches with the human before changing direction.
 - New GDDRs require explicit human approval. Follow `docs/AGENTS.md` when editing documentation.
+
+## Code Comments
+
+Code comments are restricted and should generally not be used. Allowed comments follow strict prefix based patterns and are enforced via linting:
+
+- `INTENT:`: Explain non-obvious choices where multiple avenues were possible and the reasons we went this way are not visible in the codebase.
+- `CONSTRAINT:`: A non-obvious constraint forces a certain design choice. Name the constraint and provide sources where applicable.
+- `oxlint-disable`: Used when we absolutely have to bypass the linter
+- `@ts-expect-error`: Used when we absolutely have to bypass the type checker
+- `Arrange`, `Act`, `Assert`: Used in unit tests only
+
+An `INTENT` or `CONSTRAINT` comment is only needed when it's not clear why the code is the way it is, and changing that code would fail in non-obvious ways. Always favor better variable names, function names and focused descriptive tests over a code comment when possible. Reserve the comments for those rare cases where we can't otherwise enforce the tacit knowledge and an understanding failure would lead to wasted debugging time or outages.
 
 ## Commands
 
