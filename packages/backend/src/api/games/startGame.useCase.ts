@@ -10,9 +10,6 @@ import type { GamesRepository } from "./games.repository.ts"
 import type { StartGameCommand } from "./startGame.command.ts"
 import { StartGameError, StartGameRollbackError } from "./startGame.error.ts"
 
-/**
- * Starts a game and initializes its galaxy and first Turn atomically.
- */
 export class StartGameUseCase {
   private readonly logger: Logger
   private readonly clock: Clock
@@ -65,7 +62,6 @@ export class StartGameUseCase {
           status: GameStatus.IN_PROGRESS,
           startedAt,
           turnEndsAt,
-          // Do not reuse the map generation seed, use a "secret" one, otherwise the game can be controlled by the creator
           rngState: { generatorState: UInt32.random(), spareNormal: null },
           galaxy,
         },

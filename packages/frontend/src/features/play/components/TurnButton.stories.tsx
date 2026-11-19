@@ -36,7 +36,6 @@ export const Interactive: Story = {
     const [isLockedIn, setIsLockedIn] = useState(args.isLockedIn)
     const [countdown, setCountdown] = useState(() => Temporal.Duration.from({ seconds: args.countdownSeconds }))
 
-    // Reset the countdown when the storybook prop changes
     useEffect(() => {
       setCountdown(Temporal.Duration.from({ seconds: args.countdownSeconds }))
     }, [args.countdownSeconds])

@@ -1,7 +1,6 @@
 import type { Enumify } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 
-/** A Planet Size, which determines its Max Population and Area ranges. */
 export type PlanetSize = Enumify<typeof PlanetSize>
 export const PlanetSize = {
   SMALL: "SMALL",

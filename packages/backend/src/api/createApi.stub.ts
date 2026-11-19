@@ -11,11 +11,6 @@ import { createCreateTransaction, type Database } from "#lib/db/createDb.ts"
 
 type AllServices = Omit<Parameters<typeof createApi>[0], "authService">
 
-/**
- * Creates a real api with test dependencies.
- * The db will be mocked with an empty in-memory db.
- * The auth service will use a mocked service with no authenticated user.
- */
 export async function createApiStub({ db, clock = Clock }: { db: Database; clock?: Clock }): Promise<AllServices & { api: Express }> {
   const logger = Logger.get()
   const accountsRepository = new AccountsRepository({ db, logger })

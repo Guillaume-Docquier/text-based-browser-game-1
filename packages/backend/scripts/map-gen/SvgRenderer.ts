@@ -19,7 +19,6 @@ type RenderOptions = {
   readonly origin: XY
 }
 
-/** Renders map generator previews as SVG files. */
 export const SvgRenderer = {
   renderToFile: async (options: RenderOptions): Promise<void> => {
     await mkdir(path.dirname(options.outputPath), { recursive: true })

@@ -3,9 +3,6 @@ import type { PlanetCoordinates } from "#shared/domain/world/planets/PlanetCoord
 import type { StarCoordinates } from "#shared/domain/world/stars/StarCoordinates.ts"
 import { toOrbitCoordinates } from "#shared/galaxy-creation/toOrbitCoordinates.ts"
 
-/**
- * Combines a star coordinate with the planet's rounded orbital distance in AU.
- */
 export function toPlanetCoordinates({
   starCoordinates,
   star,

@@ -8,9 +8,6 @@ import type { GamesRepository } from "./games.repository.ts"
 import type { JoinGameCommand } from "./joinGame.command.ts"
 import { JoinGameError, JoinGameRollbackError } from "./joinGame.error.ts"
 
-/**
- * Joins a lobby atomically, assigning an unused player color and updating its status.
- */
 export class JoinGameUseCase {
   private readonly logger: Logger
   private readonly createTransaction: CreateTransaction
@@ -30,16 +27,12 @@ export class JoinGameUseCase {
     this.gamesRepository = gamesRepository
   }
 
-  /**
-   * Joining an already joined lobby returns a success for idempotency.
-   */
   public async execute({ gameId }: JoinGameCommand, { accountId }: { accountId: AccountId }): Promise<Result<void, JoinGameError>> {
     const playerId = branded<PlayerId>(accountId)
     const joinGameResult = await this.createTransaction(async (tx) => {
       const gameForJoin = await this.gamesRepository.getGameForJoin({ gameId }, tx)
 
       if (gameForJoin.players.find((player) => player.id === playerId) !== undefined) {
-        // Already part of the game, return a success for idempotency
         return
       }
 

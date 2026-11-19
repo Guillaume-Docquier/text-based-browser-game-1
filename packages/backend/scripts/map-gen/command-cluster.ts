@@ -19,7 +19,6 @@ type ClusterOptions = {
   readonly output: string
 }
 
-/** Values available when rendering cluster generator output. */
 export type ClusterRenderOptions = {
   readonly output: string
   readonly pointsGenerator: (options: { rng: Rng }) => XY[]
@@ -34,7 +33,6 @@ type ClusterCommandOptions = {
   readonly render?: (options: ClusterRenderOptions) => Promise<void>
 }
 
-/** Creates the command that renders points generated in a cluster. */
 export function createClusterCommand({
   defaultOutputPath = DEFAULT_OUTPUT_PATH,
   render = renderCluster,

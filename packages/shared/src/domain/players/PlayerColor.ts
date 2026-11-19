@@ -1,9 +1,6 @@
 import type { Enumify } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 
-/**
- * 16 colors matching the maximum of 16 players
- */
 export type PlayerColor = Enumify<typeof PlayerColor>
 export const PlayerColor = {
   TURQUOISE: "TURQUOISE",
@@ -26,10 +23,6 @@ export const PlayerColor = {
 
 export const PlayerColorSchema = z.enum(PlayerColor) satisfies z.ZodType<PlayerColor>
 
-/**
- * Player colors in the order they should be distributed to maximize contrast.
- * It's hard to find 16 colors with good contrast, but the first 8 are pretty good.
- */
 export const PLAYER_COLOR_PRIORITY = [
   PlayerColor.TURQUOISE,
   PlayerColor.PINK,

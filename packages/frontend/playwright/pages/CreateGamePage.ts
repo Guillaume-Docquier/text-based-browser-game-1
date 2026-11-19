@@ -44,9 +44,6 @@ export class CreateGamePage extends WebsitePage {
     return await new CreateGamePage(page).goto()
   }
 
-  /**
-   * Create a game, join any additional participants, and return the creator's game details page.
-   */
   public static async createGame({ creator, participants = [], settings = {} }: CreateGameInput): Promise<GameDetailsPage> {
     const createGamePage = await CreateGamePage.goto(creator.page)
 

@@ -16,7 +16,6 @@ type GalaxyOptions = {
   readonly grid?: boolean
 }
 
-/** Creates the command that renders galaxies generated from the supported point generators. */
 export function createGalaxyCommand(): Command {
   const command = new Command("galaxy")
     .description("Generate an SVG preview of galaxyGenerator output.")

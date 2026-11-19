@@ -9,9 +9,6 @@ export type GeneratedSystem = {
 
 const ORBIT_SPACING = 5
 const NB_ORBITS = 10
-/**
- * Orbits between DISTANCE_MIN and DISTANCE_MAX AU
- */
 const POSSIBLE_ORBITS = Array.from({ length: NB_ORBITS }, (_, i) =>
   Distance.convert(Distance.create((i + 1) * ORBIT_SPACING, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS),
 )

@@ -12,8 +12,6 @@ catalog:
 
 audit:
   ignore:
-    # Both installed picomatch versions carry local parser patches. pnpm audits the published versions.
-    # Remove this entry with the local patches when fixed releases are available.
     - GHSA-fc5q-39xc-vjpf
 
 minimumReleaseAgeStrict: true
@@ -24,15 +22,12 @@ minimumReleaseAgeExclude:
   - "@guillaume-docquier/show-me"
 
 overrides:
-  # Drizzle Kit's legacy loader pins esbuild below the security fix in 0.25.0.
   "@esbuild-kit/core-utils@3.3.2>esbuild": "^0.25.12"
-  # Boundaries pins 4.7.9; its patched release is still within the release-age window.
   "handlebars@4.7.9": "^4.7.10"
 
 allowBuilds:
   bufferutil: true
   core-js: true
-  # Optional ssh2 CPU detection only changes cipher preference; Docker tests use the supported fallback.
   cpu-features: false
   esbuild: true
   protobufjs: true
@@ -42,14 +37,11 @@ allowBuilds:
 
 peerDependencyRules:
   allowedVersions:
-    # @clerk/ui ships with peer deps conflicts
     utf-8-validate: "6"
 
 strictPeerDependencies: true
 
 patchedDependencies:
-  # Local mitigation for GHSA-fc5q-39xc-vjpf based on micromatch/picomatch#246.
   picomatch@2.3.2: patches/picomatch@2.3.2.patch
   picomatch@4.0.7: patches/picomatch@4.0.7.patch
-  # Fixing a windows bug: https://github.com/railwayapp/cli/issues/1255
   railway@3.16.0: patches/railway@3.16.0.patch

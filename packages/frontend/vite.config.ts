@@ -6,7 +6,6 @@ import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import { defineConfig, loadEnv } from "vite"
 import { parseEnv } from "./src/parseEnv.ts"
 
-// https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const envDir = fileURLToPath(new URL("../../", import.meta.url))
   const env = parseEnv({ env: loadEnv(mode, envDir) })
@@ -33,7 +32,6 @@ export default defineConfig(({ mode }) => {
       watch: {
         ignored: ["**/storybook-static/**", "**/playwright/**", "**/playwright-report/**", "**/playwright.config.ts"],
       },
-      // Matches the reverse proxy configuration in production
       proxy: {
         [env.VITE_BACKEND_BASE_URL]: {
           target: env.VITE_BACKEND_HOST,

@@ -86,7 +86,6 @@ jobs:
 
     services:
       db:
-        # Needs to be in sync with the concurrency test image in POSTGRES_IMAGE.ts, prod and docker-compose
         image: postgres:18.4
         env:
           POSTGRES_USER: user
@@ -155,7 +154,6 @@ jobs:
           fail_ci_if_error: true
           files: ./packages/backend/coverage/lcov.info
           disable_search: true
-          # Vitest already generated LCOV; skip unrelated native/Python coverage collectors.
           plugins: noop
           flags: backend
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -190,7 +188,6 @@ jobs:
           fail_ci_if_error: true
           files: ./packages/shared/coverage/lcov.info
           disable_search: true
-          # Vitest already generated LCOV; skip unrelated native/Python coverage collectors.
           plugins: noop
           flags: shared
           token: ${{ secrets.CODECOV_TOKEN }}

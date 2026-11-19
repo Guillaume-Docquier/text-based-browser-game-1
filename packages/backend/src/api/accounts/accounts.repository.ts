@@ -17,10 +17,6 @@ export class AccountsRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "accounts-repository" })
   }
 
-  /**
-   * Creates a new account and returns the created account with its generated id.
-   * If the creation fails, a Failure is returned with a reason.
-   */
   public async createAccount(newAccount: Account, db: PostgresRepository["db"] = this.db): Promise<Result<Account, string>> {
     const createAccountResult = await Result.tryCatch(async () => {
       const accounts = await db
@@ -47,11 +43,6 @@ export class AccountsRepository extends PostgresRepository {
     return createAccountResult
   }
 
-  /**
-   * Gets an account by the auth id.
-   * Returns undefined when no matching account was found.
-   * Returns a Failure when an error prevented getting the account. The account might exist, but we couldn't retrieve it.
-   */
   public async getAccountByAuthId(
     { authId }: { authId: string },
     db: PostgresRepository["db"] = this.db,
@@ -71,9 +62,6 @@ export class AccountsRepository extends PostgresRepository {
     return findByAuthIdResult
   }
 
-  /**
-   * Completes an account's onboarding exactly once.
-   */
   public async finishOnboarding({
     accountId,
     alias,

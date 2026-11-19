@@ -4,7 +4,6 @@ import type { GalaxyPage } from "./GalaxyPage.ts"
 import type { PlanetsPage } from "./PlanetsPage.ts"
 import type { PlayersPage } from "./PlayersPage.ts"
 
-/** Shared game layout and navigation available from every gameplay page. */
 export abstract class GamePage extends BasePage {
   private readonly gameTopBar: Locator
   private readonly galaxyLink: Locator

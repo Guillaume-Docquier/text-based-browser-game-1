@@ -18,9 +18,6 @@ export function createGameplayRouter({
   updateReadinessUseCase: UpdateReadinessUseCase
 }) {
   return trpc.router({
-    /**
-     * Sets the requesting player's Readiness and closes the Turn early when all players are Ready.
-     */
     updateReadiness: trpc.inGameProcedure
       .input(UpdateReadinessCommandSchema)
       .output(NO_OUTPUT)
@@ -29,10 +26,6 @@ export function createGameplayRouter({
           await toTrpcOutput(updateReadinessUseCase.execute(input, { playerId }), UpdateReadinessErrorResponses),
       ),
 
-    /**
-     * Returns the requesting player's gameplay view, including the galaxy and Turn state.
-     * Use to load or refresh the gameplay screen for a game the account has joined.
-     */
     getPlayerView: trpc.inGameProcedure
       .input(GetPlayerViewQuerySchema)
       .output(PlayerViewSchema)

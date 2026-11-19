@@ -13,7 +13,6 @@ const VIEWPORT_CENTER = { x: CENTER, y: CENTER }
 const STAR_RADIUS = 45
 const INNER_ORBIT_RADIUS = 90
 const ORBIT_SPACING = 70
-// Generated orbital slots are 5 AU apart; preserve unoccupied slots in the display.
 const ORBIT_SPACING_AU = 5
 const VIEW_PADDING = 60
 const PLANET_RADII = {
@@ -27,16 +26,6 @@ type PlanetViewModel = PlanetModel & {
   orbitRadius: number
 }
 
-/**
- * Renders one Star System with its planets and occupied orbits.
- *
- * @param system - The Star System to render.
- * @param players - The players whose names and colors identify claimed Planets.
- * @param resetSignal - A value whose changes reset pan and zoom.
- * @param onSelectGalaxy - Returns to the galaxy-wide map.
- * @param onSelectPlanet - Selects a Planet for inspection.
- * @returns The interactive SVG Star System map.
- */
 export function StarSystemMap({
   system,
   players,
@@ -72,7 +61,6 @@ export function StarSystemMap({
       />
     )),
   ]
-  // SVG paints later siblings on top. Stable keys move the whole body without remounting it.
   const bodiesInPaintOrder = bodies.toSorted((first, second) => Number(first.key === hoveredBody) - Number(second.key === hoveredBody))
 
   return (
@@ -104,7 +92,6 @@ export function StarSystemMap({
             key={body.key}
             data-system-body=""
             onPointerEnter={() => {
-              // Finish moving the group before pointerdown; moving it during a click cancels that click.
               flushSync(() => {
                 setHoveredBody(String(body.key))
               })
@@ -158,7 +145,6 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
         className="pointer-events-none"
       />
       <StarLabel x={CENTER} y={CENTER} text={name} />
-      {/* Provides a larger pointer and keyboard focus target without changing the visible star. */}
       <circle
         cx={CENTER}
         cy={CENTER}
@@ -217,7 +203,6 @@ function Planet({
         className="pointer-events-none"
       />
       <PlanetLabel planet={planet} ownerName={ownerName} ownerColor={ownerColor} />
-      {/* Provides a larger pointer and keyboard focus target without changing the visible planet. */}
       <circle
         cx={planet.x}
         cy={planet.y}

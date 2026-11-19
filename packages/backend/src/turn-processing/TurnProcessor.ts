@@ -31,14 +31,6 @@ export class TurnProcessor {
     this.createTransaction = createTransaction
   }
 
-  /**
-   * Processes due turns until there is no more immediate work, then schedules the next check.
-   *
-   * Handles all turn processing duties:
-   * - moves due turns to AWAITING_PROCESSING
-   * - processes all turns that are AWAITING_PROCESSING
-   * - creates next turns and schedules their processing
-   */
   public async processTurnsForever({ interval }: { interval: Time }): Promise<void> {
     await this.turnsRepository.moveDueTurnsToAwaitingProcessing({ since: this.clock.now() })
 
@@ -55,10 +47,6 @@ export class TurnProcessor {
     )
   }
 
-  /**
-   * Processes the next turn that should advance at this point in time.
-   * Runs Turn Resolution and schedules the next Turn.
-   */
   public async processNextDueTurn(): Promise<"processed" | "idle" | "failed"> {
     const processingLogger = this.logger.child({ scope: "processNextDueTurn", contextProviders: [new ElapsedTimeContextProvider()] })
 
@@ -120,10 +108,6 @@ export class TurnProcessor {
   }
 }
 
-/**
- * Schedules from the processing time when we detect a schedule time drift.
- * This avoids quick-firing turn processing if there is a server downtime.
- */
 function getNextTurnScheduledFor({
   turnClosedAt,
   processedAt,

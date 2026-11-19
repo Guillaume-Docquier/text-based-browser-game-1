@@ -7,9 +7,6 @@ const MAX_VISIBLE_OPTIONS = 50
 
 type SearchSelectOption = { id: string; label: string }
 
-/**
- * Selects one value from a searchable list without mounting every option.
- */
 export function SearchSelect<TOption extends SearchSelectOption>({
   label,
   options,

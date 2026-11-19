@@ -31,11 +31,6 @@ const SORT_COMPARATORS = {
   id: (first, second) => TEXT_COLLATOR.compare(first.planet.id, second.planet.id),
 } as const satisfies Record<SortColumn | "id", PlanetRowComparator>
 
-/**
- * Lists every player-owned Planet visible to the current player.
- *
- * @returns The filterable and sortable Planets page.
- */
 export function PlanetsPage(): ReactElement {
   const { gameDetails, playerView } = usePlayGameContext()
   const [search, setSearch] = useState("")

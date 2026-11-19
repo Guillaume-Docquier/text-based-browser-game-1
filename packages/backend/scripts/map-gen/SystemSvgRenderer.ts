@@ -41,7 +41,6 @@ type RenderOptions = {
   readonly systems: readonly SystemPreview[]
 }
 
-/** Renders centered star-system previews measured in astronomical units. */
 export const SystemSvgRenderer = {
   renderToFile: async (options: RenderOptions): Promise<void> => {
     await mkdir(path.dirname(options.outputPath), { recursive: true })

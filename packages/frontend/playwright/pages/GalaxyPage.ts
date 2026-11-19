@@ -19,9 +19,6 @@ export class GalaxyPage extends GamePage {
 
   public readonly ownStars: Locator
   public readonly opponentStars: Locator
-  /**
-   * Stars where the player and its opponents control planets
-   */
   public readonly sharedStars: Locator
 
   public readonly starSystemMap: Locator

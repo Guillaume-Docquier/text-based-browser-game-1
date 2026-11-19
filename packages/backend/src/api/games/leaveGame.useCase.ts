@@ -7,9 +7,6 @@ import type { GamesRepository } from "./games.repository.ts"
 import type { LeaveGameCommand } from "./leaveGame.command.ts"
 import { LeaveGameError, LeaveGameRollbackError } from "./leaveGame.error.ts"
 
-/**
- * Leaves an unstarted lobby atomically and reopens its available seats.
- */
 export class LeaveGameUseCase {
   private readonly logger: Logger
   private readonly createTransaction: CreateTransaction
@@ -29,16 +26,12 @@ export class LeaveGameUseCase {
     this.gamesRepository = gamesRepository
   }
 
-  /**
-   * Leaving an already left lobby returns a success for idempotency.
-   */
   public async execute({ gameId }: LeaveGameCommand, { accountId }: { accountId: AccountId }): Promise<Result<void, LeaveGameError>> {
     const playerId = branded<PlayerId>(accountId)
     const leaveGameResult = await this.createTransaction(async (tx) => {
       const gameForLeave = await this.gamesRepository.getGameForLeave({ gameId }, tx)
 
       if (!gameForLeave.playerIds.includes(playerId)) {
-        // Already not in the game, return a success for idempotency
         return
       }
 

@@ -5,9 +5,6 @@ import { Card, CardContent, CardHeader } from "@/components/card.tsx"
 import { Input } from "@/components/input.tsx"
 import { Label } from "@/components/label.tsx"
 
-/**
- * Collects the required alias before the account can use the application.
- */
 export function OnboardingDialog({
   finishOnboarding,
   isFinishingOnboarding,

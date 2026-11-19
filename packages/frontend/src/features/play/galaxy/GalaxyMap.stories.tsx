@@ -30,10 +30,6 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/**
- * Keeps the map mounted after selection, like the Galaxy page, so native tests can
- * inspect region fitting, camera preservation, and completed star centering.
- */
 export const Interactive: Story = {
   render: function Render(args) {
     const [resetSignal, setResetSignal] = useState(args.resetSignal)

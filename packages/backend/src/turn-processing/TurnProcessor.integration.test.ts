@@ -86,7 +86,6 @@ describe("TurnProcessor", () => {
       vi.clearAllTimers()
       vi.useRealTimers()
 
-      // No turns were processed because turns in error block, this will be resolved by https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/278
       expect(await player.client.gameplay.getPlayerView.query({ gameId: failingGameId })).toMatchObject({
         turn: 1,
       })
@@ -137,14 +136,12 @@ describe("TurnProcessor", () => {
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      // later game
       const laterTurnInterval = Time.create(100, UnitOfTime.SECONDS)
       const { createdGameId: laterGameId } = await player.client.games.create.mutate({
         configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(laterTurnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.games.startGame.mutate({ gameId: laterGameId })
 
-      // earlier game
       const earlierTurnInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: earlierGameId } = await player.client.games.create.mutate({
         configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(earlierTurnInterval, UnitOfTime.SECONDS) }),

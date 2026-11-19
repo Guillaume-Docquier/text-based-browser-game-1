@@ -70,9 +70,6 @@ export const Disabled: Story = {
   },
 }
 
-/**
- * Composed navigation controls keep native link semantics and keyboard focus.
- */
 export const RenderLink: Story = {
   render: () => <Button render={<a href="#fleet-details" />}>Fleet details</Button>,
   play: async ({ canvas, userEvent }) => {

@@ -4,9 +4,6 @@ import type { GameListing } from "./GameListing.ts"
 import type { GamesRepository } from "./games.repository.ts"
 import type { GetGameListingsError } from "./getGameListings.error.ts"
 
-/**
- * Gets all game listings, including whether the requesting account has joined.
- */
 export class GetGameListingsUseCase {
   private readonly logger: Logger
   private readonly gamesRepository: GamesRepository
@@ -16,9 +13,6 @@ export class GetGameListingsUseCase {
     this.gamesRepository = gamesRepository
   }
 
-  /**
-   * Returns a typed failure when listings cannot be loaded.
-   */
   public async execute({ accountId }: { accountId: AccountId | undefined }): Promise<Result<GameListing[], GetGameListingsError>> {
     const getGameListingsResults = await this.gamesRepository.getGameListings({ accountId })
     if (Result.isFailure(getGameListingsResults)) {

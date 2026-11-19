@@ -5,9 +5,6 @@ import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import type { PlayGameContextValue } from "./PlayContext.tsx"
 
-/**
- * Provides deterministic game context for isolated gameplay page stories.
- */
 export function createPlayGameContextStub({ galaxy = { systems: [] } }: { galaxy?: Galaxy } = {}): PlayGameContextValue {
   const gameId = GameIdSchema.parse(1)
   const player = createPlayerStub()

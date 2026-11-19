@@ -37,10 +37,6 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/**
- * Exposes completed selection without unmounting the departing map. Native tests
- * can control its real transition and inspect geometry before and after completion.
- */
 export const Interactive: Story = {
   render: function Render(args) {
     const [resetSignal, setResetSignal] = useState(args.resetSignal)

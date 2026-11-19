@@ -148,7 +148,6 @@ export class GameplayRepository extends PostgresRepository {
   }
 
   public async closeTurn({ context, closedAt }: { context: ReadinessForUpdate; closedAt: Date }, tx: Transaction): Promise<void> {
-    // we close the turn before updating processing to avoid races where the turn processing would pick up a turn that's not yet marked as AWAITING_PROCESSING
     await tx
       .update(turnsTable)
       .set({ closedAt, status: TurnStatus.AWAITING_PROCESSING })

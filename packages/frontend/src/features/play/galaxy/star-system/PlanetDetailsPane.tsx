@@ -3,14 +3,6 @@ import { cn } from "cn"
 import type { AnimationEvent, ReactElement } from "react"
 import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/star-system/planetBiomeColors.ts"
 
-/**
- * Displays the generated characteristics of a selected Planet.
- *
- * @param planet - The Planet selected on the Star System map.
- * @param isClosing - Whether the pane is currently sliding out.
- * @param onCloseAnimationEnd - Removes the pane after its closing animation.
- * @returns A floating Planet details pane.
- */
 export function PlanetDetailsPane({
   planet,
   isClosing,

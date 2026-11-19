@@ -1,7 +1,6 @@
 import path from "node:path"
 import { InvalidArgumentError } from "commander"
 
-/** Parsers for map generator command-line arguments. */
 export const Parser = {
   number: (value: string): number => {
     const parsedValue = Number(value)

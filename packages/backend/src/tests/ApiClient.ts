@@ -25,10 +25,6 @@ type CreateApiClientArgs = {
   authenticated: boolean
 }
 
-/**
- * A test utility to create a TrpcClient and an account at the same time.
- * If authenticated is true, an account is created, returned and the trpc client will be authenticated.
- */
 export async function createApiClient({
   authenticated,
   port,
@@ -58,17 +54,11 @@ export async function createApiClient({
   }
 }
 
-/**
- * Creates a test trpc client.
- * You can provide an authId to create an authenticated client via {@link TestHeaderAuthProvider}
- */
 function createTrpcClient({ port, authId }: { port: number; authId: string | undefined }): TRPCClient<TrpcRouter> {
   return createTRPCClient<TrpcRouter>({
     links: [
       httpBatchLink({
         url: `http://localhost:${port}/trpc`,
-        // The AUTH_ID_HEADER is serialized as "undefined" if the value is undefined
-        // We have to avoid setting it when there is no account
         headers: authId === undefined ? {} : { [AUTH_ID_HEADER]: authId },
       }),
     ],

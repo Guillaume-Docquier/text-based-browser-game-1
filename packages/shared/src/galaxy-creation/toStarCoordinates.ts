@@ -2,9 +2,6 @@ import type { XY } from "@guillaume-docquier/tools-ts"
 import type { StarCoordinates } from "#shared/domain/world/stars/StarCoordinates.ts"
 import { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
 
-/**
- * Converts a light-year position to the existing region and cell coordinate string.
- */
 export function toStarCoordinates({ x, y }: XY): StarCoordinates {
   const row = Math.floor(y)
   const column = Math.floor(x)

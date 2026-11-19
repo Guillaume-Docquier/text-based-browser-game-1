@@ -13,7 +13,6 @@ export function starGenerator(position: XY, rng: Rng): GeneratedStar {
   }
 }
 
-// To be improved
 const INT_RANGE = Range.integer({ min: 999, max: 999999 })
 function starNameGenerator(rng: Rng): string {
   return `star ${rng.int(INT_RANGE)}`

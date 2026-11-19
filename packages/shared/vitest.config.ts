@@ -11,6 +11,6 @@ export default defineConfig({
     },
     environment: "node",
     globals: false,
-    slowTestThreshold: 15, // Tailored for local
+    slowTestThreshold: 15,
   },
 })

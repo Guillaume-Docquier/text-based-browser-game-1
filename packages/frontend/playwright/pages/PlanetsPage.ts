@@ -89,11 +89,6 @@ export class PlanetsPage extends GamePage {
     return coordinates
   }
 
-  /**
-   * Gets the values in a table column in their displayed row order.
-   *
-   * @param columnName - The column whose values should be returned.
-   */
   public async getColumnValues(columnName: PlanetColumnName): Promise<string[]> {
     const columnIndex = PLANET_COLUMN_INDICES[columnName]
     return await this.rows.locator(`td:nth-child(${columnIndex + 1})`).allTextContents()

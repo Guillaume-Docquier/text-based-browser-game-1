@@ -10,9 +10,6 @@ export const LeaveGameError = {
   UNKNOWN: "UNKNOWN",
 } as const
 
-/**
- * Maps each use-case failure to its API response code and user message.
- */
 export const LeaveGameErrorResponses: Record<LeaveGameError, TrpcErrorResponse> = {
   [LeaveGameError.GAME_NOT_FOUND]: { code: "NOT_FOUND", message: "The game does not exist." },
   [LeaveGameError.GAME_ALREADY_STARTED]: { code: "CONFLICT", message: "You cannot leave a game that has already started." },

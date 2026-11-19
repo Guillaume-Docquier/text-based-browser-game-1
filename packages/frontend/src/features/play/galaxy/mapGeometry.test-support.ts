@@ -1,6 +1,5 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 
-/** Measures painted geometry, including CSS transitions, rather than the target transform. */
 export function distanceFromMapCenter(map: Element, target: Element): number {
   const mapBox = map.getBoundingClientRect()
   const targetBox = target.getBoundingClientRect()
@@ -10,7 +9,6 @@ export function distanceFromMapCenter(map: Element, target: Element): number {
   )
 }
 
-/** Labels extend below the star, so measure its circular hit area. */
 export function starHitArea(star: Element): SVGCircleElement {
   const circle = star.querySelector("circle:last-of-type")
   Assert.isTrue(circle instanceof SVGCircleElement)

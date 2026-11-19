@@ -6,9 +6,6 @@ import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GameplayRepository } from "./gameplay.repository.ts"
 import type { UpdateReadinessCommand } from "./updateReadiness.command.ts"
 
-/**
- * Updates a player's Readiness and closes the Turn when all players are Ready.
- */
 export class UpdateReadinessUseCase {
   private readonly logger: Logger
   private readonly clock: Clock
@@ -32,9 +29,6 @@ export class UpdateReadinessUseCase {
     this.createTransaction = createTransaction
   }
 
-  /**
-   * Changes Readiness and checks for unanimous Readiness within one Turn transaction.
-   */
   public async execute(
     { gameId, turn, isReady }: UpdateReadinessCommand,
     { playerId }: { playerId: PlayerId },

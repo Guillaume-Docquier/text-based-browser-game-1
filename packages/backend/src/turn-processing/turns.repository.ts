@@ -8,9 +8,6 @@ import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { gamesTable, planetsTable, playersTable, turnsProcessingTable, turnsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
-/**
- * Owning a TurnForProcessing within a transaction guarantees that the Turn Processing row is locked and needs processing.
- */
 export type TurnForProcessing = Branded<
   "TurnForProcessing",
   {
@@ -20,16 +17,10 @@ export type TurnForProcessing = Branded<
 >
 
 export type StartTurnProcessingModel = {
-  /**
-   * The TurnForProcessing must be acquired in the same transaction.
-   */
   turn: TurnForProcessing
   processingStartedAt: Date
 }
 
-/**
- * The full game data for turn processing.
- */
 export type TurnToProcessModel = TurnState & {
   readonly closedAt: Date
   readonly turnInterval: Time
@@ -54,20 +45,12 @@ export class TurnsRepository extends PostgresRepository {
   }
 
   public async moveDueTurnsToAwaitingProcessing({ since }: { since: Date }, db: PostgresRepository["db"] = this.db): Promise<void> {
-    // We can't do .for("no key update", { skipLocked: true }) on an update statement
-    // This will wait until all rows are unlocked
-    // It shouldn't happen a lot, and it should resolve really quickly
-    // But it's still a risk vector for... eventually
     await db
       .update(turnsTable)
-      // Setting closedAt might happen later than endsAt if the worker is down / due to the poll, but that doesn't matter because the turn stopped accepting actions at endsAt.
       .set({ status: TurnStatus.AWAITING_PROCESSING, closedAt: turnsTable.endsAt })
       .where(and(eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS), lte(turnsTable.endsAt, since)))
   }
 
-  /**
-   * The next turn to process row will be locked during the transaction.
-   */
   public async getNextTurnForProcessing({ since }: { since: Date }, tx: Transaction): Promise<TurnForProcessing | undefined> {
     const turnToProcessRows = await tx
       .select({
@@ -88,9 +71,6 @@ export class TurnsRepository extends PostgresRepository {
     return branded(turnToProcess)
   }
 
-  /**
-   * Moves the turn and processing row to processing before reading the state used to process the turn.
-   */
   public async startTurnProcessing(startTurnProcessingModel: StartTurnProcessingModel, tx: Transaction): Promise<TurnToProcessModel> {
     const turns = await tx
       .update(turnsTable)
@@ -134,7 +114,6 @@ export class TurnsRepository extends PostgresRepository {
     Assert.isTrue(games.length === 1)
     Assert.isDefined(games[0])
 
-    // A transaction uses one PostgreSQL connection, so its queries must run sequentially.
     const players = await tx
       .select({ id: playersTable.playerId })
       .from(playersTable)
@@ -165,10 +144,6 @@ export class TurnsRepository extends PostgresRepository {
     }
   }
 
-  /**
-   * This is fragile and mostly a testing utility for now.
-   * It doesn't verify the integrity of other tables.
-   */
   public async resetProcessingAttempt(
     turn: { gameId: GameId; turn: number },
     db: PostgresRepository["db"] = this.db,

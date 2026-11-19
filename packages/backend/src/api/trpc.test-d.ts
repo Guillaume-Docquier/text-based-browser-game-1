@@ -6,7 +6,6 @@ import { describe, expectTypeOf, test } from "vitest"
 import { z } from "zod"
 import { NO_INPUT, NO_OUTPUT, type Trpc } from "#api/trpc.ts"
 
-// Vitest analyzes type tests without executing them, so declarations and invalid calls are safe here.
 declare const trpc: Trpc
 declare const nativeTrpc: ReturnType<typeof initTRPC.create>
 type NoValue = ReturnType<() => void>
@@ -74,7 +73,6 @@ describe("tRPC procedure schemas", () => {
       .input(z.object({ second: z.boolean() }).optional())
       .output(z.boolean())
       .query(() => false)
-    // Optional callers include void in native tRPC; preserve that complete contract.
     expectTypeOf<inferProcedureInput<typeof optionalInput>>().toEqualTypeOf<inferProcedureInput<typeof nativeOptionalInput>>()
   })
 

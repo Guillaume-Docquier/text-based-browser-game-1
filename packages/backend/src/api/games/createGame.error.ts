@@ -8,9 +8,6 @@ export const CreateGameError = {
   UNKNOWN: "UNKNOWN",
 } as const
 
-/**
- * Maps each use-case failure to its API response code and user message.
- */
 export const CreateGameErrorResponses: Record<CreateGameError, TrpcErrorResponse> = {
   [CreateGameError.TOO_MANY_SEATS]: { code: "BAD_REQUEST", message: "Games cannot have that many seats." },
   [CreateGameError.INVALID_MAP_SEED]: { code: "BAD_REQUEST", message: "The selected seed is invalid." },

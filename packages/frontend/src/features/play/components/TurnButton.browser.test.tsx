@@ -18,16 +18,11 @@ const { Pending, Resolving, Interactive } = composeStories(stories, {
 })
 
 async function renderStory(story: typeof Interactive): Promise<void> {
-  // run() cleans up the preceding portable story before mounting this one.
   await story.run()
-  // Native pointer position persists between tests. Start outside the turn button,
-  // with a known keyboard position, including after a preceding test fails.
   await page.getByRole("button", { name: "Previous control" }).click()
 }
 
 function isCountdownVisible(): boolean {
-  // Vitest's toBeVisible ignores opacity. The countdown stays accessible while
-  // CSS makes it transparent, so check its painted visibility, including ancestors.
   return page.getByText("02:17:43").element().checkVisibility({ opacityProperty: true, visibilityProperty: true })
 }
 

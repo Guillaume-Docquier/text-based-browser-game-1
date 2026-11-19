@@ -26,7 +26,6 @@ const SIZE_INDEX_RANGE = Range.integer({ min: 0, max: PLANET_SIZES.length - 1 })
 
 type AttributeRanges<TAttribute extends keyof GeneratedPlanet> = Readonly<Record<TAttribute, ReturnType<typeof Range.integer>>>
 
-/** Attribute ranges configured for each Planet Biome. */
 export const BIOME_ATTRIBUTE_RANGES = {
   [PlanetBiome.OCEANIC]: {
     fertility: Range.integer({ min: 2, max: 4 }),
@@ -54,7 +53,6 @@ export const BIOME_ATTRIBUTE_RANGES = {
   },
 } as const satisfies Record<PlanetBiome, AttributeRanges<"fertility" | "metal" | "fuel" | "energy">>
 
-/** Attribute ranges configured for each Planet Size. */
 export const SIZE_ATTRIBUTE_RANGES = {
   [PlanetSize.SMALL]: {
     maxPopulation: Range.integer({ min: 5, max: 10 }),
@@ -95,7 +93,6 @@ export function planetGenerator(starPosition: XY, orbitDistance: number, rng: Rn
   }
 }
 
-// To be improved
 const INT_RANGE = Range.integer({ min: 999, max: 999999 })
 function planetNameGenerator(rng: Rng): PlanetName {
   return typedParse(PlanetNameSchema, `planet ${rng.int(INT_RANGE)}`)

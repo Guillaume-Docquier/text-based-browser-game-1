@@ -23,9 +23,6 @@ main().catch((error) => {
   process.exit(1)
 })
 
-/**
- * The main entrypoint for the backend
- */
 async function main(): Promise<void> {
   const logger = await configureLogger({ scope: "api" })
 
@@ -36,7 +33,6 @@ async function main(): Promise<void> {
   const db = createDb({ databaseUrl: env.DATABASE_URL })
 
   logger.info("Performing database migration")
-  // migrationsFolder path is relative to cwd, not to the script path
   await migrateDatabase(db, { migrationsFolder: "./drizzle/", logger })
 
   logger.info("Creating services")
@@ -62,14 +58,11 @@ async function main(): Promise<void> {
     ...repositories,
   })
 
-  // Listen to all interfaces (::) for railway's IPv6 internal network
   const server = app.listen(env.PORT, "::", () => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- I don't know when it's not actually an AddressInfo
     const serverAddress = server.address() as AddressInfo
 
-    // If env.PORT is 0, a random port will be attributed, so we log the server port instead of env.PORT
     logger.info(`API listening on port ${serverAddress.port}`)
-    // This is currently only used for concurrency tests to know which port the api is using
     process.send?.({ type: "listening", port: serverAddress.port } as const satisfies PortListeningMessage)
   })
 
@@ -79,11 +72,6 @@ async function main(): Promise<void> {
   monitorMemoryUsage({ logger })
 }
 
-/**
- * At the time of writing, the DB was in "serverless" mode, meaning it might be sleeping when we deploy the backend.
- * Retrying quickly worked that out.
- * The db is no longer serverless, but we're keeping this anyway, doesn't hurt.
- */
 async function migrateDatabase(db: Database, { migrationsFolder, logger }: { migrationsFolder: string; logger: Logger }): Promise<void> {
   await pRetry(
     async () => {

@@ -20,15 +20,6 @@ const MINOR_GRID_LINES = Array.from({ length: 99 }, (_, index) => index + 1)
   .map((index) => index * LIGHT_YEAR_SIZE)
 const MAJOR_GRID_LINES = Array.from({ length: REGION_COUNT_PER_AXIS + 1 }, (_, index) => index * REGION_SIZE)
 
-/**
- * Renders the galaxy-wide star map.
- *
- * @param galaxy - The galaxy visible to the player.
- * @param currentPlayerId - The player viewing the galaxy.
- * @param resetSignal - A value whose changes reset pan and zoom.
- * @param onSelectSystem - Selects a Star System for inspection.
- * @returns The interactive SVG galaxy map.
- */
 export function GalaxyMap({
   galaxy,
   currentPlayerId,
@@ -290,7 +281,6 @@ function GalaxyStar({
         strokeWidth="0.5"
         className="pointer-events-none origin-center transition-[fill,transform] duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-150 group-hover/star:fill-yellow-100 group-focus/star:scale-150 group-focus/star:fill-yellow-100"
       />
-      {/* Provides a larger pointer and keyboard focus target without changing the visible star. */}
       <circle
         cx={x}
         cy={y}

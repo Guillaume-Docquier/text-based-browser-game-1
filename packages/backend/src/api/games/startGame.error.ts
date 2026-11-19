@@ -10,9 +10,6 @@ export const StartGameError = {
   UNKNOWN: "UNKNOWN",
 } as const
 
-/**
- * Maps each use-case failure to its API response code and user message.
- */
 export const StartGameErrorResponses: Record<StartGameError, TrpcErrorResponse> = {
   [StartGameError.GAME_NOT_FOUND]: { code: "NOT_FOUND", message: "The game does not exist." },
   [StartGameError.NOT_GAME_CREATOR]: { code: "FORBIDDEN", message: "Only the game creator can start it." },

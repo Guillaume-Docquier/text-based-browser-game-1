@@ -7,7 +7,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: "0 17 * * *" # Noon EST
+    - cron: "0 17 * * *"
 
 permissions:
   contents: read
