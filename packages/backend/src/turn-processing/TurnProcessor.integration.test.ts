@@ -168,7 +168,7 @@ describe("TurnProcessor", () => {
       })
     })
 
-    it("should process successive turns on schedule", async () => {
+    it("should be able to process the same turn over time", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
@@ -236,7 +236,7 @@ describe("TurnProcessor", () => {
       })
     })
 
-    it("should advance the turn only after saving succeeds", async () => {
+    it("should not do anything in case of failure", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
