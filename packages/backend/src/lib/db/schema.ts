@@ -1,14 +1,11 @@
-import type { NonNegativeNumber } from "@guillaume-docquier/tools-ts/schemas"
 import { sql } from "drizzle-orm"
 import {
   bigint,
   boolean,
-  check,
   doublePrecision,
   foreignKey,
   index,
   integer,
-  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -20,23 +17,15 @@ import {
 import type { Alias } from "shared/domain/accounts/Alias.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
-import { ResourceType } from "shared/domain/resources/ResourceType.ts"
-import type { SelectedTargets } from "shared/domain/turns/actions/SelectedTargets.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
 import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
-import { actionIdColumn } from "#lib/db/actions/ActionId.ts"
-import { fleetIdColumn } from "#lib/db/fleets/FleetId.ts"
-import { fleetNameColumn } from "#lib/db/fleets/FleetName.ts"
 import { gameIdColumn } from "#lib/db/games/GameId.ts"
 import { planetIdColumn } from "#lib/db/planets/PlanetId.ts"
 import { planetNameColumn } from "#lib/db/planets/PlanetName.ts"
 import { playerIdColumn } from "#lib/db/players/PlayerId.ts"
-import { actionDefinitionIdColumn } from "#lib/db/rulesets/ActionDefinitionId.ts"
-import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
 import { starIdColumn } from "#lib/db/stars/StarId.ts"
-import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
 /**
  * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.
@@ -53,22 +42,6 @@ export const turnStatusEnum = pgEnum("turn_status", pgEnumify(TurnStatus))
 export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
 export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
 export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
-export const resourceTypeEnum = pgEnum("resource_type", pgEnumify(ResourceType))
-
-export const rulesetsTable = pgTable(
-  "rulesets",
-  {
-    id: rulesetIdColumn("id").primaryKey(),
-    name: text("name").notNull(),
-    isDefault: boolean("is_default").notNull(),
-    rules: jsonb("data").$type<RulesetRulesJson>().notNull(),
-  },
-  (table) => [
-    uniqueIndex("rulesets_is_default_unique")
-      .on(table.isDefault)
-      .where(sql`${table.isDefault}`),
-  ],
-)
 
 /**
  * User accounts.
@@ -95,7 +68,6 @@ export const gamesTable = pgTable("games", {
   createdByAccountId: accountIdColumn("created_by_account_id")
     .notNull()
     .references(() => accountsTable.id, { onDelete: "cascade" }),
-  winnerAccountId: accountIdColumn("winner_account_id").references(() => accountsTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   startedAt: timestamp("started_at"),
   endedAt: timestamp("ended_at"),
@@ -106,9 +78,6 @@ export const gamesTable = pgTable("games", {
   nbSeats: integer("nb_seats").notNull(),
   turnIntervalSeconds: integer("turn_interval_seconds").notNull(),
   mapGenerationSeed: bigint("map_generation_seed", { mode: "number" }).notNull(),
-  rulesetId: rulesetIdColumn("ruleset_id")
-    .notNull()
-    .references(() => rulesetsTable.id, { onDelete: "restrict" }),
 })
 
 /**
@@ -136,63 +105,6 @@ export const playersTable = pgTable(
       columns: [table.gameId, table.playerId],
     }),
     unique("players_game_id_color_unique").on(table.gameId, table.color),
-  ],
-)
-
-/**
- * Resources owned by a player in a specific game.
- * One row per resource type.
- */
-export const resourcesTable = pgTable(
-  "resources",
-  {
-    gameId: gameIdColumn("game_id").notNull(),
-    playerId: playerIdColumn("player_id").notNull(),
-    resourceType: resourceTypeEnum("resource_type").notNull(),
-    amount: integer("amount").notNull().default(0),
-  },
-  (table) => [
-    primaryKey({
-      columns: [table.gameId, table.playerId, table.resourceType],
-    }),
-    foreignKey({
-      columns: [table.gameId, table.playerId],
-      foreignColumns: [playersTable.gameId, playersTable.playerId],
-      name: "resources_gameId_playerId_game_players_fk",
-    }).onDelete("cascade"),
-  ],
-)
-
-/**
- * Actions available for a specific game turn.
- * Rows are kept as append-only history across turns.
- */
-export const actionsTable = pgTable(
-  "actions",
-  {
-    /**
-     * Actions have stable ids defined by ruleset action pools
-     */
-    id: actionIdColumn("id").notNull(),
-    gameId: gameIdColumn("game_id").notNull(),
-    playerId: playerIdColumn("player_id").notNull(),
-    turn: integer("turn").notNull(),
-    actionDefinitionId: actionDefinitionIdColumn("action_definition_id").notNull(),
-    /**
-     * non-null when the action is selected, empty object ({}) if the action is selected and has no targets to specify
-     */
-    selectedTargets: jsonb("selected_targets").$type<SelectedTargets>(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  },
-  (table) => [
-    primaryKey({
-      columns: [table.gameId, table.playerId, table.turn, table.id],
-    }),
-    foreignKey({
-      columns: [table.gameId, table.playerId],
-      foreignColumns: [playersTable.gameId, playersTable.playerId],
-      name: "actions_gameId_playerId_game_players_fk",
-    }).onDelete("cascade"),
   ],
 )
 
@@ -314,43 +226,5 @@ export const planetsTable = pgTable(
       foreignColumns: [playersTable.gameId, playersTable.playerId],
       name: "planets_gameId_ownerPlayerId_game_players_fk",
     }),
-  ],
-)
-
-export const fleetsTable = pgTable(
-  "fleets",
-  {
-    id: fleetIdColumn("id").primaryKey(),
-    gameId: gameIdColumn("game_id").notNull(),
-    ownerPlayerId: playerIdColumn("owner_player_id").notNull(),
-    name: fleetNameColumn("name").notNull(),
-    strength: integer("strength").notNull(),
-    originPlanetId: planetIdColumn("origin_planet_id").notNull(),
-    destinationPlanetId: planetIdColumn("destination_planet_id"),
-    distanceToEnd: doublePrecision("distance_to_end").$type<NonNegativeNumber>(),
-  },
-  (table) => [
-    foreignKey({
-      columns: [table.gameId],
-      foreignColumns: [gamesTable.id],
-      name: "fleets_gameId_games_fk",
-    }).onDelete("cascade"),
-    foreignKey({
-      columns: [table.gameId, table.ownerPlayerId],
-      foreignColumns: [playersTable.gameId, playersTable.playerId],
-      name: "fleets_gameId_ownerPlayerId_game_players_fk",
-    }).onDelete("cascade"),
-    foreignKey({
-      columns: [table.gameId, table.originPlanetId],
-      foreignColumns: [planetsTable.gameId, planetsTable.id],
-      name: "fleets_gameId_originPlanetId_planets_fk",
-    }).onDelete("cascade"),
-    foreignKey({
-      columns: [table.gameId, table.destinationPlanetId],
-      foreignColumns: [planetsTable.gameId, planetsTable.id],
-      name: "fleets_gameId_destinationPlanetId_planets_fk",
-    }).onDelete("cascade"),
-    check("fleets_strength_positive_check", sql`${table.strength} > 0`),
-    index("fleets_game_id_origin_planet_id_idx").on(table.gameId, table.originPlanetId),
   ],
 )

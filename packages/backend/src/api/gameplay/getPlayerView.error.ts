@@ -5,7 +5,6 @@ import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackErr
 export type GetPlayerViewError = Enumify<typeof GetPlayerViewError>
 export const GetPlayerViewError = {
   TURN_NOT_FOUND: "TURN_NOT_FOUND",
-  RULESET_NOT_FOUND: "RULESET_NOT_FOUND",
   UNKNOWN: "UNKNOWN",
 } as const
 
@@ -14,7 +13,6 @@ export const GetPlayerViewError = {
  */
 export const GetPlayerViewErrorResponses: Record<GetPlayerViewError, TrpcErrorResponse> = {
   [GetPlayerViewError.TURN_NOT_FOUND]: { code: "NOT_FOUND", message: "No turn found for this game." },
-  [GetPlayerViewError.RULESET_NOT_FOUND]: { code: "INTERNAL_SERVER_ERROR", message: "Could not find the ruleset for this game." },
   [GetPlayerViewError.UNKNOWN]: { code: "INTERNAL_SERVER_ERROR", message: "Player view could not be loaded." },
 }
 

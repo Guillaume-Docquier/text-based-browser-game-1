@@ -6,7 +6,7 @@ import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
-import { resourcesTable, turnsTable } from "#lib/db/schema.ts"
+import { playersTable, turnsTable } from "#lib/db/schema.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { createConcurrencyTestDb } from "#tests/createConcurrencyTestDb.ts"
@@ -94,11 +94,11 @@ describe("TurnProcessor concurrency", () => {
 
     clock.increment({ time: Time.create(50, UnitOfTime.SECONDS) })
     await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-    await using saveBlock = await concurrency.blockWrites(resourcesTable)
+    await using saveBlock = await concurrency.blockWrites(playersTable)
 
     // Act & Assert
     const firstOutcome = Result.tryCatch(firstProcessor.processNextDueTurn())
-    await concurrency.waitForBlockedQuery({ blockedBy: saveBlock.pid, command: "insert", table: resourcesTable, lock: "table" })
+    await concurrency.waitForBlockedQuery({ blockedBy: saveBlock.pid, command: "update", table: playersTable, lock: "table" })
     expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
       turn: 1,
       turnStatus: TurnStatus.PROCESSING,

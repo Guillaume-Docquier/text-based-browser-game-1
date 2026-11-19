@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { ArrowRight, ShieldCheck, TimerReset, Waypoints } from "lucide-react"
+import { ArrowRight, TimerReset } from "lucide-react"
 import type { ReactElement } from "react"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent } from "@/components/card.tsx"
@@ -19,8 +19,7 @@ export function HomePage(): ReactElement {
                   Build your empire and dominate the galaxy
                 </h1>
                 <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
-                  Cosmic Empires is a deep text based strategy game. Build bases, develop an economy, craft specialized spaceships and
-                  position your fleets. Trade technologies and intel to establish dominance.
+                  Cosmic Empires is a turn-based space strategy game.
                 </p>
               </div>
             </div>
@@ -37,19 +36,9 @@ export function HomePage(): ReactElement {
         </Card>
         <div className="grid gap-4">
           <FeatureCard
-            icon={<Waypoints className="size-5" />}
-            title="Strategic positioning"
-            description="Expand methodically, pressure borders, and turn movement into leverage before open war starts."
-          />
-          <FeatureCard
-            icon={<ShieldCheck className="size-5" />}
-            title="Asymmetric fleets"
-            description="Mix infrastructure, logistics, and ship design choices to shape how each war is actually fought."
-          />
-          <FeatureCard
             icon={<TimerReset className="size-5" />}
             title="Persistent turns"
-            description="Plan around the next turn, not twitch mechanics. Decisions compound even when you are offline."
+            description="Turns advance on a fixed schedule or when all players are ready."
           />
         </div>
       </div>

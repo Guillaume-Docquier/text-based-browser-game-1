@@ -17,8 +17,6 @@ import { Route as SiteGamesGameIdRouteImport } from './routes/_site.games.$gameI
 import { Route as SiteGamesCreateRouteImport } from './routes/_site.games.create'
 import { Route as GameGamesGameIdPlayRouteImport } from './routes/_game.games.$gameId.play'
 import { Route as GameGamesGameIdPlayIndexRouteImport } from './routes/_game.games.$gameId.play.index'
-import { Route as GameGamesGameIdPlayActionsRouteImport } from './routes/_game.games.$gameId.play.actions'
-import { Route as GameGamesGameIdPlayFleetsRouteImport } from './routes/_game.games.$gameId.play.fleets'
 import { Route as GameGamesGameIdPlayGalaxyRouteImport } from './routes/_game.games.$gameId.play.galaxy'
 import { Route as GameGamesGameIdPlayPlanetsRouteImport } from './routes/_game.games.$gameId.play.planets'
 import { Route as GameGamesGameIdPlayPlayersRouteImport } from './routes/_game.games.$gameId.play.players'
@@ -72,18 +70,6 @@ const GameGamesGameIdPlayIndexRoute =
     path: '/',
     getParentRoute: () => GameGamesGameIdPlayRoute,
   } as any)
-const GameGamesGameIdPlayActionsRoute =
-  GameGamesGameIdPlayActionsRouteImport.update({
-    id: '/actions',
-    path: '/actions',
-    getParentRoute: () => GameGamesGameIdPlayRoute,
-  } as any)
-const GameGamesGameIdPlayFleetsRoute =
-  GameGamesGameIdPlayFleetsRouteImport.update({
-    id: '/fleets',
-    path: '/fleets',
-    getParentRoute: () => GameGamesGameIdPlayRoute,
-  } as any)
 const GameGamesGameIdPlayGalaxyRoute =
   GameGamesGameIdPlayGalaxyRouteImport.update({
     id: '/galaxy',
@@ -111,8 +97,6 @@ export interface FileRoutesByFullPath {
   '/games/create': typeof SiteGamesCreateRoute
   '/games/': typeof SiteGamesIndexRoute
   '/games/$gameId/play': typeof GameGamesGameIdPlayRouteWithChildren
-  '/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
-  '/games/$gameId/play/fleets': typeof GameGamesGameIdPlayFleetsRoute
   '/games/$gameId/play/galaxy': typeof GameGamesGameIdPlayGalaxyRoute
   '/games/$gameId/play/planets': typeof GameGamesGameIdPlayPlanetsRoute
   '/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
@@ -125,8 +109,6 @@ export interface FileRoutesByTo {
   '/games/$gameId': typeof SiteGamesGameIdRoute
   '/games/create': typeof SiteGamesCreateRoute
   '/games': typeof SiteGamesIndexRoute
-  '/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
-  '/games/$gameId/play/fleets': typeof GameGamesGameIdPlayFleetsRoute
   '/games/$gameId/play/galaxy': typeof GameGamesGameIdPlayGalaxyRoute
   '/games/$gameId/play/planets': typeof GameGamesGameIdPlayPlanetsRoute
   '/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
@@ -143,8 +125,6 @@ export interface FileRoutesById {
   '/_site/games/create': typeof SiteGamesCreateRoute
   '/_site/games/': typeof SiteGamesIndexRoute
   '/_game/games/$gameId/play': typeof GameGamesGameIdPlayRouteWithChildren
-  '/_game/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
-  '/_game/games/$gameId/play/fleets': typeof GameGamesGameIdPlayFleetsRoute
   '/_game/games/$gameId/play/galaxy': typeof GameGamesGameIdPlayGalaxyRoute
   '/_game/games/$gameId/play/planets': typeof GameGamesGameIdPlayPlanetsRoute
   '/_game/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
@@ -160,8 +140,6 @@ export interface FileRouteTypes {
     | '/games/create'
     | '/games/'
     | '/games/$gameId/play'
-    | '/games/$gameId/play/actions'
-    | '/games/$gameId/play/fleets'
     | '/games/$gameId/play/galaxy'
     | '/games/$gameId/play/planets'
     | '/games/$gameId/play/players'
@@ -174,8 +152,6 @@ export interface FileRouteTypes {
     | '/games/$gameId'
     | '/games/create'
     | '/games'
-    | '/games/$gameId/play/actions'
-    | '/games/$gameId/play/fleets'
     | '/games/$gameId/play/galaxy'
     | '/games/$gameId/play/planets'
     | '/games/$gameId/play/players'
@@ -191,8 +167,6 @@ export interface FileRouteTypes {
     | '/_site/games/create'
     | '/_site/games/'
     | '/_game/games/$gameId/play'
-    | '/_game/games/$gameId/play/actions'
-    | '/_game/games/$gameId/play/fleets'
     | '/_game/games/$gameId/play/galaxy'
     | '/_game/games/$gameId/play/planets'
     | '/_game/games/$gameId/play/players'
@@ -276,20 +250,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GameGamesGameIdPlayIndexRouteImport
       parentRoute: typeof GameGamesGameIdPlayRoute
     }
-    '/_game/games/$gameId/play/actions': {
-      id: '/_game/games/$gameId/play/actions'
-      path: '/actions'
-      fullPath: '/games/$gameId/play/actions'
-      preLoaderRoute: typeof GameGamesGameIdPlayActionsRouteImport
-      parentRoute: typeof GameGamesGameIdPlayRoute
-    }
-    '/_game/games/$gameId/play/fleets': {
-      id: '/_game/games/$gameId/play/fleets'
-      path: '/fleets'
-      fullPath: '/games/$gameId/play/fleets'
-      preLoaderRoute: typeof GameGamesGameIdPlayFleetsRouteImport
-      parentRoute: typeof GameGamesGameIdPlayRoute
-    }
     '/_game/games/$gameId/play/galaxy': {
       id: '/_game/games/$gameId/play/galaxy'
       path: '/galaxy'
@@ -315,8 +275,6 @@ declare module '@tanstack/react-router' {
 }
 
 interface GameGamesGameIdPlayRouteChildren {
-  GameGamesGameIdPlayActionsRoute: typeof GameGamesGameIdPlayActionsRoute
-  GameGamesGameIdPlayFleetsRoute: typeof GameGamesGameIdPlayFleetsRoute
   GameGamesGameIdPlayGalaxyRoute: typeof GameGamesGameIdPlayGalaxyRoute
   GameGamesGameIdPlayPlanetsRoute: typeof GameGamesGameIdPlayPlanetsRoute
   GameGamesGameIdPlayPlayersRoute: typeof GameGamesGameIdPlayPlayersRoute
@@ -324,8 +282,6 @@ interface GameGamesGameIdPlayRouteChildren {
 }
 
 const GameGamesGameIdPlayRouteChildren: GameGamesGameIdPlayRouteChildren = {
-  GameGamesGameIdPlayActionsRoute: GameGamesGameIdPlayActionsRoute,
-  GameGamesGameIdPlayFleetsRoute: GameGamesGameIdPlayFleetsRoute,
   GameGamesGameIdPlayGalaxyRoute: GameGamesGameIdPlayGalaxyRoute,
   GameGamesGameIdPlayPlanetsRoute: GameGamesGameIdPlayPlanetsRoute,
   GameGamesGameIdPlayPlayersRoute: GameGamesGameIdPlayPlayersRoute,

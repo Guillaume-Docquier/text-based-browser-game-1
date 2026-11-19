@@ -1,13 +1,10 @@
-import type { Fleet, Player, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
+import type { Player, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
 import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import { useState } from "react"
 import { flushSync } from "react-dom"
 import starImage from "@/assets/planets/star-small.png"
-import { MovingFleetMarkers, MovingFleetRoutes } from "@/features/play/fleets/markers/MovingFleetMarkers.tsx"
-import { getMovingFleetViews } from "@/features/play/galaxy/star-system/movingFleetViews.ts"
 import { PLANET_BIOME_IMAGES } from "@/features/play/galaxy/star-system/planetBiomeImages.ts"
-import { StationedFleetMarkers } from "@/features/play/galaxy/star-system/StationedFleetMarkers.tsx"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 import { PLAYER_COLOR_HEX, UNCLAIMED_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
@@ -18,7 +15,6 @@ const INNER_ORBIT_RADIUS = 90
 const ORBIT_SPACING = 70
 // Generated orbital slots are 5 AU apart; preserve unoccupied slots in the display.
 const ORBIT_SPACING_AU = 5
-// Room outside the system boundary for Fleet icons and Strength labels.
 const VIEW_PADDING = 60
 const PLANET_RADII = {
   SMALL: 25,
@@ -35,9 +31,7 @@ type PlanetViewModel = PlanetModel & {
  * Renders one Star System with its planets and occupied orbits.
  *
  * @param system - The Star System to render.
- * @param systems - The Galaxy's systems, used to locate both ends of a Fleet's route.
- * @param fleets - The Fleets visible in the Galaxy.
- * @param players - The players whose names and colors identify claimed Planets and Fleets.
+ * @param players - The players whose names and colors identify claimed Planets.
  * @param resetSignal - A value whose changes reset pan and zoom.
  * @param onSelectGalaxy - Returns to the galaxy-wide map.
  * @param onSelectPlanet - Selects a Planet for inspection.
@@ -45,16 +39,12 @@ type PlanetViewModel = PlanetModel & {
  */
 export function StarSystemMap({
   system,
-  systems,
-  fleets,
   players,
   resetSignal,
   onSelectGalaxy,
   onSelectPlanet,
 }: {
   system: StarSystem
-  systems: readonly StarSystem[]
-  fleets: readonly Fleet[]
   players: readonly Player[]
   resetSignal: number
   onSelectGalaxy: () => void
@@ -65,21 +55,7 @@ export function StarSystemMap({
   const planets = toPlanetViewModels(system)
   const outerOrbitRadius = planets.at(-1)?.orbitRadius ?? 0
   const boundaryRadius = outerOrbitRadius + ORBIT_SPACING * 2
-  const boundaryDistance =
-    Math.max(0, ...system.planets.map((planet) => Math.hypot(planet.x - system.star.x, planet.y - system.star.y))) +
-    Distance.convert(Distance.create(ORBIT_SPACING_AU * 2, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS).value
   const viewRadius = boundaryRadius + VIEW_PADDING
-  const movingFleets = getMovingFleetViews({
-    system,
-    systems,
-    planets,
-    fleets,
-    players,
-    boundaryRadius,
-    boundaryDistance,
-    center: CENTER,
-  })
-
   function selectGalaxy(): void {
     panZoom.centerOn(VIEWPORT_CENTER, { onCentered: onSelectGalaxy })
   }
@@ -90,7 +66,6 @@ export function StarSystemMap({
       <Planet
         key={`planet-${planet.id}`}
         planet={planet}
-        fleets={fleets.filter((fleet) => fleet.originPlanetId === planet.id && fleet.destinationPlanetId === undefined)}
         players={players}
         ownerName={getPlanetOwnerName(planet, players)}
         onSelect={onSelectPlanet}
@@ -124,7 +99,6 @@ export function StarSystemMap({
         {planets.map((planet) => (
           <OccupiedOrbit key={`orbit-${planet.id}`} radius={planet.orbitRadius} />
         ))}
-        <MovingFleetRoutes fleets={movingFleets} />
         {bodiesInPaintOrder.map((body) => (
           <g
             key={body.key}
@@ -142,7 +116,6 @@ export function StarSystemMap({
             {body}
           </g>
         ))}
-        <MovingFleetMarkers fleets={movingFleets} />
       </g>
     </svg>
   )
@@ -201,13 +174,11 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
 
 function Planet({
   planet,
-  fleets,
   players,
   ownerName,
   onSelect,
 }: {
   planet: PlanetViewModel
-  fleets: readonly Fleet[]
   players: readonly Player[]
   ownerName: string | undefined
   onSelect: (planet: PlanetModel) => void
@@ -246,7 +217,6 @@ function Planet({
         className="pointer-events-none"
       />
       <PlanetLabel planet={planet} ownerName={ownerName} ownerColor={ownerColor} />
-      <StationedFleetMarkers x={planet.x} y={planet.y + planet.radius + 30} fleets={fleets} players={players} />
       {/* Provides a larger pointer and keyboard focus target without changing the visible planet. */}
       <circle
         cx={planet.x}

@@ -17,9 +17,6 @@ import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
 import { accountsTable, gamesTable } from "#lib/db/schema.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
-import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
-import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
-import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 const YES_I_KNOW = "yes i know"
 
@@ -84,7 +81,6 @@ async function main({ connectionString, user }: { connectionString: string; user
   const db = createDb({ databaseUrl: connectionString })
 
   const accountsRepository = new AccountsRepository({ db, logger })
-  const rulesetsRepository = new RulesetsRepository({ db, logger })
   const gamesRepository = new GamesRepository({ db, logger })
 
   const createGameUseCase = new CreateGameUseCase({ gamesRepository })
@@ -98,9 +94,6 @@ async function main({ connectionString, user }: { connectionString: string; user
   try {
     logger.info("")
     const accounts = await seedAccounts({ db, user, logger, accountsRepository })
-
-    logger.info("")
-    await seedRulesets({ rulesetsRepository, logger })
 
     logger.info("")
     await seedGames({ db, accounts, logger, createGameUseCase, joinGameUseCase })
@@ -182,19 +175,6 @@ async function seedAccounts({
   return accounts
 }
 
-async function seedRulesets({ rulesetsRepository, logger }: { rulesetsRepository: RulesetsRepository; logger: Logger }): Promise<void> {
-  logger.info("Rulesets")
-  logger.info("├─ Upserting core rulesets")
-
-  for (const [index, ruleset] of CoreRulesets.entries()) {
-    const branch = index === CoreRulesets.length - 1 ? "└─" : "├─"
-    logger.info(`│  ${branch} ${ruleset.name}`)
-    Assert.isSuccess(await rulesetsRepository.upsertRuleset(ruleset))
-  }
-
-  logger.info("└─ Done")
-}
-
 async function seedGames({
   db,
   accounts,
@@ -246,7 +226,6 @@ const seedSoloGame = createGameSeeder({
   name: "solo game",
   nbSeats: 1,
   turnIntervalSeconds: inSeconds(Time.create(1, UnitOfTime.HOURS)),
-  rulesetId: StandardRuleset.id,
 })
 
 /**
@@ -256,7 +235,6 @@ const seedInsanelyFastGame = createGameSeeder({
   name: "insanely fast game",
   nbSeats: 5,
   turnIntervalSeconds: inSeconds(Time.create(10, UnitOfTime.SECONDS)),
-  rulesetId: StandardRuleset.id,
 })
 
 /**
@@ -266,7 +244,6 @@ const seedCommunityGame = createGameSeeder({
   name: "community game",
   nbSeats: 10,
   turnIntervalSeconds: inSeconds(Time.create(2, UnitOfTime.HOURS)),
-  rulesetId: StandardRuleset.id,
 })
 
 /**
@@ -276,7 +253,6 @@ const seedMaximumPlayersGame = createGameSeeder({
   name: "maximum players game",
   nbSeats: MAX_NB_SEATS,
   turnIntervalSeconds: inSeconds(Time.create(1, UnitOfTime.DAYS)),
-  rulesetId: StandardRuleset.id,
 })
 
 function createGameSeeder(configuration: GameConfiguration): (input: SeedGameInput) => Promise<void> {

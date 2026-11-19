@@ -1,8 +1,5 @@
-import { Datetime, type Logger, mulberry32Prng, Result, Rng, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
-import { computeAvailableActions } from "shared/action-submission/computeAvailableActions.ts"
-import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import { Datetime, type Logger, mulberry32Prng, Result, Rng, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { resolveTurn } from "shared/turn-resolution/resolveTurn.ts"
-import type { ResolveTurnError } from "shared/turn-resolution/ResolveTurnError.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { ElapsedTimeContextProvider } from "#turn-processing/ElapsedTimeContextProvider.ts"
@@ -60,7 +57,7 @@ export class TurnProcessor {
 
   /**
    * Processes the next turn that should advance at this point in time.
-   * This will resolve all player actions, update the game state and schedule the next turn.
+   * Runs Turn Resolution and schedules the next Turn.
    */
   public async processNextDueTurn(): Promise<"processed" | "idle" | "failed"> {
     const processingLogger = this.logger.child({ scope: "processNextDueTurn", contextProviders: [new ElapsedTimeContextProvider()] })
@@ -92,17 +89,8 @@ export class TurnProcessor {
     }
 
     processingLogger.info("Processing turn", { gameId: turnToProcess.gameId, turn: turnToProcess.turn })
-    const processedTurnResult = this.processTurn(turnToProcess)
-    if (Result.isFailure(processedTurnResult)) {
-      processingLogger.error("Could not resolve turn", {
-        gameId: turnToProcess.gameId,
-        turn: turnToProcess.turn,
-        error: processedTurnResult.error,
-      })
-      return "failed"
-    }
-
-    const saveResult = await this.turnsRepository.saveProcessedTurn(processedTurnResult.value)
+    const processedTurn = this.processTurn(turnToProcess)
+    const saveResult = await this.turnsRepository.saveProcessedTurn(processedTurn)
     if (Result.isFailure(saveResult)) {
       processingLogger.error("Could not save processed turn", {
         gameId: turnToProcess.gameId,
@@ -116,73 +104,19 @@ export class TurnProcessor {
     return "processed"
   }
 
-  private processTurn(turnToProcess: TurnToProcessModel): Result<ProcessedTurnModel, ResolveTurnError> {
-    const rng = Rng.fromState(turnToProcess.rngState, mulberry32Prng)
-    const resolvedTurnResult = resolveTurn(
-      {
-        gameId: turnToProcess.gameId,
-        turn: turnToProcess.turn,
-        submittedActions: turnToProcess.submittedActions,
-        players: turnToProcess.players,
-        planets: turnToProcess.planets,
-        fleets: turnToProcess.fleets,
-        winnerPlayerId: undefined,
-      },
-      turnToProcess.ruleset,
-      rng,
-    )
-    if (Result.isFailure(resolvedTurnResult)) {
-      return resolvedTurnResult
-    }
+  private processTurn({ gameId, turn, closedAt, turnInterval, rngState, players, planets }: TurnToProcessModel): ProcessedTurnModel {
+    const rng = Rng.fromState(rngState, mulberry32Prng)
+    resolveTurn({ gameId, turn, players, planets }, rng)
 
     const processedAt = this.clock.now()
-    const fleetsToUpdate = []
-    const fleetIdsToDelete = []
-    for (const fleet of Object.values(resolvedTurnResult.value.fleets)) {
-      if (fleet.strength === 0) {
-        fleetIdsToDelete.push(fleet.id)
-      } else {
-        fleetsToUpdate.push(fleet)
-      }
-    }
-
-    const turnResult: ProcessedTurnModel = {
-      gameId: turnToProcess.gameId,
-      turn: turnToProcess.turn,
-      nextTurn: turnToProcess.turn + 1,
-      availableActions: computeAvailableActions({
-        playerIds: Object.values(resolvedTurnResult.value.players).map(({ id }) => id),
-        ruleset: turnToProcess.ruleset,
-      }),
+    return {
+      gameId,
+      turn,
       processedAt,
       rngState: rng.getState(),
-      playerResources: Object.values(resolvedTurnResult.value.players).flatMap((player) =>
-        Object.values(ResourceType).map((resourceType) => ({
-          playerId: player.id,
-          resourceType,
-          amount: player.resources[resourceType],
-        })),
-      ),
-      fleetsToUpdate,
-      fleetIdsToDelete,
+      nextTurn: turn + 1,
+      nextTurnScheduledFor: getNextTurnScheduledFor({ turnClosedAt: closedAt, processedAt, turnInterval }),
     }
-
-    if (resolvedTurnResult.value.winnerPlayerId === undefined) {
-      return Result.Success({
-        ...turnResult,
-        nextTurnScheduledFor: getNextTurnScheduledFor({
-          turnClosedAt: turnToProcess.closedAt,
-          processedAt,
-          turnInterval: turnToProcess.turnInterval,
-        }),
-      })
-    }
-
-    return Result.Success({
-      ...turnResult,
-      winnerAccountId: branded(resolvedTurnResult.value.winnerPlayerId),
-      endedAt: processedAt,
-    })
   }
 }
 

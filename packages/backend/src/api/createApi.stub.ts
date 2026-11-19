@@ -8,7 +8,6 @@ import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { GamesRepository } from "#api/games/games.repository.ts"
 import { Clock } from "#lib/Clock.ts"
 import { createCreateTransaction, type Database } from "#lib/db/createDb.ts"
-import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
 type AllServices = Omit<Parameters<typeof createApi>[0], "authService">
 
@@ -29,7 +28,6 @@ export async function createApiStub({ db, clock = Clock }: { db: Database; clock
     accountsRepository,
     gamesRepository: new GamesRepository({ db, logger }),
     gameplayRepository: new GameplayRepository({ db, logger, clock }),
-    rulesetsRepository: new RulesetsRepository({ db, logger }),
   } as const satisfies Parameters<typeof createApi>[0]
 
   const api = await createApi(apiServices)

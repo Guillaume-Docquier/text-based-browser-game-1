@@ -28,11 +28,6 @@ describe("Star System map interactions", () => {
       await expect.poll(() => bodyOrder().at(-1)).toBe("View Terra details")
       await star.hover()
       await expect.poll(() => bodyOrder().at(-1)).toBe("Return to Galaxy from Sol")
-      // The marker's bounding box includes empty space between icon and label.
-      const fleetIcon = map.getByRole("img", { name: "Home Guard, Alice, 10 strength" }).element().querySelector("svg")
-      Assert.isTrue(fleetIcon instanceof SVGSVGElement)
-      await userEvent.hover(fleetIcon)
-      await expect.poll(() => bodyOrder().at(-1)).toBe("View Terra details")
     })
 
     await page.mark("Leave the map to restore the original paint order", async () => {

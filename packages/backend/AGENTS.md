@@ -34,7 +34,7 @@ On Windows with Codex, `CodexSandboxOffline` cannot access the Docker daemon pip
 - The router is the strict testing boundary for API vertical slices. Exercise each slice through the API client, covering the real router, use case, and production repository together.
 - Never write repository tests or controller/use-case tests for these slices.
 - Never implement test repositories, including repositories that insert or modify game state solely for test setup.
-- Integration tests must set up and observe game state through the API. Create and start games with the test client, then submit actions and process turns to reach the required state. Use a fixed galaxy seed for deterministic scenarios.
+- Integration tests must set up and observe game state through the API. Create and start games with the test client, then use Readiness or advance the test clock to process turns. Use a fixed galaxy seed for deterministic scenarios.
 - Concurrency tests use real PostgreSQL and access the database directly to acquire temporary locks to ensure the race conditions under test are created.
 
 ### General testing guidelines
@@ -48,6 +48,6 @@ On Windows with Codex, `CodexSandboxOffline` cannot access the Docker daemon pip
 
 ## Drizzle Gotchas
 
-- Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. Throw an operation-specific subclass of `TransactionRollbackError` instead, e.g. `throw new UpdateActionSubmissionRollbackError(UpdateActionSubmissionError.INVALID_SUBMISSION)`. Define the subclass in the companion `*.error.ts` module and import it from there; the base class may only be imported in `*.error.ts` files. See [ADR-033](../../docs/architecture/decisions/033-router-use-case-repository.md#use-case).
+- Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. Throw an operation-specific subclass of `TransactionRollbackError` instead, e.g. `throw new UpdateReadinessRollbackError(UpdateReadinessError.TURN_NOT_OPEN)`. Define the subclass in the companion `*.error.ts` module and import it from there; the base class may only be imported in `*.error.ts` files. See [ADR-033](../../docs/architecture/decisions/033-router-use-case-repository.md#use-case).
 - Do not return `Result` values from transaction callbacks. Throw the operation-specific rollback error to abort the transaction, or return the value directly. Let rollback errors escape the callback so Drizzle rolls back; convert them to an operation failure only after the transaction has rejected, as described in [ADR-013](../../docs/architecture/decisions/013-use-results-and-never-throw.md).
 - Do not add `runInTransaction` helpers or flatten nested transaction calls. Drizzle supports nested transactions. If a method must run inside an existing transaction, type its argument as a transaction; otherwise let it create a transaction for its own unit of work.

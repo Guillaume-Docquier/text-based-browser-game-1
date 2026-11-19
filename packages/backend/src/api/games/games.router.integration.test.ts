@@ -7,25 +7,17 @@ import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
-import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { CreateGameError, CreateGameErrorResponses } from "#api/games/createGame.error.ts"
 import { GetGameByIdError, GetGameByIdErrorResponses } from "#api/games/getGameById.error.ts"
 import { JoinGameError, JoinGameErrorResponses } from "#api/games/joinGame.error.ts"
 import { LeaveGameError, LeaveGameErrorResponses } from "#api/games/leaveGame.error.ts"
-import type { RulesetSummary } from "#api/games/RulesetSummary.ts"
 import { StartGameError, StartGameErrorResponses } from "#api/games/startGame.error.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { createIntegrationTestDb } from "#tests/createIntegrationTestDb.ts"
-
-const TEST_RULESET_SUMMARY: RulesetSummary = {
-  id: TestRuleset.id,
-  name: TestRuleset.name,
-  isDefault: TestRuleset.isDefault,
-}
 
 describe("games.router", () => {
   describe("getListings", () => {
@@ -270,23 +262,6 @@ describe("games.router", () => {
     })
   })
 
-  describe("getCreationSettings", () => {
-    it("should return backend-driven defaults and limits", async () => {
-      // Arrange
-      await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const player = await apiServer.createClient({ authenticated: true })
-
-      // Act
-      const creationSettings = await player.client.games.getCreationSettings.query()
-
-      // Assert
-      expect(creationSettings).toStrictEqual<typeof creationSettings>({
-        rulesets: [TEST_RULESET_SUMMARY],
-      })
-    })
-  })
-
   describe("create", () => {
     it.each([0, UInt32.max])("should accept the UInt32 seed %i", async (mapGenerationSeed) => {
       // Arrange
@@ -314,21 +289,6 @@ describe("games.router", () => {
 
       // Assert
       await expect(createGame).rejects.toMatchErrorResponse(CreateGameErrorResponses[CreateGameError.INVALID_MAP_SEED])
-    })
-
-    it("should reject an unknown Ruleset", async () => {
-      // Arrange
-      await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const creator = await apiServer.createClient({ authenticated: true })
-
-      // Act
-      const createGame = creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ rulesetId: "unknown" }),
-      })
-
-      // Assert
-      await expect(createGame).rejects.toMatchErrorResponse(CreateGameErrorResponses[CreateGameError.UNKNOWN])
     })
 
     it("should create a game for the authenticated player", async () => {
@@ -359,11 +319,9 @@ describe("games.router", () => {
           name: newGameSettings.name,
           nbSeats: newGameSettings.nbSeats,
           turnIntervalSeconds: newGameSettings.turnIntervalSeconds,
-          ruleset: TEST_RULESET_SUMMARY,
         },
         endedAt: null,
         startedAt: null,
-        winnerAccountId: null,
         creator: expectedCreator,
         players: [expectedCreator],
         status: GameStatus.WAITING_FOR_PLAYERS,
@@ -461,12 +419,10 @@ describe("games.router", () => {
         id: createdGameId,
         createdAt: expect.any(String),
         endedAt: null,
-        winnerAccountId: null,
         configuration: {
           name: newGameSettings.name,
           nbSeats: newGameSettings.nbSeats,
           turnIntervalSeconds: newGameSettings.turnIntervalSeconds,
-          ruleset: TEST_RULESET_SUMMARY,
         },
         startedAt: null,
         creator: expectedCreator,
@@ -502,12 +458,10 @@ describe("games.router", () => {
         id: createdGameId,
         createdAt: expect.any(String),
         endedAt: null,
-        winnerAccountId: null,
         configuration: {
           name: newGameSettings.name,
           nbSeats: newGameSettings.nbSeats,
           turnIntervalSeconds: newGameSettings.turnIntervalSeconds,
-          ruleset: TEST_RULESET_SUMMARY,
         },
         startedAt: null,
         creator: expectedCreator,
@@ -665,12 +619,10 @@ describe("games.router", () => {
         id: createdGameId,
         createdAt: expect.any(String),
         endedAt: null,
-        winnerAccountId: null,
         configuration: {
           name: newGameSettings.name,
           nbSeats: newGameSettings.nbSeats,
           turnIntervalSeconds: newGameSettings.turnIntervalSeconds,
-          ruleset: TEST_RULESET_SUMMARY,
         },
         startedAt: null,
         creator: expectedCreator,
@@ -791,12 +743,10 @@ describe("games.router", () => {
         id: createdGameId,
         createdAt: expect.any(String),
         endedAt: null,
-        winnerAccountId: null,
         configuration: {
           name: newGameSettings.name,
           nbSeats: newGameSettings.nbSeats,
           turnIntervalSeconds: newGameSettings.turnIntervalSeconds,
-          ruleset: TEST_RULESET_SUMMARY,
         },
         startedAt: null,
         creator: expectedCreator,

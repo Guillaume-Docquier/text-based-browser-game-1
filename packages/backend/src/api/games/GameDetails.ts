@@ -1,15 +1,12 @@
-import { AccountIdSchema } from "shared/domain/accounts/AccountId.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerSchema } from "shared/domain/players/Player.ts"
 import { z } from "zod"
-import { RulesetSummarySchema } from "./RulesetSummary.ts"
 
 const GameConfigurationDetailsSchema = z.object({
   name: z.string(),
   nbSeats: z.number(),
   turnIntervalSeconds: z.number(),
-  ruleset: RulesetSummarySchema,
 })
 
 /**
@@ -18,7 +15,6 @@ const GameConfigurationDetailsSchema = z.object({
 export type GameDetails = z.infer<typeof GameDetailsSchema>
 export const GameDetailsSchema = z.object({
   id: GameIdSchema,
-  winnerAccountId: AccountIdSchema.nullable(),
   configuration: GameConfigurationDetailsSchema,
   createdAt: z.date(),
   startedAt: z.date().nullable(),

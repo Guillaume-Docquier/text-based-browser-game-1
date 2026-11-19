@@ -3,7 +3,7 @@ import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GameDetailsPage } from "../pages/GameDetailsPage.ts"
 
-test("being ready locks selected actions and the turn resolves when all players are ready", async ({ alice, bob }) => {
+test("an empty turn resolves when all players are ready and resets readiness", async ({ alice, bob }) => {
   const aliceGameDetailsPage = await test.step("Create a game for Alice and Bob", async () => {
     return await CreateGamePage.createGame({
       creator: alice,
@@ -14,13 +14,10 @@ test("being ready locks selected actions and the turn resolves when all players 
   })
   const bobGameDetailsPage = new GameDetailsPage(bob.page)
 
-  const alicePlayersPage = await test.step("Alice starts the game and selects an action", async () => {
+  const alicePlayersPage = await test.step("Alice starts the game and opens the Players tab", async () => {
     await aliceGameDetailsPage.reload()
     const galaxyPage = await aliceGameDetailsPage.startGame()
-    const actionsPage = await galaxyPage.openActions()
-    await actionsPage.toggleActionSelection("Extract Metal")
-    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "true")
-    return await actionsPage.openPlayers()
+    return await galaxyPage.openPlayers()
   })
 
   const bobPlayersPage = await test.step("Bob opens the Players tab", async () => {
@@ -38,34 +35,19 @@ test("being ready locks selected actions and the turn resolves when all players 
     await expect(bobPlayersPage.opponentReady).toBeVisible({ timeout: 15000 })
   })
 
-  const aliceActionsPage = await test.step("Alice cannot change her actions while ready", async () => {
-    const actionsPage = await alicePlayersPage.openActions()
-    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-disabled", "true")
-    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "true")
-    return actionsPage
-  })
-
-  await test.step("Alice cancels lock-in from Actions and can change her choices again", async () => {
-    await aliceActionsPage.toggleLockIn()
-    await expect(aliceActionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-disabled", "false")
-    await aliceActionsPage.toggleActionSelection("Extract Metal")
-    await expect(aliceActionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "false")
+  await test.step("Alice cancels lock-in and Bob sees her public status change", async () => {
+    await alicePlayersPage.toggleLockIn()
+    await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
+    await expect(bobPlayersPage.opponentNotReady).toBeVisible({ timeout: 15000 })
   })
 
   await test.step("Alice readies", async () => {
-    await aliceActionsPage.openPlayers()
     await alicePlayersPage.toggleReady()
     await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "true")
   })
 
-  await test.step("Bob selects an action and readies", async () => {
-    const actionsPage = await bobPlayersPage.openActions()
-    await actionsPage.toggleActionSelection("Extract Metal")
-    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "true")
-
-    await actionsPage.openPlayers()
+  await test.step("Bob readies", async () => {
     await bobPlayersPage.toggleReady()
-    await expect(bobPlayersPage.readyButton).toHaveAttribute("aria-pressed", "true")
   })
 
   await test.step("Both players advance with readiness reset", async () => {
@@ -74,16 +56,5 @@ test("being ready locks selected actions and the turn resolves when all players 
     await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
     await expect(bobPlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
     await expect(alicePlayersPage.opponentNotReady).toBeVisible()
-
-    await alicePlayersPage.openActions()
-    await expect(aliceActionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-disabled", "false")
-  })
-
-  await test.step("Bob receives his action resources while Alice's resources remain unchanged", async () => {
-    await expect(bobPlayersPage.resource("Influence")).toHaveAttribute("aria-label", "2 available of 2 Influence")
-    await expect(bobPlayersPage.resource("Metal")).toHaveAttribute("aria-label", "7 available of 7 Metal")
-
-    await expect(aliceActionsPage.resource("Influence")).toHaveAttribute("aria-label", "3 available of 3 Influence")
-    await expect(aliceActionsPage.resource("Metal")).toHaveAttribute("aria-label", "2 available of 2 Metal")
   })
 })

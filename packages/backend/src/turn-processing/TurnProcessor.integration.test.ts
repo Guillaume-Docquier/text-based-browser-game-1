@@ -1,22 +1,10 @@
-import { Assert, branded, Datetime, type DeepUnbranded, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
-import { ResourceType } from "shared/domain/resources/ResourceType.ts"
-import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
-import { BuildFleetStandard } from "shared/testing/test-ruleset/action-definitions/build-fleet.ts"
-import { GainFuel } from "shared/testing/test-ruleset/action-definitions/gain-fuel.ts"
-import { GainInfluence } from "shared/testing/test-ruleset/action-definitions/gain-influence.ts"
-import { GainMetal } from "shared/testing/test-ruleset/action-definitions/gain-metal.ts"
-import { MoveFleetImproved } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
-import { WinTheGame } from "shared/testing/test-ruleset/action-definitions/win-the-game.ts"
 import { afterEach, describe, expect, vi, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createPlayerViewResourcesStub } from "#api/gameplay/PlayerViewResources.stub.ts"
-import type { SubmittedActionTargets } from "#api/gameplay/SubmittedActionTargets.ts"
-import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { createIntegrationTestDb } from "#tests/createIntegrationTestDb.ts"
-import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import { type ProcessedTurnModel, TurnsRepository } from "#turn-processing/turns.repository.ts"
 
@@ -59,12 +47,10 @@ describe("TurnProcessor", () => {
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: firstGameId })).toMatchObject({
         turn: 2,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: secondGameId })).toMatchObject({
         turn: 2,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
 
@@ -103,12 +89,10 @@ describe("TurnProcessor", () => {
       // No turns were processed because turns in error block, this will be resolved by https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/278
       expect(await player.client.gameplay.getPlayerView.query({ gameId: failingGameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: successfulGameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
   })
@@ -131,11 +115,6 @@ describe("TurnProcessor", () => {
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: 1,
-        submittedActionTargets: getActionToSubmit(initialPlayerView, GainInfluence.id),
-      })
 
       // Act
       clock.increment({ time: turnInterval })
@@ -144,397 +123,11 @@ describe("TurnProcessor", () => {
 
       // Assert
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const repeatedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>({
         ...initialPlayerView,
         turn: 2,
         turnEndsAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
-        resources: createPlayerViewResourcesStub({
-          [ResourceType.INFLUENCE]: { uncommitted: 8, total: 8 },
-          [ResourceType.METAL]: { uncommitted: 2, total: 2 },
-          [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
-        }),
-        actions: expect.any(Array),
       })
-      expect(playerView.actions.map(({ id }) => id)).toStrictEqual(initialPlayerView.actions.map(({ id }) => id))
-      expect(playerView.actions.every(({ selectedTargets }) => selectedTargets === null)).toBe(true)
-      expect(repeatedPlayerView.actions).toStrictEqual(playerView.actions)
-    })
-
-    it("should process multiple submitted actions", async () => {
-      // Arrange
-      await using db = await createIntegrationTestDb()
-      const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
-      const player = await apiServer.createClient({ authenticated: true })
-
-      const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
-      const { createdGameId } = await player.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
-      })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      for (const actionDefinitionId of [GainFuel.id, GainMetal.id]) {
-        await player.client.gameplay.updateActionSubmission.mutate({
-          gameId: createdGameId,
-          turn: initialPlayerView.turn,
-          submittedActionTargets: getActionToSubmit(initialPlayerView, actionDefinitionId),
-        })
-      }
-
-      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-
-      // Act
-      clock.increment({ time: turnInterval })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      await turnProcessor.processNextDueTurn()
-
-      // Assert
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
-        turn: 2,
-        resources: createPlayerViewResourcesStub({
-          [ResourceType.METAL]: { uncommitted: 5, total: 5 },
-          [ResourceType.FUEL]: { uncommitted: 6, total: 6 },
-        }),
-      })
-    })
-
-    it("should process actions that build fleets", async () => {
-      // Arrange
-      await using db = await createIntegrationTestDb()
-      const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
-      const player = await apiServer.createClient({ authenticated: true })
-
-      // Create the game
-      const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
-      const { createdGameId } = await player.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
-      })
-
-      // Start the game
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      const buildFleet = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
-      Assert.isDefined(buildFleet)
-
-      const homePlanet = initialPlayerView.galaxy.systems
-        .flatMap(({ planets }) => planets)
-        .find(({ ownerPlayerId }) => ownerPlayerId === branded(player.account.id))
-      Assert.isDefined(homePlanet)
-
-      // Build a fleet
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: initialPlayerView.turn,
-        submittedActionTargets: { actionId: buildFleet.id, selectedTargets: { planet: homePlanet.id } },
-      })
-
-      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-
-      // Act
-      clock.increment({ time: turnInterval })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      await turnProcessor.processNextDueTurn()
-
-      // Assert
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(initialPlayerView.fleets).toStrictEqual([])
-      expect(playerView.fleets).toStrictEqual([
-        {
-          id: expect.any(String), // this is deterministic, but we cannot control the initial game rng state
-          ownerPlayerId: player.account.id,
-          name: expect.any(String), // this is deterministic, but we cannot control the initial game rng state
-          strength: 10,
-          originPlanetId: homePlanet.id,
-        },
-      ])
-    })
-
-    it("should persist a fleet in transit and land it after another turn", async () => {
-      // Arrange
-      await using db = await createIntegrationTestDb()
-      const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
-      const player = await apiServer.createClient({ authenticated: true })
-      const turnInterval = Time.create(10, UnitOfTime.SECONDS)
-      const { createdGameId: gameId } = await player.client.games.create.mutate({
-        configuration: createGameConfigurationStub({
-          turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS),
-          mapGenerationSeed: 1234,
-        }),
-      })
-      await player.client.games.startGame.mutate({ gameId })
-      const initialView = await player.client.gameplay.getPlayerView.query({ gameId })
-      const planets = initialView.galaxy.systems.flatMap(({ planets }) => planets)
-      const origin = planets.find(({ ownerPlayerId }) => ownerPlayerId === branded(player.account.id))
-      Assert.isDefined(origin)
-      // With seed 1234, this planet is about 1.146 light years from the home planet.
-      const destination = planets.find(({ coordinates }) => coordinates === "55:07:50")
-      Assert.isDefined(destination)
-      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-
-      // Earn enough resources to build a fleet and refine its fuel next turn.
-      for (const actionDefinitionId of [GainInfluence.id, GainMetal.id]) {
-        await player.client.gameplay.updateActionSubmission.mutate({
-          gameId,
-          turn: initialView.turn,
-          submittedActionTargets: getActionToSubmit(initialView, actionDefinitionId),
-        })
-      }
-      clock.increment({ time: turnInterval })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      const fundedView = await player.client.gameplay.getPlayerView.query({ gameId })
-
-      for (const submittedActionTargets of [
-        getActionToSubmit(fundedView, BuildFleetStandard.id, { planet: origin.id }),
-        getActionToSubmit(fundedView, GainFuel.id),
-        getActionToSubmit(fundedView, GainInfluence.id),
-      ]) {
-        await player.client.gameplay.updateActionSubmission.mutate({
-          gameId,
-          turn: fundedView.turn,
-          submittedActionTargets,
-        })
-      }
-      clock.increment({ time: turnInterval })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      const builtView = await player.client.gameplay.getPlayerView.query({ gameId })
-      const fleet = builtView.fleets[0]
-      Assert.isDefined(fleet)
-      expect(builtView.fleets).toHaveLength(1)
-      expect(fleet).toMatchObject({ ownerPlayerId: player.account.id, originPlanetId: origin.id, strength: 10 })
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: builtView.turn,
-        submittedActionTargets: getActionToSubmit(builtView, MoveFleetImproved.id, {
-          fleet: fleet.id,
-          planet: destination.id,
-        }),
-      })
-
-      // Act
-      clock.increment({ time: turnInterval })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      const firstTurnResult = await turnProcessor.processNextDueTurn()
-      const inTransitView = await player.client.gameplay.getPlayerView.query({ gameId })
-
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: inTransitView.turn,
-        submittedActionTargets: getActionToSubmit(inTransitView, MoveFleetImproved.id, {
-          fleet: fleet.id,
-          planet: destination.id,
-        }),
-      })
-      clock.increment({ time: turnInterval })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      const secondTurnResult = await turnProcessor.processNextDueTurn()
-      const landedView = await player.client.gameplay.getPlayerView.query({ gameId })
-
-      // Assert
-      expect(firstTurnResult).toBe("processed")
-      expect(secondTurnResult).toBe("processed")
-      expect(inTransitView.turn).toBe(4)
-      expect(inTransitView.fleets).toStrictEqual([
-        {
-          ...fleet,
-          destinationPlanetId: destination.id,
-          distanceToEnd: expect.closeTo(0.1456435045942517, 12),
-        },
-      ])
-      expect(landedView.turn).toBe(5)
-      expect(landedView.fleets).toStrictEqual([
-        {
-          ...fleet,
-          originPlanetId: destination.id,
-        },
-      ])
-    })
-
-    it("should merge an arriving fleet with the player's fleet at the destination in one turn", async () => {
-      // Arrange
-      await using db = await createIntegrationTestDb()
-      const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
-      const player = await apiServer.createClient({ authenticated: true })
-      const turnInterval = Time.create(10, UnitOfTime.SECONDS)
-      const { createdGameId: gameId } = await player.client.games.create.mutate({
-        configuration: createGameConfigurationStub({
-          turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS),
-          mapGenerationSeed: 1234,
-        }),
-      })
-      await player.client.games.startGame.mutate({ gameId })
-      const initialView = await player.client.gameplay.getPlayerView.query({ gameId })
-      const planets = initialView.galaxy.systems.flatMap(({ planets }) => planets)
-      const homePlanet = planets.find(({ ownerPlayerId }) => ownerPlayerId === branded(player.account.id))
-      Assert.isDefined(homePlanet)
-      // This planet shares the home system, so an improved move takes one turn.
-      const nearbyPlanet = planets.find(({ coordinates }) => coordinates === "45:98:25")
-      Assert.isDefined(nearbyPlanet)
-      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-
-      for (const actionDefinitionId of [GainInfluence.id, GainMetal.id]) {
-        await player.client.gameplay.updateActionSubmission.mutate({
-          gameId,
-          turn: initialView.turn,
-          submittedActionTargets: getActionToSubmit(initialView, actionDefinitionId),
-        })
-      }
-      clock.increment({ time: turnInterval })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      const fundedView = await player.client.gameplay.getPlayerView.query({ gameId })
-
-      for (const submittedActionTargets of [
-        getActionToSubmit(fundedView, BuildFleetStandard.id, { planet: homePlanet.id }),
-        getActionToSubmit(fundedView, GainFuel.id),
-        getActionToSubmit(fundedView, GainInfluence.id),
-      ]) {
-        await player.client.gameplay.updateActionSubmission.mutate({
-          gameId,
-          turn: fundedView.turn,
-          submittedActionTargets,
-        })
-      }
-      clock.increment({ time: turnInterval })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      const builtView = await player.client.gameplay.getPlayerView.query({ gameId })
-      const movingFleet = builtView.fleets[0]
-      Assert.isDefined(movingFleet)
-      expect(builtView.fleets).toHaveLength(1)
-
-      // Move the first fleet away, then build a second fleet at home.
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: builtView.turn,
-        submittedActionTargets: getActionToSubmit(builtView, MoveFleetImproved.id, {
-          fleet: movingFleet.id,
-          planet: nearbyPlanet.id,
-        }),
-      })
-      clock.increment({ time: turnInterval })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      const awayView = await player.client.gameplay.getPlayerView.query({ gameId })
-      expect(awayView.fleets).toStrictEqual([{ ...movingFleet, originPlanetId: nearbyPlanet.id }])
-
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: awayView.turn,
-        submittedActionTargets: getActionToSubmit(awayView, BuildFleetStandard.id, { planet: homePlanet.id }),
-      })
-      clock.increment({ time: turnInterval })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-      const returnView = await player.client.gameplay.getPlayerView.query({ gameId })
-      const stationedFleet = returnView.fleets.find(({ originPlanetId }) => originPlanetId === homePlanet.id)
-      Assert.isDefined(stationedFleet)
-      expect(returnView.fleets).toHaveLength(2)
-      expect(stationedFleet.id).not.toBe(movingFleet.id)
-      expect(returnView.fleets.map(({ strength }) => strength)).toStrictEqual([10, 10])
-
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: returnView.turn,
-        submittedActionTargets: getActionToSubmit(returnView, MoveFleetImproved.id, {
-          fleet: movingFleet.id,
-          planet: homePlanet.id,
-        }),
-      })
-
-      // Act
-      clock.increment({ time: turnInterval })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      const turnResult = await turnProcessor.processNextDueTurn()
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId })
-
-      // Assert
-      expect(turnResult).toBe("processed")
-      expect(playerView.turn).toBe(6)
-      expect(playerView.fleets).toStrictEqual([
-        {
-          ...stationedFleet,
-          strength: 20,
-        },
-      ])
-    })
-
-    it.each([
-      { turnInterval: Time.create(100, UnitOfTime.SECONDS), timeIncrement: Time.create(116, UnitOfTime.SECONDS) },
-      { turnInterval: Time.create(100, UnitOfTime.MINUTES), timeIncrement: Time.create(103, UnitOfTime.MINUTES) },
-    ])(
-      "should schedule the next turn from the current time when the delay exceeds 15 percent of the interval, capped at 2 minutes",
-      async ({ turnInterval, timeIncrement }) => {
-        // Arrange
-        await using db = await createIntegrationTestDb()
-        const clock = new ControlledClock()
-        using apiServer = new ApiServer(await createApiStub({ db, clock }))
-        const player = await apiServer.createClient({ authenticated: true })
-
-        const { createdGameId } = await player.client.games.create.mutate({
-          configuration: createGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
-        })
-        await player.client.games.startGame.mutate({ gameId: createdGameId })
-
-        const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-
-        // Act
-        clock.increment({ time: timeIncrement })
-        await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-        await turnProcessor.processNextDueTurn()
-
-        // Assert
-        expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
-          turn: 2,
-          turnEndsAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
-        })
-      },
-    )
-
-    it("should fail the turn when a locked action submission is no longer affordable", async () => {
-      // Arrange
-      await using db = await createIntegrationTestDb()
-      const clock = new ControlledClock()
-      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
-      using apiServer = new ApiServer({ api, accountsRepository })
-      const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ turnIntervalSeconds: 10 }),
-      })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-
-      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-      const resourcesRepository = new ResourcesRepository({ db, logger })
-      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: 1,
-        submittedActionTargets: getActionToSubmit(initialPlayerView, GainMetal.id),
-      })
-      Assert.isSuccess(
-        await resourcesRepository.updateResource({
-          gameId: createdGameId,
-          playerId: branded(player.account.id),
-          resourceType: ResourceType.INFLUENCE,
-          amountDelta: -3,
-        }),
-      )
-
-      // Act
-      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      const result = await turnProcessor.processNextDueTurn()
-
-      // Assert
-      expect(result).toBe("failed")
     })
 
     it("should process only the earliest scheduled turn in one invocation", async () => {
@@ -568,12 +161,10 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
         turn: 2,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
 
@@ -604,7 +195,6 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
         turn: 3,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
 
@@ -639,91 +229,10 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: failingGameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: successfulGameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
-      })
-    })
-
-    it("should fully process every player and select at most one deterministic winner", async () => {
-      // Arrange
-      await using db = await createIntegrationTestDb()
-      const clock = new ControlledClock()
-      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
-      using apiServer = new ApiServer({ api, accountsRepository })
-      const creator = await apiServer.createClient({ authenticated: true })
-      const joiner = await apiServer.createClient({ authenticated: true })
-
-      const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createGameConfigurationStub({ turnIntervalSeconds: 10 }),
-      })
-      await joiner.client.games.join.mutate({ gameId: createdGameId })
-      await creator.client.games.startGame.mutate({ gameId: createdGameId })
-
-      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-      const resourcesRepository = new ResourcesRepository({ db, logger })
-
-      for (const { player, amountDelta } of [
-        { player: creator, amountDelta: 10 },
-        { player: joiner, amountDelta: 12 },
-      ]) {
-        for (const resourceType of [ResourceType.INFLUENCE, ResourceType.METAL, ResourceType.FUEL, ResourceType.ENERGY]) {
-          const updateResourceResult = await resourcesRepository.updateResource({
-            gameId: createdGameId,
-            playerId: branded(player.account.id),
-            resourceType,
-            amountDelta,
-          })
-          Assert.isSuccess(updateResourceResult)
-        }
-        const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-        await player.client.gameplay.updateActionSubmission.mutate({
-          gameId: createdGameId,
-          turn: 1,
-          submittedActionTargets: getActionToSubmit(playerView, WinTheGame.id),
-        })
-      }
-
-      const creatorViewBeforeProcessing = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const joinerViewBeforeProcessing = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Act
-      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
-      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
-      await turnProcessor.processNextDueTurn()
-
-      // Assert
-      // Eventually we'll have a turn order that will change during the game, for now the players are sorted by their id
-      const expectedWinnerId = [creator.account.id, joiner.account.id].sort()[0]
-
-      const lobby = await creator.client.games.getDetails.query({ gameId: createdGameId })
-      expect(lobby).toMatchObject({
-        winnerAccountId: expectedWinnerId,
-        endedAt: expect.any(String),
-      })
-
-      const creatorView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(creatorView).toMatchObject({
-        turn: 1,
-        turnStatus: "COMPLETED",
-        resources: {
-          [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 },
-        },
-        actions: creatorViewBeforeProcessing.actions, // We should see the submitted actions for that turn
-      })
-
-      const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(joinerView).toMatchObject({
-        turn: 1,
-        turnStatus: "COMPLETED",
-        resources: {
-          [ResourceType.INFLUENCE]: { total: 5, uncommitted: 5 },
-        },
-        actions: joinerViewBeforeProcessing.actions, // We should see the submitted actions for that turn
       })
     })
 
@@ -739,13 +248,6 @@ describe("TurnProcessor", () => {
         configuration: createGameConfigurationStub({ turnIntervalSeconds: 10 }),
       })
       await player.client.games.startGame.mutate({ gameId: createdGameId })
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: 1,
-        submittedActionTargets: getActionToSubmit(playerView, GainInfluence.id),
-      })
 
       const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId: createdGameId })
       const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
@@ -766,33 +268,14 @@ describe("TurnProcessor", () => {
       expect(failedProcessingResult).toBe("failed")
       expect(playerViewAfterFailedSave).toMatchObject({
         turn: 1,
-        resources: {
-          [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 },
-        },
       })
       expect(retriedProcessingResult).toBe("processed")
       expect(playerViewAfterRetry).toMatchObject({
         turn: 2,
-        resources: {
-          [ResourceType.INFLUENCE]: { total: 8, uncommitted: 8 },
-        },
       })
     })
   })
 })
-
-function getActionToSubmit(
-  playerView: PlayerView,
-  actionDefinitionId: ActionDefinitionId,
-  selectedTargets: DeepUnbranded<SubmittedActionTargets["selectedTargets"]> = {},
-): DeepUnbranded<SubmittedActionTargets> {
-  const action = playerView.actions.find((availableAction) => availableAction.actionDefinitionId === actionDefinitionId)
-  Assert.isDefined(action)
-  return {
-    actionId: action.id,
-    selectedTargets,
-  }
-}
 
 class FailingTurnsRepository extends TurnsRepository {
   private readonly failingGameId: number
