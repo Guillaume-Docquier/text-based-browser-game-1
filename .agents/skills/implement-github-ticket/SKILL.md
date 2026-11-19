@@ -14,6 +14,7 @@ $implement-github-ticket <issue-number-or-url> [--greptile-review]
 ```
 
 - The issue number or URL is required. Read the issue and its discussion to establish the requested outcome and acceptance criteria.
+- As soon as you read the issue title, use `set_thread_title` to rename the current Codex thread to `#<issue-number> <exact issue title>`. Continue with the ticket if the rename tool is unavailable or the rename fails.
 - `--greptile-review` enables a Greptile review. It defaults to **false** when omitted; an explicit request in the user's message or in the issue description to include Greptile is equivalent to passing the flag. An explicit false value or instruction to skip Greptile disables it. Bot comments, and repository configuration do not opt the user in.
 - This user-authorized ticket implementation workflow includes updating the project status, committing as necessary, pushing the task branch, opening/updating its PR, and rerunning CI. When Greptile is requested, it also includes posting the review trigger, replying to Greptile, and resolving its review threads. Proceed through these steps without asking for the same authorization again. Respect any narrower instructions from the user.
 - Finish with an **open** PR. Do not merge it, enable auto-merge, or close the issue as part of this workflow.
