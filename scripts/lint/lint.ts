@@ -1,3 +1,4 @@
+import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
 import { mkdirSync, mkdtempDisposableSync, writeFileSync } from "node:fs"
 import path from "node:path"
@@ -17,9 +18,7 @@ export function lint({ code, path: fixturePath = "fixture.ts", config = "oxlint.
   mkdirSync(fixturesDirectory, { recursive: true })
   using fixture = mkdtempDisposableSync(path.join(fixturesDirectory, "lint-"))
   const sourcePath = path.resolve(fixture.path, fixturePath)
-  if (!sourcePath.startsWith(fixture.path + path.sep)) {
-    throw new Error(`Expected a path inside the lint fixture, received ${fixturePath}`)
-  }
+  assert(sourcePath.startsWith(fixture.path + path.sep), `Expected a path inside the lint fixture, received ${fixturePath}`)
 
   const configUrl = pathToFileURL(path.resolve(repositoryRoot, config))
   writeFileSync(path.join(fixture.path, "oxlint.config.ts"), `export { default } from ${JSON.stringify(configUrl.href)}\n`)
@@ -41,26 +40,24 @@ export function lint({ code, path: fixturePath = "fixture.ts", config = "oxlint.
   if (result.error !== undefined) {
     throw result.error
   }
-  if ((result.status !== 0 && result.status !== 1) || !result.stdout.trimStart().startsWith("{")) {
-    throw new Error(`Oxlint failed to lint ${fixturePath} (exit ${result.status}):\n${result.stderr}${result.stdout}`)
-  }
 
-  const report: unknown = JSON.parse(result.stdout)
-  if (
-    typeof report !== "object" ||
-    report === null ||
-    !("number_of_files" in report) ||
-    report.number_of_files !== 1 ||
-    !("diagnostics" in report) ||
-    !Array.isArray(report.diagnostics)
-  ) {
-    throw new Error(`Expected an Oxlint report for one file, received:\n${result.stdout}`)
-  }
+  const failure = `Oxlint failed to lint ${fixturePath} (exit ${result.status}):\n${result.stderr}${result.stdout}`
+  assert(result.status === 0 || result.status === 1, failure)
+  assert(result.stdout.trimStart().startsWith("{"), failure)
+  return parseDiagnostics(result.stdout)
+}
+
+function parseDiagnostics(output: string): string[] {
+  const report: unknown = JSON.parse(output)
+  const invalidReport = `Expected an Oxlint report for one file, received:\n${output}`
+  assert(typeof report === "object" && report !== null, invalidReport)
+  assert("number_of_files" in report && report.number_of_files === 1, invalidReport)
+  assert("diagnostics" in report && Array.isArray(report.diagnostics), invalidReport)
 
   return report.diagnostics.map((diagnostic: unknown): string => {
-    if (typeof diagnostic === "object" && diagnostic !== null && "code" in diagnostic && typeof diagnostic.code === "string") {
-      return diagnostic.code
-    }
-    throw new Error(`Oxlint reported a diagnostic without a code:\n${JSON.stringify(diagnostic)}`)
+    const invalidDiagnostic = `Oxlint reported a diagnostic without a code:\n${JSON.stringify(diagnostic)}`
+    assert(typeof diagnostic === "object" && diagnostic !== null, invalidDiagnostic)
+    assert("code" in diagnostic && typeof diagnostic.code === "string", invalidDiagnostic)
+    return diagnostic.code
   })
 }
