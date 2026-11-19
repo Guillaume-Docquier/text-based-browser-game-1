@@ -46,7 +46,6 @@
     "commander": "^15.1.0",
     "drizzle-kit": "^0.31.11",
     "testcontainers": "^12.2.1",
-    "type-fest": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
