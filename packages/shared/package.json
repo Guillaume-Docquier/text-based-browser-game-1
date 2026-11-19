@@ -25,7 +25,6 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "catalog:",
-    "type-fest": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

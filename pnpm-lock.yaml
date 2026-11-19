@@ -195,9 +195,6 @@ catalogs:
     '@vitest/coverage-v8':
       specifier: ^5.1.0
       version: 5.1.0
-    type-fest:
-      specifier: ^5.10.0
-      version: 5.10.0
     typescript:
       specifier: ~7.0.2
       version: 7.0.2
@@ -339,9 +336,6 @@ importers:
       testcontainers:
         specifier: ^12.2.1
         version: 12.2.1(supports-color@7.2.0)
-      type-fest:
-        specifier: 'catalog:'
-        version: 5.10.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -494,9 +488,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.1.0(@vitest/browser@5.1.0)(vitest@5.1.0)
-      type-fest:
-        specifier: 'catalog:'
-        version: 5.10.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -5751,10 +5742,6 @@ packages:
   tabbable@6.5.1:
     resolution: {integrity: sha512-dMCuwDUY6Noz3zVKLefBC4wq+aJV20yc7vWmM7uTNGwtQSFF5kX7OUIUsxuVajz/bdt5Xqdah3/0NLjth+cM5A==}
 
-  tagged-tag@1.0.0:
-    resolution: {integrity: sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==}
-    engines: {node: '>=20'}
-
   tailwindcss@4.3.5:
     resolution: {integrity: sha512-FcQk9BuffmEHJP2G0XmB2SplU1aLTI7j07Kunk+U74Ny+XiWOtzXz9aujFZ/avntw1e2cOv/3PkgzflQ7gX2vQ==}
 
@@ -5873,10 +5860,6 @@ packages:
   type-fest@4.41.0:
     resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
     engines: {node: '>=16'}
-
-  type-fest@5.10.0:
-    resolution: {integrity: sha512-NoSdpq/WEiAg5sjmBkmV/hfxv6HJH4NqPNrqjtSO5CwRmpsDfaf4begxW34KdJykH/l1yHtwBWQkCRdoXO8mPA==}
-    engines: {node: '>=20'}
 
   type-is@2.1.0:
     resolution: {integrity: sha512-faYHw0anBbc/kWF3zFTEnxSFOAGUX9GFbOBthvDdLsIlEoWOFOtS0zgCiQYwIskL9iGXZL3kAXD8OoZ4GmMATA==}
@@ -10925,8 +10908,6 @@ snapshots:
 
   tabbable@6.5.1: {}
 
-  tagged-tag@1.0.0: {}
-
   tailwindcss@4.3.5: {}
 
   tapable@2.3.3: {}
@@ -11079,10 +11060,6 @@ snapshots:
       prelude-ls: 1.2.1
 
   type-fest@4.41.0: {}
-
-  type-fest@5.10.0:
-    dependencies:
-      tagged-tag: 1.0.0
 
   type-is@2.1.0:
     dependencies:
