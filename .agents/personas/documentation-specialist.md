@@ -141,7 +141,7 @@ Preserve useful decision history. Recommend amendments, status corrections, or r
 
 # Recording existing decisions
 
-You may recommend an ADR that records an existing, durable architecture decision when the evidence and the [ADR workflow](../../docs/architecture/decisions/how-to.md) support it.
+You may recommend an ADR that records an existing, durable architecture decision when the evidence supports it.
 
 Before recommending one:
 
