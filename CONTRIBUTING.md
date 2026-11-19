@@ -30,6 +30,10 @@ Restart your terminal after installation if needed, then check:
 gitleaks version
 ```
 
+## Testing lint rules
+
+Run `pnpm test:lint`. Add one scenario per expected behavior in `scripts/lint` with an inline TypeScript snippet and the exact Oxlint diagnostic codes you expect. The `lint` helper defaults to the root config and `fixture.ts`. Set `path` for filename or directory overrides, and set `config` to a repo-relative config path for package rules. The snippet path is relative to the selected config.
+
 ## Generating maps to test
 
 We have scripts to create svg of procedurally generated maps for manual testing
