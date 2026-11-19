@@ -1,0 +1,8 @@
+name = "comment-reviewer"
+description = "Independently review added, edited, and removed code comments in a branch diff."
+model = "gpt-6.2-astra"
+model_reasoning_effort = "high"
+
+developer_instructions = """
+Use the $review-code-comments skill and return findings to the parent agent.
+"""

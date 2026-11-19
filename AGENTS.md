@@ -80,7 +80,7 @@ Code comments are restricted and should generally not be used. Allowed comments 
 - `@ts-expect-error`: Used when we absolutely have to bypass the type checker
 - `Arrange`, `Act`, `Assert`: Used in unit tests only
 
-An `INTENT` or `CONSTRAINT` comment is only needed when it's not clear why the code is the way it is, and changing that code would fail in non-obvious ways. Always favor better variable names, function names and focused descriptive tests over a code comment when possible. Reserve the comments for those rare cases where we can't otherwise enforce the tacit knowledge and an understanding failure would lead to wasted debugging time or outages.
+An `INTENT` or `CONSTRAINT` comment is only needed when it's not clear why the code is the way it is, and changing that code would go unnoticed or fail in non-obvious ways. Always favor better names, type-level constraints, enforced lint rules, clear glossary and focused descriptive tests over a code comment when possible. Reserve the comments for those rare cases where we can't otherwise enforce the tacit knowledge and an understanding failure would lead to wasted debugging time or outages.
 
 ## Commands
 

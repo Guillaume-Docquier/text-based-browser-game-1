@@ -109,5 +109,10 @@ packages/frontend/playwright/.clerk/
 packages/frontend/test-results/
 
 .codex/
+!/.codex/
+/.codex/*
+!/.codex/agents/
+/.codex/agents/*
+!/.codex/agents/comment-reviewer.toml
 generated/
 show-me.html
