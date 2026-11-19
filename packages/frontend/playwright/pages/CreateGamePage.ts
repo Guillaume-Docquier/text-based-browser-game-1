@@ -1,4 +1,4 @@
-import { Assert, type Time, type UnitOfTime } from "@guillaume-docquier/tools-ts"
+import type { Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
 import type { AuthenticatedUser } from "../AuthenticatedUser.ts"
 import { DETERMINISTIC_GALAXY_SEED } from "../constants.ts"
@@ -87,55 +87,8 @@ export class CreateGamePage extends WebsitePage {
     await this.page.getByRole("option", { name: unit, exact: true }).click()
   }
 
-  public async setRange({ label, min, max }: { label: string; min: number; max: number }): Promise<void> {
-    const minimumSlider = this.page.getByRole("slider", { name: `${label} minimum` })
-    const maximumSlider = this.page.getByRole("slider", { name: `${label} maximum` })
-    const currentMaximum = await this.getSliderValue(maximumSlider)
-
-    if (min > currentMaximum) {
-      await this.setSliderValue(maximumSlider, max)
-      await this.setSliderValue(minimumSlider, min)
-    } else {
-      await this.setSliderValue(minimumSlider, min)
-      await this.setSliderValue(maximumSlider, max)
-    }
-  }
-
   public async submit(): Promise<GameDetailsPage> {
     await this.createButton.click()
     return new GameDetailsPage(this.page)
-  }
-
-  private async getSliderValue(slider: Locator): Promise<number> {
-    const value = await slider.getAttribute("aria-valuenow")
-    Assert.isDefined(value)
-
-    return Number(value)
-  }
-
-  private async setSliderValue(slider: Locator, target: number): Promise<void> {
-    const minimum = Number(await slider.getAttribute("aria-valuemin"))
-    const maximum = Number(await slider.getAttribute("aria-valuemax"))
-
-    if (target === minimum) {
-      await slider.press("Home")
-      return
-    }
-
-    if (target === maximum) {
-      await slider.press("End")
-      return
-    }
-
-    for (let attempt = 0; attempt < 200; attempt++) {
-      const current = await this.getSliderValue(slider)
-      if (current === target) {
-        return
-      }
-
-      await slider.press(current < target ? "ArrowRight" : "ArrowLeft")
-    }
-
-    throw new Error(`Could not set slider to ${target}.`)
   }
 }

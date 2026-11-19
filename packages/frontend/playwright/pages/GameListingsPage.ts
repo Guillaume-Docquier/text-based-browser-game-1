@@ -1,5 +1,6 @@
 import type { Locator, Page } from "@playwright/test"
 import { CreateGamePage } from "./CreateGamePage.ts"
+import { SignInPage } from "./SignInPage.ts"
 import { WebsitePage } from "./WebsitePage.ts"
 
 export class GameListingsPage extends WebsitePage {
@@ -32,12 +33,17 @@ export class GameListingsPage extends WebsitePage {
     return this.page.getByRole("link").filter({ has: this.page.getByText(name, { exact: true }) })
   }
 
-  public async filterToMyGames(): Promise<void> {
+  public async toggleMyGamesFilter(): Promise<void> {
     await this.myGamesButton.click()
   }
 
   public async filterByName(name: string): Promise<void> {
     await this.gameNameFilter.fill(name)
+  }
+
+  public async createGameWhileSignedOut(): Promise<SignInPage> {
+    await this.createGameLink.click()
+    return new SignInPage(this.page)
   }
 
   public async createGame(): Promise<CreateGamePage> {

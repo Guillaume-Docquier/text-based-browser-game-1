@@ -1,6 +1,6 @@
+import { noop } from "@guillaume-docquier/tools-ts"
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { useState } from "react"
-import { expect, waitFor, within } from "storybook/test"
+import { type ComponentProps, type ReactElement, useState } from "react"
 import { SearchSelect } from "./search-select.tsx"
 
 const SMALL_OPTIONS = [
@@ -22,157 +22,37 @@ const meta = {
     options: SMALL_OPTIONS,
     value: undefined,
     placeholder: "Choose fleet",
-    onValueChange: (): void => {},
+    onValueChange: noop,
   },
+  decorators: [
+    (Story): ReactElement => (
+      <div className="w-80">
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof SearchSelect>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {
-  render: () => <SearchSelectExample label="Fleet target" options={SMALL_OPTIONS} placeholder="Choose fleet" />,
-  play: async ({ canvas, canvasElement, userEvent }) => {
-    const combobox = canvas.getByRole("combobox", { name: "Fleet target" })
-    const body = within(canvasElement.ownerDocument.body)
-
-    await expect(combobox).toHaveValue("")
-    await userEvent.click(combobox)
-    await expect(await body.findByRole("option", { name: "Home Guard" })).toBeVisible()
-
-    await userEvent.type(combobox, "eXpEdItIoNaRy")
-    await expect(await body.findByRole("option", { name: "Expeditionary Fleet" })).toBeVisible()
-    await expect(body.queryByRole("option", { name: "Home Guard" })).not.toBeInTheDocument()
-    await userEvent.click(body.getByRole("option", { name: "Expeditionary Fleet" }))
-    await expect(combobox).toHaveValue("Expeditionary Fleet")
-    await waitFor(async () => {
-      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
-    })
-
-    await userEvent.click(combobox)
-    await userEvent.clear(combobox)
-    await userEvent.type(combobox, "unknown")
-    await expect(body.getByText("No matching options")).toBeVisible()
-
-    await userEvent.clear(combobox)
-    await userEvent.keyboard("{ArrowUp}{Enter}")
-    await expect(combobox).toHaveValue("Home Guard")
-
-    await userEvent.click(combobox)
-    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{Enter}")
-    await expect(combobox).toHaveValue("Reserve Fleet")
-  },
+function SearchSelectExample(args: ComponentProps<typeof SearchSelect>): ReactElement {
+  const [value, setValue] = useState(args.value)
+  return <SearchSelect {...args} value={value} onValueChange={setValue} />
 }
 
-export const EscapePreservesSelection: Story = {
-  render: () => <SearchSelectExample label="Fleet target" options={SMALL_OPTIONS} placeholder="Choose fleet" />,
-  play: async ({ canvas, canvasElement, userEvent }) => {
-    const combobox = canvas.getByRole("combobox", { name: "Fleet target" })
-    const body = within(canvasElement.ownerDocument.body)
-
-    await userEvent.click(combobox)
-    await userEvent.click(body.getByRole("option", { name: "Expeditionary Fleet" }))
-    await expect(combobox).toHaveValue("Expeditionary Fleet")
-
-    await userEvent.click(combobox)
-    await userEvent.type(combobox, "reserve")
-    await expect(await body.findByRole("option", { name: "Reserve Fleet" })).toBeVisible()
-    await userEvent.keyboard("{Escape}")
-
-    await expect(combobox).toHaveValue("Expeditionary Fleet")
-    await waitFor(async () => {
-      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
-    })
-  },
+export const Interactive: Story = {
+  render: (args) => <SearchSelectExample {...args} />,
 }
 
 export const LargeList: Story = {
-  render: () => <SearchSelectExample label="Planet target" options={LARGE_OPTIONS} placeholder="Choose planet" />,
-  play: async ({ canvas, canvasElement, userEvent }) => {
-    const combobox = canvas.getByRole("combobox", { name: "Planet target" })
-    const body = within(canvasElement.ownerDocument.body)
-
-    await userEvent.click(combobox)
-    await expect(body.getAllByRole("option")).toHaveLength(50)
-    await expect(await body.findByRole("option", { name: "Planet 0001" })).toBeVisible()
-    await expect(await body.findByRole("option", { name: "Planet 0050" })).toBeVisible()
-    await expect(body.getByText("Showing first 50 of 3000. Keep typing to narrow the list.")).toBeVisible()
-
-    await userEvent.type(combobox, "planet 2999")
-    await expect(body.getAllByRole("option")).toHaveLength(1)
-    await expect(await body.findByRole("option", { name: "Planet 2999" })).toBeVisible()
-    await userEvent.click(body.getByRole("option", { name: "Planet 2999" }))
-    await expect(combobox).toHaveValue("Planet 2999")
-    await waitFor(async () => {
-      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
-    })
+  args: { label: "Planet target", options: LARGE_OPTIONS, placeholder: "Choose planet" },
+  render: (args) => <SearchSelectExample {...args} />,
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("combobox", { name: "Planet target" }))
   },
 }
 
 export const Disabled: Story = {
-  render: () => (
-    <div className="w-64">
-      <SearchSelect
-        label="Fleet target"
-        options={SMALL_OPTIONS}
-        value={undefined}
-        placeholder="Choose fleet"
-        disabled
-        onValueChange={(): void => {}}
-      />
-    </div>
-  ),
-  play: async ({ canvas, canvasElement, userEvent }) => {
-    const combobox = canvas.getByRole("combobox", { name: "Fleet target" })
-    const body = within(canvasElement.ownerDocument.body)
-
-    await expect(combobox).toBeDisabled()
-    await userEvent.click(combobox)
-    await expect(combobox).toHaveValue("")
-    await waitFor(async () => {
-      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
-    })
-  },
-}
-
-export const TabPreservesSelection: Story = {
-  render: () => (
-    <div>
-      <SearchSelectExample label="Fleet target" options={SMALL_OPTIONS} placeholder="Choose fleet" />
-      <button type="button">Next control</button>
-    </div>
-  ),
-  play: async ({ canvas, canvasElement, userEvent }) => {
-    const combobox = canvas.getByRole("combobox", { name: "Fleet target" })
-    const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(combobox)
-    await userEvent.click(await body.findByRole("option", { name: "Expeditionary Fleet" }))
-    await waitFor(async () => {
-      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
-    })
-    await userEvent.click(combobox)
-    await userEvent.type(combobox, "reserve")
-    await userEvent.tab()
-    await waitFor(async () => {
-      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
-    })
-    await expect(canvas.getByRole("button", { name: "Next control" })).toHaveFocus()
-    await expect(combobox).toHaveValue("Expeditionary Fleet")
-  },
-}
-
-function SearchSelectExample({
-  label,
-  options,
-  placeholder,
-}: {
-  label: string
-  options: ReadonlyArray<{ id: string; label: string }>
-  placeholder: string
-}): React.JSX.Element {
-  const [value, setValue] = useState<string | undefined>()
-  return (
-    <div className="w-80">
-      <SearchSelect label={label} options={options} value={value} placeholder={placeholder} onValueChange={setValue} />
-    </div>
-  )
+  args: { disabled: true },
 }

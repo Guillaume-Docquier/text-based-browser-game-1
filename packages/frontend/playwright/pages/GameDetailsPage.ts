@@ -41,10 +41,6 @@ export class GameDetailsPage extends WebsitePage {
     return Number(GameDetailsPage.urlPattern.exec(this.page.url())?.pathname.groups.gameId)
   }
 
-  public async reload(): Promise<void> {
-    await this.page.reload()
-  }
-
   public async joinGame(): Promise<void> {
     await this.page.getByRole("button", { name: "Join game", exact: true }).click()
     await this.page.getByRole("button", { name: "Leave game", exact: true }).waitFor()
