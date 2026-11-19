@@ -4,9 +4,6 @@ import type { FinishOnboardingCommand } from "#api/accounts/finishOnboarding.com
 import type { FinishOnboardingError } from "#api/accounts/finishOnboarding.error.ts"
 import type { AccountsRepository } from "./accounts.repository.ts"
 
-/**
- * Completes the authenticated account's onboarding.
- */
 export class FinishOnboardingUseCase {
   private readonly accountsRepository: AccountsRepository
 

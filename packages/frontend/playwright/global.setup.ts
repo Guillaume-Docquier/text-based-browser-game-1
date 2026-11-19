@@ -4,7 +4,6 @@ import { users } from "./auth.ts"
 import { expect, test as setup } from "./fixtures.ts"
 import { HomePage } from "./pages/HomePage.ts"
 
-// Based on Clerk's docs: https://clerk.com/docs/guides/development/testing/playwright/test-authenticated-flows
 setup.describe.configure({ mode: "serial" })
 
 setup("configure Clerk for testing", async ({ clerkConfig }) => {
@@ -16,13 +15,11 @@ for (const { alias, email, authFilePath } of Object.values(users)) {
     const createGamePage = await HomePage.goto(page)
 
     const needsOnboarding = await setup.step("sign in", async () => {
-      // On the CI, the db should be clean and users should always need to onboard
       if (isCI) {
         await clerk.signIn({ page, emailAddress: email })
         return true
       }
 
-      // Locally, the DB could be dirty, so we check the network response to decide
       const [onboardingStatusResponse] = await Promise.all([
         page.waitForResponse((response) => response.url().includes("accounts.isOnboarded")),
         clerk.signIn({ page, emailAddress: email }),

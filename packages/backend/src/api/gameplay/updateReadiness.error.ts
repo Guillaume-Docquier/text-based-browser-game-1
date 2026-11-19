@@ -8,9 +8,6 @@ export const UpdateReadinessError = {
   UNKNOWN: "UNKNOWN",
 } as const
 
-/**
- * Maps each use-case failure to its API response code and user message.
- */
 export const UpdateReadinessErrorResponses: Record<UpdateReadinessError, TrpcErrorResponse> = {
   [UpdateReadinessError.TURN_NOT_OPEN]: { code: "CONFLICT", message: "Readiness cannot be changed: the turn is not open." },
   [UpdateReadinessError.UNKNOWN]: { code: "INTERNAL_SERVER_ERROR", message: "Readiness could not be updated." },

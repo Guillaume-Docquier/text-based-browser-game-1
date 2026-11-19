@@ -8,9 +8,6 @@ export const GetGameByIdError = {
   UNKNOWN: "UNKNOWN",
 } as const
 
-/**
- * Maps each use-case failure to its API response code and user message.
- */
 export const GetGameByIdErrorResponses: Record<GetGameByIdError, TrpcErrorResponse> = {
   [GetGameByIdError.GAME_NOT_FOUND]: { code: "NOT_FOUND", message: "No game exists with that id." },
   [GetGameByIdError.FAILED_TO_GET_PLAYERS]: { code: "INTERNAL_SERVER_ERROR", message: "Could not get the players." },

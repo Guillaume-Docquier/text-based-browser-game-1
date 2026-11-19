@@ -23,7 +23,6 @@ type SpiralOptions = {
   readonly armRadius: number
 }
 
-/** Values available when rendering spiral generator output. */
 export type SpiralRenderOptions = {
   readonly output: string
   readonly pointsGenerator: (options: { rng: Rng }) => XY[]
@@ -40,7 +39,6 @@ type SpiralCommandOptions = {
   readonly render?: (options: SpiralRenderOptions) => Promise<void>
 }
 
-/** Creates the command that renders points generated in spiral arms. */
 export function createSpiralCommand({
   defaultOutputPath = DEFAULT_OUTPUT_PATH,
   render = renderSpiral,

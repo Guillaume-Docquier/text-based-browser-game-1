@@ -10,9 +10,6 @@ export const JoinGameError = {
   UNKNOWN: "UNKNOWN",
 } as const
 
-/**
- * Maps each use-case failure to its API response code and user message.
- */
 export const JoinGameErrorResponses: Record<JoinGameError, TrpcErrorResponse> = {
   [JoinGameError.GAME_NOT_FOUND]: { code: "NOT_FOUND", message: "The game does not exist." },
   [JoinGameError.LOBBY_FULL]: { code: "CONFLICT", message: "The lobby is full." },

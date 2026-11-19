@@ -16,17 +16,7 @@ export type User = {
 }
 
 export interface AuthProvider {
-  /**
-   * Middlewares to integrate with Express.
-   * They mostly setup for parseAuth after.
-   */
   parseTokenMiddleware: () => RequestHandler
-  /**
-   * Gets auth information from the request set by parseTokenMiddleware.
-   */
   parseAuthStatus: (args: { req: Request }) => AuthStatus
-  /**
-   * Gets the user data from the 3rd party auth service
-   */
   fetchUser: (args: { authId: string }) => Promise<Result<User, FetchUserError>>
 }

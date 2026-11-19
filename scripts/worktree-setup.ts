@@ -25,25 +25,7 @@ const WORKTREE_COUNTER_MAX = 1000
   updateEnv(ports)
 })()
 
-/**
- * Copy the main checkout's .env file into this worktree
- */
 function copyEnv(): string {
-  // Example output for "git worktree list --porcelain"
-  //
-  // worktree C:/Users/Guillaume/Dev/text-based-browser-game-1
-  // HEAD 33e0f082a0a4912b6785dc9ac31dd77ce782f06b
-  // branch refs/heads/codex/worktree-isolation
-  //
-  // worktree C:/Users/Guillaume/.codex/worktrees/storybook-agent-evaluation/text-based-browser-game-1
-  // HEAD 2425f7b228e0d6aec5606852af5c72751163f5c6
-  // branch refs/heads/codex/storybook-agent-workflows
-  //
-  // worktree C:/Users/Guillaume/Dev/text-based-browser-game-1-temp
-  // HEAD fe619416cb75f50a9cc133dffa43861798ad365b
-  // branch refs/heads/temp
-  //
-  // The first entry is always the main checkout
   const mainCheckoutPath = child_process
     .execFileSync("git", ["worktree", "list", "--porcelain", "-z"], { encoding: "utf8" })
     .split("\0")[0]
@@ -61,12 +43,7 @@ function copyEnv(): string {
   return mainCheckoutPath
 }
 
-/**
- * Assign ports for this worktree services based on a looping worktree-counter
- * We hope for the best:
- * - We don't atomically read + increment
- * - We don't validate that the ports are available
- */
+// INTENT: We don't atomically read + increment, and we don't validate that the ports are available. Race conditions are possible but unlikely with our setup.
 function getWorktreePorts(mainCheckoutPath: string): AssignedPorts {
   console.log("🔧 Getting the base port")
   const counterPath = path.join(mainCheckoutPath, ".worktree-counter")
@@ -86,9 +63,6 @@ function getWorktreePorts(mainCheckoutPath: string): AssignedPorts {
   return ports
 }
 
-/**
- * Updates this worktree .env with the assigned ports
- */
 function updateEnv(ports: AssignedPorts): void {
   try {
     console.log("🔧 Updating .env")
@@ -119,9 +93,6 @@ function updateEnv(ports: AssignedPorts): void {
   }
 }
 
-/**
- * Updates a .env content (as a string) with a new or existing key=value pair
- */
 function updateEnvField(name: string, value: string, envFileContents: string): string {
   const assignment = new RegExp(`^([\\t ]*(?:export[\\t ]+)?${name}[\\t ]*=)[^\\r\\n]*`, "gm")
   const quotedValue = JSON.stringify(value)

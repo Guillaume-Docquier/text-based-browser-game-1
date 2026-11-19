@@ -5,9 +5,6 @@ import type { GameplayRepository } from "./gameplay.repository.ts"
 import type { GetPlayerViewError } from "./getPlayerView.error.ts"
 import type { GetPlayerViewQuery } from "./getPlayerView.query.ts"
 
-/**
- * Reads a player's gameplay view.
- */
 export class GetPlayerViewUseCase {
   private readonly gameplayRepository: GameplayRepository
 

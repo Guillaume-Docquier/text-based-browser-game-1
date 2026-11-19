@@ -1,0 +1,3 @@
+interface:
+  display_name: "Review Code Comments"
+  short_description: "Review comment changes across a branch diff"

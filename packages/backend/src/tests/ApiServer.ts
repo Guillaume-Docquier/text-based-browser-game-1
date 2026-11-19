@@ -4,23 +4,6 @@ import type { Express } from "express"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
 
-/**
- * An api server that lets you create trpc clients for testing.
- * Handles cleanups via `using`
- *
- * @example
- * ```ts
- * using apiServer = new ApiServer(await createApiStub({ db }))
- *
- * const player = await apiServer.createClient({ authenticated: true })
- * // player.account -> defined
- * // player.client
- *
- * const anonymous = await apiServer.createClient({ authenticated: false })
- * // anonymous.account -> undefined
- * // anonymous.client
- * ```
- */
 export class ApiServer {
   private readonly accountsRepository: AccountsRepository
   private readonly server: Server

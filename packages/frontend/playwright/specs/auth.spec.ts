@@ -44,7 +44,7 @@ test("the authentication returns players to their requested page after sign-in a
     const signInPage = new SignInPage(page)
     await expect(signInPage.heading).toBeVisible()
 
-    // We log in via verification code because the test users can't use passwords
+    // CONSTRAINT: We log in via verification code because the test users can't use passwords
     await signInPage.submitEmailAddress(users.alice.email)
     await signInPage.chooseAnotherMethod()
     await signInPage.requestEmailCode(users.alice.email)

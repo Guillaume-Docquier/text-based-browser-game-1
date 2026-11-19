@@ -13,9 +13,6 @@ const Elements = {
 } as const
 const TestFiles = { category: "stubs-and-tests", pattern: ["**/*.stub.ts", "**/*.test.ts"] } as const
 
-/**
- * Boundaries settings and rules.
- */
 export const Boundaries = {
   settings: {
     "boundaries/root-path": import.meta.dirname,
@@ -59,16 +56,10 @@ function fileCategory(definition: { readonly category: string }): NonNullable<De
   return { file: { categories: definition.category } }
 }
 
-/**
- * Restrict local imports to these elements. Matching policies contribute additive permissions.
- */
 function policy({ from, onlyAllow }: { from: NonNullable<DependenciesPolicy["from"]>; onlyAllow: readonly Element[] }): Policy {
   return { from, disallow: { to: { module: { origin: "local" } } }, allow: { to: onlyAllow.map(element) } }
 }
 
-/**
- * Evaluate all local denials before all allowances so overlapping policies add permissions.
- */
 function additivePolicies(policies: readonly Policy[]): DependenciesPolicy[] {
   return [...policies.map(({ from, disallow }) => ({ from, disallow })), ...policies.map(({ from, allow }) => ({ from, allow }))]
 }

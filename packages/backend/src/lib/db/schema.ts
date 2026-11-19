@@ -27,26 +27,17 @@ import { planetNameColumn } from "#lib/db/planets/PlanetName.ts"
 import { playerIdColumn } from "#lib/db/players/PlayerId.ts"
 import { starIdColumn } from "#lib/db/stars/StarId.ts"
 
-/**
- * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.
- * This is just type gymnastics
- */
 function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>): [TEnumLike, ...TEnumLike[]] {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- This is trusted code
   return Object.values(enumLike) as [TEnumLike, ...TEnumLike[]]
 }
 
-// pgEnums need to be exported for Postgres to create the enums
 export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
 export const turnStatusEnum = pgEnum("turn_status", pgEnumify(TurnStatus))
 export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
 export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
 export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
 
-/**
- * User accounts.
- * Emails should be unique, but since this is handled by clerk, we didn't put a constraint here because I'm not sure if they allow it.
- */
 export const accountsTable = pgTable(
   "accounts",
   {
@@ -59,10 +50,6 @@ export const accountsTable = pgTable(
   (table) => [uniqueIndex("auth_id_idx").on(table.authId), uniqueIndex("accounts_alias_unique").on(sql`lower(${table.alias})`)],
 )
 
-/**
- * All games, past and present.
- * This is only the game configuration and metadata. Turn state is stored in {@link turnsTable}.
- */
 export const gamesTable = pgTable("games", {
   id: gameIdColumn("id").primaryKey().generatedAlwaysAsIdentity(),
   createdByAccountId: accountIdColumn("created_by_account_id")
@@ -73,20 +60,12 @@ export const gamesTable = pgTable("games", {
   endedAt: timestamp("ended_at"),
   status: gameStatusEnum("status").notNull().default(GameStatus.WAITING_FOR_PLAYERS),
 
-  // Game configuration
   name: text("name").notNull(),
   nbSeats: integer("nb_seats").notNull(),
   turnIntervalSeconds: integer("turn_interval_seconds").notNull(),
   mapGenerationSeed: bigint("map_generation_seed", { mode: "number" }).notNull(),
 })
 
-/**
- * Join table between games and players.
- * AKA which players are in this game, and which games is this player in.
- *
- * For now, we don't have distinct player ids, we map it to the account id.
- * However in the future, we might want to have distinct playerIds if we want to do things like anonymous play or seat take over.
- */
 export const playersTable = pgTable(
   "players",
   {
@@ -108,9 +87,6 @@ export const playersTable = pgTable(
   ],
 )
 
-/**
- * The state of turn computation
- */
 export const turnsTable = pgTable(
   "turns",
   {
@@ -120,21 +96,9 @@ export const turnsTable = pgTable(
     turn: integer("turn").notNull(),
     status: turnStatusEnum("status").notNull(),
     startedAt: timestamp("started_at").notNull(),
-    /**
-     * When the turn is set to end.
-     */
     endsAt: timestamp("ends_at").notNull(),
-    /**
-     * When Action collection ended, either via reaching endsAt or if all players were ready for the next turn.
-     */
     closedAt: timestamp("closed_at"),
-    /**
-     * The Rng state to use for the turn's resolution
-     */
     rngGeneratorState: bigint("rng_generator_state", { mode: "number" }).notNull(),
-    /**
-     * The Rng state to use for the turn's resolution
-     */
     rngSpareNormal: doublePrecision("rng_spare_normal"),
   },
   (table) => [
@@ -148,9 +112,6 @@ export const turnsTable = pgTable(
   ],
 )
 
-/**
- * The processing queue for turns.
- */
 export const turnsProcessingTable = pgTable(
   "turns_processing",
   {

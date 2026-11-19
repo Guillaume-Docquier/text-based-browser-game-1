@@ -63,9 +63,6 @@ export const Default: Story = {
   },
 }
 
-/**
- * Dismissing an unfinished search preserves the previously selected fleet.
- */
 export const EscapePreservesSelection: Story = {
   render: () => <SearchSelectExample label="Fleet target" options={SMALL_OPTIONS} placeholder="Choose fleet" />,
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -137,9 +134,6 @@ export const Disabled: Story = {
   },
 }
 
-/**
- * Tabbing out dismisses an unfinished search and keeps the selected value.
- */
 export const TabPreservesSelection: Story = {
   render: () => (
     <div>

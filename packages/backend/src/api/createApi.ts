@@ -24,20 +24,11 @@ import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { createTrpc, createTrpcContext } from "./trpc.ts"
 
-/**
- * Import side effect free express app creator.
- * It receives all dependencies that talk to the outside world (createTransaction, authService) so we can easily mock them during tests.
- * It also decouples the application from those 3rd parties, if done well.
- */
 export async function createApi({
   createTransaction,
   authService,
   ...services
 }: {
-  /**
-   * Creates a database transaction.
-   * Only use cases should use `createTransaction`.
-   */
   createTransaction: CreateTransaction
   authService: AuthService
   logger: Logger
@@ -106,28 +97,19 @@ function createTrpcRouter({
   })
 }
 
-/**
- * trpc catches all errors and doesn't log them.
- * We want to log unexpected errors, which trpc will return as "INTERNAL_SERVER_ERROR".
- *
- * Does nothing to other kinds of errors, since they are expected errors (thrown by routers.)
- */
+// CONSTRAINT: trpc catches all errors and doesn't log them. We want to log unexpected errors, which trpc returns as "INTERNAL_SERVER_ERROR".
 function createErrorHandler({ logger }: { logger: Logger }) {
   return ({ error }: { error: TRPCError }): void => {
-    // Nothing to do for plausible trpc errors
     if (error.code !== "INTERNAL_SERVER_ERROR") {
       return
     }
 
-    // Not sure how that happens?
     if (error.cause === undefined) {
       return
     }
 
-    // Let bad things kill the server
     Rethrow.ifFatal(error.cause)
 
-    // Log uncaught errors for visibility
     logger.error("Uncaught error", { error: error.cause })
   }
 }

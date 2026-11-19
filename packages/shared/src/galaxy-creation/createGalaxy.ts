@@ -12,9 +12,6 @@ import { spiralGenerator } from "#shared/galaxy-creation/generation/points/spira
 import { toPlanetCoordinates } from "#shared/galaxy-creation/toPlanetCoordinates.ts"
 import { toStarCoordinates } from "#shared/galaxy-creation/toStarCoordinates.ts"
 
-/**
- * Creates a galaxy that's ready to play in.
- */
 export function createGalaxy({
   galaxyCreationSettings,
   playerIds,
@@ -31,9 +28,6 @@ export function createGalaxy({
   return withHomePlanets
 }
 
-/**
- * Generates a galaxy deterministically using default settings.
- */
 function generateGalaxy({ galaxyCreationSettings, rng }: { galaxyCreationSettings: GalaxyCreationSettings; rng: Rng }): GeneratedGalaxy {
   return galaxyGenerator({
     size: galaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS,
@@ -51,9 +45,6 @@ function generateGalaxy({ galaxyCreationSettings, rng }: { galaxyCreationSetting
   })
 }
 
-/**
- * Augments a generated galaxy with gameplay concepts, like ids, coordinates, etc
- */
 function toGalaxyModel({ generatedGalaxy }: { generatedGalaxy: GeneratedGalaxy }): Galaxy {
   let nextPlanetId = 1
   return {

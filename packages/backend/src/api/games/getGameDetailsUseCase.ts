@@ -7,9 +7,6 @@ import type { GamesRepository, GameDetailsWithoutOps } from "./games.repository.
 import type { GetGameByIdError } from "./getGameById.error.ts"
 import type { GetGameByIdQuery } from "./getGameById.query.ts"
 
-/**
- * Gets public game details and the operations available to the requesting player.
- */
 export class GetGameDetailsUseCase {
   private readonly logger: Logger
   private readonly gamesRepository: GamesRepository

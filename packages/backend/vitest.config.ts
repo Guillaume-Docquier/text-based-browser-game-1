@@ -21,10 +21,9 @@ export default defineConfig({
     environment: "node",
     isolate: false,
     globals: false,
-    slowTestThreshold: 1_000, // Tailored for local
+    slowTestThreshold: 1_000,
     projects: [
       {
-        // type tests are statically analyzed and included in normal backend test runs
         test: {
           name: { label: "types", color: "blue" },
           typecheck: {
@@ -35,28 +34,25 @@ export default defineConfig({
         },
       },
       {
-        // unit tests are lightweight and fast
         test: {
           name: { label: "unit", color: "green" },
           include: ["**/*.unit.test.ts"],
         },
       },
       {
-        // integration tests use in-memory db
         test: {
           name: { label: "integration", color: "cyan" },
           include: ["**/*.integration.test.ts"],
           setupFiles: ["./src/tests/vitest.integration.setup.ts"],
-          testTimeout: 15_000, // slow in CI
+          testTimeout: 15_000,
         },
       },
       {
-        // concurrency tests use a real postgres database via testcontainers
         test: {
           name: { label: "concurrency", color: "magenta" },
           include: ["**/*.concurrency.test.ts"],
           setupFiles: ["./src/tests/vitest.concurrency.setup.ts"],
-          testTimeout: 30_000, // slow in CI
+          testTimeout: 30_000,
         },
       },
     ],

@@ -41,13 +41,6 @@ const MAX_CENTERING_DURATION_MS = 350
 const CENTERING_SPEED_VIEWPORT_UNITS_PER_MS = 2
 const CENTERING_FALLBACK_BUFFER_MS = 100
 
-/**
- * Provides shared mouse, touch, and wheel interactions for an SVG map viewport.
- *
- * @param resetSignal - A value whose changes reset the viewport.
- * @param viewportCenter - The center of the visible SVG viewport.
- * @returns SVG event handlers and the transform for the map contents.
- */
 export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: number; viewportCenter: Point }): {
   centeringDurationMs: number
   isCentering: boolean

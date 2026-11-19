@@ -1,6 +1,5 @@
 import type { PlayerColor } from "@api-types"
 
-/** StarCraft II inspired colors for backend-owned player color tokens. */
 export const PLAYER_COLOR_HEX = {
   TURQUOISE: "#00CDB7",
   RED: "#B4141E",
@@ -22,7 +21,6 @@ export const PLAYER_COLOR_HEX = {
 
 export const UNCLAIMED_COLOR_HEX = "#636363"
 
-/** Formats a player color token for display. */
 export function formatPlayerColor(color: PlayerColor): string {
   return color
     .toLowerCase()

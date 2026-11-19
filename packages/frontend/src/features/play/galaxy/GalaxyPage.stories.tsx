@@ -37,8 +37,4 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/**
- * Exercises the page's real map mounting and exit lifecycle. Its native browser
- * test protects camera preservation across a Star System round trip.
- */
 export const Interactive: Story = {}

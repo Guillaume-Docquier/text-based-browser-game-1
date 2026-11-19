@@ -14,7 +14,7 @@ export function useOnboarding({ enabled }: { enabled: boolean }) {
     enabled,
     retry: 3,
     retryDelay: exponentialBackoff({ minMs: 1_000, maxMs: 30_000 }),
-    // This query is only invalidated on logout.
+    // CONSTRAINT: onboarding is only invalidated on logout.
     staleTime: Infinity,
     gcTime: Infinity,
     meta: protectAgainstInvalidationMeta,
@@ -27,7 +27,6 @@ export function useOnboarding({ enabled }: { enabled: boolean }) {
   const finishOnboardingMutation = useMutation(
     backendApiClient.accounts.finishOnboarding.mutationOptions({
       onSuccess: () => {
-        // isOnboardedQuery is intentionally never invalidated, so we set the data ourselves
         queryClient.setQueryData(isOnboardedQueryOptions.queryKey, true)
       },
     }),

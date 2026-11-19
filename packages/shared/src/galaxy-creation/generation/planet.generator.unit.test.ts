@@ -24,7 +24,7 @@ describe("planetGenerator", () => {
     // Arrange
     const starPosition = { x: 10, y: -20 }
     const orbitDistance = 8
-    const quarterTurnRng = Rng.create(createGeneratorStub(0.25)) // straight up, x should not change
+    const quarterTurnRng = Rng.create(createGeneratorStub(0.25))
 
     // Act
     const planet = planetGenerator(starPosition, orbitDistance, quarterTurnRng)

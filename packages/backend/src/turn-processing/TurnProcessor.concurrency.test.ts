@@ -28,7 +28,6 @@ describe("TurnProcessor concurrency", () => {
     clock.increment({ time: Time.create(100, UnitOfTime.SECONDS) })
     await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
 
-    // Pause the first worker's status update after it locks the queue entry for the earlier turn.
     await using claimBlock = await concurrency.blockRowWrites(
       turnsTable,
       sql`${turnsTable.gameId} = ${earlierGameId} AND ${turnsTable.turn} = 1`,

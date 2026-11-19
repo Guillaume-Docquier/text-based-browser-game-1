@@ -1,34 +1,6 @@
 import { type ParsedLocation, redirect } from "@tanstack/react-router"
 import type { RouterContext } from "@/routes/__root.tsx"
 
-/**
- * A guard for routes that require authentication.
- * Use inside your route `beforeLoad`.
- * It will throw a `redirect` to sign-in if the user is not authenticated.
- *
- * @example
- * ```ts
- * import { createFileRoute } from "@tanstack/react-router"
- * import { privateRoute } from "@/privateRoute.ts"
- *
- * export const Route = createFileRoute("/my-route")({
- *   component: MyRoute,
- *   beforeLoad: privateRoute,
- * })
- *
- * // or
- *
- * export const Route = createFileRoute("/my-route")({
- *   component: MyRoute,
- *   beforeLoad: ({ context, location }) => {
- *     // Will throw if not authenticated
- *     privateRoute({ context, location })
- *
- *     // do your things
- *   },
- * })
- * ```
- */
 export function privateRoute({ context, location }: { context: RouterContext; location: ParsedLocation }): void {
   if (context.auth.isSignedIn !== true) {
     // oxlint-disable-next-line typescript/only-throw-error -- That's how tanstack works

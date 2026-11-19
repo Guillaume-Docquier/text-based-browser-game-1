@@ -8,7 +8,6 @@ test("an empty turn resolves when all players are ready and resets readiness", a
     return await CreateGamePage.createGame({
       creator: alice,
       participants: [bob],
-      // long turn length to make sure the turn doesn't progress by itself
       settings: { maxPlayers: 2, turnLength: Time.create(1, UnitOfTime.DAYS) },
     })
   })

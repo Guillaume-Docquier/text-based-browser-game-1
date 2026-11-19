@@ -52,9 +52,6 @@ export const Default: Story = {
   },
 }
 
-/**
- * The selected label must render before the popup has ever mounted.
- */
 export const InitialSelection: Story = {
   render: () => (
     <Select items={FLEETS} defaultValue="home-guard">

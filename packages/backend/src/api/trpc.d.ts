@@ -1,11 +1,9 @@
 import type { Prettify } from "@guillaume-docquier/tools-ts"
 import type { TRPCProcedureBuilder, TRPCUnsetMarker } from "@trpc/server"
 import type { z } from "zod"
-// Prettify intersects with {}, so apply it only to objects to preserve optional input unions.
 type FlattenSchemaType<T> = T extends object ? Prettify<T> : T
 type MergeSchemaTypes<TExisting, TAdded> = TExisting extends TRPCUnsetMarker ? TAdded : FlattenSchemaType<TExisting & TAdded>
 
-// Preserve tRPC's object-input chaining rules, including required/optional compatibility.
 type ChainedInputSchema<TExisting, TSchema extends z.ZodType> = TExisting extends TRPCUnsetMarker
   ? TSchema
   : z.output<TSchema> extends Record<string, unknown> | undefined
@@ -18,10 +16,6 @@ type ChainedInputSchema<TExisting, TSchema extends z.ZodType> = TExisting extend
       : never
     : never
 
-/**
- * Require input and output schemas, in order, before exposing procedure resolvers.
- * Inherited inputs count; additional inputs are allowed only before output.
- */
 export type RequireProcedureSchemas<TBuilder> =
   TBuilder extends TRPCProcedureBuilder<
     infer TContext,

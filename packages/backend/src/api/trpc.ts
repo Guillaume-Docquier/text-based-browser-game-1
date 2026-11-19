@@ -2,31 +2,19 @@ import { type Logger, Result, type Time, Timer } from "@guillaume-docquier/tools
 import { initTRPC, TRPCError } from "@trpc/server"
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import { getHTTPStatusCodeFromError } from "@trpc/server/http"
-import type { MiddlewareResult } from "@trpc/server/unstable-core-do-not-import" // oops, lol
+import type { MiddlewareResult } from "@trpc/server/unstable-core-do-not-import"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { v4 } from "uuid"
 import { z } from "zod"
 import type { GamesRepository } from "#api/games/games.repository.ts"
 import type { RequireProcedureSchemas } from "#api/trpc.d.ts"
 
-/**
- * Explicitly declare that a procedure accepts no input.
- */
 export const NO_INPUT = z.void()
 
-/**
- * Explicitly declare that a procedure returns no value.
- */
 export const NO_OUTPUT = z.void()
 
-/**
- * The response code and user message for a mapped API failure.
- */
 export type TrpcErrorResponse = { code: TRPCError["code"]; message: string }
 
-/**
- * Resolves an API Result into a tRPC output or mapped API error.
- */
 export async function toTrpcOutput<TValue, TError extends string>(
   pendingResult: Promise<Result<TValue, TError>>,
   errorResponses: Record<NoInfer<TError>, TrpcErrorResponse>,
@@ -63,7 +51,7 @@ export type Trpc = ReturnType<typeof createTrpc>
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepository: GamesRepository; logger: Logger }) {
   const logger = baseLogger.child({ scope: "trpc" })
-  // { isDev: false } disables stack traces, see https://trpc.io/docs/server/error-handling#stack-traces-in-production
+  // CONSTRAINT: { isDev: false } disables stack traces, see https://trpc.io/docs/server/error-handling#stack-traces-in-production
   const t = initTRPC.context<TrpcContext>().create({ isDev: false })
 
   const publicProcedure = t.procedure.use(async ({ next, ctx, path, type }) => {

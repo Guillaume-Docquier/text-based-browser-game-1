@@ -33,7 +33,6 @@ type PostgresWriteBlock = AsyncDisposable & {
   release: () => Promise<void>
 }
 
-/** Controls scheduling only. Game state is created and checked through the API. */
 export class PostgresConcurrency {
   private readonly pool: Pool
 
@@ -96,7 +95,6 @@ export class PostgresConcurrency {
     throw new FatalError("Concurrency schedule was not established", { expected: details, sessions })
   }
 
-  /** Verify that a processor can finish while the first remains blocked. */
   public async waitForCompletion<T>(operation: Promise<T>): Promise<T> {
     const timedOut = Symbol("timed out")
     const deadline = Promise.withResolvers<typeof timedOut>()
@@ -124,7 +122,6 @@ function createBlockedQueryPredicate(expected: BlockedQuery): (session: Session)
   const tableClause = `${TABLE_CLAUSES[expected.command]} ${escapeIdentifier(getTableName(expected.table))}`
   const waitEvents = expected.lock === "table" ? ["relation"] : ["transactionid", "tuple"]
 
-  // Match the SQL emitted by Drizzle and confirm PostgreSQL reports the expected blocker.
   return ({ query, waitEvent, blockers }: Session): boolean =>
     blockers.includes(expected.blockedBy) &&
     waitEvents.some((event) => event === waitEvent) &&

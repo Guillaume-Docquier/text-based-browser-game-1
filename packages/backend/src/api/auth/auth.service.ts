@@ -8,8 +8,7 @@ import { v4 } from "uuid"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import type { AuthProvider } from "#api/auth/AuthProvider.ts"
 
-// If we hooked this into trpc, we'd have better guarantees.
-// I just don't really know how to adapt clerk to trpc yet. For now this does the job.
+// CONSTRAINT: If we hooked this into trpc, we'd have better guarantees. I just don't really know how to adapt clerk to trpc.
 declare global {
   // oxlint-disable-next-line typescript/no-namespace -- This is the way with Express
   namespace Express {
@@ -19,9 +18,6 @@ declare global {
   }
 }
 
-/**
- * Resolves authenticated users to local accounts through an auth provider and accounts repository.
- */
 export class AuthService {
   private readonly logger: Logger
   private readonly authProvider: AuthProvider
@@ -41,19 +37,11 @@ export class AuthService {
     this.accountsRepository = accountsRepository
   }
 
-  /**
-   * Express middleware that parses the authentication token for further usage.
-   * The trpc procedures will consume this information.
-   */
   public authenticationMiddlewares(): RequestHandler[] {
     return [this.authProvider.parseTokenMiddleware(), this.recordAccountMiddleware()]
   }
 
-  /**
-   * Records authenticated accounts to our accounts database if they aren't already.
-   *
-   * This is an abstraction over Clerk, because we can't full rely on their webhooks to sync data (and we haven't set up one yet anyway).
-   */
+  // CONSTRAINT: We can't full rely on Clerk webhooks to sync data (and we haven't set one up anyway).
   private recordAccountMiddleware(): RequestHandler {
     return async (req, res, next) => {
       const authStatus = this.authProvider.parseAuthStatus({ req })

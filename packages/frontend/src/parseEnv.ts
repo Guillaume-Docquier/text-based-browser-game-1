@@ -2,45 +2,14 @@ import { z } from "zod"
 
 type FrontendEnv = z.infer<typeof FrontendEnvSchema>
 
-/**
- * The schema for the environment variables.
- * It also serves as documentation for the env.
- *
- * Default values are coherent across all services for dev.
- * Only keys that are 3rd party secret don't have default values, for safety.
- */
 const FrontendEnvSchema = z.object({
-  /**
-   * Vite's built-in development flag. Absent when parsing loadEnv in the Vite config.
-   */
   DEV: z.boolean().default(false),
-  /**
-   * Matches the reverse proxy path for the backend.
-   */
   VITE_BACKEND_BASE_URL: z.string().default("/api"),
-
-  /**
-   * Used to configure the dev proxy, not used in prod (the reverse proxy does this).
-   */
   VITE_BACKEND_HOST: z.string().default("http://localhost:3000"),
-
-  /**
-   * Port used by the Vite development server.
-   */
   VITE_DEV_PORT: z.coerce.number().int().min(1).max(65535).default(5173),
-
-  /**
-   * Fetch the dev key from clerk and keep put it in your .env file.
-   */
   VITE_CLERK_PUBLISHABLE_KEY: z.string(),
 })
 
-/**
- * Parses the env to validate that the necessary variables are defined.
- * Returns a type safe Env object for further use.
- *
- * This should be the only consumer of `import.meta.env`.
- */
 export function parseEnv({ env = import.meta.env }: { env?: Record<string, unknown> } = {}): FrontendEnv {
   return FrontendEnvSchema.parse(env)
 }

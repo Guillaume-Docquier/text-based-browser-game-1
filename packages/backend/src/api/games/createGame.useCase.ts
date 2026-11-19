@@ -9,9 +9,6 @@ import type { CreateGameCommand } from "./createGame.command.ts"
 import { CreateGameError } from "./createGame.error.ts"
 import type { GamesRepository } from "./games.repository.ts"
 
-/**
- * Creates a lobby with its initial status, map seed, and creator's player color.
- */
 export class CreateGameUseCase {
   private readonly gamesRepository: GamesRepository
 

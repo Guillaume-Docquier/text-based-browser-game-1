@@ -68,7 +68,7 @@ describe("gameplay.router", () => {
         gameId: createdGameId,
         player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, isReady: false },
         opponents: {},
-        galaxy: expect.any(Object), // Verified by the snapshot test
+        galaxy: expect.any(Object), // INTENT: Verified by the snapshot test
         turn: 1,
         turnStatus: TurnStatus.COLLECTING_ACTIONS,
         turnEndsAt: Datetime.increment({
@@ -134,8 +134,7 @@ describe("gameplay.router", () => {
     })
   })
 
-  // This test suite is often failing, but only in the CI. Not sure if it is hanging or just taking longer.
-  // If we get timeouts on a 20s budget, this is definitely hanging and there's an issue running on the CI that we should address.
+  // INTENT: This test suite is often failing, but only in the CI. Not sure if it is hanging or just taking longer. If we get timeouts on a 20s budget, this is definitely hanging and there's an issue running on the CI that we should address.
   describe("updateReadiness", { timeout: 20_000 }, () => {
     it.each([true, false])("should set the player readiness to %s", async (isReady) => {
       // Arrange
@@ -147,13 +146,13 @@ describe("gameplay.router", () => {
       const { createdGameId } = await creator.client.games.create.mutate({
         configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
       })
-      await player.client.games.join.mutate({ gameId: createdGameId }) // 2nd player to avoid turn processing on ready
+      await player.client.games.join.mutate({ gameId: createdGameId })
 
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
       const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Act
-      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: !isReady }) // Making sure the status will change
+      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: !isReady })
       await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady })
 
       // Assert
@@ -285,7 +284,7 @@ describe("gameplay.router", () => {
       const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const creator = await apiServer.createClient({ authenticated: true })
-      const player = await apiServer.createClient({ authenticated: true }) // not in the game
+      const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.games.create.mutate({
         configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),

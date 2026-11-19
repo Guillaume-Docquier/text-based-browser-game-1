@@ -1,9 +1,5 @@
 import type { Rng, XY } from "@guillaume-docquier/tools-ts"
 
-/**
- * Generates a cluster of the given radius containing nbPoints that follow a normal distribution around its origin.
- * Some points might fall out of the radius, that's the nature of random numbers following normal distribution.
- */
 export function clusterGenerator({
   origin,
   radius,
@@ -16,9 +12,6 @@ export function clusterGenerator({
   nbPoints: number
   rng: Rng
   options?: {
-    /**
-     * A higher spread factor will spread the points more
-     */
     spreadFactor?: number | undefined
   }
 }): XY[] {

@@ -44,10 +44,6 @@ type PlayerForJoin = Readonly<{
   color: PlayerColor
 }>
 
-/**
- * Owning a GameForJoin within a transaction guarantees that the game is locked and exists at this time.
- * It does not mean it can be joined, you have to check the state and decide.
- */
 export type GameForJoin = Branded<
   "GameForJoin",
   {
@@ -59,19 +55,12 @@ export type GameForJoin = Branded<
 >
 
 export type JoinGameModel = {
-  /**
-   * The GameForJoin must be acquired in the same transaction.
-   */
   readonly context: GameForJoin
   readonly playerId: PlayerId
   readonly color: PlayerColor
   readonly status: typeof GameStatus.WAITING_FOR_PLAYERS | typeof GameStatus.READY_TO_START
 }
 
-/**
- * Owning a GameForLeave within a transaction guarantees that the game is locked and exists at this time.
- * It does not mean it can be left, you have to check the state and decide.
- */
 export type GameForLeave = Branded<
   "GameForLeave",
   {
@@ -83,18 +72,11 @@ export type GameForLeave = Branded<
 >
 
 export type LeaveGameModel = {
-  /**
-   * The GameForLeave must be acquired in the same transaction.
-   */
   readonly context: GameForLeave
   readonly playerId: PlayerId
   readonly status: typeof GameStatus.WAITING_FOR_PLAYERS
 }
 
-/**
- * Owning a GameForStart within a transaction guarantees that the game is locked and exists at this time.
- * It does not mean it can be started, you have to check the state and decide.
- */
 export type GameForStart = Branded<
   "GameForStart",
   {
@@ -108,19 +90,10 @@ export type GameForStart = Branded<
 >
 
 export type StartGameModel = {
-  /**
-   * The GameForStart must be acquired in the same transaction
-   */
   readonly context: GameForStart
   readonly status: GameStatus
   readonly startedAt: Date
-  /**
-   * When the first turn should end
-   */
   readonly turnEndsAt: Date
-  /**
-   * The rng state to use for the first turn's processing
-   */
   readonly rngState: RngState<number>
   readonly galaxy: Galaxy
 }
@@ -128,10 +101,6 @@ export type StartGameModel = {
 export type GameListingModel = {
   id: GameId
   name: string
-  /**
-   * True if the account requesting the listing has joined the game.
-   * Always false for anonymous users.
-   */
   hasJoined: boolean
   nbPlayers: number
   nbSeats: number
@@ -141,12 +110,8 @@ export type GameListingModel = {
   endedAt: Date | null
 }
 
-/**
- * postgress has a limit of 32767 (int16) bind parameters for a query. Some sources say 65536 (int32), it's not clear.
- * However, pglite has 32767 for sure as tests break when we bust it.
- * We'll batch insert planets to avoid the limit, as we can easily insert 3000+ planets with 15+ attributes each, leading to 45k+ bind paremeters.
- */
-const PLANET_INSERT_BATCH_SIZE = 1_000 // ~15k/32k bind parameters (15 per planet)
+// CONSTRAINT: Postgres has a limit of 32767 (int16) bind parameters for a query. We hit it as we insert 3000+ planets with 15+ attributes each, leading to 45k+ bind parameters.
+const PLANET_INSERT_BATCH_SIZE = 1_000
 
 export class GamesRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -215,11 +180,7 @@ export class GamesRepository extends PostgresRepository {
     })
   }
 
-  /**
-   * The only failure mode for this method is throwing to rollback the transaction.
-   */
   public async startGame(startGameModel: StartGameModel, tx: Transaction): Promise<void> {
-    // Prepare data
     const gameTurn: NewTurnRow = {
       gameId: startGameModel.context.gameId,
       turn: 1,
@@ -248,7 +209,6 @@ export class GamesRepository extends PostgresRepository {
       })),
     )
 
-    // Update db
     const updatedGames = await tx
       .update(gamesTable)
       .set({ startedAt: startGameModel.startedAt, status: startGameModel.status })
@@ -264,9 +224,6 @@ export class GamesRepository extends PostgresRepository {
     }
   }
 
-  /**
-   * Gets all game listings; filtering and pagination can be added when needed.
-   */
   public async getGameListings(
     { accountId }: { accountId: AccountId | undefined },
     db: PostgresRepository["db"] = this.db,
@@ -364,9 +321,6 @@ export class GamesRepository extends PostgresRepository {
     return Result.Success(toGameDetailsWithoutOps({ gameRow, players: playersResult.value }))
   }
 
-  /**
-   * @throws JoinGameRollbackError
-   */
   public async getGameForJoin({ gameId }: { gameId: GameId }, tx: Transaction): Promise<GameForJoin> {
     const games = await tx
       .select({ gameId: gamesTable.id, status: gamesTable.status, nbSeats: gamesTable.nbSeats })
@@ -394,9 +348,6 @@ export class GamesRepository extends PostgresRepository {
     })
   }
 
-  /**
-   * The only failure mode for this method is throwing to rollback the transaction.
-   */
   public async joinGame({ context, playerId, color, status }: JoinGameModel, tx: Transaction): Promise<void> {
     const gamePlayers = await tx.insert(playersTable).values({ gameId: context.gameId, playerId, color }).returning()
     Assert.isTrue(gamePlayers.length === 1)
@@ -407,9 +358,6 @@ export class GamesRepository extends PostgresRepository {
     }
   }
 
-  /**
-   * @throws LeaveGameRollbackError
-   */
   public async getGameForLeave({ gameId }: { gameId: GameId }, tx: Transaction): Promise<GameForLeave> {
     const games = await tx
       .select({ gameId: gamesTable.id, status: gamesTable.status, createdByAccountId: gamesTable.createdByAccountId })
@@ -431,9 +379,6 @@ export class GamesRepository extends PostgresRepository {
     })
   }
 
-  /**
-   * The only failure mode for this method is throwing to rollback the transaction.
-   */
   public async leaveGame({ context, playerId, status }: LeaveGameModel, tx: Transaction): Promise<void> {
     const deletedPlayers = await tx
       .delete(playersTable)

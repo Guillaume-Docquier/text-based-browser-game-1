@@ -16,9 +16,6 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/**
- * Required onboarding keeps focus in the dialog until an alias is submitted.
- */
 export const RequiredAlias: Story = {
   play: async ({ args, canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)

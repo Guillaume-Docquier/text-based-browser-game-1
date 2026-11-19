@@ -1,10 +1,6 @@
 import { Datetime, type Time } from "@guillaume-docquier/tools-ts"
 import type { Clock } from "#lib/Clock.ts"
 
-/**
- * A clock that is entirely controlled.
- * Useful for tests where you need determinism.
- */
 export class ControlledClock implements Clock {
   private rightNow: Date
 

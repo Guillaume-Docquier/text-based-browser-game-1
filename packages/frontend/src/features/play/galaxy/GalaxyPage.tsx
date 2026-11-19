@@ -11,12 +11,6 @@ type GalaxyView = { type: "galaxy" } | { type: "star-system"; system: StarSystem
 type PlanetDetailsView = { planet: Planet; transition: "open" | "closing" }
 type PlanetTarget = { readonly system: StarSystem; readonly planet: Planet }
 
-/**
- * Displays the game's galaxy and lets the player inspect individual Star Systems.
- *
- * @param initialPlanetId - A Planet to open on the initial render.
- * @returns The interactive Galaxy page.
- */
 export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | undefined }): ReactElement {
   const { gameDetails, playerView } = usePlayGameContext()
   const initialPlanetTarget = findPlanetTarget(playerView.galaxy.systems, initialPlanetId)

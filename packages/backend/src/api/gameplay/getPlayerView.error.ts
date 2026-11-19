@@ -8,9 +8,6 @@ export const GetPlayerViewError = {
   UNKNOWN: "UNKNOWN",
 } as const
 
-/**
- * Maps each use-case failure to its API response code and user message.
- */
 export const GetPlayerViewErrorResponses: Record<GetPlayerViewError, TrpcErrorResponse> = {
   [GetPlayerViewError.TURN_NOT_FOUND]: { code: "NOT_FOUND", message: "No turn found for this game." },
   [GetPlayerViewError.UNKNOWN]: { code: "INTERNAL_SERVER_ERROR", message: "Player view could not be loaded." },

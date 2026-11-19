@@ -1,9 +1,6 @@
 import { cn } from "cn"
 import { type ReactElement, useId } from "react"
 
-/**
- * Displays the turn clock and the reversible lock-in action in one control.
- */
 export function TurnButton({
   turn,
   countdown,
@@ -22,7 +19,6 @@ export function TurnButton({
   onToggle: () => void
 }): ReactElement {
   const descriptionId = useId()
-  // Pending requests block clicks without resetting the hovered appearance.
   const showInteraction = !disabled || isPending
 
   return (

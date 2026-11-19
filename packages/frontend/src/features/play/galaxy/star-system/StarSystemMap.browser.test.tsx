@@ -19,7 +19,6 @@ describe("Star System map interactions", () => {
     const map = page.getByRole("group", { name: "Sol Star System map" })
     const star = map.getByRole("button", { name: "Return to Galaxy from Sol" })
     const planet = map.getByRole("button", { name: "View Terra details" })
-    // SVG paints later bodies above earlier ones; paint order is the requirement.
     const bodyOrder = (): Array<string | null> =>
       Array.from(map.element().querySelectorAll('[role="button"]'), (body) => body.getAttribute("aria-label"))
 
@@ -51,8 +50,6 @@ describe("Star System map interactions", () => {
       await expect.poll(() => distanceFromMapCenter(map.element(), hitArea)).toBeGreaterThan(80)
     })
 
-    // Pause the actual CSS transition in the mutation microtask, before the next
-    // paint. Freeze only its JS fallback timer; production durations stay unchanged.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
     const transition = pauseTransformTransition(map.element())
     try {

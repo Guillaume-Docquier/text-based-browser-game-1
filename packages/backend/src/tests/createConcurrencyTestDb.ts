@@ -8,21 +8,19 @@ import { createPostgresPoolDisposal } from "#tests/createPostgresPoolDisposal.ts
 import { POSTGRES_IMAGE } from "#tests/POSTGRES_IMAGE.ts"
 import { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
 
-// This is leveraging `isolate: false` by putting the preload in the worker scope
-// beforeAll runs before every test files, even in the same worker, so we cache the container
+// CONSTRAINT: We leverage `isolate: false` to set up only once.
 let connectionUri: string
 
 export async function prepareConcurrencyTestDb(): Promise<void> {
   if (connectionUri !== undefined) {
-    // beforeAll gets called multiple times in the same isolate, but we only need to initialize once
+    // CONSTRAINT: beforeAll gets called multiple times in the same isolate, but we only need to initialize once.
     return
   }
 
-  // Blocking logs make failures visible before the test process exits.
+  // CONSTRAINT: Blocking logs make failures visible before the test process exits.
   await configureLogger({ scope: "concurrency-test", nonBlocking: false })
 
-  // This will download the Postgres image if it's not on the system already to avoid the first test looking like it's stuck
-  // On the CI, this can take >30s
+  // CONSTRAINT: This will download the Postgres image if it's not on the system already to avoid the first test looking like it's stuck. On the CI, this can take >30s.
   const container = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
 
   connectionUri = container.getConnectionUri()
@@ -34,7 +32,7 @@ export async function createConcurrencyTestDb(): Promise<
   const adminPool = createDb({ databaseUrl: connectionUri }).$client
   const cleanupAdminPool = createPostgresPoolDisposal(adminPool)
 
-  // A database per test keeps table-wide scheduling locks isolated.
+  // CONSTRAINT: We set up isolated databases in the same Postgres container.
   const databaseName = `test_${randomUUID().replaceAll("-", "")}`
   const cleanupSqlDb = await createSqlDb(adminPool, databaseName)
 

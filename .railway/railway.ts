@@ -57,7 +57,7 @@ export default defineRailway(() => {
   })
 
   const configuration = {
-    // We don't commit secrets, they stay in Railway
+    // CONSTRAINT: We don't commit secrets, they stay in Railway
     variables: { managed: false },
     resources: [frontend, database, reverseProxy, backend, databaseVolume],
   }

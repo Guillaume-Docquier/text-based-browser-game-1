@@ -52,7 +52,6 @@ function App(): ReactElement {
     return <></>
   }
 
-  // Mount a fresh cache and router when the signed-in account changes.
   return <AuthSession key={auth.userId ?? "signed-out"} auth={auth} />
 }
 
@@ -62,7 +61,6 @@ function AuthSession({ auth }: RouterContext): ReactElement {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // GET game/bad_id retries, but it'll never work. Why retry?
             retry: false,
           },
         },

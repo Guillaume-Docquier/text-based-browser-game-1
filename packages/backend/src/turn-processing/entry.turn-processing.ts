@@ -8,11 +8,6 @@ import { BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
 import { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 
-/**
- * Starts turn processing.
- * For now, turn processing consists of a single worker doing all the work.
- * No synchronization needed, auto restarts.
- */
 export function startTurnProcessing({ logger }: { logger: Logger }): void {
   logger.info("Creating a single turn processing worker")
   const turnProcessorWorker = new Worker(new URL(import.meta.url), {
@@ -29,9 +24,6 @@ export function startTurnProcessing({ logger }: { logger: Logger }): void {
   })
 }
 
-/**
- * Turn processing worker entry point.
- */
 if (!isMainThread) {
   const logger = await configureLogger({ scope: "turn-processing" })
 
@@ -49,7 +41,6 @@ if (!isMainThread) {
   const turnProcessor = new TurnProcessor({ logger, clock, createTransaction, turnsRepository })
 
   logger.info("Processing turns forever")
-  // Fire and forget
   void turnProcessor.processTurnsForever({ interval: Time.create(1, UnitOfTime.SECONDS) })
 
   monitorMemoryUsage({ logger })

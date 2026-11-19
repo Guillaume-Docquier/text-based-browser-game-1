@@ -135,7 +135,6 @@ function conflict(message: string): Failure<unknown> {
   return Result.Failure(expect.objectContaining({ message, data: expect.objectContaining({ code: "CONFLICT" }) }))
 }
 
-/** Hold the first write until the competing operation waits for its game-row lock. */
 async function runLobbyRace({
   concurrency,
   block,

@@ -7,7 +7,6 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   optimizeDeps: {
-    // Prebundle primitives before dynamically imported stories start their tests.
     include: [
       "@base-ui/react/combobox",
       "@base-ui/react/dialog",

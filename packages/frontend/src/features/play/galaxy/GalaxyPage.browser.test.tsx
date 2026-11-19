@@ -40,7 +40,6 @@ describe("Galaxy page camera", () => {
       await page.getByRole("button", { name: "Return to Galaxy from Sol" }).click()
       await expect.element(page.getByRole("heading", { name: "Galaxy", exact: true })).toBeVisible()
       await expect.element(page.getByRole("group", { name: "Sol Star System map" })).not.toBeInTheDocument()
-      // Resolve returned nodes afresh so remounting cannot hide behind stale nodes.
       expect(starWidth()).toBeCloseTo(zoomedWidth)
       expect(distanceFromMapCenter(map.element(), starHitArea(star.element()))).toBeLessThan(1)
     })

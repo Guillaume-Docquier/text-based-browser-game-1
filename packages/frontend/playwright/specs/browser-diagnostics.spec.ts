@@ -74,7 +74,6 @@ for (const user of ["default", "alice", "bob"] as const) {
           expect(message.type()).toBe(level === "warn" ? "warning" : "error")
         })
 
-        // Only the diagnostics fixture's teardown should fail, after the event was verified.
         test.fail(true, "Browser diagnostics must reject this console message")
       })
     }

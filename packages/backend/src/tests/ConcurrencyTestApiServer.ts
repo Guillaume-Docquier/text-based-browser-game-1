@@ -7,18 +7,10 @@ import { PortListeningMessageSchema } from "#api/PortListeningMessage.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
 
-/**
- * Set to "ignore" to lower the noise
- * Set to "inherit" to debug what's going on inside the apiServer
- */
 const API_LOGS: "ignore" | "inherit" = "inherit"
 
 const API_START_TIMEOUT_MS = 30_000
 
-/**
- * I can't find the documentation, but server.listen(0) gets assigned an unused port.
- * Great for testing.
- */
 const ANY_UNUSED_PORT = 0
 
 export class ConcurrencyTestApiServer {
@@ -51,7 +43,6 @@ export class ConcurrencyTestApiServer {
 
   public async [Symbol.asyncDispose](): Promise<void> {
     if (API_LOGS === "inherit") {
-      // Let the api logs flush
       await setTimeout(100)
     }
 
@@ -64,10 +55,6 @@ type ForkedServer = {
   stop: () => Promise<void>
 }
 
-/**
- * Starts a real api in a forked process.
- * The goal of this is to use an unadulterated api server running on its own thread.
- */
 async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<ForkedServer> {
   const apiProcess = fork("src/api/entry.api.ts", {
     cwd: process.cwd(),

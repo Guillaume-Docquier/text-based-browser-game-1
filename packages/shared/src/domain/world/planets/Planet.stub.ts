@@ -5,9 +5,6 @@ import { PlanetSchema, type Planet } from "#shared/domain/world/planets/Planet.t
 import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "#shared/domain/world/planets/PlanetSize.ts"
 
-/**
- * Provides a unique id if none is specified
- */
 export function createPlanetStub({
   id = v4(),
   ownerPlayerId = null,

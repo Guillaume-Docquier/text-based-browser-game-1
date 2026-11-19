@@ -21,25 +21,9 @@ import { parseEnv } from "#lib/parseEnv.ts"
 const YES_I_KNOW = "yes i know"
 
 const SeedEnvSchema = z.object({
-  /**
-   * See the infra docker-compose file for the dev db url.
-   * postgres://<user>:<pwd>@localhost:<port>/<db>
-   */
   DATABASE_URL: z.string(),
-
-  /**
-   * Clerk id if adding yourself.
-   */
   CLERK_ID: z.string().optional(),
-
-  /**
-   * User email if adding yourself.
-   */
   USER_EMAIL: z.string().optional(),
-
-  /**
-   * User alias if adding yourself.
-   */
   USER_ALIAS: z.string().optional(),
 })
 
@@ -62,13 +46,6 @@ type User = {
   alias: string | undefined
 }
 
-/**
- * Populates the database with basic data.
- * This will first wipe the database.
- * You will be asked to confirm if you're seeding a database other than the localhost db, just in case.
- *
- * The db to seed is determined by the DATABASE_URL env var.
- */
 async function main({ connectionString, user }: { connectionString: string; user: User | undefined }): Promise<void> {
   const logger = await configureLogger({ scope: "db-seed", nonBlocking: false })
   const host = getDbHost(connectionString)
@@ -209,9 +186,6 @@ async function seedGames({
 
 type SeedGameInput = {
   creator: Account
-  /**
-   * Additional participants; lobby creation already adds the creator.
-   */
   participants: readonly Account[]
   createGameUseCase: CreateGameUseCase
   joinGameUseCase: JoinGameUseCase
@@ -219,36 +193,24 @@ type SeedGameInput = {
   treePosition?: "branch" | "last"
 }
 
-/**
- * A solo game so we can move turns via Ready
- */
 const seedSoloGame = createGameSeeder({
   name: "solo game",
   nbSeats: 1,
   turnIntervalSeconds: inSeconds(Time.create(1, UnitOfTime.HOURS)),
 })
 
-/**
- * A game with multiple players that moves fast so we can see turns progressing by themselves
- */
 const seedInsanelyFastGame = createGameSeeder({
   name: "insanely fast game",
   nbSeats: 5,
   turnIntervalSeconds: inSeconds(Time.create(10, UnitOfTime.SECONDS)),
 })
 
-/**
- * A game where we are not the creator so we can join and leave
- */
 const seedCommunityGame = createGameSeeder({
   name: "community game",
   nbSeats: 10,
   turnIntervalSeconds: inSeconds(Time.create(2, UnitOfTime.HOURS)),
 })
 
-/**
- * A game with max players to see all the player colors and starting planet spread
- */
 const seedMaximumPlayersGame = createGameSeeder({
   name: "maximum players game",
   nbSeats: MAX_NB_SEATS,
@@ -277,9 +239,6 @@ function createGameSeeder(configuration: GameConfiguration): (input: SeedGameInp
   }
 }
 
-/**
- * Nothing throws for the application, but here if something goes wrong, we just want to abort loudly
- */
 function assertSuccess<TSuccess>(result: Result<TSuccess, string>): TSuccess {
   Assert.isSuccess(result)
   return result.value

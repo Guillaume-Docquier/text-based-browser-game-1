@@ -40,9 +40,6 @@ export class GameListingsPage extends WebsitePage {
     await this.gameNameFilter.fill(name)
   }
 
-  /**
-   * Redirects to CreateGamePage only if the user is signed in.
-   */
   public async createGame(): Promise<CreateGamePage> {
     await this.createGameLink.click()
     return new CreateGamePage(this.page)
