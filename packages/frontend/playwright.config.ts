@@ -59,7 +59,7 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         video: "retain-on-failure",
       },
-      // INTENT: avoids running the setup on every run when using the playwright ui because it slows down tests a lot when debugging. It does mean your auth can get stale, and you need to know to manually run the setup again. When running headless, we always run the setup for a clean run.
+      // INTENT: Avoids running the setup on every run when using the playwright ui because it slows down tests a lot when debugging. It does mean your auth can get stale, and you need to know to manually run the setup again. When running headless, we always run the setup for a clean run.
       dependencies: isUiMode ? [] : ["setup"],
     },
   ],
