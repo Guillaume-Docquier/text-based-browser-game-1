@@ -5,7 +5,7 @@
 - ADRs explain durable decisions, not every implementation detail.
 - The ADR template is intentionally small: `Title`, `Status`, `Context`, `Decision`, and `Consequences`, with an `Amendment history` when an accepted ADR changes.
 - Capture useful options, rejected alternatives, boundaries, risks, and follow-up work inside the existing template sections.
-- The ADR must be self-contained — no tribal knowledge assumptions
+- The ADR must be self-contained, no tribal knowledge assumptions.
 
 ## When to Write an ADR
 
@@ -33,7 +33,7 @@ If you are an agent coding in this repo and encounter any of these situations, s
 - You are about to create a new architectural pattern that other code will need to follow.
 - You are choosing between two or more real alternatives and the tradeoffs are non-obvious.
 - You are about to change something that contradicts an accepted ADR.
-- You are writing a long code comment explaining why a pattern exists.
+- You are adding new test patterns or test infrastructure
 
 To propose one, tell the human what decision you have reached, why it matters, and ask whether they want to capture it as an ADR. If yes, use the workflow below.
 
@@ -125,29 +125,9 @@ Only surface failures and notable strengths. If there are gaps, propose specific
 
 Do not finalize until the ADR passes review or the human explicitly accepts the gaps.
 
-## Consulting ADRs
-
-Agents should read existing ADRs before implementing changes that touch architecture, API design, infrastructure, persistence, testing strategy, or cross-cutting conventions.
-
-### When to Consult ADRs
-
-- Before starting work on a feature that touches architecture.
-- When you encounter a pattern and wonder why it is done that way.
-- Before proposing a change that might contradict an accepted decision.
-- When a human says to check the ADRs.
-- When an ADR reference appears in code, docs, or review feedback.
-
-### How to Consult ADRs
-
-1. Read `docs/architecture/decisions/README.md`.
-2. Scan the relevant titles and summaries.
-3. Read the relevant ADRs fully.
-4. Follow accepted ADRs unless the work is explicitly to supersede or revise them.
-5. If code and an accepted ADR disagree, flag the mismatch before changing direction.
-
 ## Amending ADRs
 
-Draft ADRs can be edited directly. Once an ADR is accepted, it must be amended, never simply modified. Amendments keep the ADR's guidance current while preserving a visible record of how the decision changed.
+Edits to existing ADRs that materially change the reasons or decisions must provide an amendment trace. Routine edits, like rewording or restructuring, don't need an amendment trace.
 
 To amend an accepted ADR:
 
