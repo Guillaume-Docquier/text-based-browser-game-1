@@ -43,6 +43,7 @@ function copyEnv(): string {
   return mainCheckoutPath
 }
 
+// INTENT: We don't atomically read + increment, and we don't validate that the ports are available. Race conditions are possible but unlikely with our setup.
 function getWorktreePorts(mainCheckoutPath: string): AssignedPorts {
   console.log("🔧 Getting the base port")
   const counterPath = path.join(mainCheckoutPath, ".worktree-counter")

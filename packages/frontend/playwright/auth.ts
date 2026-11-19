@@ -15,4 +15,5 @@ export const users = {
     email: "e2e-bob+clerk_test@example.com",
     authFilePath: path.resolve(playwrightDirectory, ".clerk/bob.json"),
   },
+  // CONSTRAINT: "e2e-charlie+clerk_test@example.com" exists, but until we need to use a 3rd user, it's better not to have it because we pay a setup tax for each user.
 }

@@ -8,6 +8,7 @@ import { v4 } from "uuid"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import type { AuthProvider } from "#api/auth/AuthProvider.ts"
 
+// CONSTRAINT: If we hooked this into trpc, we'd have better guarantees. I just don't really know how to adapt clerk to trpc.
 declare global {
   // oxlint-disable-next-line typescript/no-namespace -- This is the way with Express
   namespace Express {
@@ -40,6 +41,7 @@ export class AuthService {
     return [this.authProvider.parseTokenMiddleware(), this.recordAccountMiddleware()]
   }
 
+  // CONSTRAINT: We can't full rely on Clerk webhooks to sync data (and we haven't set one up anyway).
   private recordAccountMiddleware(): RequestHandler {
     return async (req, res, next) => {
       const authStatus = this.authProvider.parseAuthStatus({ req })

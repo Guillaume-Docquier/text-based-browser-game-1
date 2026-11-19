@@ -108,6 +108,7 @@ export class TurnProcessor {
   }
 }
 
+// CONSTRAINT: Schedules from the processing time when we detect a schedule time drift. This avoids quick-firing turn processing if there is a server downtime.
 function getNextTurnScheduledFor({
   turnClosedAt,
   processedAt,

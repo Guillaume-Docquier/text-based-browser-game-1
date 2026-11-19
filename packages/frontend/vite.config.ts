@@ -32,6 +32,7 @@ export default defineConfig(({ mode }) => {
       watch: {
         ignored: ["**/storybook-static/**", "**/playwright/**", "**/playwright-report/**", "**/playwright.config.ts"],
       },
+      // CONSTRAINT: Matches the reverse proxy configuration in production
       proxy: {
         [env.VITE_BACKEND_BASE_URL]: {
           target: env.VITE_BACKEND_HOST,

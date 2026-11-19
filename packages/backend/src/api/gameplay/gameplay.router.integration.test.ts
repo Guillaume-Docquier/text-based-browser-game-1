@@ -68,7 +68,7 @@ describe("gameplay.router", () => {
         gameId: createdGameId,
         player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, isReady: false },
         opponents: {},
-        galaxy: expect.any(Object),
+        galaxy: expect.any(Object), // VERIFY: Verified by the snapshot test
         turn: 1,
         turnStatus: TurnStatus.COLLECTING_ACTIONS,
         turnEndsAt: Datetime.increment({
@@ -134,6 +134,7 @@ describe("gameplay.router", () => {
     })
   })
 
+  // VERIFY: This test suite is often failing, but only in the CI. Not sure if it is hanging or just taking longer. If we get timeouts on a 20s budget, this is definitely hanging and there's an issue running on the CI that we should address.
   describe("updateReadiness", { timeout: 20_000 }, () => {
     it.each([true, false])("should set the player readiness to %s", async (isReady) => {
       // Arrange

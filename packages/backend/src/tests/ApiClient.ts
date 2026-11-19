@@ -59,6 +59,7 @@ function createTrpcClient({ port, authId }: { port: number; authId: string | und
     links: [
       httpBatchLink({
         url: `http://localhost:${port}/trpc`,
+        // CONSTRAINT: The AUTH_ID_HEADER is serialized as "undefined" if the value is undefined. We have to avoid setting it when there is no account
         headers: authId === undefined ? {} : { [AUTH_ID_HEADER]: authId },
       }),
     ],

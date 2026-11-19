@@ -97,6 +97,7 @@ function createTrpcRouter({
   })
 }
 
+// CONSTRAINT: trpc catches all errors and doesn't log them. We want to log unexpected errors, which trpc returns as "INTERNAL_SERVER_ERROR".
 function createErrorHandler({ logger }: { logger: Logger }) {
   return ({ error }: { error: TRPCError }): void => {
     if (error.code !== "INTERNAL_SERVER_ERROR") {

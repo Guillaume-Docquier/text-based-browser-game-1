@@ -45,6 +45,7 @@ export function assignHomePlanets({
     const homePlanet = rng.draw(availablePlanets, 1).drawn[0]
     Assert.isDefined(homePlanet)
 
+    // INTENT: We're cheating by mutating the galaxy to avoid copying it all. We're in the galaxy creation process, we can do that
     const mutableHomePlanet: Mutable<typeof homePlanet, "ownerPlayerId"> = homePlanet
     mutableHomePlanet.ownerPlayerId = playerId
   }
@@ -52,6 +53,7 @@ export function assignHomePlanets({
   return galaxy
 }
 
+// INTENT: This is simple to write but is O(nbPlanets). We can optimize this if that's a problem. We call this just once per player, so it's not the end of the world.
 function getClosestSystemWithUnclaimedPlanets(target: XY, galaxy: Galaxy): StarSystem {
   let closestSystem: StarSystem | undefined
   let closestDistance = Number.POSITIVE_INFINITY

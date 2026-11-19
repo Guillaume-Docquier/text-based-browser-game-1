@@ -14,6 +14,7 @@ export function useOnboarding({ enabled }: { enabled: boolean }) {
     enabled,
     retry: 3,
     retryDelay: exponentialBackoff({ minMs: 1_000, maxMs: 30_000 }),
+    // CONSTRAINT: onboarding is only invalidated on logout.
     staleTime: Infinity,
     gcTime: Infinity,
     meta: protectAgainstInvalidationMeta,

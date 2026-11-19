@@ -99,6 +99,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
         removeContextListener()
       }
 
+      // CONSTRAINT: Update the test status without stopping teardown, so diagnostic failures retain videos.
       expect
         .soft(diagnostics, "Unexpected browser diagnostics")
         .toEqual(expectedBrowserDiagnostics.messages.map((pattern) => expect.stringMatching(pattern)))

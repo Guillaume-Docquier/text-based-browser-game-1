@@ -33,6 +33,7 @@ async function main(): Promise<void> {
   const db = createDb({ databaseUrl: env.DATABASE_URL })
 
   logger.info("Performing database migration")
+  // CONSTRAINT: migrationsFolder path is relative to cwd, not to the script path
   await migrateDatabase(db, { migrationsFolder: "./drizzle/", logger })
 
   logger.info("Creating services")
@@ -58,11 +59,14 @@ async function main(): Promise<void> {
     ...repositories,
   })
 
+  // CONSTRAINT: Listen to all interfaces (::) for railway's IPv6 internal network
   const server = app.listen(env.PORT, "::", () => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- I don't know when it's not actually an AddressInfo
     const serverAddress = server.address() as AddressInfo
 
+    // CONSTRAINT: If env.PORT is 0, a random port will be attributed, so we log the server port instead of env.PORT
     logger.info(`API listening on port ${serverAddress.port}`)
+    // CONSTRAINT: This is currently only used for concurrency tests to know which port the api is using
     process.send?.({ type: "listening", port: serverAddress.port } as const satisfies PortListeningMessage)
   })
 

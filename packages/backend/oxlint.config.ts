@@ -41,12 +41,14 @@ export default defineConfig({
     {
       files: ["src/api/**/*.router*.ts"],
       rules: {
+        // INTENT: Routers and their tests intentionally return awaited void outputs to streamline the router handlers.
         "typescript/no-confusing-void-expression": "off",
       },
     },
     {
       files: ["src/**/*.test-d.ts"],
       rules: {
+        // INTENT: Rejected type expressions are asserted with @ts-expect-error, without an expectation call.
         "vitest/expect-expect": "off",
       },
     },

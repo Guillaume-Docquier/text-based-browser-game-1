@@ -1,1 +1,2 @@
+# CONSTRAINT: cmd.exe has a limit of 8191 characters and we hit it even though lint-staged is supposed to batch at 8191 chars
 pnpm lint-staged --relative --max-arg-length 6143

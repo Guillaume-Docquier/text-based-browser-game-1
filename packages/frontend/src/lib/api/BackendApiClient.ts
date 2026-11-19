@@ -69,10 +69,11 @@ export function createBackendApiClient({
     }),
     queryClient,
     overrides: {
+      // CONSTRAINT: There is no way to invalidate a whole router on mutation. See https://trpc.io/docs/client/react/useUtils#invalidate-full-cache-on-every-mutation and https://github.com/trpc/trpc/issues/5264. Invalidating everything should be better than manually remembering to invalidate on every mutation.
       mutations: {
         async onSuccess(opts) {
+          // CONSTRAINT: The order matters to allow route changes in `onSuccess` without having a flash of content change whilst redirecting.
           await opts.originalFn()
-
           await opts.queryClient.invalidateQueries({ predicate: unlessProtected })
         },
       },

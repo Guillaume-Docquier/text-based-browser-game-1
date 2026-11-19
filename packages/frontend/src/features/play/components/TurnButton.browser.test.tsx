@@ -23,6 +23,7 @@ async function renderStory(story: typeof Interactive): Promise<void> {
 }
 
 function isCountdownVisible(): boolean {
+  // CONSTRAINT: Vitest's toBeVisible ignores opacity. The countdown stays accessible while CSS makes it transparent, so check its painted visibility, including ancestors.
   return page.getByText("02:17:43").element().checkVisibility({ opacityProperty: true, visibilityProperty: true })
 }
 

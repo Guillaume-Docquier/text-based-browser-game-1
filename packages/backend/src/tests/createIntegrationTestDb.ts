@@ -6,13 +6,16 @@ import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import * as schema from "#lib/db/schema.ts"
 
+// CONSTRAINT: We leverage `isolate: false` to set up only once.
 let loadDataDir: Blob
 
 export async function prepareIntegrationTestDb(): Promise<void> {
   if (loadDataDir !== undefined) {
+    // CONSTRAINT: beforeAll gets called multiple times in the same isolate, but we only need to initialize once.
     return
   }
 
+  // CONSTRAINT: Blocking logs make failures visible before the test process exits.
   await configureLogger({ scope: "integration-test", nonBlocking: false })
 
   await using pgliteTemplate = new PGlite()

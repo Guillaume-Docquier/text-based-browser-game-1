@@ -129,6 +129,7 @@ describe("galaxyGenerator", () => {
     })
 
     // Assert
+    // VERIFY: Hard to assert that this is correct without looking at it. Run `pnpm map-gen galaxy spiral --seed 1234 --grid` and the matching DEFAULT_OPTIONS to visualize the spiral. If you're happy, run `pnpm btu --update` to update the snapshot
     expect(galaxy).toMatchSnapshot()
   })
 })

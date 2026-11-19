@@ -110,6 +110,7 @@ export type GameListingModel = {
   endedAt: Date | null
 }
 
+// CONSTRAINT: Postgres has a limit of 32767 (int16) bind parameters for a query. We hit it as we insert 3000+ planets with 15+ attributes each, leading to 45k+ bind parameters.
 const PLANET_INSERT_BATCH_SIZE = 1_000
 
 export class GamesRepository extends PostgresRepository {

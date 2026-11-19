@@ -1,6 +1,7 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { Pool, PoolClient } from "pg"
 
+// CONSTRAINT: pg-pool removes clients from its list before their sockets have finished closing. This is a workaround for https://github.com/brianc/node-postgres/issues/3287.
 export function createPostgresPoolDisposal(pool: Pool): () => Promise<void> {
   Assert.isTrue(pool.totalCount === 0)
   const disconnects = new Set<Promise<undefined>>()

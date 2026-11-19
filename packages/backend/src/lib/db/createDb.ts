@@ -12,6 +12,7 @@ export function createCreateTransaction(db: Database): CreateTransaction {
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let Drizzle inference do the work
 export function createDb({ databaseUrl }: { databaseUrl: string }) {
   return drizzle({
+    // CONSTRAINT: ssl is not needed for internal Railway network
     connection: {
       connectionString: databaseUrl,
     },
