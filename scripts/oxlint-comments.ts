@@ -1,6 +1,7 @@
 import type { RuleTester } from "oxlint/plugins-dev"
 
 type OxlintRule = Parameters<RuleTester["run"]>[1]
+type OxlintContext = Parameters<NonNullable<OxlintRule["create"]>>[0]
 
 const allowedComments = {
   meta: {
@@ -22,15 +23,7 @@ const allowedComments = {
     },
   },
   create(context): { Program: () => void } {
-    const [options] = context.options
-    if (typeof options !== "object" || options === null || Array.isArray(options)) {
-      throw new TypeError("Expected an options object for allowed-comments.")
-    }
-
-    const { prefixes, message } = options
-    if (!Array.isArray(prefixes) || !prefixes.every((prefix) => typeof prefix === "string") || typeof message !== "string") {
-      throw new TypeError("Expected prefixes and a message for allowed-comments.")
-    }
+    const { prefixes, message } = parseCommentOptions(context.options)
 
     return {
       Program(): void {
@@ -44,6 +37,19 @@ const allowedComments = {
     }
   },
 } satisfies OxlintRule
+
+function parseCommentOptions([options]: OxlintContext["options"]): { prefixes: string[]; message: string } {
+  if (typeof options !== "object" || options === null || Array.isArray(options)) {
+    throw new TypeError("Expected an options object for allowed-comments.")
+  }
+
+  const { prefixes, message } = options
+  if (!Array.isArray(prefixes) || !prefixes.every((prefix) => typeof prefix === "string") || typeof message !== "string") {
+    throw new TypeError("Expected prefixes and a message for allowed-comments.")
+  }
+
+  return { prefixes, message }
+}
 
 export default {
   meta: {
