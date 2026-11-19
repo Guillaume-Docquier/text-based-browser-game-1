@@ -8,8 +8,6 @@ Accepted
 
 - 2026-11-16: Require the deterministic PostgreSQL concurrency test strategy when verifying these locks.
 
-- 2026-11-18: Updated the active-game example to use Readiness after the legacy Action Submission implementation was removed.
-
 ## Context
 
 Many lobby operations read game state, check rules, and then write to several tables. Examples include joining, leaving, and starting a game. Active gameplay operations also need a stable lock while they read and write the current Turn.
