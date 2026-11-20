@@ -3,23 +3,33 @@ import { lint } from "./lint.ts"
 
 describe("lint fixtures", () => {
   it("should run type-aware rules on the snippet", () => {
-    const diagnostics = lint({
+    // Arrange
+    const fixture = {
       code: `
         Promise.resolve(1)
       `,
-    })
+    }
 
+    // Act
+    const diagnostics = lint(fixture)
+
+    // Assert
     expect(diagnostics).toStrictEqual(["typescript(no-floating-promises)"])
   })
 
   it("should discover the backend config from a repository-relative path", () => {
-    const diagnostics = lint({
+    // Arrange
+    const fixture = {
       path: "packages/backend/src/example/current-time.ts",
       code: `
         export const currentTime = Date.now()
       `,
-    })
+    }
 
+    // Act
+    const diagnostics = lint(fixture)
+
+    // Assert
     expect(diagnostics).toStrictEqual(["eslint(no-restricted-globals)"])
   })
 })
