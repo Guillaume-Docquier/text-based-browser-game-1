@@ -123,10 +123,14 @@ describe("PlanetsPage", () => {
   })
 
   it.each([
-    { column: "Planet", ascending: ["Atlas", "Boreas", "Ceto", "Dione"], descending: ["Dione", "Ceto", "Boreas", "Atlas"] },
+    {
+      column: "Planet",
+      previousColumn: "Coordinates",
+      ascending: ["Atlas", "Boreas", "Ceto", "Dione"],
+      descending: ["Dione", "Ceto", "Boreas", "Atlas"],
+    },
     {
       column: "Owner",
-      previousColumn: "Planet",
       ascending: ["Boreas", "Dione", "Atlas", "Ceto"],
       descending: ["Ceto", "Atlas", "Dione", "Boreas"],
     },
@@ -137,12 +141,14 @@ describe("PlanetsPage", () => {
     { column: "Energy", ascending: ["Boreas", "Ceto", "Atlas", "Dione"], descending: ["Dione", "Atlas", "Ceto", "Boreas"] },
     { column: "Max population", ascending: ["Dione", "Ceto", "Atlas", "Boreas"], descending: ["Boreas", "Atlas", "Ceto", "Dione"] },
     { column: "Area", ascending: ["Atlas", "Dione", "Ceto", "Boreas"], descending: ["Boreas", "Ceto", "Dione", "Atlas"] },
-  ])("should sort $column in both directions", async ({ column, previousColumn = "Owner", ascending, descending }) => {
+  ])("should sort $column in both directions", async ({ column, previousColumn = "Planet", ascending, descending }) => {
     renderPlanets()
     const header = page.getByRole("columnheader", { name: column, exact: true })
     const sort = header.getByRole("button")
+    const previousHeader = page.getByRole("columnheader", { name: previousColumn, exact: true })
     await page.mark("Switch from a different column to ascending order", async () => {
-      await page.getByRole("button", { name: previousColumn, exact: true }).click()
+      await previousHeader.getByRole("button").click()
+      await expect.element(previousHeader).toHaveAttribute("aria-sort", "ascending")
       await sort.click()
       await expect.element(header).toHaveAttribute("aria-sort", "ascending")
       await expect.poll(planetNames).toEqual(ascending)
@@ -151,6 +157,11 @@ describe("PlanetsPage", () => {
       await sort.click()
       await expect.element(header).toHaveAttribute("aria-sort", "descending")
       await expect.poll(planetNames).toEqual(descending)
+    })
+    await page.mark("Switch away from descending order", async () => {
+      await previousHeader.getByRole("button").click()
+      await expect.element(previousHeader).toHaveAttribute("aria-sort", "ascending")
+      await expect.element(header).toHaveAttribute("aria-sort", "none")
     })
   })
 })
