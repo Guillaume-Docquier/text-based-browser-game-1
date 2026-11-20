@@ -44,7 +44,7 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Lint rule tests
+      - name: Test lint rules
         run: pnpm test:lint
 
   frontend:
