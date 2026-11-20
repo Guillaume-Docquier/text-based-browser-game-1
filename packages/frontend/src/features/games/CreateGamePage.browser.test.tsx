@@ -1,18 +1,11 @@
-import { QueryClient } from "@tanstack/react-query"
 import { describe, expect, it } from "vitest"
 import { page } from "vitest/browser"
-import { ApiTestProvider } from "@/lib/api/ApiTestProvider.test-support.tsx"
-import { renderRoute } from "@/lib/renderRoute.test-support.tsx"
+import { renderApiRoute } from "@/lib/api/renderApiRoute.test-support.tsx"
 import { CreateGamePage } from "./CreateGamePage.tsx"
 
 describe("CreateGamePage", () => {
   it("should allow sixteen seats and reject seventeen", async () => {
-    const queryClient = new QueryClient()
-    renderRoute(() => (
-      <ApiTestProvider queryClient={queryClient}>
-        <CreateGamePage mapGenerationSeed={undefined} />
-      </ApiTestProvider>
-    ))
+    renderApiRoute(<CreateGamePage mapGenerationSeed={undefined} />)
     const seats = page.getByRole("spinbutton", { name: "Max number of players" })
     const create = page.getByRole("button", { name: "Create" })
     await page.mark("Exceed the seat limit", async () => {

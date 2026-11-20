@@ -64,19 +64,20 @@ function renderPlanets(): void {
     createPlanetStub({ name: "Unclaimed" }),
   ]
   const context = createPlayGameContextStub({ galaxy: { systems: [StarSystemSchema.parse(createStarSystemStub({ planets }))] } })
-  renderRoute(() => (
+  renderRoute(
     <PlayGameContextProvider value={{ ...context, gameDetails: { ...context.gameDetails, players: [alice, bob] } }}>
       <PlanetsPage />
-    </PlayGameContextProvider>
-  ))
+    </PlayGameContextProvider>,
+  )
 }
 
+const planetRows = page
+  .getByRole("table", { name: "Owned planets" })
+  .getByRole("row")
+  .filter({ has: page.getByRole("link") })
+
 function planetNames(): string[] {
-  return page
-    .getByRole("row")
-    .filter({ has: page.getByRole("link") })
-    .elements()
-    .map((row) => row.querySelector("td")?.textContent ?? "")
+  return planetRows.all().map((row) => row.getByRole("cell").first().element().textContent)
 }
 
 describe("PlanetsPage", () => {
@@ -85,14 +86,16 @@ describe("PlanetsPage", () => {
     const owner = page.getByRole("combobox", { name: "Owner" })
     const search = page.getByRole("textbox", { name: "Search planets" })
     await page.mark("Read the owned planets in default owner order", async () => {
-      await expect.element(page.getByRole("columnheader", { name: "Owner" })).toHaveAttribute("aria-sort", "ascending")
+      const ownerHeader = page.getByRole("columnheader", { name: "Owner" })
+      await expect.element(ownerHeader).toHaveAttribute("aria-sort", "ascending")
       await expect
         .poll(() =>
-          page
-            .getByRole("row")
-            .filter({ has: page.getByRole("link") })
-            .elements()
-            .map((row) => Array.from(row.querySelectorAll("td"), (cell) => cell.textContent)),
+          planetRows.all().map((row) =>
+            row
+              .getByRole("cell")
+              .elements()
+              .map((cell) => cell.textContent),
+          ),
         )
         .toEqual([
           ["Boreas", "Alice", "1:2:3", "4", "2", "4", "1", "10", "10"],
@@ -121,7 +124,12 @@ describe("PlanetsPage", () => {
 
   it.each([
     { column: "Planet", ascending: ["Atlas", "Boreas", "Ceto", "Dione"], descending: ["Dione", "Ceto", "Boreas", "Atlas"] },
-    { column: "Owner", ascending: ["Boreas", "Dione", "Atlas", "Ceto"], descending: ["Ceto", "Atlas", "Dione", "Boreas"] },
+    {
+      column: "Owner",
+      previousColumn: "Planet",
+      ascending: ["Boreas", "Dione", "Atlas", "Ceto"],
+      descending: ["Ceto", "Atlas", "Dione", "Boreas"],
+    },
     { column: "Coordinates", ascending: ["Boreas", "Atlas", "Ceto", "Dione"], descending: ["Dione", "Ceto", "Atlas", "Boreas"] },
     { column: "Fertility", ascending: ["Ceto", "Atlas", "Dione", "Boreas"], descending: ["Boreas", "Dione", "Atlas", "Ceto"] },
     { column: "Metal", ascending: ["Dione", "Boreas", "Ceto", "Atlas"], descending: ["Atlas", "Ceto", "Boreas", "Dione"] },
@@ -129,13 +137,12 @@ describe("PlanetsPage", () => {
     { column: "Energy", ascending: ["Boreas", "Ceto", "Atlas", "Dione"], descending: ["Dione", "Atlas", "Ceto", "Boreas"] },
     { column: "Max population", ascending: ["Dione", "Ceto", "Atlas", "Boreas"], descending: ["Boreas", "Atlas", "Ceto", "Dione"] },
     { column: "Area", ascending: ["Atlas", "Dione", "Ceto", "Boreas"], descending: ["Boreas", "Ceto", "Dione", "Atlas"] },
-  ])("should sort $column in both directions", async ({ column, ascending, descending }) => {
+  ])("should sort $column in both directions", async ({ column, previousColumn = "Owner", ascending, descending }) => {
     renderPlanets()
     const header = page.getByRole("columnheader", { name: column, exact: true })
     const sort = header.getByRole("button")
     await page.mark("Switch from a different column to ascending order", async () => {
-      await page.getByRole("button", { name: "Fuel", exact: true }).click()
-      await page.getByRole("button", { name: "Fuel", exact: true }).click()
+      await page.getByRole("button", { name: previousColumn, exact: true }).click()
       await sort.click()
       await expect.element(header).toHaveAttribute("aria-sort", "ascending")
       await expect.poll(planetNames).toEqual(ascending)
