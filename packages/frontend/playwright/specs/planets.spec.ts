@@ -18,11 +18,12 @@ test("players can open an owned planet from the planets list and return", async 
   })
 
   await test.step("Inspect one of the two owned planets", async () => {
-    await expect(planetsPage.table.getByRole("link")).toHaveCount(2)
-    await expect(planetsPage.table.getByRole("cell", { name: alice.alias, exact: true })).toBeVisible()
-    await expect(planetsPage.table.getByRole("cell", { name: bob.alias, exact: true })).toBeVisible()
+    await expect(planetsPage.coordinates).toHaveCount(2)
+    await expect(planetsPage.owner(alice.alias)).toBeVisible()
+    await expect(planetsPage.owner(bob.alias)).toBeVisible()
     const planetName = "planet 919309"
-    const coordinate = await planetsPage.table.getByRole("row").filter({ hasText: planetName }).getByRole("link").innerText()
+    const coordinate = "46:93:25"
+    await expect(planetsPage.coordinate(planetName)).toHaveText(coordinate)
     const galaxyPage = await planetsPage.openPlanet(planetName)
     await expect(alice.page).toHaveURL(GalaxyPage.urlPattern)
     await expect(alice.page).toHaveURL(/[?&]planetId=[^&]+/)

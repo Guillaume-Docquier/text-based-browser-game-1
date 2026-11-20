@@ -86,16 +86,20 @@ describe("PlanetsPage", () => {
     const search = page.getByRole("textbox", { name: "Search planets" })
     await page.mark("Read the owned planets in default owner order", async () => {
       await expect.element(page.getByRole("columnheader", { name: "Owner" })).toHaveAttribute("aria-sort", "ascending")
-      await expect.poll(planetNames).toEqual(["Boreas", "Dione", "Atlas", "Ceto"])
       await expect
         .poll(() =>
           page
-            .getByRole("row", { name: /Dione/ })
-            .getByRole("cell")
+            .getByRole("row")
+            .filter({ has: page.getByRole("link") })
             .elements()
-            .map((cell) => cell.textContent),
+            .map((row) => Array.from(row.querySelectorAll("td"), (cell) => cell.textContent)),
         )
-        .toEqual(["Dione", "Alice", "10:2:3", "3", "1", "2", "4", "1", "2"])
+        .toEqual([
+          ["Boreas", "Alice", "1:2:3", "4", "2", "4", "1", "10", "10"],
+          ["Dione", "Alice", "10:2:3", "3", "1", "2", "4", "1", "2"],
+          ["Atlas", "Bob", "2:2:3", "2", "4", "3", "3", "3", "1"],
+          ["Ceto", "Bob", "3:2:3", "1", "3", "1", "2", "2", "3"],
+        ])
     })
     await page.mark("Restrict the list to Bob and combine it with a search", async () => {
       await owner.click()
