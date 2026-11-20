@@ -33,6 +33,9 @@ export default mergeConfig(
         {
           extends: true,
           plugins: [react()],
+          optimizeDeps: {
+            include: ["@tanstack/react-query", "@trpc/client", "@trpc/tanstack-react-query"],
+          },
           test: {
             name: "interactions",
             include: ["src/**/*.browser.test.{ts,tsx}"],

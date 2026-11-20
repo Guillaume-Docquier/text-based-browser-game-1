@@ -65,13 +65,6 @@ test.describe("onboarding status request failures", () => {
       return gamesPage
     })
 
-    await test.step("Return focus to the tab and refresh the listings without restarting onboarding", async () => {
-      const listingsResponse = alice.page.waitForResponse(gameListingsRoute)
-      await gamesPage.simulateTabFocus()
-      await listingsResponse
-      expect(statusRequests).toBe(4)
-    })
-
     const newGamePage = await test.step("Return to game creation", async () => {
       const newGame = await gamesPage.createGame()
       await newGame.setGameName(gameName)

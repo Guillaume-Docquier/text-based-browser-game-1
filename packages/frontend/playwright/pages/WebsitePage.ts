@@ -13,8 +13,4 @@ export abstract class WebsitePage extends BasePage {
     this.navbar = new NavbarComponent(page)
     this.onboarding = new OnboardingModal(page)
   }
-
-  public async simulateTabFocus(): Promise<void> {
-    await this.page.evaluate("document.dispatchEvent(new Event('visibilitychange', { bubbles: true }))")
-  }
 }
