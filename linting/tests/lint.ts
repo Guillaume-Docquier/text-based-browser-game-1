@@ -55,36 +55,43 @@ afterAll(async () => {
 }, timeoutMs * 2)
 
 export function lint({ code, path: fixturePath = "fixture.ts" }: LintFixture): string[] {
+  const filePath = path.resolve(repositoryRoot, fixturePath)
+  if (!filePath.startsWith(repositoryRoot + path.sep)) {
+    throw new Error(`Expected a fixture path inside the repository, received ${fixturePath}`)
+  }
+
+  return requestDiagnostics(activeSession(), filePath, code)
+}
+
+function activeSession(): Session {
   if (session === undefined) {
     throw new Error("Oxlint language server has not started")
   }
   if (session.failure !== undefined) {
     throw session.failure
   }
-
-  const filePath = path.resolve(repositoryRoot, fixturePath)
-  if (!filePath.startsWith(repositoryRoot + path.sep)) {
-    throw new Error(`Expected a fixture path inside the repository, received ${fixturePath}`)
-  }
-
-  // INTENT: Wait for the worker so test bodies can keep using the synchronous lint API.
-  const completed = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT))
-  session.port.postMessage({ filePath, code, completed } satisfies LintRequest, [])
-  if (Atomics.wait(completed, 0, 0, timeoutMs) === "timed-out") {
-    session.failure = new Error(`Oxlint language server timed out linting ${fixturePath}`)
-    throw session.failure
-  }
-
-  const response: unknown = receiveMessageOnPort(session.port)?.message
-  return diagnosticCodes(response, fixturePath)
+  return session
 }
 
-function diagnosticCodes(response: unknown, fixturePath: string): string[] {
+function requestDiagnostics(active: Session, filePath: string, code: string): string[] {
+  // INTENT: Wait for the worker so test bodies can keep using the synchronous lint API.
+  const completed = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT))
+  active.port.postMessage({ filePath, code, completed } satisfies LintRequest, [])
+  if (Atomics.wait(completed, 0, 0, timeoutMs) === "timed-out") {
+    active.failure = new Error(`Oxlint language server timed out linting ${filePath}`)
+    throw active.failure
+  }
+
+  const response: unknown = receiveMessageOnPort(active.port)?.message
+  return diagnosticCodes(response, filePath)
+}
+
+function diagnosticCodes(response: unknown, filePath: string): string[] {
   if (response instanceof Error) {
     throw response
   }
   if (Array.isArray(response) && response.every((code): code is string => typeof code === "string")) {
     return response
   }
-  throw new Error(`Oxlint language server did not return diagnostic codes for ${fixturePath}`)
+  throw new Error(`Oxlint language server did not return diagnostic codes for ${filePath}`)
 }
