@@ -41,6 +41,10 @@ Across workspace projects, runtime imports from the apps may only target shared 
 
 Before changing files in a subtree, read the nearest `AGENTS.md` in that subtree.
 
+## Testing
+
+When modifying tests at the root (outside of packages), follow instructions from `TESTING.md`
+
 ## CI/CD
 
 All code changes require a pull request before merging to main. A CI enforces the quality gates there.
