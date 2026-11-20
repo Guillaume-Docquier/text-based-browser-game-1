@@ -144,4 +144,40 @@ describe.each([
     // Assert
     expect(diagnostics).toStrictEqual([allowedComments])
   })
+
+  it("should reject an unhandled promise returned by a callback", () => {
+    // Arrange
+    const fixture = {
+      path,
+      code: `
+        export function saveTurn(save: () => Promise<void>): void {
+          save()
+        }
+      `,
+    }
+
+    // Act
+    const diagnostics = lint(fixture)
+
+    // Assert
+    expect(diagnostics).toStrictEqual(["typescript(no-floating-promises)"])
+  })
+
+  it("should allow a call to a synchronous callback", () => {
+    // Arrange
+    const fixture = {
+      path,
+      code: `
+        export function saveTurn(save: () => void): void {
+          save()
+        }
+      `,
+    }
+
+    // Act
+    const diagnostics = lint(fixture)
+
+    // Assert
+    expect(diagnostics).toStrictEqual([])
+  })
 })
