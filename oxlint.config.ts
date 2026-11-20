@@ -9,12 +9,12 @@ const noVitestFixtures = {
 
 const allowedComments = {
   prefixes: ["INTENT:", "CONSTRAINT:", "oxlint-disable", "@ts-expect-error"],
-  message: "Code comments are restricted. Only INTENT:, CONSTRAINT:, oxlint-disable, or @ts-expect-error are allowed.",
+  message: "Use a // line comment starting with INTENT:, CONSTRAINT:, oxlint-disable, or @ts-expect-error.",
 }
 
 export default defineConfig({
   extends: [typescript],
-  jsPlugins: [fileURLToPath(new URL("./scripts/oxlint-comments.ts", import.meta.url))],
+  jsPlugins: [fileURLToPath(new URL("./linting/plugins/cosmic-empires-plugin.ts", import.meta.url))],
   options: {
     reportUnusedDisableDirectives: "deny",
     denyWarnings: true,

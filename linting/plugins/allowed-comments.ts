@@ -3,7 +3,7 @@ import type { RuleTester } from "oxlint/plugins-dev"
 type OxlintRule = Parameters<RuleTester["run"]>[1]
 type OxlintContext = Parameters<NonNullable<OxlintRule["create"]>>[0]
 
-const allowedComments = {
+export const allowedComments = {
   meta: {
     schema: {
       type: "array",
@@ -29,7 +29,7 @@ const allowedComments = {
       Program(): void {
         for (const comment of context.sourceCode.getAllComments()) {
           const text = comment.value.trimStart()
-          if (!prefixes.some((prefix) => text.startsWith(prefix))) {
+          if (comment.type !== "Line" || !prefixes.some((prefix) => text.startsWith(prefix))) {
             context.report({ loc: comment.loc, message })
           }
         }
@@ -49,13 +49,4 @@ function parseCommentOptions([options]: OxlintContext["options"]): { prefixes: s
   }
 
   return { prefixes, message }
-}
-
-export default {
-  meta: {
-    name: "cosmic-empires",
-  },
-  rules: {
-    "allowed-comments": allowedComments,
-  },
 }

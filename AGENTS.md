@@ -41,6 +41,10 @@ Across workspace projects, runtime imports from the apps may only target shared 
 
 Before changing files in a subtree, read the nearest `AGENTS.md` in that subtree.
 
+## Testing
+
+When modifying tests at the root (outside of packages), follow instructions from `TESTING.md`
+
 ## CI/CD
 
 All code changes require a pull request before merging to main. A CI enforces the quality gates there.
@@ -72,7 +76,7 @@ Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. Thi
 
 ## Code Comments
 
-Code comments are restricted and should generally not be used. Allowed comments follow strict prefix based patterns and are enforced via linting:
+Keep code comments to a minimum. The linter requires a `//` line comment that starts with one of the following prefixes.
 
 - `INTENT:`: Explain non-obvious choices where multiple avenues were possible and the reasons we went this way are not visible in the codebase.
 - `CONSTRAINT:`: A non-obvious constraint forces a certain design choice. Name the constraint and provide sources where applicable.
