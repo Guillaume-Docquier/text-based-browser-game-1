@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { mkdirSync, mkdtempDisposableSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempDisposableSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 
@@ -11,32 +11,26 @@ const fixturesDirectory = path.join(repositoryRoot, ".temp")
 type LintFixture = {
   code: string
   path?: string
-  config?: string
 }
 
-export function lint({ code, path: fixturePath = "fixture.ts", config = "oxlint.config.ts" }: LintFixture): string[] {
+export function lint({ code, path: fixturePath = "fixture.ts" }: LintFixture): string[] {
   mkdirSync(fixturesDirectory, { recursive: true })
   using fixture = mkdtempDisposableSync(path.join(fixturesDirectory, "lint-"))
   const sourcePath = path.resolve(fixture.path, fixturePath)
   assert(sourcePath.startsWith(fixture.path + path.sep), `Expected a path inside the lint fixture, received ${fixturePath}`)
 
-  const configUrl = pathToFileURL(path.resolve(repositoryRoot, config))
-  writeFileSync(path.join(fixture.path, "oxlint.config.ts"), `export { default } from ${JSON.stringify(configUrl.href)}\n`)
+  mkdirSync(path.dirname(sourcePath), { recursive: true })
+  mirrorLintConfigs(fixture.path, path.dirname(sourcePath))
   writeFileSync(
     path.join(fixture.path, "tsconfig.json"),
     JSON.stringify({ extends: path.join(repositoryRoot, "tsconfig.json"), files: [path.relative(fixture.path, sourcePath)], include: [] }),
   )
-  mkdirSync(path.dirname(sourcePath), { recursive: true })
   writeFileSync(sourcePath, code, { flag: "wx" })
 
-  const result = spawnSync(
-    process.execPath,
-    [oxlint, "--config", "oxlint.config.ts", "--format", "json", "--threads", "1", "--", sourcePath],
-    {
-      cwd: fixture.path,
-      encoding: "utf8",
-    },
-  )
+  const result = spawnSync(process.execPath, [oxlint, "--format", "json", "--threads", "1", "--", sourcePath], {
+    cwd: fixture.path,
+    encoding: "utf8",
+  })
   if (result.error !== undefined) {
     throw result.error
   }
@@ -45,6 +39,20 @@ export function lint({ code, path: fixturePath = "fixture.ts", config = "oxlint.
   assert(result.status === 0 || result.status === 1, failure)
   assert(result.stdout.trimStart().startsWith("{"), failure)
   return parseDiagnostics(result.stdout)
+}
+
+function mirrorLintConfigs(fixtureRoot: string, sourceDirectory: string): void {
+  for (let directory = sourceDirectory; ; directory = path.dirname(directory)) {
+    const fixtureConfig = path.join(directory, "oxlint.config.ts")
+    const repositoryConfig = path.join(repositoryRoot, path.relative(fixtureRoot, fixtureConfig))
+    if (existsSync(repositoryConfig)) {
+      const configUrl = pathToFileURL(repositoryConfig)
+      writeFileSync(fixtureConfig, `export { default } from ${JSON.stringify(configUrl.href)}\n`)
+    }
+    if (directory === fixtureRoot) {
+      break
+    }
+  }
 }
 
 function parseDiagnostics(output: string): string[] {

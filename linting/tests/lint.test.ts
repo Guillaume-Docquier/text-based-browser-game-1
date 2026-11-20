@@ -12,10 +12,9 @@ describe("lint fixtures", () => {
     expect(diagnostics).toStrictEqual(["typescript(no-floating-promises)"])
   })
 
-  it("should apply package overrides for a source path", () => {
+  it("should discover the backend config from a repository-relative path", () => {
     const diagnostics = lint({
-      config: "packages/backend/oxlint.config.ts",
-      path: "src/example/current-time.ts",
+      path: "packages/backend/src/example/current-time.ts",
       code: `
         export const currentTime = Date.now()
       `,

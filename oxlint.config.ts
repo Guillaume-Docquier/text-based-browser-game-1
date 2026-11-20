@@ -14,7 +14,7 @@ const allowedComments = {
 
 export default defineConfig({
   extends: [typescript],
-  jsPlugins: [fileURLToPath(new URL("./scripts/oxlint-comments.ts", import.meta.url))],
+  jsPlugins: [fileURLToPath(new URL("./linting/plugins/cosmic-empires-plugin.ts", import.meta.url))],
   options: {
     reportUnusedDisableDirectives: "deny",
     denyWarnings: true,

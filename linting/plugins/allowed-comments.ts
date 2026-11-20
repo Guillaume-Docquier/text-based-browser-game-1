@@ -3,7 +3,7 @@ import type { RuleTester } from "oxlint/plugins-dev"
 type OxlintRule = Parameters<RuleTester["run"]>[1]
 type OxlintContext = Parameters<NonNullable<OxlintRule["create"]>>[0]
 
-const allowedComments = {
+export const allowedComments = {
   meta: {
     schema: {
       type: "array",
@@ -49,13 +49,4 @@ function parseCommentOptions([options]: OxlintContext["options"]): { prefixes: s
   }
 
   return { prefixes, message }
-}
-
-export default {
-  meta: {
-    name: "cosmic-empires",
-  },
-  rules: {
-    "allowed-comments": allowedComments,
-  },
 }
