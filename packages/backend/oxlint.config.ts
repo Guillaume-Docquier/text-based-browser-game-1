@@ -41,7 +41,6 @@ export default defineConfig({
     {
       files: ["src/api/**/*.router*.ts"],
       rules: {
-        // INTENT: Routers and their tests intentionally return awaited void outputs to streamline the router handlers.
         "typescript/no-confusing-void-expression": "off",
       },
     },

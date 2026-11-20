@@ -4,14 +4,15 @@ import { lint } from "./lint.ts"
 describe("backend lint rules", () => {
   it.each([
     {
-      behavior: "allow returning an awaited void expression in a router",
-      path: "packages/backend/src/api/gameplay/gameplay.router.ts",
-      expected: [],
-    },
-    {
       behavior: "reject returning an awaited void expression in a regular module",
       path: "packages/backend/src/api/gameplay/updateReadiness.useCase.ts",
       expected: ["typescript(no-confusing-void-expression)"],
+    },
+    {
+      behavior:
+        "allow returning an awaited void expression in a router because routers and their tests intentionally return awaited void outputs to streamline the router handlers",
+      path: "packages/backend/src/api/gameplay/gameplay.router.ts",
+      expected: [],
     },
   ])("should $behavior", ({ path, expected }) => {
     // Arrange
