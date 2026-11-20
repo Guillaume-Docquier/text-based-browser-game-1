@@ -1,71 +1,90 @@
-import assert from "node:assert/strict"
-import { spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, mkdtempDisposableSync, writeFileSync } from "node:fs"
+import { once } from "node:events"
 import path from "node:path"
-import { fileURLToPath, pathToFileURL } from "node:url"
+import { fileURLToPath } from "node:url"
+import { MessageChannel, type MessagePort, receiveMessageOnPort, Worker } from "node:worker_threads"
+import { afterAll, beforeAll } from "vitest"
+import type { LintRequest } from "./oxlint-language-server.ts"
 
-const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url))
-const oxlint = fileURLToPath(new URL("./bin/oxlint", import.meta.resolve("oxlint/package.json")))
-const fixturesDirectory = path.join(repositoryRoot, ".temp")
+const repositoryRoot = path.resolve(fileURLToPath(new URL("../..", import.meta.url)))
+const timeoutMs = 15_000
 
 type LintFixture = {
   code: string
   path?: string
 }
 
+type Session = {
+  worker: Worker
+  port: MessagePort
+  failure?: Error
+}
+
+let session: Session | undefined
+
+beforeAll(async () => {
+  const { port1, port2 } = new MessageChannel()
+  const worker = new Worker(new URL("./oxlint-language-server.ts", import.meta.url), {
+    workerData: port2,
+    transferList: [port2],
+  })
+  const active: Session = { worker, port: port1 }
+  session = active
+  worker.on("error", (cause) => {
+    active.failure = cause instanceof Error ? cause : new Error("Oxlint language server worker failed", { cause })
+  })
+  worker.on("exit", (code) => {
+    active.failure ??= new Error(`Oxlint language server worker exited with code ${code}`)
+  })
+  await once(worker, "message", { signal: AbortSignal.timeout(timeoutMs) })
+}, timeoutMs * 2)
+
+afterAll(async () => {
+  if (session === undefined) {
+    return
+  }
+
+  const { worker, port } = session
+  session = undefined
+  const exited = worker.threadId === -1 ? undefined : once(worker, "exit", { signal: AbortSignal.timeout(timeoutMs) })
+  port.close()
+  try {
+    await exited
+  } finally {
+    await worker.terminate()
+  }
+}, timeoutMs * 2)
+
 export function lint({ code, path: fixturePath = "fixture.ts" }: LintFixture): string[] {
-  mkdirSync(fixturesDirectory, { recursive: true })
-  using fixture = mkdtempDisposableSync(path.join(fixturesDirectory, "lint-"))
-  const sourcePath = path.resolve(fixture.path, fixturePath)
-  assert(sourcePath.startsWith(fixture.path + path.sep), `Expected a path inside the lint fixture, received ${fixturePath}`)
-
-  mkdirSync(path.dirname(sourcePath), { recursive: true })
-  mirrorLintConfigs(fixture.path, path.dirname(sourcePath))
-  writeFileSync(
-    path.join(fixture.path, "tsconfig.json"),
-    JSON.stringify({ extends: path.join(repositoryRoot, "tsconfig.json"), files: [path.relative(fixture.path, sourcePath)], include: [] }),
-  )
-  writeFileSync(sourcePath, code, { flag: "wx" })
-
-  const result = spawnSync(process.execPath, [oxlint, "--format", "json", "--threads", "1", "--", sourcePath], {
-    cwd: fixture.path,
-    encoding: "utf8",
-  })
-  if (result.error !== undefined) {
-    throw result.error
+  if (session === undefined) {
+    throw new Error("Oxlint language server has not started")
+  }
+  if (session.failure !== undefined) {
+    throw session.failure
   }
 
-  const failure = `Oxlint failed to lint ${fixturePath} (exit ${result.status}):\n${result.stderr}${result.stdout}`
-  assert(result.status === 0 || result.status === 1, failure)
-  assert(result.stdout.trimStart().startsWith("{"), failure)
-  return parseDiagnostics(result.stdout)
-}
-
-function mirrorLintConfigs(fixtureRoot: string, sourceDirectory: string): void {
-  for (let directory = sourceDirectory; ; directory = path.dirname(directory)) {
-    const fixtureConfig = path.join(directory, "oxlint.config.ts")
-    const repositoryConfig = path.join(repositoryRoot, path.relative(fixtureRoot, fixtureConfig))
-    if (existsSync(repositoryConfig)) {
-      const configUrl = pathToFileURL(repositoryConfig)
-      writeFileSync(fixtureConfig, `export { default } from ${JSON.stringify(configUrl.href)}\n`)
-    }
-    if (directory === fixtureRoot) {
-      break
-    }
+  const filePath = path.resolve(repositoryRoot, fixturePath)
+  if (!filePath.startsWith(repositoryRoot + path.sep)) {
+    throw new Error(`Expected a fixture path inside the repository, received ${fixturePath}`)
   }
+
+  // INTENT: Wait for the worker so test bodies can keep using the synchronous lint API.
+  const completed = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT))
+  session.port.postMessage({ filePath, code, completed } satisfies LintRequest, [])
+  if (Atomics.wait(completed, 0, 0, timeoutMs) === "timed-out") {
+    session.failure = new Error(`Oxlint language server timed out linting ${fixturePath}`)
+    throw session.failure
+  }
+
+  const response: unknown = receiveMessageOnPort(session.port)?.message
+  return diagnosticCodes(response, fixturePath)
 }
 
-function parseDiagnostics(output: string): string[] {
-  const report: unknown = JSON.parse(output)
-  const invalidReport = `Expected an Oxlint report for one file, received:\n${output}`
-  assert(typeof report === "object" && report !== null, invalidReport)
-  assert("number_of_files" in report && report.number_of_files === 1, invalidReport)
-  assert("diagnostics" in report && Array.isArray(report.diagnostics), invalidReport)
-
-  return report.diagnostics.map((diagnostic: unknown): string => {
-    const invalidDiagnostic = `Oxlint reported a diagnostic without a code:\n${JSON.stringify(diagnostic)}`
-    assert(typeof diagnostic === "object" && diagnostic !== null, invalidDiagnostic)
-    assert("code" in diagnostic && typeof diagnostic.code === "string", invalidDiagnostic)
-    return diagnostic.code
-  })
+function diagnosticCodes(response: unknown, fixturePath: string): string[] {
+  if (response instanceof Error) {
+    throw response
+  }
+  if (Array.isArray(response) && response.every((code): code is string => typeof code === "string")) {
+    return response
+  }
+  throw new Error(`Oxlint language server did not return diagnostic codes for ${fixturePath}`)
 }

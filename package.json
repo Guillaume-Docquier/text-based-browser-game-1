@@ -42,7 +42,8 @@
     "oxlint-tsgolint": "^7.0.2007",
     "railway": "^3.16.0",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "vscode-languageserver-protocol": "^3.18.5"
   },
   "devEngines": {
     "packageManager": {
