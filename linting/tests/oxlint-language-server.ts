@@ -18,7 +18,6 @@ import {
 } from "vscode-languageserver-protocol/node"
 
 const root = new URL("../..", import.meta.url)
-const oxlint = fileURLToPath(new URL("./bin/oxlint", import.meta.resolve("oxlint/package.json")))
 const languageIds = new Map([
   [".js", "javascript"],
   [".cjs", "javascript"],
@@ -33,14 +32,17 @@ export type LintRequest = {
   completed: Int32Array
 }
 
-const port: unknown = workerData
-if (!(port instanceof MessagePort) || parentPort === null) {
-  throw new Error("Oxlint language server worker requires a message port")
+if (import.meta.main) {
+  await main()
 }
 
-await runOxlint(port, parentPort)
+async function main(): Promise<void> {
+  const port: unknown = workerData
+  if (!(port instanceof MessagePort) || parentPort === null) {
+    throw new Error("Oxlint language server worker requires a message port")
+  }
 
-async function runOxlint(port: MessagePort, ready: MessagePort): Promise<void> {
+  const oxlint = fileURLToPath(new URL("./bin/oxlint", import.meta.resolve("oxlint/package.json")))
   const child = spawn(process.execPath, [oxlint, "--lsp"], { cwd: fileURLToPath(root), windowsHide: true })
   const connection = createProtocolConnection(child.stdout, child.stdin)
   let stderr = ""
@@ -53,7 +55,7 @@ async function runOxlint(port: MessagePort, ready: MessagePort): Promise<void> {
 
   try {
     await initialize(connection)
-    await serveRequests(connection, port, ready)
+    await serveRequests(connection, port, parentPort)
     await connection.sendRequest(ShutdownRequest.type)
     await connection.sendNotification(ExitNotification.type)
   } catch (cause) {

@@ -1,7 +1,18 @@
-import { describe, expect, it } from "vitest"
-import { lint } from "./lint.ts"
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { LintSession } from "./lint-session.ts"
 
 describe("backend lint rules", () => {
+  const session = new LintSession()
+
+  // oxlint-disable-next-line vitest/no-hooks -- Start one Oxlint process for all cases in this file.
+  beforeAll(async () => {
+    await session.start()
+  })
+
+  afterAll(async () => {
+    await session.stop()
+  })
+
   it.each([
     {
       behavior: "reject returning an awaited void expression in a regular module",
@@ -24,7 +35,7 @@ describe("backend lint rules", () => {
     }
 
     // Act
-    const diagnostics = lint(fixture)
+    const diagnostics = session.lint(fixture)
 
     // Assert
     expect(diagnostics).toStrictEqual(expected)
