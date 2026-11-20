@@ -21,7 +21,7 @@ describe("global lint rules in source files", () => {
     ["frontend", "packages/frontend/src/fixture.ts"],
     ["shared", "packages/shared/src/fixture.ts"],
   ])("%s source files", (_scope, path) => {
-    it("should allow an INTENT comment", () => {
+    it("should allow an INTENT comment", async () => {
       // Arrange
       const fixture = {
         path,
@@ -32,13 +32,13 @@ describe("global lint rules in source files", () => {
       }
 
       // Act
-      const diagnostics = session.lint(fixture)
+      const diagnostics = await session.lint(fixture)
 
       // Assert
       expect(diagnostics).toStrictEqual([])
     })
 
-    it("should allow a CONSTRAINT comment", () => {
+    it("should allow a CONSTRAINT comment", async () => {
       // Arrange
       const fixture = {
         path,
@@ -49,13 +49,13 @@ describe("global lint rules in source files", () => {
       }
 
       // Act
-      const diagnostics = session.lint(fixture)
+      const diagnostics = await session.lint(fixture)
 
       // Assert
       expect(diagnostics).toStrictEqual([])
     })
 
-    it("should allow an oxlint disable directive", () => {
+    it("should allow an oxlint disable directive", async () => {
       // Arrange
       const fixture = {
         path,
@@ -66,13 +66,13 @@ describe("global lint rules in source files", () => {
       }
 
       // Act
-      const diagnostics = session.lint(fixture)
+      const diagnostics = await session.lint(fixture)
 
       // Assert
       expect(diagnostics).toStrictEqual([])
     })
 
-    it("should allow a TypeScript expect-error directive", () => {
+    it("should allow a TypeScript expect-error directive", async () => {
       // Arrange
       const fixture = {
         path,
@@ -83,13 +83,13 @@ describe("global lint rules in source files", () => {
       }
 
       // Act
-      const diagnostics = session.lint(fixture)
+      const diagnostics = await session.lint(fixture)
 
       // Assert
       expect(diagnostics).toStrictEqual([])
     })
 
-    it("should reject an ordinary comment", () => {
+    it("should reject an ordinary comment", async () => {
       // Arrange
       const fixture = {
         path,
@@ -100,13 +100,13 @@ describe("global lint rules in source files", () => {
       }
 
       // Act
-      const diagnostics = session.lint(fixture)
+      const diagnostics = await session.lint(fixture)
 
       // Assert
       expect(diagnostics).toStrictEqual([allowedComments])
     })
 
-    it.each(["Arrange", "Act", "Assert"])("should reject %s", (phase) => {
+    it.each(["Arrange", "Act", "Assert"])("should reject %s", async (phase) => {
       // Arrange
       const fixture = {
         path,
@@ -117,13 +117,13 @@ describe("global lint rules in source files", () => {
       }
 
       // Act
-      const diagnostics = session.lint(fixture)
+      const diagnostics = await session.lint(fixture)
 
       // Assert
       expect(diagnostics).toStrictEqual([allowedComments])
     })
 
-    it("should reject a block comment with an allowed prefix", () => {
+    it("should reject a block comment with an allowed prefix", async () => {
       // Arrange
       const fixture = {
         path,
@@ -134,13 +134,13 @@ describe("global lint rules in source files", () => {
       }
 
       // Act
-      const diagnostics = session.lint(fixture)
+      const diagnostics = await session.lint(fixture)
 
       // Assert
       expect(diagnostics).toStrictEqual([allowedComments])
     })
 
-    it("should require the prefix at the start of the comment text", () => {
+    it("should require the prefix at the start of the comment text", async () => {
       // Arrange
       const fixture = {
         path,
@@ -151,13 +151,13 @@ describe("global lint rules in source files", () => {
       }
 
       // Act
-      const diagnostics = session.lint(fixture)
+      const diagnostics = await session.lint(fixture)
 
       // Assert
       expect(diagnostics).toStrictEqual([allowedComments])
     })
 
-    it("should reject an unhandled promise returned by a callback", () => {
+    it("should reject an unhandled promise returned by a callback", async () => {
       // Arrange
       const fixture = {
         path,
@@ -169,13 +169,13 @@ describe("global lint rules in source files", () => {
       }
 
       // Act
-      const diagnostics = session.lint(fixture)
+      const diagnostics = await session.lint(fixture)
 
       // Assert
       expect(diagnostics).toStrictEqual(["typescript(no-floating-promises)"])
     })
 
-    it("should allow a call to a synchronous callback", () => {
+    it("should allow a call to a synchronous callback", async () => {
       // Arrange
       const fixture = {
         path,
@@ -187,7 +187,7 @@ describe("global lint rules in source files", () => {
       }
 
       // Act
-      const diagnostics = session.lint(fixture)
+      const diagnostics = await session.lint(fixture)
 
       // Assert
       expect(diagnostics).toStrictEqual([])

@@ -25,7 +25,7 @@ describe("backend lint rules", () => {
       path: "packages/backend/src/api/gameplay/gameplay.router.ts",
       expected: [],
     },
-  ])("should $behavior", ({ path, expected }) => {
+  ])("should $behavior", async ({ path, expected }) => {
     // Arrange
     const fixture = {
       path,
@@ -35,7 +35,7 @@ describe("backend lint rules", () => {
     }
 
     // Act
-    const diagnostics = session.lint(fixture)
+    const diagnostics = await session.lint(fixture)
 
     // Assert
     expect(diagnostics).toStrictEqual(expected)

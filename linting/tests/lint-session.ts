@@ -1,103 +1,64 @@
-import { once } from "node:events"
+import assert from "node:assert/strict"
+import { spawn } from "node:child_process"
 import path from "node:path"
-import { fileURLToPath } from "node:url"
-import { MessageChannel, type MessagePort, receiveMessageOnPort, Worker } from "node:worker_threads"
-import type { LintRequest } from "./oxlint-language-server.ts"
+import { fileURLToPath, pathToFileURL } from "node:url"
+import {
+  createProtocolConnection,
+  type Diagnostic,
+  DiagnosticRefreshRequest,
+  DidCloseTextDocumentNotification,
+  DidOpenTextDocumentNotification,
+  DocumentDiagnosticReportKind,
+  DocumentDiagnosticRequest,
+  ExitNotification,
+  InitializedNotification,
+  InitializeRequest,
+  type ProtocolConnection,
+  ShutdownRequest,
+} from "vscode-languageserver-protocol/node"
 
-const repositoryRoot = path.resolve(fileURLToPath(new URL("../..", import.meta.url)))
-const timeoutMs = 15_000
-
-type LintFixture = {
-  code: string
-  path?: string
-}
-
-type SessionWorker = {
-  worker: Worker
-  port: MessagePort
-  failure?: Error
-}
+const root = new URL("../..", import.meta.url)
 
 export class LintSession {
-  private active?: SessionWorker
+  private connection!: ProtocolConnection
 
   public async start(): Promise<void> {
-    if (this.active !== undefined) {
-      throw new Error("Oxlint language server already started")
-    }
-
-    const { port1, port2 } = new MessageChannel()
-    const worker = new Worker(new URL("./oxlint-language-server.ts", import.meta.url), {
-      workerData: port2,
-      transferList: [port2],
+    const oxlint = fileURLToPath(new URL("./bin/oxlint", import.meta.resolve("oxlint/package.json")))
+    const child = spawn(process.execPath, [oxlint, "--lsp"], { cwd: root, stdio: ["pipe", "pipe", "inherit"], windowsHide: true })
+    const connection = createProtocolConnection(child.stdout, child.stdin)
+    this.connection = connection
+    connection.onClose(() => {
+      connection.dispose()
     })
-    const active: SessionWorker = { worker, port: port1 }
-    this.active = active
-    worker.on("error", (cause) => {
-      active.failure = cause instanceof Error ? cause : new Error("Oxlint language server worker failed", { cause })
+    connection.onRequest(DiagnosticRefreshRequest.type, () => undefined)
+    connection.listen()
+    await connection.sendRequest(InitializeRequest.type, {
+      processId: process.pid,
+      rootUri: root.href,
+      capabilities: { textDocument: { diagnostic: {} }, workspace: { diagnostics: { refreshSupport: true } } },
+      workspaceFolders: [{ uri: root.href, name: "Cosmic Empires" }],
     })
-    worker.on("exit", (code) => {
-      active.failure ??= new Error(`Oxlint language server worker exited with code ${code}`)
-    })
-    try {
-      await once(worker, "message", { signal: AbortSignal.timeout(timeoutMs) })
-    } catch (cause) {
-      await this.stop()
-      throw cause
-    }
+    await connection.sendNotification(InitializedNotification.type, {})
   }
 
   public async stop(): Promise<void> {
-    if (this.active === undefined) {
-      return
-    }
+    await this.connection.sendRequest(ShutdownRequest.type)
+    await this.connection.sendNotification(ExitNotification.type)
+    this.connection.end()
+  }
 
-    const { worker, port } = this.active
-    this.active = undefined
-    const exited = worker.threadId === -1 ? undefined : once(worker, "exit", { signal: AbortSignal.timeout(timeoutMs) })
-    port.close()
+  public async lint({ code, path: fixturePath = "fixture.ts" }: { code: string; path?: string }): Promise<Array<Diagnostic["code"]>> {
+    const uri = pathToFileURL(path.resolve(fileURLToPath(root), fixturePath)).href
+    const languageId = fixturePath.endsWith(".tsx") ? "typescriptreact" : "typescript"
+    await this.connection.sendNotification(DidOpenTextDocumentNotification.type, {
+      textDocument: { uri, languageId, version: 1, text: code },
+    })
     try {
-      await exited
+      const report = await this.connection.sendRequest(DocumentDiagnosticRequest.type, { textDocument: { uri } })
+      assert(report.kind === DocumentDiagnosticReportKind.Full)
+      return report.items.map((diagnostic) => diagnostic.code)
     } finally {
-      await worker.terminate()
+      await this.connection.sendNotification(DidCloseTextDocumentNotification.type, { textDocument: { uri } })
     }
   }
-
-  public lint({ code, path: fixturePath = "fixture.ts" }: LintFixture): string[] {
-    if (this.active === undefined) {
-      throw new Error("Oxlint language server has not started")
-    }
-    if (this.active.failure !== undefined) {
-      throw this.active.failure
-    }
-    const filePath = path.resolve(repositoryRoot, fixturePath)
-    if (!filePath.startsWith(repositoryRoot + path.sep)) {
-      throw new Error(`Expected a fixture path inside the repository, received ${fixturePath}`)
-    }
-
-    return requestDiagnostics(this.active, filePath, code)
-  }
-}
-
-function requestDiagnostics(active: SessionWorker, filePath: string, code: string): string[] {
-  // INTENT: Wait for the worker so test bodies can keep using the synchronous lint API.
-  const completed = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT))
-  active.port.postMessage({ filePath, code, completed } satisfies LintRequest, [])
-  if (Atomics.wait(completed, 0, 0, timeoutMs) === "timed-out") {
-    active.failure = new Error(`Oxlint language server timed out linting ${filePath}`)
-    throw active.failure
-  }
-
-  const response: unknown = receiveMessageOnPort(active.port)?.message
-  return diagnosticCodes(response, filePath)
-}
-
-function diagnosticCodes(response: unknown, filePath: string): string[] {
-  if (response instanceof Error) {
-    throw response
-  }
-  if (Array.isArray(response) && response.every((code): code is string => typeof code === "string")) {
-    return response
-  }
-  throw new Error(`Oxlint language server did not return diagnostic codes for ${filePath}`)
 }
