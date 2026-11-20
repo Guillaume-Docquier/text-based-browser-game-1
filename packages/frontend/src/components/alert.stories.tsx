@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { AlertTriangleIcon, InfoIcon } from "lucide-react"
+import { useState } from "react"
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "./alert.tsx"
 import { Button } from "./button.tsx"
 
@@ -14,7 +15,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Interactive: Story = {
+export const Information: Story = {
   render: (args) => (
     <Alert {...args}>
       <InfoIcon />
@@ -24,20 +25,34 @@ export const Interactive: Story = {
   ),
 }
 
-export const Destructive: Story = {
+export const DismissibleError: Story = {
   args: {
     variant: "destructive",
   },
-  render: (args) => (
-    <Alert {...args}>
-      <AlertTriangleIcon />
-      <AlertTitle>Insufficient resources</AlertTitle>
-      <AlertDescription>This action costs more minerals than the colony has available.</AlertDescription>
-      <AlertAction>
-        <Button size="xs" variant="outline">
-          Dismiss
-        </Button>
-      </AlertAction>
-    </Alert>
-  ),
+  render: function Render(args) {
+    const [dismissed, setDismissed] = useState(false)
+
+    if (dismissed) {
+      return <p role="status">Alert dismissed</p>
+    }
+
+    return (
+      <Alert {...args}>
+        <AlertTriangleIcon />
+        <AlertTitle>Insufficient resources</AlertTitle>
+        <AlertDescription>This action costs more minerals than the colony has available.</AlertDescription>
+        <AlertAction>
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={() => {
+              setDismissed(true)
+            }}
+          >
+            Dismiss
+          </Button>
+        </AlertAction>
+      </Alert>
+    )
+  },
 }

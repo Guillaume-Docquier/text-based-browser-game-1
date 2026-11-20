@@ -54,7 +54,7 @@ test("a signed-in player can filter game listings by name and membership", async
 
   await test.step("Enable My games while the search still matches Bob's game", async () => {
     await aliceListings.toggleMyGamesFilter()
-    await expect(aliceListings.gameListing(bobGameName)).not.toBeVisible()
+    await expect(aliceListings.noMatchingGames).toBeVisible()
   })
 
   await test.step("Clear the search and view Alice's games", async () => {

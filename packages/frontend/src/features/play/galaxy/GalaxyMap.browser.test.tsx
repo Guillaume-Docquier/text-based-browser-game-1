@@ -1,4 +1,10 @@
+import { Assert, branded } from "@guillaume-docquier/tools-ts"
 import { composeStories } from "@storybook/react-vite"
+import { createGalaxyStub } from "shared/domain/world/Galaxy.stub.ts"
+import { GalaxySchema } from "shared/domain/world/Galaxy.ts"
+import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
+import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
+import { createStarSystemStub } from "shared/domain/world/StarSystem.stub.ts"
 import { describe, expect, it } from "vitest"
 import { page, userEvent } from "vitest/browser"
 import * as stories from "./GalaxyMap.stories.tsx"
@@ -11,6 +17,55 @@ async function renderMap(): Promise<void> {
   await Interactive.run()
   await page.getByRole("button", { name: "Reset view" }).click()
 }
+
+describe("Galaxy map ownership", () => {
+  it("should show the matching ownership marker only on systems with claimed planets", async () => {
+    const currentPlayerId = "00000000-0000-4000-8000-000000000001"
+    const opponentPlayerId = "00000000-0000-4000-8000-000000000002"
+    const galaxy = GalaxySchema.parse(
+      createGalaxyStub({
+        systems: [
+          createStarSystemStub({
+            star: createStarStub({ id: "00000000-0000-4000-8000-000000000003", name: "Vega", x: 25, y: 30 }),
+            planets: [createPlanetStub({ id: "00000000-0000-4000-8000-000000000004", ownerPlayerId: currentPlayerId })],
+          }),
+          createStarSystemStub({
+            star: createStarStub({ id: "00000000-0000-4000-8000-000000000005", name: "Sirius", x: 50, y: 30 }),
+            planets: [createPlanetStub({ id: "00000000-0000-4000-8000-000000000006", ownerPlayerId: opponentPlayerId })],
+          }),
+          createStarSystemStub({
+            star: createStarStub({ id: "00000000-0000-4000-8000-000000000007", name: "Altair", x: 75, y: 30 }),
+            planets: [createPlanetStub({ id: "00000000-0000-4000-8000-000000000008" })],
+          }),
+        ],
+      }),
+    )
+    await page.viewport(900, 800)
+    await Interactive.run({ args: { ...Interactive.args, galaxy, currentPlayerId: branded(currentPlayerId) } })
+
+    await page.mark("Inspect the markers on each Star System", async () => {
+      const vega = page.getByRole("button", { name: /^View Vega Star System\b/ }).element()
+      const sirius = page.getByRole("button", { name: /^View Sirius Star System\b/ }).element()
+      const altair = page.getByRole("button", { name: "View Altair Star System" }).element()
+      const ownMarker = vega.querySelector<SVGRectElement>('[data-ownership-marker="own"]')
+      const opponentMarker = sirius.querySelector<SVGRectElement>('[data-ownership-marker="opponent"]')
+
+      await expect.element(ownMarker).toBeVisible()
+      await expect.element(opponentMarker).toBeVisible()
+      Assert.isDefined(ownMarker)
+      Assert.isDefined(opponentMarker)
+      const ownStroke = getComputedStyle(ownMarker).stroke
+      const opponentStroke = getComputedStyle(opponentMarker).stroke
+      expect(ownStroke).not.toBe("none")
+      expect(opponentStroke).not.toBe("none")
+      expect(ownStroke).not.toBe(opponentStroke)
+
+      expect(vega.querySelector('[data-ownership-marker="opponent"]')).toBeNull()
+      expect(sirius.querySelector('[data-ownership-marker="own"]')).toBeNull()
+      expect(altair.querySelector("[data-ownership-marker]")).toBeNull()
+    })
+  })
+})
 
 describe("Galaxy map camera", () => {
   it("should center and fit a region, refit after wheel zoom, and reset the view", async () => {

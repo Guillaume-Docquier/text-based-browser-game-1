@@ -11,6 +11,7 @@ export class GameListingsPage extends WebsitePage {
 
   public readonly heading: Locator
   public readonly myGamesButton: Locator
+  public readonly noMatchingGames: Locator
 
   public constructor(page: Page) {
     super(page)
@@ -18,6 +19,7 @@ export class GameListingsPage extends WebsitePage {
     this.createGameLink = page.getByRole("link", { name: "Create game" })
     this.gameNameFilter = page.getByPlaceholder("Search for games")
     this.myGamesButton = page.getByRole("button", { name: "My games" })
+    this.noMatchingGames = page.getByText("No matching games", { exact: true })
   }
 
   public static async goto(page: Page): Promise<GameListingsPage> {

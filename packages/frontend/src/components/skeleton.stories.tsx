@@ -12,7 +12,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Interactive: Story = {}
+export const LinePlaceholder: Story = {}
 
 export const CardPlaceholder: Story = {
   render: () => (

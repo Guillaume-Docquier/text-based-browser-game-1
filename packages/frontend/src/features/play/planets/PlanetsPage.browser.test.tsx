@@ -12,7 +12,7 @@ import { PlayGameContextProvider } from "../PlayContext.tsx"
 import { PlanetsPage } from "./PlanetsPage.tsx"
 
 const alice = createPlayerStub()
-const bob = createPlayerStub({ id: "00000000-0000-4000-8000-000000000002", alias: "Bob" })
+const bob = createPlayerStub({ id: "00000000-0000-4000-8000-000000000000", alias: "Bob" })
 const game = createPlayGameContextStub({
   galaxy: {
     systems: [
@@ -23,23 +23,50 @@ const game = createPlayGameContextStub({
             createPlanetStub({
               id: "00000000-0000-4000-8000-000000000013",
               name: "Planet 10",
-              coordinates: "3:1:0",
+              coordinates: "10:1:0",
               ownerPlayerId: alice.id,
-              area: 2,
+              fertility: 3,
+              metal: 2,
+              fuel: 1,
+              energy: 4,
+              maxPopulation: 28,
+              area: 5,
             }),
             createPlanetStub({
               id: "00000000-0000-4000-8000-000000000011",
               name: "Planet 1",
               coordinates: "1:1:0",
               ownerPlayerId: bob.id,
-              area: 4,
+              fertility: 2,
+              metal: 1,
+              fuel: 4,
+              energy: 3,
+              maxPopulation: 19,
+              area: 6,
             }),
             createPlanetStub({
               id: "00000000-0000-4000-8000-000000000012",
               name: "Planet 2",
               coordinates: "2:1:0",
               ownerPlayerId: alice.id,
+              fertility: 1,
+              metal: 4,
+              fuel: 2,
+              energy: 2,
+              maxPopulation: 9,
               area: 10,
+            }),
+            createPlanetStub({
+              id: "00000000-0000-4000-8000-000000000015",
+              name: "Planet 4",
+              coordinates: "0:1:0",
+              ownerPlayerId: bob.id,
+              fertility: 4,
+              metal: 3,
+              fuel: 3,
+              energy: 1,
+              maxPopulation: 14,
+              area: 8,
             }),
             createPlanetStub({ id: "00000000-0000-4000-8000-000000000014", name: "Planet 3", coordinates: "4:1:0" }),
           ],
@@ -50,7 +77,7 @@ const game = createPlayGameContextStub({
 })
 const context = { ...game, gameDetails: { ...game.gameDetails, players: [bob, alice] } }
 
-function renderPlanetsPage(): void {
+async function renderPlanetsPage(): Promise<void> {
   const routeTree = createRootRoute({
     component: () => (
       <PlayGameContextProvider value={context}>
@@ -67,10 +94,11 @@ function renderPlanetsPage(): void {
     container.remove()
   })
   root.render(<RouterProvider router={router} />)
+  await page.getByRole("textbox", { name: "Search planets" }).click()
 }
 
-const planetNames = page
-  .getByRole("table", { name: "Owned planets" })
+const table = page.getByRole("table", { name: "Owned planets" })
+const planetNames = table
   .getByRole("row")
   .filter({ has: page.getByRole("link") })
   .getByRole("cell", { name: /^Planet \d+$/ })
@@ -81,13 +109,13 @@ async function expectPlanetOrder(expectedNames: string[]): Promise<void> {
 
 describe("Planets", () => {
   it("should combine the owner filter with name and coordinate search", async () => {
-    renderPlanetsPage()
+    await renderPlanetsPage()
     const search = page.getByRole("textbox", { name: "Search planets" })
     const owner = page.getByRole("combobox", { name: "Owner" })
 
     await page.mark("List only owned planets in owner order by default", async () => {
       await expect.element(page.getByRole("columnheader", { name: "Owner" })).toHaveAttribute("aria-sort", "ascending")
-      await expectPlanetOrder(["Planet 2", "Planet 10", "Planet 1"])
+      await expectPlanetOrder(["Planet 2", "Planet 10", "Planet 1", "Planet 4"])
     })
 
     await page.mark("Select Alice and search by name", async () => {
@@ -112,29 +140,70 @@ describe("Planets", () => {
     })
   })
 
-  it("should sort names naturally and area numerically in both directions", async () => {
-    renderPlanetsPage()
-    const table = page.getByRole("table", { name: "Owned planets" })
+  it("should display each planet attribute under its labeled column", async () => {
+    await renderPlanetsPage()
+    const row = table.getByRole("row").filter({ has: page.getByRole("cell", { name: "Planet 10", exact: true }) })
 
-    await page.mark("Sort by planet name in both directions", async () => {
-      const sort = table.getByRole("button", { name: "Planet", exact: true })
-      await sort.click()
-      await expectPlanetOrder(["Planet 1", "Planet 2", "Planet 10"])
-
-      await sort.click()
-      await expectPlanetOrder(["Planet 10", "Planet 2", "Planet 1"])
+    await page.mark("Read the attributes of Planet 10", async () => {
+      await expect
+        .poll(() => {
+          const headers = table.getByRole("columnheader").elements()
+          return Object.fromEntries(
+            row
+              .getByRole("cell")
+              .elements()
+              .map((cell, index) => [headers[index]?.textContent, cell.textContent]),
+          )
+        })
+        .toEqual({
+          Planet: "Planet 10",
+          Owner: "Alice",
+          Coordinates: "10:1:0",
+          Fertility: "3",
+          Metal: "2",
+          Fuel: "1",
+          Energy: "4",
+          "Max population": "28",
+          Area: "5",
+        })
     })
+  })
 
-    await page.mark("Sort by area in both directions", async () => {
-      const sort = table.getByRole("button", { name: "Area" })
-      const header = table.getByRole("columnheader", { name: "Area" })
-      await sort.click()
+  it.each([
+    { column: "Planet", order: ["Planet 1", "Planet 2", "Planet 4", "Planet 10"] },
+    { column: "Coordinates", order: ["Planet 4", "Planet 1", "Planet 2", "Planet 10"] },
+    { column: "Fertility", order: ["Planet 2", "Planet 1", "Planet 10", "Planet 4"] },
+    { column: "Metal", order: ["Planet 1", "Planet 10", "Planet 4", "Planet 2"] },
+    { column: "Fuel", order: ["Planet 10", "Planet 2", "Planet 4", "Planet 1"] },
+    { column: "Energy", order: ["Planet 4", "Planet 2", "Planet 1", "Planet 10"] },
+    { column: "Max population", order: ["Planet 2", "Planet 4", "Planet 1", "Planet 10"] },
+    { column: "Area", order: ["Planet 10", "Planet 1", "Planet 4", "Planet 2"] },
+  ])("should sort by $column when its header is selected", async ({ column, order }) => {
+    await renderPlanetsPage()
+    const header = table.getByRole("columnheader", { name: column, exact: true })
+
+    await page.mark(`Sort by ${column}`, async () => {
+      await header.getByRole("button").click()
       await expect.element(header).toHaveAttribute("aria-sort", "ascending")
-      await expectPlanetOrder(["Planet 10", "Planet 1", "Planet 2"])
+      await expectPlanetOrder(order)
+    })
+  })
 
+  it("should reverse and restore the default owner sort", async () => {
+    await renderPlanetsPage()
+    const header = table.getByRole("columnheader", { name: "Owner" })
+    const sort = header.getByRole("button")
+
+    await page.mark("Show Bob's planets first", async () => {
       await sort.click()
       await expect.element(header).toHaveAttribute("aria-sort", "descending")
-      await expectPlanetOrder(["Planet 2", "Planet 1", "Planet 10"])
+      await expectPlanetOrder(["Planet 4", "Planet 1", "Planet 10", "Planet 2"])
+    })
+
+    await page.mark("Show Alice's planets first again", async () => {
+      await sort.click()
+      await expect.element(header).toHaveAttribute("aria-sort", "ascending")
+      await expectPlanetOrder(["Planet 2", "Planet 10", "Planet 1", "Planet 4"])
     })
   })
 })

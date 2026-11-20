@@ -19,6 +19,8 @@ describe("SearchSelect", () => {
   it("should filter case-insensitively and commit a keyboard selection", async () => {
     await Interactive.run()
     const input = page.getByRole("combobox", { name: "Fleet target" })
+    const expeditionary = page.getByRole("option", { name: "Expeditionary Fleet" })
+    const reserve = page.getByRole("option", { name: "Reserve Fleet" })
 
     await page.mark("Search for a fleet that does not exist", async () => {
       await input.click()
@@ -26,12 +28,19 @@ describe("SearchSelect", () => {
       await expect.element(page.getByRole("status")).toHaveTextContent("No matching options")
     })
 
-    await page.mark("Find and select Expeditionary Fleet", async () => {
-      await input.fill("eXpEdItIoNaRy")
-      await expect.element(page.getByRole("option", { name: "Expeditionary Fleet" })).toBeVisible()
+    await page.mark("Filter to the two fleet matches", async () => {
+      await input.fill("fLeEt")
+      await expect.element(expeditionary).toBeVisible()
+      await expect.element(reserve).toBeVisible()
       await expect.element(page.getByRole("option", { name: "Home Guard" })).not.toBeInTheDocument()
-      await userEvent.keyboard("{ArrowDown}{Enter}")
-      await expect.element(input).toHaveValue("Expeditionary Fleet")
+      await expect.element(input).toHaveAttribute("aria-activedescendant", expeditionary.element().id)
+    })
+
+    await page.mark("Move to Reserve Fleet and commit the selection", async () => {
+      await userEvent.keyboard("{ArrowDown}")
+      await expect.element(input).toHaveAttribute("aria-activedescendant", reserve.element().id)
+      await userEvent.keyboard("{Enter}")
+      await expect.element(input).toHaveValue("Reserve Fleet")
       await expect.element(page.getByRole("listbox")).not.toBeInTheDocument()
     })
   })

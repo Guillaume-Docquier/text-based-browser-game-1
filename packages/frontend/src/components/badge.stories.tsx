@@ -12,7 +12,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Interactive: Story = {}
+export const ActiveStatus: Story = {}
 
 export const Variants: Story = {
   render: () => (

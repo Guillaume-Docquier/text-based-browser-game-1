@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { Badge } from "./badge.tsx"
-import { Button } from "./button.tsx"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card.tsx"
 
 const meta = {
@@ -14,7 +13,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Interactive: Story = {
+export const ColonyOverview: Story = {
   render: (args) => (
     <Card {...args}>
       <CardHeader>
@@ -28,7 +27,7 @@ export const Interactive: Story = {
         <p>Mineral production is operating at 84% capacity.</p>
       </CardContent>
       <CardFooter className="border-t">
-        <Button size="sm">Open colony</Button>
+        <p className="text-muted-foreground">Last updated on turn 18</p>
       </CardFooter>
     </Card>
   ),

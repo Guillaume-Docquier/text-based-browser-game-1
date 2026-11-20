@@ -3,7 +3,7 @@ import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { PlanetsPage } from "../pages/PlanetsPage.ts"
 
-test("a player can open a planet from its coordinates and reload its Galaxy profile", async ({ alice, bob }) => {
+test("a player can open a Galaxy profile from Planets, reload it, and go back to Planets", async ({ alice, bob }) => {
   const planetsPage = await test.step("Start a game for Alice and Bob and open Planets", async () => {
     const gameDetails = await CreateGamePage.createGame({
       creator: alice,
@@ -26,5 +26,11 @@ test("a player can open a planet from its coordinates and reload its Galaxy prof
   await test.step("Reload the shared URL and see the same planet profile", async () => {
     await galaxyPage.reload()
     await expect(galaxyPage.planetDetails("planet 991659")).toContainText("44:96:25")
+  })
+
+  await test.step("Use browser Back to return to Planets", async () => {
+    await galaxyPage.goBack()
+    await expect(alice.page).toHaveURL(PlanetsPage.urlPattern)
+    await expect(planetsPage.heading).toBeVisible()
   })
 })

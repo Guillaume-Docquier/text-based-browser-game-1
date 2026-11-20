@@ -10,7 +10,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Interactive: Story = {
+export const Horizontal: Story = {
   render: (args) => (
     <div className="w-96 space-y-4">
       <p>Economic overview</p>
@@ -27,9 +27,9 @@ export const Vertical: Story = {
   render: (args) => (
     <div className="flex h-6 items-center gap-4">
       <span>Minerals</span>
-      <Separator {...args} decorative={false} />
+      <Separator {...args} />
       <span>Energy</span>
-      <Separator {...args} decorative={false} />
+      <Separator {...args} />
       <span>Food</span>
     </div>
   ),

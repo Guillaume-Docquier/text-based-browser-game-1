@@ -2,7 +2,27 @@ import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { HomePage } from "../pages/HomePage.ts"
 
-const onboardingStatusRoute = "**/accounts.isOnboarded*"
+const onboardingStatusRoute = /\baccounts\.isOnboarded\b/
+const gameListingsRoute = "**/*games.getListings*"
+
+test("a signed-out visitor can browse games without requesting onboarding status", async ({ page }) => {
+  let statusRequests = 0
+  page.on("request", (request) => {
+    if (onboardingStatusRoute.test(request.url())) {
+      statusRequests++
+    }
+  })
+
+  await test.step("Visit the public home page and browse the games", async () => {
+    const home = await HomePage.goto(page)
+    await expect(home.navbar.signInLink).toBeVisible()
+    const listingsResponse = page.waitForResponse(gameListingsRoute)
+    const listings = await home.playForFree()
+    await listingsResponse
+    await expect(listings.heading).toBeVisible()
+    expect(statusRequests).toBe(0)
+  })
+})
 
 test("an account that needs an alias sees onboarding on its first status response", async ({ alice }) => {
   let statusRequests = 0
@@ -38,9 +58,21 @@ test.describe("onboarding status request failures", () => {
       return createGame
     })
 
-    const newGamePage = await test.step("Leave and return to game creation without restarting onboarding", async () => {
+    const gamesPage = await test.step("Leave game creation and browse the games", async () => {
       const homePage = await createGamePage.navbar.openHome()
       const gamesPage = await homePage.playForFree()
+      await expect(gamesPage.myGamesButton).toBeVisible()
+      return gamesPage
+    })
+
+    await test.step("Return focus to the tab and refresh the listings without restarting onboarding", async () => {
+      const listingsResponse = alice.page.waitForResponse(gameListingsRoute)
+      await gamesPage.simulateTabFocus()
+      await listingsResponse
+      expect(statusRequests).toBe(4)
+    })
+
+    const newGamePage = await test.step("Return to game creation", async () => {
       const newGame = await gamesPage.createGame()
       await newGame.setGameName(gameName)
       await expect(newGame.onboarding.heading).not.toBeVisible()
