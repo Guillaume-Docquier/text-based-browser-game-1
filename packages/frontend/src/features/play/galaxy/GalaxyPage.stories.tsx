@@ -1,5 +1,7 @@
+import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ReactElement } from "react"
+import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
 import { createStarSystemStub } from "shared/domain/world/StarSystem.stub.ts"
 import { StarSystemSchema } from "shared/domain/world/StarSystem.ts"
@@ -7,12 +9,17 @@ import { createPlayGameContextStub } from "../PlayContext.stub.ts"
 import { PlayGameContextProvider } from "../PlayContext.tsx"
 import { GalaxyPage } from "./GalaxyPage.tsx"
 
+const orbit = Distance.in(Distance.create(5, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS)
 const context = createPlayGameContextStub({
   galaxy: {
     systems: [
       StarSystemSchema.parse(
         createStarSystemStub({
           star: createStarStub({ id: "00000000-0000-4000-8000-000000000003", name: "Sol", x: 30, y: 40 }),
+          planets: [
+            createPlanetStub({ name: "Terra", coordinates: "1:2:1", x: 30 - orbit, y: 40 }),
+            createPlanetStub({ name: "Mars", coordinates: "1:2:2", x: 30 - orbit * 2, y: 40 + orbit }),
+          ],
         }),
       ),
     ],

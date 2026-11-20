@@ -28,7 +28,7 @@ export class CreateGamePage extends WebsitePage {
   private readonly turnLengthUnitSelect: Locator
 
   public readonly heading: Locator
-  public readonly createButton: Locator
+  private readonly createButton: Locator
 
   public constructor(page: Page) {
     super(page)

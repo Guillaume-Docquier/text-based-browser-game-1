@@ -1,3 +1,5 @@
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin"
 import react from "@vitejs/plugin-react"
 import { playwright } from "@vitest/browser-playwright"
@@ -32,6 +34,18 @@ export default mergeConfig(
         },
         {
           extends: true,
+          optimizeDeps: {
+            include: [
+              "react-dom/client",
+              "@tanstack/react-query",
+              "@tanstack/react-router",
+              "@trpc/client",
+              "@trpc/tanstack-react-query",
+              "msw",
+              "msw/browser",
+            ],
+          },
+          publicDir: path.dirname(fileURLToPath(import.meta.resolve("msw/mockServiceWorker.js"))),
           plugins: [react()],
           test: {
             name: "interactions",
