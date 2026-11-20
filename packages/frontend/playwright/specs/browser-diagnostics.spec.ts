@@ -1,4 +1,4 @@
-/* oxlint-disable no-console -- These tests deliberately emit browser messages to verify diagnostics. */
+// oxlint-disable no-console -- These tests deliberately emit browser messages to verify diagnostics.
 import { expect, test } from "../fixtures.ts"
 
 test.describe("explicitly expected browser diagnostics", () => {

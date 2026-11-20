@@ -21,6 +21,42 @@ describe.each([
     expect(diagnostics).toStrictEqual([])
   })
 
+  it("should allow a CONSTRAINT line comment", () => {
+    const diagnostics = lint({
+      path,
+      code: `
+        // CONSTRAINT: The protocol reserves the first identifier.
+        export const firstId = 2
+      `,
+    })
+
+    expect(diagnostics).toStrictEqual([])
+  })
+
+  it("should allow an oxlint disable directive", () => {
+    const diagnostics = lint({
+      path,
+      code: `
+        // oxlint-disable-next-line no-debugger
+        debugger
+      `,
+    })
+
+    expect(diagnostics).toStrictEqual([])
+  })
+
+  it("should allow a TypeScript expect-error directive", () => {
+    const diagnostics = lint({
+      path,
+      code: `
+        // @ts-expect-error: Exercise an invalid value.
+        export const count: number = "invalid"
+      `,
+    })
+
+    expect(diagnostics).toStrictEqual([])
+  })
+
   it("should reject an ordinary line comment", () => {
     const diagnostics = lint({
       path,
@@ -44,48 +80,12 @@ describe.each([
 
     expect(diagnostics).toStrictEqual([allowedComments])
   })
-})
 
-describe("comment policy in source files", () => {
-  it("should allow a CONSTRAINT block comment after leading whitespace", () => {
+  it("should reject a block comment with an allowed prefix", () => {
     const diagnostics = lint({
+      path,
       code: `
-        /*
-          CONSTRAINT: The protocol reserves the first identifier.
-        */
-        export const firstId = 2
-      `,
-    })
-
-    expect(diagnostics).toStrictEqual([])
-  })
-
-  it("should allow an oxlint disable directive", () => {
-    const diagnostics = lint({
-      code: `
-        // oxlint-disable-next-line no-debugger
-        debugger
-      `,
-    })
-
-    expect(diagnostics).toStrictEqual([])
-  })
-
-  it("should allow a TypeScript expect-error directive", () => {
-    const diagnostics = lint({
-      code: `
-        // @ts-expect-error: Exercise an invalid value.
-        export const count: number = "invalid"
-      `,
-    })
-
-    expect(diagnostics).toStrictEqual([])
-  })
-
-  it("should reject an ordinary block comment", () => {
-    const diagnostics = lint({
-      code: `
-        /* Set the default limit. */
+        /* INTENT: Keep the default available before startup. */
         export const defaultLimit = 10
       `,
     })
@@ -95,19 +95,9 @@ describe("comment policy in source files", () => {
 
   it("should require the prefix at the start of the comment text", () => {
     const diagnostics = lint({
+      path,
       code: `
         // An example of an INTENT: comment.
-        export const defaultLimit = 10
-      `,
-    })
-
-    expect(diagnostics).toStrictEqual([allowedComments])
-  })
-
-  it("should require the colon in the INTENT prefix", () => {
-    const diagnostics = lint({
-      code: `
-        // INTENT Keep the default available before startup.
         export const defaultLimit = 10
       `,
     })

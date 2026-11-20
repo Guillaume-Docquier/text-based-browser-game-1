@@ -29,7 +29,7 @@ export const allowedComments = {
       Program(): void {
         for (const comment of context.sourceCode.getAllComments()) {
           const text = comment.value.trimStart()
-          if (!prefixes.some((prefix) => text.startsWith(prefix))) {
+          if (comment.type !== "Line" || !prefixes.some((prefix) => text.startsWith(prefix))) {
             context.report({ loc: comment.loc, message })
           }
         }
