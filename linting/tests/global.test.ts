@@ -8,8 +8,8 @@ describe.each([
   ["backend", "packages/backend/src/fixture.ts"],
   ["frontend", "packages/frontend/src/fixture.ts"],
   ["shared", "packages/shared/src/fixture.ts"],
-])("global lint rules in %s", (_scope, path) => {
-  it("should allow an INTENT line comment", () => {
+])("global lint rules in %s source files", (_scope, path) => {
+  it("should allow an INTENT comment", () => {
     // Arrange
     const fixture = {
       path,
@@ -26,7 +26,7 @@ describe.each([
     expect(diagnostics).toStrictEqual([])
   })
 
-  it("should allow a CONSTRAINT line comment", () => {
+  it("should allow a CONSTRAINT comment", () => {
     // Arrange
     const fixture = {
       path,
@@ -77,7 +77,7 @@ describe.each([
     expect(diagnostics).toStrictEqual([])
   })
 
-  it("should reject an ordinary line comment", () => {
+  it("should reject an ordinary comment", () => {
     // Arrange
     const fixture = {
       path,
@@ -94,7 +94,7 @@ describe.each([
     expect(diagnostics).toStrictEqual([allowedComments])
   })
 
-  it.each(["Arrange", "Act", "Assert"])("should reject %s in a source file", (phase) => {
+  it.each(["Arrange", "Act", "Assert"])("should reject %s", (phase) => {
     // Arrange
     const fixture = {
       path,

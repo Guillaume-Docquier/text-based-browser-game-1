@@ -9,25 +9,8 @@ describe.each([
   ["frontend", "packages/frontend/src/fixture.test.ts"],
   ["frontend TSX", "packages/frontend/src/fixture.test.tsx"],
   ["shared", "packages/shared/src/fixture.test.ts"],
-])("test lint rules in %s", (_scope, path) => {
-  it.each(["Arrange", "Act", "Assert"])("should allow %s in a test file", (phase) => {
-    // Arrange
-    const fixture = {
-      path,
-      code: `
-        // ${phase}
-        export const defaultLimit = 10
-      `,
-    }
-
-    // Act
-    const diagnostics = lint(fixture)
-
-    // Assert
-    expect(diagnostics).toStrictEqual([])
-  })
-
-  it("should still allow an INTENT comment in a test file", () => {
+])("global lint rules in %s test files", (_scope, path) => {
+  it("should allow an INTENT comment", () => {
     // Arrange
     const fixture = {
       path,
@@ -44,7 +27,7 @@ describe.each([
     expect(diagnostics).toStrictEqual([])
   })
 
-  it("should still allow a CONSTRAINT line comment", () => {
+  it("should allow a CONSTRAINT comment", () => {
     // Arrange
     const fixture = {
       path,
@@ -61,7 +44,7 @@ describe.each([
     expect(diagnostics).toStrictEqual([])
   })
 
-  it("should still allow an oxlint disable directive", () => {
+  it("should allow an oxlint disable directive", () => {
     // Arrange
     const fixture = {
       path,
@@ -78,7 +61,7 @@ describe.each([
     expect(diagnostics).toStrictEqual([])
   })
 
-  it("should still allow a TypeScript expect-error directive", () => {
+  it("should allow a TypeScript expect-error directive", () => {
     // Arrange
     const fixture = {
       path,
@@ -95,7 +78,7 @@ describe.each([
     expect(diagnostics).toStrictEqual([])
   })
 
-  it("should reject an ordinary comment in a test file", () => {
+  it("should reject an ordinary comment", () => {
     // Arrange
     const fixture = {
       path,
@@ -112,7 +95,24 @@ describe.each([
     expect(diagnostics).toStrictEqual([allowedComments])
   })
 
-  it("should reject a block comment with a test-only prefix", () => {
+  it.each(["Arrange", "Act", "Assert"])("should allow %s", (phase) => {
+    // Arrange
+    const fixture = {
+      path,
+      code: `
+        // ${phase}
+        export const defaultLimit = 10
+      `,
+    }
+
+    // Act
+    const diagnostics = lint(fixture)
+
+    // Assert
+    expect(diagnostics).toStrictEqual([])
+  })
+
+  it("should reject a block comment with an allowed prefix", () => {
     // Arrange
     const fixture = {
       path,
@@ -129,7 +129,7 @@ describe.each([
     expect(diagnostics).toStrictEqual([allowedComments])
   })
 
-  it("should require the test-only prefix at the start of the comment text", () => {
+  it("should require the prefix at the start of the comment text", () => {
     // Arrange
     const fixture = {
       path,
