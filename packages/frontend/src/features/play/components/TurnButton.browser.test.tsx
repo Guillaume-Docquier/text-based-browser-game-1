@@ -130,6 +130,7 @@ describe("TurnButton", () => {
       await renderStory(Resolving)
       const resolvingButton = page.getByRole("button", { name: "Cancel lock in" })
       await expect.element(resolvingButton).toBeDisabled()
+      await expect.element(resolvingButton.getByText("02:17:43", { exact: true })).toBeVisible()
 
       await resolvingButton.hover()
       await expect.element(page.getByText("Cancel", { exact: true })).not.toBeVisible()

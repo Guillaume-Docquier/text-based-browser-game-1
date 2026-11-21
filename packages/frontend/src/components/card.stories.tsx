@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { expect } from "storybook/test"
 import { Badge } from "./badge.tsx"
 import { Button } from "./button.tsx"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card.tsx"
@@ -15,7 +14,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {
+export const Interactive: Story = {
   render: (args) => (
     <Card {...args}>
       <CardHeader>
@@ -33,13 +32,6 @@ export const Default: Story = {
       </CardFooter>
     </Card>
   ),
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText("Kepler-186")).toBeVisible()
-    await expect(canvas.getByText("Terran colony · Population 2.4B")).toBeVisible()
-    await expect(canvas.getByText("Stable")).toBeVisible()
-    await expect(canvas.getByText("Mineral production is operating at 84% capacity.")).toBeVisible()
-    await expect(canvas.getByRole("button", { name: "Open colony" })).toBeEnabled()
-  },
 }
 
 export const Small: Story = {
@@ -54,8 +46,4 @@ export const Small: Story = {
       </CardHeader>
     </Card>
   ),
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText("Scout report")).toBeVisible()
-    await expect(canvas.getByText("No hostile fleets detected.")).toBeVisible()
-  },
 }

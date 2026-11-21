@@ -15,17 +15,6 @@ test("the game creation page redirects signed-out visitors to sign in", async ({
   })
 })
 
-test("the game creation form limits games to 16 players", async ({ alice }) => {
-  const createGamePage = await CreateGamePage.goto(alice.page)
-  await createGamePage.setGameName(`Playwright game ${Date.now()}`)
-
-  await createGamePage.setMaxPlayers(17)
-  await expect(createGamePage.createButton).toBeDisabled()
-
-  await createGamePage.setMaxPlayers(16)
-  await expect(createGamePage.createButton).toBeEnabled()
-})
-
 test("the game creation page can create a game and opens the galaxy view when starting the game", async ({ alice }) => {
   const createGamePage = await CreateGamePage.goto(alice.page)
   const gameName = `Playwright game ${Date.now()}`

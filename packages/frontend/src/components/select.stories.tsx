@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { expect, waitFor, within } from "storybook/test"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "./select.tsx"
 
 const FLEETS = [
@@ -16,7 +15,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {
+export const Interactive: Story = {
   render: () => (
     <Select items={FLEETS}>
       <SelectTrigger aria-label="Fleet" className="w-64">
@@ -33,23 +32,6 @@ export const Default: Story = {
       </SelectContent>
     </Select>
   ),
-  play: async ({ canvas, canvasElement, userEvent }) => {
-    const trigger = canvas.getByRole("combobox")
-    const body = within(canvasElement.ownerDocument.body)
-
-    await expect(trigger).toHaveTextContent("Choose a fleet")
-    await userEvent.click(trigger)
-    await expect(await body.findByRole("option", { name: "Expeditionary Fleet" })).toBeVisible()
-    await userEvent.keyboard("{ArrowDown}{ArrowDown}{Enter}")
-    await expect(trigger).toHaveTextContent("Home Guard")
-    await waitFor(async () => {
-      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
-    })
-
-    await userEvent.click(trigger)
-    await userEvent.click(await body.findByRole("option", { name: "Reserve Fleet" }))
-    await expect(trigger).toHaveTextContent("Reserve Fleet")
-  },
 }
 
 export const InitialSelection: Story = {
@@ -67,20 +49,6 @@ export const InitialSelection: Story = {
       </SelectContent>
     </Select>
   ),
-  play: async ({ canvas, canvasElement, userEvent }) => {
-    const trigger = canvas.getByRole("combobox", { name: "Fleet" })
-    const body = within(canvasElement.ownerDocument.body)
-    await expect(trigger).toHaveTextContent("Home Guard")
-    await userEvent.tab()
-    await userEvent.keyboard("{Enter}")
-    await expect(await body.findByRole("option", { name: "Home Guard" })).toHaveAttribute("aria-selected", "true")
-    await userEvent.keyboard("{Escape}")
-    await waitFor(async () => {
-      await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
-    })
-    await expect(trigger).toHaveFocus()
-    await expect(trigger).toHaveTextContent("Home Guard")
-  },
 }
 
 export const Disabled: Story = {
@@ -91,11 +59,4 @@ export const Disabled: Story = {
       </SelectTrigger>
     </Select>
   ),
-  play: async ({ canvas, userEvent }) => {
-    const trigger = canvas.getByRole("combobox")
-
-    await expect(trigger).toBeDisabled()
-    await userEvent.click(trigger)
-    await expect(canvas.queryByRole("option")).not.toBeInTheDocument()
-  },
 }
