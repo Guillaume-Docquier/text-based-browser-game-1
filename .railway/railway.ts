@@ -31,14 +31,32 @@ export default defineRailway(() => {
     networking: { privateNetworkEndpoint: "caddy-proxy" },
   })
 
-  const sharedWatchPatterns = ["packages/shared/**", "package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"]
+  const sharedWatchPatterns = [
+    "packages/shared/**",
+    "package.json",
+    "pnpm-workspace.yaml",
+    "pnpm-lock.yaml",
+    "!**/*.test.*",
+    "!**/*.stub.ts",
+    "!**/__snapshots__/**",
+    "!**/vitest.config.ts",
+    "!/packages/shared/src/testing/**",
+  ]
 
   const frontend = service("Frontend", {
     source: applicationSource,
     build: {
       builder: "RAILPACK",
       buildCommand: "pnpm --filter frontend build",
-      watchPatterns: ["packages/frontend/**", ...sharedWatchPatterns],
+      watchPatterns: [
+        "packages/frontend/**",
+        ...sharedWatchPatterns,
+        "!/packages/frontend/playwright/**",
+        "!/packages/frontend/playwright.config.ts",
+        "!/packages/frontend/.storybook/**",
+        "!**/*.stories.*",
+        "!**/*.test-support.ts",
+      ],
     },
     replicas: { "us-east4-eqdc4a": 1 },
     deploy: { sleepApplication: true },
@@ -49,7 +67,7 @@ export default defineRailway(() => {
     source: applicationSource,
     build: {
       builder: "RAILPACK",
-      watchPatterns: ["packages/backend/**", ...sharedWatchPatterns],
+      watchPatterns: ["packages/backend/**", ...sharedWatchPatterns, "!/packages/backend/src/tests/**", "!**/*.test-d.ts"],
     },
     start: "pnpm --filter backend start",
     replicas: { "us-east4-eqdc4a": 1 },
