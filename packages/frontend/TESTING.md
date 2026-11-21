@@ -18,7 +18,7 @@ Before adding a test, decide what behavior you want to check and how the test wi
 | ------------------------------------------------------------------------------------ | -------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | Verify routes, authentication, backend integration, persistence, or multiple players | Playwright E2E test                          | `playwright/specs/*.spec.ts`                | A readiness change reaches the backend and becomes visible to another player   |
 | Inspect a meaningful component state                                                 | Static Storybook story                       | Colocated `*.stories.tsx`                   | Turn button in normal, locked-in, pending, or resolving state                  |
-| Try a component manually                                                             | Stateful Storybook story                     | An `Interactive` export in the stories file | Click the turn button to lock in and cancel                                    |
+| Try a component interaction manually                                                 | Stateful Storybook story                     | An `Interactive` export in the stories file | Click the turn button to lock in and cancel                                    |
 | Demonstrate a state that requires interaction to reach                               | Storybook story with a short `play` function | Colocated `*.stories.tsx`                   | Open a menu and leave it open for inspection                                   |
 | Verify isolated interaction or presentation behavior                                 | Vitest browser test                          | Colocated `*.browser.test.tsx`              | Hover reveals the action; keyboard activation toggles lock-in; Tab moves focus |
 
@@ -54,7 +54,7 @@ Use stories for states that benefit from isolated inspection. The `render` Vites
 
 - Keep stories next to their components. Use `Design System/<Component>` for shared components in `src/components` and `Application/<Component>` for selected feature components. Design System appears first in the sidebar; not every feature component needs a story.
 - Keep visual examples static. Cover meaningful implemented states without enumerating every prop combination or adding assertions solely because a story exists.
-- The first story is always a stateful `Interactive` story.
+- Put a stateful `Interactive` story first for components with meaningful user actions. Show the result of each action through native behavior or state in the example. For display-only components, put a static story with a descriptive name first.
 - Use `play` when the sequence demonstrates a useful state, and leave the component in that state. Put sequences that exist only for verification in browser tests. Opening a story should not cycle through hover, focus, typing, and clicks just to check behavior.
 - Import story types from `@storybook/react-vite` and instrumented assertions and test helpers from `storybook/test`. The frontend Oxlint override checks these imports.
 - Keep stories independent of live authentication and backend services. Use deterministic fixtures.

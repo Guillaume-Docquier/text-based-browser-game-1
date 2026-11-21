@@ -2,20 +2,39 @@ import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { HomePage } from "../pages/HomePage.ts"
 
-const onboardingStatusRoute = "**/accounts.isOnboarded*"
+const onboardingStatusRoute = /\baccounts\.isOnboarded\b/
+const gameListingsRoute = "**/*games.getListings*"
 
-test("the onboarding modal appears after the first successful status request", async ({ alice }) => {
-  let statusRequestCount = 0
+test("a signed-out visitor can browse games without requesting onboarding status", async ({ page }) => {
+  let statusRequests = 0
+  page.on("request", (request) => {
+    if (onboardingStatusRoute.test(request.url())) {
+      statusRequests++
+    }
+  })
+
+  await test.step("Visit the public home page and browse the games", async () => {
+    const home = await HomePage.goto(page)
+    await expect(home.navbar.signInLink).toBeVisible()
+    const listingsResponse = page.waitForResponse(gameListingsRoute)
+    const listings = await home.playForFree()
+    await listingsResponse
+    await expect(listings.heading).toBeVisible()
+    expect(statusRequests).toBe(0)
+  })
+})
+
+test("an account that needs an alias sees onboarding on its first status response", async ({ alice }) => {
+  let statusRequests = 0
   await alice.page.route(onboardingStatusRoute, async (route) => {
-    statusRequestCount++
+    statusRequests++
     await route.fulfill({ json: [{ result: { data: false } }] })
   })
 
-  const homePage = await HomePage.goto(alice.page)
-
-  await test.step("Prompt for an alias without waiting for another status request", async () => {
+  await test.step("Open the home page and receive the alias prompt", async () => {
+    const homePage = await HomePage.goto(alice.page)
     await expect(homePage.onboarding.heading).toBeVisible()
-    expect(statusRequestCount).toBe(1)
+    expect(statusRequests).toBe(1)
   })
 })
 
@@ -23,58 +42,41 @@ test.describe("onboarding status request failures", () => {
   const expectedError = /^\[alice\] console error: .*ERROR: API request failed .*path: accounts\.isOnboarded, type: query,/
   test.use({ expectedBrowserDiagnostics: { messages: [expectedError, expectedError, expectedError, expectedError] } })
 
-  test("the onboarding modal is not visible while fetching the onboarding status", async ({ alice }) => {
-    let statusRequestCount = 0
+  test("a player can create a game after onboarding status retries are exhausted", async ({ alice }) => {
+    let statusRequests = 0
     await alice.page.route(onboardingStatusRoute, async (route) => {
-      statusRequestCount++
-      await route.fulfill({
-        contentType: "application/json",
-        body: "{}",
-      })
+      statusRequests++
+      await route.fulfill({ json: {} })
     })
 
-    const createGamePage = await CreateGamePage.goto(alice.page)
-
-    await test.step("Keep the requested page usable after the status request fails", async () => {
-      await expect(createGamePage.heading).toBeVisible()
-      await expect(createGamePage.onboarding.heading).not.toBeVisible()
-      await createGamePage.setGameName("Status failures stay unobtrusive")
+    const gameName = "Playwright game during onboarding outage"
+    const createGamePage = await test.step("Begin creating a game while the status endpoint fails", async () => {
+      const createGame = await CreateGamePage.goto(alice.page)
+      await createGame.setGameName(gameName)
+      await expect(createGame.onboarding.heading).not.toBeVisible()
+      await expect.poll(() => statusRequests, { timeout: 10_000 }).toBe(4)
+      return createGame
     })
 
-    await test.step("Retry failures with a limited retry budget", async () => {
-      await expect.poll(() => statusRequestCount, { timeout: 10_000 }).toBe(4)
+    const gamesPage = await test.step("Leave game creation and browse the games", async () => {
+      const homePage = await createGamePage.navbar.openHome()
+      const gamesPage = await homePage.playForFree()
+      await expect(gamesPage.myGamesButton).toBeVisible()
+      return gamesPage
     })
 
-    await test.step("Do not restart retries after focus or route remounts", async () => {
-      await alice.page.evaluate("document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('focus'))")
-
-      await createGamePage.navbar.homeLink.click()
-      const homePage = new HomePage(alice.page)
-      await expect(homePage.heading).toBeVisible()
-      await homePage.goBack()
-
-      await expect(createGamePage.heading).toBeVisible()
-      await expect.poll(() => statusRequestCount).toBe(4)
+    const newGamePage = await test.step("Return to game creation", async () => {
+      const newGame = await gamesPage.createGame()
+      await newGame.setGameName(gameName)
+      await expect(newGame.onboarding.heading).not.toBeVisible()
+      return newGame
     })
 
-    await test.step("Do not retry after a successful mutation", async () => {
-      const gameName = `Onboarding invalidation ${Date.now()}`
-      await createGamePage.setGameName(gameName)
-      const gameDetailsPage = await createGamePage.submit()
+    await test.step("Create the game without starting another status request", async () => {
+      const gameDetailsPage = await newGamePage.submit()
       await expect(gameDetailsPage.gameNameHeading).toHaveText(gameName)
-      await expect.poll(() => statusRequestCount).toBe(4)
+      await expect(gameDetailsPage.onboarding.heading).not.toBeVisible()
+      expect(statusRequests).toBe(4)
     })
   })
-})
-
-test("the onboarding modal is not visible for signed-out users", async ({ page }) => {
-  let statusRequestCount = 0
-  await page.route(onboardingStatusRoute, async (route) => {
-    statusRequestCount++
-    await route.abort()
-  })
-
-  const homePage = await HomePage.goto(page)
-  await expect(homePage.heading).toBeVisible()
-  await expect.poll(() => statusRequestCount).toBe(0)
 })

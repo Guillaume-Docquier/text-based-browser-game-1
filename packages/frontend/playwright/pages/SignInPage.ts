@@ -29,23 +29,26 @@ export class SignInPage extends WebsitePage {
     return this
   }
 
-  public async submitEmailAddress(emailAddress: string): Promise<void> {
+  public async signInWithEmailCode(emailAddress: string, code: string): Promise<void> {
+    await this.submitEmailAddress(emailAddress)
+    await this.chooseAnotherMethod()
+    await this.requestEmailCode(emailAddress)
+    await this.verificationCodeInput.pressSequentially(code)
+  }
+
+  private async submitEmailAddress(emailAddress: string): Promise<void> {
     await this.emailAddressInput.fill(emailAddress)
     await this.continueButton.click()
   }
 
-  public async chooseAnotherMethod(): Promise<void> {
+  private async chooseAnotherMethod(): Promise<void> {
     await this.useAnotherMethodLink.click()
   }
 
-  public async requestEmailCode(emailAddress: string): Promise<void> {
+  private async requestEmailCode(emailAddress: string): Promise<void> {
     await Promise.all([
       this.page.waitForResponse((response) => response.url().includes("prepare_first_factor") && response.ok()),
       this.page.getByRole("button", { name: `Email code to ${emailAddress}`, exact: true }).click(),
     ])
-  }
-
-  public async enterVerificationCode(code: string): Promise<void> {
-    await this.verificationCodeInput.pressSequentially(code)
   }
 }

@@ -1,5 +1,6 @@
 import type { Locator, Page } from "@playwright/test"
 import { CreateGamePage } from "./CreateGamePage.ts"
+import { SignInPage } from "./SignInPage.ts"
 import { WebsitePage } from "./WebsitePage.ts"
 
 export class GameListingsPage extends WebsitePage {
@@ -10,6 +11,7 @@ export class GameListingsPage extends WebsitePage {
 
   public readonly heading: Locator
   public readonly myGamesButton: Locator
+  public readonly noMatchingGames: Locator
 
   public constructor(page: Page) {
     super(page)
@@ -17,6 +19,7 @@ export class GameListingsPage extends WebsitePage {
     this.createGameLink = page.getByRole("link", { name: "Create game" })
     this.gameNameFilter = page.getByPlaceholder("Search for games")
     this.myGamesButton = page.getByRole("button", { name: "My games" })
+    this.noMatchingGames = page.getByText("No matching games", { exact: true })
   }
 
   public static async goto(page: Page): Promise<GameListingsPage> {
@@ -32,12 +35,17 @@ export class GameListingsPage extends WebsitePage {
     return this.page.getByRole("link").filter({ has: this.page.getByText(name, { exact: true }) })
   }
 
-  public async filterToMyGames(): Promise<void> {
+  public async toggleMyGamesFilter(): Promise<void> {
     await this.myGamesButton.click()
   }
 
   public async filterByName(name: string): Promise<void> {
     await this.gameNameFilter.fill(name)
+  }
+
+  public async createGameWhileSignedOut(): Promise<SignInPage> {
+    await this.createGameLink.click()
+    return new SignInPage(this.page)
   }
 
   public async createGame(): Promise<CreateGamePage> {

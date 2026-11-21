@@ -10,4 +10,8 @@ export class BasePage {
   public async goBack(): Promise<void> {
     await this.page.goBack()
   }
+
+  public async reload(): Promise<void> {
+    await this.page.reload()
+  }
 }

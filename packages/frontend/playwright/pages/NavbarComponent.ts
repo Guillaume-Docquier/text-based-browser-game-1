@@ -1,4 +1,5 @@
 import type { Locator, Page } from "@playwright/test"
+import type { HomePage } from "./HomePage.ts"
 
 export class NavbarComponent {
   private readonly page: Page
@@ -23,6 +24,13 @@ export class NavbarComponent {
     this.signInLink = websiteTopBar.getByRole("link", { name: "Sign in", exact: true })
     this.signUpLink = websiteTopBar.getByRole("link", { name: "Sign up", exact: true })
     this.userMenuButton = websiteTopBar.getByRole("button", { name: "Open user menu" })
+  }
+
+  public async openHome(): Promise<HomePage> {
+    await this.homeLink.click()
+    // oxlint-disable-next-line eslint-js/no-restricted-syntax -- Avoid a circular dependency through WebsitePage.
+    const { HomePage } = await import("./HomePage.ts")
+    return new HomePage(this.page)
   }
 
   public async signOut(): Promise<void> {
