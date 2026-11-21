@@ -129,6 +129,55 @@ describe("TurnProcessor", () => {
       })
     })
 
+    it.each([
+      {
+        schedule: "from closure time when the delay is below the threshold",
+        turnIntervalSeconds: 100,
+        elapsedSeconds: 110,
+        expectedDeadline: "2026-01-01T00:03:20.000Z",
+      },
+      {
+        schedule: "from closure time when the delay equals the threshold",
+        turnIntervalSeconds: 100,
+        elapsedSeconds: 115,
+        expectedDeadline: "2026-01-01T00:03:20.000Z",
+      },
+      {
+        schedule: "from processing time when the delay exceeds 15 percent of the interval",
+        turnIntervalSeconds: 100,
+        elapsedSeconds: 116,
+        expectedDeadline: "2026-01-01T00:03:36.000Z",
+      },
+      {
+        schedule: "from processing time when the delay exceeds the two-minute cap",
+        turnIntervalSeconds: 6000,
+        elapsedSeconds: 6180,
+        expectedDeadline: "2026-01-01T03:23:00.000Z",
+      },
+    ])("should schedule the next turn $schedule", async ({ turnIntervalSeconds, elapsedSeconds, expectedDeadline }) => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      const clock = new ControlledClock({ startDate: new Date("2026-01-01T00:00:00.000Z") })
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ turnIntervalSeconds, mapGenerationSeed: 123 }),
+      })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      clock.increment({ time: Time.create(elapsedSeconds, UnitOfTime.SECONDS) })
+      await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+        turn: 2,
+        turnEndsAt: expectedDeadline,
+      })
+    })
+
     it("should process only the earliest scheduled turn in one invocation", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
