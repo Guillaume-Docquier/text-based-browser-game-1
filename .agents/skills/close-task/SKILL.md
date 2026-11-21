@@ -33,10 +33,12 @@ Move shell operations to the main checkout before removal. Remove only the captu
 
 Use `git worktree remove` or a tool call with the captured absolute path. Do not force removal of unpreserved changes. Do not retain a recoverable snapshot.
 
-After successful worktree removal, delete its captured local branch, if any, from the main checkout using `git branch -D`. This repository always squash-merges, so `git branch -d` cannot reliably recognize merged task branches. Do not delete `main` or a branch used by another worktree.
+If a lock prevents deletion of the worktree directory, verify that `git worktree list --porcelain` no longer lists the captured path and that the directory is empty, including hidden entries. If both checks pass, report the locked directory's path and continue with branch cleanup.
 
-If worktree or branch removal fails, report the remaining cleanup and keep the thread open for retry.
+Once Git has removed the worktree registration, delete its captured local branch, if any, from the main checkout using `git branch -D`. This repository always squash-merges, so `git branch -d` cannot reliably recognize merged task branches. Do not delete `main` or a branch used by another worktree.
+
+For any other worktree or branch removal failure, report the remaining cleanup and keep the thread open for retry.
 
 ## Archive the thread
 
-After cleanup succeeds, call `set_thread_archived` with `archived: true`, omitting `threadId` to archive the current Codex thread. Confirm the result and report the completed cleanup briefly.
+Archive the thread when cleanup is complete or when the verified empty, locked directory is the only item left. Call `set_thread_archived` with `archived: true`, omitting `threadId` to archive the current Codex thread. Confirm the result and report the completed cleanup briefly.

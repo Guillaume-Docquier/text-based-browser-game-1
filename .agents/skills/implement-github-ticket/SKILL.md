@@ -29,6 +29,8 @@ Read back the project item and verify `In Progress` before proceeding. An issue 
 
 ## 2. Create the implementation worktree
 
+For each ticket implementation, create a new worktree, branch, and PR, even if prior work exists for the same ticket. Reuse an existing worktree, branch, or PR only when the user explicitly asks to reuse it.
+
 Fetch the latest `main` from the repository's remote. Create a new worktree from that fetched `main`, with branch name:
 
 ```text
@@ -39,7 +41,7 @@ Use the numeric issue number without `#` and a short lowercase, hyphen-separated
 
 Use the app's managed worktree tool when available, passing the fetched main ref explicitly. If it creates a detached HEAD, create and switch to the required branch inside the new worktree before editing. Do not branch from the current feature branch or stale local main.
 
-When resuming this same ticket, inspect and reuse its existing worktree, branch, and PR when appropriate. Do not reset existing work or create duplicates merely to repeat setup.
+If the worktree path or branch name is already in use locally or on the remote, choose an unused name by adding a suffix.
 
 ## 3. Implement and commit
 
@@ -47,7 +49,7 @@ Read the issue and related materials to understand the task. Implement the task,
 
 ## 4. Push and open the PR
 
-Once the implementation is done and validated locally, push the branch and open a **draft** PR against `main`, or update the existing PR for this task.
+Once the implementation is done and validated locally, push the branch and open a new **draft** PR against `main` unless the user explicitly requested an existing PR.
 
 Keep the description current as fixes change the implementation.
 
