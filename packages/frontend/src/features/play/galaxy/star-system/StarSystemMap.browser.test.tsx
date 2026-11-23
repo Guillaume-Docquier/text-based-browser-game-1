@@ -1,6 +1,6 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { composeStories } from "@storybook/react-vite"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { page, userEvent } from "vitest/browser"
 import { distanceFromMapCenter, starHitArea } from "../mapGeometry.test-support.ts"
 import * as stories from "./StarSystemMap.stories.tsx"
@@ -14,6 +14,10 @@ async function renderMap(): Promise<void> {
 }
 
 describe("Star System map interactions", () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it("should paint the hovered planet or star last and restore the original order on leave", async () => {
     await renderMap()
     const map = page.getByRole("group", { name: "Sol Star System map" })
@@ -35,7 +39,7 @@ describe("Star System map interactions", () => {
     })
   })
 
-  it("should recenter a panned map before signaling Return to Galaxy", async () => {
+  it("should recenter a panned map before signaling Return to Galaxy", async ({ onTestFinished }) => {
     await renderMap()
     const map = page.getByRole("group", { name: "Sol Star System map" })
     const star = map.getByRole("button", { name: "Return to Galaxy from Sol" })
@@ -52,28 +56,27 @@ describe("Star System map interactions", () => {
 
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
     const transition = pauseTransformTransition(map.element())
-    try {
-      await page.mark("Keep the system selected while centering is paused", async () => {
-        await star.click()
-        await expect.poll(() => transition.animation).toBeDefined()
-        transition.disconnect()
-        await expect.element(map).toHaveAttribute("aria-busy", "true")
-        await expect.element(selection).toHaveTextContent("Sol")
-        expect(distanceFromMapCenter(map.element(), hitArea)).toBeGreaterThan(80)
-      })
-
-      await page.mark("Finish the real transition before returning to Galaxy", async () => {
-        Assert.isDefined(transition.animation)
-        transition.animation.finish()
-        await expect.element(selection).toHaveTextContent("Galaxy")
-        await expect.element(map).toHaveAttribute("aria-busy", "false")
-        expect(distanceFromMapCenter(map.element(), hitArea)).toBeLessThan(1)
-      })
-    } finally {
+    onTestFinished(() => {
       transition.disconnect()
       transition.animation?.cancel()
-      vi.useRealTimers()
-    }
+    })
+
+    await page.mark("Keep the system selected while centering is paused", async () => {
+      await star.click()
+      await expect.poll(() => transition.animation).toBeDefined()
+      transition.disconnect()
+      await expect.element(map).toHaveAttribute("aria-busy", "true")
+      await expect.element(selection).toHaveTextContent("Sol")
+      expect(distanceFromMapCenter(map.element(), hitArea)).toBeGreaterThan(80)
+    })
+
+    await page.mark("Finish the real transition before returning to Galaxy", async () => {
+      Assert.isDefined(transition.animation)
+      transition.animation.finish()
+      await expect.element(selection).toHaveTextContent("Galaxy")
+      await expect.element(map).toHaveAttribute("aria-busy", "false")
+      expect(distanceFromMapCenter(map.element(), hitArea)).toBeLessThan(1)
+    })
   })
 })
 

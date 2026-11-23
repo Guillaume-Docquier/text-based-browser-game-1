@@ -1,7 +1,7 @@
 import { focusManager, QueryClient, useMutation } from "@tanstack/react-query"
 import { http, HttpResponse } from "msw"
 import { type ReactElement, useState } from "react"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { page } from "vitest/browser"
 import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
 import { setupBrowserApiWorker } from "@/testing/browserApiWorker.test-support.ts"
@@ -37,6 +37,11 @@ describe("Onboarding", () => {
   const worker = setupBrowserApiWorker()
   const statusEndpoint = "*/trpc/accounts.isOnboarded"
   const dialog = page.getByRole("dialog", { name: "Welcome, commander" })
+
+  afterEach(() => {
+    focusManager.setFocused(undefined)
+    vi.useRealTimers()
+  })
 
   it("should keep the page usable until the first status response opens onboarding", async () => {
     const status = Promise.withResolvers<boolean>()
@@ -78,37 +83,32 @@ describe("Onboarding", () => {
     )
     const queryClient = new QueryClient()
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"], shouldAdvanceTime: true })
-    try {
-      await renderApplicationPage(<OnboardingVisit />, queryClient)
-      await page.mark("Exhaust the retry budget and keep using the page", async () => {
-        await expect.poll(() => requests).toBe(1)
-        await expect
-          .poll(async () => {
-            await vi.advanceTimersByTimeAsync(30_000)
-            return queryClient.isFetching()
-          })
-          .toBe(0)
-        expect(requests).toBe(4)
-        await expect.element(dialog).not.toBeInTheDocument()
-      })
-      await page.mark("Return focus and reopen the page", async () => {
-        focusManager.setFocused(false)
-        focusManager.setFocused(true)
-        await page.getByRole("button", { name: "Reopen page" }).click()
-        await vi.advanceTimersByTimeAsync(30_000)
-        expect(queryClient.isFetching()).toBe(0)
-        expect(requests).toBe(4)
-      })
-      await page.mark("Complete an unrelated mutation without restarting onboarding", async () => {
-        await page.getByRole("button", { name: "Create game" }).click()
-        await expect.element(page.getByRole("status")).toHaveTextContent("Game created")
-        await vi.advanceTimersByTimeAsync(30_000)
-        expect(queryClient.isFetching()).toBe(0)
-        expect(requests).toBe(4)
-      })
-    } finally {
-      focusManager.setFocused(undefined)
-      vi.useRealTimers()
-    }
+    await renderApplicationPage(<OnboardingVisit />, queryClient)
+    await page.mark("Exhaust the retry budget and keep using the page", async () => {
+      await expect.poll(() => requests).toBe(1)
+      await expect
+        .poll(async () => {
+          await vi.advanceTimersByTimeAsync(30_000)
+          return queryClient.isFetching()
+        })
+        .toBe(0)
+      expect(requests).toBe(4)
+      await expect.element(dialog).not.toBeInTheDocument()
+    })
+    await page.mark("Return focus and reopen the page", async () => {
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+      await page.getByRole("button", { name: "Reopen page" }).click()
+      await vi.advanceTimersByTimeAsync(30_000)
+      expect(queryClient.isFetching()).toBe(0)
+      expect(requests).toBe(4)
+    })
+    await page.mark("Complete an unrelated mutation without restarting onboarding", async () => {
+      await page.getByRole("button", { name: "Create game" }).click()
+      await expect.element(page.getByRole("status")).toHaveTextContent("Game created")
+      await vi.advanceTimersByTimeAsync(30_000)
+      expect(queryClient.isFetching()).toBe(0)
+      expect(requests).toBe(4)
+    })
   })
 })
