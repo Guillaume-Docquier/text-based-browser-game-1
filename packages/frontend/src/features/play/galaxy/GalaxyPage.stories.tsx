@@ -1,5 +1,7 @@
+import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ReactElement } from "react"
+import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
 import { createStarSystemStub } from "shared/domain/world/StarSystem.stub.ts"
 import { StarSystemSchema } from "shared/domain/world/StarSystem.ts"
@@ -13,6 +15,14 @@ const context = createPlayGameContextStub({
       StarSystemSchema.parse(
         createStarSystemStub({
           star: createStarStub({ id: "00000000-0000-4000-8000-000000000003", name: "Sol", x: 30, y: 40 }),
+          planets: [
+            createPlanetStub({
+              id: "00000000-0000-4000-8000-000000000004",
+              name: "Terra",
+              x: 30 + Distance.in(Distance.create(5, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS),
+              y: 40,
+            }),
+          ],
         }),
       ),
     ],
