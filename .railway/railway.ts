@@ -40,7 +40,7 @@ export default defineRailway(() => {
     "!**/*.stub.ts",
     "!**/__snapshots__/**",
     "!**/vitest.config.ts",
-    "!/packages/shared/src/testing/**",
+    "!/packages/*/src/testing/**",
   ]
 
   const frontend = service("Frontend", {
@@ -55,7 +55,6 @@ export default defineRailway(() => {
         "!/packages/frontend/playwright.config.ts",
         "!/packages/frontend/.storybook/**",
         "!**/*.stories.*",
-        "!/packages/frontend/src/testing/**",
       ],
     },
     replicas: { "us-east4-eqdc4a": 1 },
@@ -67,7 +66,7 @@ export default defineRailway(() => {
     source: applicationSource,
     build: {
       builder: "RAILPACK",
-      watchPatterns: ["packages/backend/**", ...sharedWatchPatterns, "!/packages/backend/src/testing/**", "!**/*.test-d.ts"],
+      watchPatterns: ["packages/backend/**", ...sharedWatchPatterns, "!**/*.test-d.ts"],
     },
     start: "pnpm --filter backend start",
     replicas: { "us-east4-eqdc4a": 1 },
