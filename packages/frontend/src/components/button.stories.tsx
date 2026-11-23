@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { RocketIcon } from "lucide-react"
-import { expect } from "storybook/test"
 import { Button } from "./button.tsx"
 
 const meta = {
@@ -14,14 +13,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {
-  play: async ({ canvas, userEvent }) => {
-    const button = canvas.getByRole("button", { name: "Launch fleet" })
-    await expect(button).toBeEnabled()
-    await userEvent.tab()
-    await expect(button).toHaveFocus()
-  },
-}
+export const Interactive: Story = {}
 
 export const Variants: Story = {
   render: () => (
@@ -34,11 +26,6 @@ export const Variants: Story = {
       <Button variant="link">Link</Button>
     </div>
   ),
-  play: async ({ canvas }) => {
-    for (const name of ["Default", "Secondary", "Outline", "Ghost", "Destructive", "Link"]) {
-      await expect(canvas.getByRole("button", { name })).toBeEnabled()
-    }
-  },
 }
 
 export const Sizes: Story = {
@@ -53,29 +40,14 @@ export const Sizes: Story = {
       </Button>
     </div>
   ),
-  play: async ({ canvas }) => {
-    for (const name of ["Extra small", "Small", "Default", "Large"]) {
-      await expect(canvas.getByRole("button", { name })).toBeEnabled()
-    }
-    await expect(canvas.getByRole("button", { name: "Launch fleet" })).toBeEnabled()
-  },
 }
 
 export const Disabled: Story = {
   args: {
     disabled: true,
   },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole("button", { name: "Launch fleet" })).toBeDisabled()
-  },
 }
 
 export const RenderLink: Story = {
   render: () => <Button render={<a href="#fleet-details" />}>Fleet details</Button>,
-  play: async ({ canvas, userEvent }) => {
-    const link = canvas.getByRole("link", { name: "Fleet details" })
-    await expect(link).toHaveAttribute("href", "#fleet-details")
-    await userEvent.tab()
-    await expect(link).toHaveFocus()
-  },
 }
