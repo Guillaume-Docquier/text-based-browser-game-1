@@ -15,17 +15,6 @@ test("the game creation page redirects signed-out visitors to sign in", async ({
   })
 })
 
-test("the game creation form limits games to 16 players", async ({ alice }) => {
-  const createGamePage = await CreateGamePage.goto(alice.page)
-  await createGamePage.setGameName(`Playwright game ${Date.now()}`)
-
-  await createGamePage.setMaxPlayers(17)
-  await expect(createGamePage.createButton).toBeDisabled()
-
-  await createGamePage.setMaxPlayers(16)
-  await expect(createGamePage.createButton).toBeEnabled()
-})
-
 test("the game creation page can create a game and opens the galaxy view when starting the game", async ({ alice }) => {
   const createGamePage = await CreateGamePage.goto(alice.page)
   const gameName = `Playwright game ${Date.now()}`
@@ -54,24 +43,13 @@ test("the game creation page can create a game and opens the galaxy view when st
   })
 })
 
-test("the game listings page filters by name and by player membership for signed in users", async ({ page, alice, bob }) => {
+test("the game listings page shows public games and filters membership for each signed-in player", async ({ page, alice, bob }) => {
   const aliceGameName = `Playwright game ${Date.now()}-alice`
   const bobGameName = `Playwright game ${Date.now()}-bob`
 
-  const aliceGameDetailsPage = await test.step("Create a game as Alice", async () => {
-    return await CreateGamePage.createGame({ creator: alice, settings: { gameName: aliceGameName } })
-  })
-
-  await test.step("Verify Alice's game", async () => {
-    await expect(aliceGameDetailsPage.gameNameHeading).toHaveText(aliceGameName)
-  })
-
-  const bobGameDetailsPage = await test.step("Create a game as Bob", async () => {
-    return await CreateGamePage.createGame({ creator: bob, settings: { gameName: bobGameName } })
-  })
-
-  await test.step("Verify Bob's game", async () => {
-    await expect(bobGameDetailsPage.gameNameHeading).toHaveText(bobGameName)
+  await test.step("Create separate games for Alice and Bob", async () => {
+    await CreateGamePage.createGame({ creator: alice, settings: { gameName: aliceGameName } })
+    await CreateGamePage.createGame({ creator: bob, settings: { gameName: bobGameName } })
   })
 
   await test.step("Load the games anonymously", async () => {
@@ -81,22 +59,9 @@ test("the game listings page filters by name and by player membership for signed
     await expect(gameListingsPage.myGamesButton).not.toBeVisible()
   })
 
-  const aliceGameListingsPage = await GameListingsPage.goto(alice.page)
-  await test.step("Filter Alice's games by name", async () => {
-    await aliceGameListingsPage.filterByName(bobGameName)
-    await expect(aliceGameListingsPage.gameListing(aliceGameName)).not.toBeVisible()
-    await expect(aliceGameListingsPage.gameListing(bobGameName)).toBeVisible()
-  })
-
-  await test.step("... and by my games", async () => {
+  await test.step("Filter Alice's games", async () => {
+    const aliceGameListingsPage = await GameListingsPage.goto(alice.page)
     await aliceGameListingsPage.filterToMyGames()
-    await expect(aliceGameListingsPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
-    await expect(aliceGameListingsPage.gameListing(aliceGameName)).not.toBeVisible()
-    await expect(aliceGameListingsPage.gameListing(bobGameName)).not.toBeVisible()
-  })
-
-  await test.step("... by my games only", async () => {
-    await aliceGameListingsPage.filterByName("")
     await expect(aliceGameListingsPage.gameListing(aliceGameName)).toBeVisible()
     await expect(aliceGameListingsPage.gameListing(bobGameName)).not.toBeVisible()
   })

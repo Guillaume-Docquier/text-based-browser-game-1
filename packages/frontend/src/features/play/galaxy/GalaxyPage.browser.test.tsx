@@ -3,8 +3,8 @@ import type { ReactElement } from "react"
 import { describe, expect, it } from "vitest"
 import { page, userEvent } from "vitest/browser"
 import { Button } from "@/components/button.tsx"
+import { distanceFromMapCenter, starHitArea } from "@/testing/mapGeometry.ts"
 import * as stories from "./GalaxyPage.stories.tsx"
-import { distanceFromMapCenter, starHitArea } from "./mapGeometry.test-support.ts"
 
 const { Interactive } = composeStories(stories, {
   decorators: [

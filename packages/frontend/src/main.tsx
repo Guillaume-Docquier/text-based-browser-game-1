@@ -74,7 +74,7 @@ function AuthSession({ auth }: RouterContext): ReactElement {
   return (
     <QueryClientProvider client={queryClient}>
       <BackendApiClientProvider backendApiClient={backendApiClient}>
-        <Onboarding>
+        <Onboarding isSignedIn={auth.isSignedIn === true}>
           <RouterProvider router={router} context={{ auth }} />
         </Onboarding>
       </BackendApiClientProvider>

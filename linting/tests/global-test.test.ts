@@ -15,6 +15,82 @@ describe("global lint rules in test files", () => {
     await session.stop()
   })
 
+  it.each([
+    "fixture.test.ts",
+    "packages/backend/src/fixture.unit.test.ts",
+    "packages/backend/src/fixture.integration.test.ts",
+    "packages/backend/src/fixture.concurrency.test.ts",
+    "packages/backend/src/fixture.test-d.ts",
+    "packages/frontend/src/fixture.browser.test.tsx",
+    "packages/shared/src/fixture.unit.test.ts",
+    "packages/shared/src/fixture.spec.ts",
+  ])("should reject finally in %s", async (path) => {
+    // Arrange
+    const fixture = {
+      path,
+      code: `
+        export function check(run: () => void, clean: () => void): void {
+          try {
+            run()
+          } finally {
+            clean()
+          }
+        }
+      `,
+    }
+
+    // Act
+    const diagnostics = await session.lint(fixture)
+
+    // Assert
+    expect(diagnostics).toStrictEqual(["eslint-js(no-restricted-syntax)"])
+  })
+
+  it("should allow a Vitest test to catch an error without a finally block", async () => {
+    // Arrange
+    const fixture = {
+      path: "fixture.test.ts",
+      code: `
+        export function succeeds(run: () => void): boolean {
+          try {
+            run()
+            return true
+          } catch {
+            return false
+          }
+        }
+      `,
+    }
+
+    // Act
+    const diagnostics = await session.lint(fixture)
+
+    // Assert
+    expect(diagnostics).toStrictEqual([])
+  })
+
+  it("should allow finally in Playwright specs because Vitest cleanup hooks do not run there", async () => {
+    // Arrange
+    const fixture = {
+      path: "packages/frontend/playwright/specs/fixture.spec.ts",
+      code: `
+        export function check(run: () => void, clean: () => void): void {
+          try {
+            run()
+          } finally {
+            clean()
+          }
+        }
+      `,
+    }
+
+    // Act
+    const diagnostics = await session.lint(fixture)
+
+    // Assert
+    expect(diagnostics).toStrictEqual([])
+  })
+
   describe.each([
     ["root", "fixture.test.ts"],
     ["backend", "packages/backend/src/fixture.test.ts"],

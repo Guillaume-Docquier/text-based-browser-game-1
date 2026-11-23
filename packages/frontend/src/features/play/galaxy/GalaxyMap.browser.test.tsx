@@ -1,8 +1,8 @@
 import { composeStories } from "@storybook/react-vite"
 import { describe, expect, it } from "vitest"
 import { page, userEvent } from "vitest/browser"
+import { distanceFromMapCenter, starHitArea } from "@/testing/mapGeometry.ts"
 import * as stories from "./GalaxyMap.stories.tsx"
-import { distanceFromMapCenter, starHitArea } from "./mapGeometry.test-support.ts"
 
 const { Interactive } = composeStories(stories)
 

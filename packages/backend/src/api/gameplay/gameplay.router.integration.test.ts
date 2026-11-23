@@ -8,8 +8,8 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { GetPlayerViewError, GetPlayerViewErrorResponses } from "#api/gameplay/getPlayerView.error.ts"
 import { UpdateReadinessError, UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
-import { ApiServer } from "#tests/ApiServer.ts"
-import { createIntegrationTestDb } from "#tests/createIntegrationTestDb.ts"
+import { ApiServer } from "#testing/ApiServer.ts"
+import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 
 describe("gameplay.router", () => {

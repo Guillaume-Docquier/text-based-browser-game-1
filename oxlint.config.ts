@@ -12,6 +12,11 @@ const allowedComments = {
   message: "Use a // line comment starting with INTENT:, CONSTRAINT:, oxlint-disable, or @ts-expect-error.",
 }
 
+const restrictedSyntax = [
+  ...typescript.rules["eslint-js/no-restricted-syntax"],
+  { selector: "ImportExpression", message: "Use a static import declaration." },
+] satisfies NonNullable<OxlintConfig["rules"]>[string]
+
 export default defineConfig({
   extends: [typescript],
   jsPlugins: [fileURLToPath(new URL("./linting/plugins/cosmic-empires-plugin.ts", import.meta.url))],
@@ -43,6 +48,20 @@ export default defineConfig({
       },
     },
     {
+      files: ["**/*.{test,spec}.{ts,tsx}", "**/*.test-d.ts"],
+      excludeFiles: ["**/playwright/**"],
+      rules: {
+        "eslint-js/no-restricted-syntax": [
+          ...restrictedSyntax,
+          {
+            selector: "TryStatement[finalizer]",
+            message:
+              "Use afterEach for routine or inexpensive cleanup. Reserve onTestFinished for resources local to one test or expensive cleanup that only a few tests need.",
+          },
+        ],
+      },
+    },
+    {
       files: ["scripts/**/*"],
       rules: {
         "no-console": "off",
@@ -51,9 +70,6 @@ export default defineConfig({
   ],
   rules: {
     "cosmic-empires/allowed-comments": ["error", allowedComments],
-    "eslint-js/no-restricted-syntax": [
-      ...typescript.rules["eslint-js/no-restricted-syntax"],
-      { selector: "ImportExpression", message: "Use a static import declaration." },
-    ],
+    "eslint-js/no-restricted-syntax": restrictedSyntax,
   },
 } satisfies OxlintConfig)

@@ -31,11 +31,11 @@ export default defineConfig({
     noRestrictedImports({ files: ["src/**/*.integration.test.ts"], patterns: [noRollbackError, noConcurrencyDb] }),
     noRestrictedImports({ files: ["src/**/*.concurrency.test.ts"], patterns: [noRollbackError, noIntegrationDb] }),
     noRestrictedImports({
-      files: ["src/tests/vitest.integration.setup.ts"],
+      files: ["src/testing/vitest.integration.setup.ts"],
       patterns: [noRollbackError, noConcurrencyDb, { ...noIntegrationDb, allowImportNames: ["prepareIntegrationTestDb"] }],
     }),
     noRestrictedImports({
-      files: ["src/tests/vitest.concurrency.setup.ts"],
+      files: ["src/testing/vitest.concurrency.setup.ts"],
       patterns: [noRollbackError, noIntegrationDb, { ...noConcurrencyDb, allowImportNames: ["prepareConcurrencyTestDb"] }],
     }),
     {

@@ -4,9 +4,9 @@ import { migrate } from "drizzle-orm/node-postgres/migrator"
 import type { Pool } from "pg"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
-import { createPostgresPoolDisposal } from "#tests/createPostgresPoolDisposal.ts"
-import { POSTGRES_IMAGE } from "#tests/POSTGRES_IMAGE.ts"
-import { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
+import { createPostgresPoolDisposal } from "#testing/createPostgresPoolDisposal.ts"
+import { POSTGRES_IMAGE } from "#testing/POSTGRES_IMAGE.ts"
+import { PostgresConcurrency } from "#testing/PostgresConcurrency.ts"
 
 // CONSTRAINT: We leverage `isolate: false` to set up only once.
 let connectionUri: string
