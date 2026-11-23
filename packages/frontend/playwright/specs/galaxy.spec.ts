@@ -27,10 +27,14 @@ test("the galaxy view distinguishes systems with claimed planets and system view
     await expect(bobGalaxyPage.ownStars).toHaveCount(1)
     await expect(bobGalaxyPage.opponentStars).toHaveCount(1)
     await expect(bobGalaxyPage.sharedStars).toHaveCount(0)
+
+    await aliceGalaxyPage.openStarSystem(aliceGalaxyPage.ownStar(0))
+    await expect(aliceGalaxyPage.systemHeading).toBeVisible()
+    const aliceSystemName = await aliceGalaxyPage.systemHeading.innerText()
+    await expect(bobGalaxyPage.opponentSystem(aliceSystemName)).toBeVisible()
   })
 
   await test.step("Label Planets with their owner or Unclaimed", async () => {
-    await aliceGalaxyPage.openStarSystem(aliceGalaxyPage.ownStar(0))
     await expect(aliceGalaxyPage.ownedPlanets).toHaveCount(1)
     await expect(aliceGalaxyPage.planetOwnershipLabel(aliceGalaxyPage.ownedPlanet(0))).toHaveText(alice.alias)
     await expect(aliceGalaxyPage.unclaimedPlanets).not.toHaveCount(0)
@@ -48,22 +52,15 @@ test("the galaxy view can be navigated and the star system view can inspect plan
     await galaxyPage.openStarSystem(selectedStar)
     await expect(galaxyPage.starSystemMap).toBeVisible()
 
-    const firstPlanet = galaxyPage.planet("planet 72231")
-    const firstPlanetName = await galaxyPage.getPlanetName(firstPlanet)
-    await galaxyPage.openPlanetProfile(firstPlanet)
-    expect(firstPlanetName).toBe("planet 72231")
-    await expect(galaxyPage.planetDetailsPane).toBeVisible()
-    await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: firstPlanetName })).toBeVisible()
+    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 72231"))
+    await expect(galaxyPage.planetProfileHeading("planet 72231")).toBeVisible()
     await expect(galaxyPage.planetDetailsPane).toContainText("Planet attributes")
     await expect(galaxyPage.planetDetailsPane).toContainText("Fertility")
     await expect(galaxyPage.planetDetailsPane).toContainText("Max population")
     await expect(galaxyPage.planetDetailsPane).toContainText("Coordinates")
 
-    const secondPlanet = galaxyPage.planet("planet 73768")
-    const secondPlanetName = await galaxyPage.getPlanetName(secondPlanet)
-    await galaxyPage.openPlanetProfile(secondPlanet)
-    expect(secondPlanetName).toBe("planet 73768")
-    await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: secondPlanetName })).toBeVisible()
+    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 73768"))
+    await expect(galaxyPage.planetProfileHeading("planet 73768")).toBeVisible()
 
     await galaxyPage.clickOnTheMap()
     await expect(galaxyPage.planetDetailsPane).not.toBeVisible()
@@ -76,7 +73,6 @@ test("the galaxy view can be navigated and the star system view can inspect plan
 
     await expect(selectedStar).toBeVisible()
     await galaxyPage.openStarSystem(selectedStar)
-    await expect(galaxyPage.starSystemMap).toHaveCount(1)
     await expect(galaxyPage.starSystemMap).toBeVisible()
 
     await galaxyPage.returnToGalaxy()

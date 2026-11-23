@@ -1,4 +1,4 @@
-import { Assert, branded, type Branded } from "@guillaume-docquier/tools-ts"
+import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
 import { GamePage } from "./GamePage.ts"
 import type { LocatorIndex } from "./LocatorIndex.ts"
@@ -12,7 +12,7 @@ export class GalaxyPage extends GamePage {
 
   private readonly stars: Locator
   public readonly starSystemStar: StarSystemStarLocator
-  private readonly planets: Locator
+  public readonly systemHeading: Locator
 
   public readonly heading: Locator
   public readonly map: Locator
@@ -33,14 +33,14 @@ export class GalaxyPage extends GamePage {
     this.map = page.getByRole("group", { name: "Galaxy map" })
     this.stars = page.getByRole("button", { name: /^View .+ Star System/ })
 
-    this.ownStars = this.stars.filter({ has: page.locator('[data-ownership-marker="own"]') })
-    this.opponentStars = this.stars.filter({ has: page.locator('[data-ownership-marker="opponent"]') })
-    this.sharedStars = this.ownStars.filter({ has: page.locator('[data-ownership-marker="opponent"]') })
+    this.ownStars = page.getByRole("button", { name: / Star System with your planets$/ })
+    this.opponentStars = page.getByRole("button", { name: / Star System with opponents' planets$/ })
+    this.sharedStars = page.getByRole("button", { name: / Star System with your and opponents' planets$/ })
 
     this.starSystemMap = page.getByRole("group", { name: / Star System map$/ })
     this.starSystemStar = branded(page.getByRole("button", { name: /^Return to Galaxy from / }))
 
-    this.planets = page.getByRole("button", { name: /^View .+ details/ })
+    this.systemHeading = page.getByRole("heading", { name: /^star \d+$/ })
     this.ownedPlanets = page.getByRole("button", { name: /^View .+ details, owned by / })
     this.unclaimedPlanets = page.getByRole("button", { name: /^View .+ details$/ })
 
@@ -55,8 +55,8 @@ export class GalaxyPage extends GamePage {
     return branded(index === "last" ? this.ownStars.last() : this.ownStars.nth(index))
   }
 
-  public opponentStar(index: LocatorIndex): StarLocator {
-    return branded(index === "last" ? this.opponentStars.last() : this.opponentStars.nth(index))
+  public opponentSystem(name: string): Locator {
+    return this.page.getByRole("button", { name: `View ${name} Star System with opponents' planets`, exact: true })
   }
 
   public async openStarSystem(star: StarLocator): Promise<void> {
@@ -64,7 +64,7 @@ export class GalaxyPage extends GamePage {
   }
 
   public planet(name: string): PlanetLocator {
-    return branded(this.planets.filter({ has: this.page.locator("title", { hasText: `${name},` }) }))
+    return branded(this.page.getByRole("button", { name: `View ${name} details` }))
   }
 
   public ownedPlanet(index: LocatorIndex): PlanetLocator {
@@ -87,12 +87,8 @@ export class GalaxyPage extends GamePage {
     await this.starSystemStar.click()
   }
 
-  public async getPlanetName(planet: PlanetLocator): Promise<string> {
-    const label = await planet.getAttribute("aria-label")
-    const name = label?.match(/^View (.+) details(?:, owned by .+)?$/)?.[1]
-    Assert.isDefined(name)
-
-    return name
+  public planetProfileHeading(name: string): Locator {
+    return this.planetDetailsPane.getByRole("heading", { name, exact: true })
   }
 
   public planetOwnershipLabel(planet: PlanetLocator): Locator {

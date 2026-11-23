@@ -1,5 +1,4 @@
 import type * as ApiTypes from "@api-types"
-import { useAuth } from "@clerk/react"
 import { Link } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
@@ -13,12 +12,11 @@ import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
 import { useGameListingsQuery } from "@/lib/api/useGameListingsQuery.ts"
 import { timeAgo } from "@/lib/timeAgo.ts"
 
-export function GameListingsPage(): ReactElement {
+export function GameListingsPage({ isSignedIn }: { isSignedIn: boolean }): ReactElement {
   const gameNameFilter = useGameNameFilter()
   const myGamesFilter = useMyGamesFilter()
   const gameListingsQuery = useGameListingsQuery()
-  const { isSignedIn } = useAuth()
-  const filters = isSignedIn === true ? [gameNameFilter, myGamesFilter] : [gameNameFilter]
+  const filters = isSignedIn ? [gameNameFilter, myGamesFilter] : [gameNameFilter]
 
   if (gameListingsQuery.isPending) {
     return <GameListingsLoadingState />
