@@ -5,7 +5,7 @@ import { v4 } from "uuid"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { AUTH_ID_HEADER } from "#api/auth/TestHeaderAuthProvider.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
-import { extractSuccess } from "#tests/extractSuccess.ts"
+import { extractSuccess } from "#testing/extractSuccess.ts"
 
 export type AuthenticatedApiClient = {
   readonly client: TRPCClient<TrpcRouter>

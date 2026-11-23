@@ -2,7 +2,7 @@ import { Assert } from "@guillaume-docquier/tools-ts"
 import { composeStories } from "@storybook/react-vite"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { page, userEvent } from "vitest/browser"
-import { distanceFromMapCenter, starHitArea } from "../mapGeometry.test-support.ts"
+import { distanceFromMapCenter, starHitArea } from "@/testing/mapGeometry.ts"
 import * as stories from "./StarSystemMap.stories.tsx"
 
 const { Interactive } = composeStories(stories)

@@ -2,7 +2,7 @@ import { createServer } from "node:http"
 import type { AddressInfo } from "node:net"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createIntegrationTestDb } from "#tests/createIntegrationTestDb.ts"
+import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
 
 describe("health.router", () => {
   it("should return an empty successful health check", async () => {

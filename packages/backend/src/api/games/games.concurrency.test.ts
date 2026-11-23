@@ -4,9 +4,9 @@ import { createGameConfigurationStub } from "shared/domain/games/GameConfigurati
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { describe, expect, it } from "vitest"
 import { gamesTable, playersTable, turnsTable } from "#lib/db/schema.ts"
-import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
-import { createConcurrencyTestDb } from "#tests/createConcurrencyTestDb.ts"
-import type { PostgresConcurrency } from "#tests/PostgresConcurrency.ts"
+import { ConcurrencyTestApiServer } from "#testing/ConcurrencyTestApiServer.ts"
+import { createConcurrencyTestDb } from "#testing/createConcurrencyTestDb.ts"
+import type { PostgresConcurrency } from "#testing/PostgresConcurrency.ts"
 
 describe("lobby concurrency", () => {
   it.each([

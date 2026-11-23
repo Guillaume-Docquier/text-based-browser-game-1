@@ -55,7 +55,7 @@ export default defineRailway(() => {
         "!/packages/frontend/playwright.config.ts",
         "!/packages/frontend/.storybook/**",
         "!**/*.stories.*",
-        "!**/*.test-support.ts",
+        "!/packages/frontend/src/testing/**",
       ],
     },
     replicas: { "us-east4-eqdc4a": 1 },
@@ -67,7 +67,7 @@ export default defineRailway(() => {
     source: applicationSource,
     build: {
       builder: "RAILPACK",
-      watchPatterns: ["packages/backend/**", ...sharedWatchPatterns, "!/packages/backend/src/tests/**", "!**/*.test-d.ts"],
+      watchPatterns: ["packages/backend/**", ...sharedWatchPatterns, "!/packages/backend/src/testing/**", "!**/*.test-d.ts"],
     },
     start: "pnpm --filter backend start",
     replicas: { "us-east4-eqdc4a": 1 },

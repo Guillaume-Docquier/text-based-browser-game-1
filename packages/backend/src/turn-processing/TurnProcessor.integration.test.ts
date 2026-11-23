@@ -3,8 +3,8 @@ import { createGameConfigurationStub } from "shared/domain/games/GameConfigurati
 import { afterEach, describe, expect, vi, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
-import { ApiServer } from "#tests/ApiServer.ts"
-import { createIntegrationTestDb } from "#tests/createIntegrationTestDb.ts"
+import { ApiServer } from "#testing/ApiServer.ts"
+import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import { type ProcessedTurnModel, TurnsRepository } from "#turn-processing/turns.repository.ts"
 

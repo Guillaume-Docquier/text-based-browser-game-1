@@ -4,8 +4,8 @@ import { type ReactElement, useState } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { page } from "vitest/browser"
 import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
-import { setupBrowserApiWorker } from "@/testing/browserApiWorker.test-support.ts"
-import { renderApplicationPage } from "@/testing/renderApplicationPage.test-support.tsx"
+import { setupBrowserApiWorker } from "@/testing/browserApiWorker.ts"
+import { renderApplicationPage } from "@/testing/renderApplicationPage.tsx"
 import { Onboarding } from "./Onboarding.tsx"
 
 function OnboardingVisit(): ReactElement {

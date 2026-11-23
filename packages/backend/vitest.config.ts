@@ -8,7 +8,7 @@ export default defineConfig({
         "src/**/*.test.ts",
         "src/**/*.test-d.ts",
         "src/**/*.d.ts",
-        "src/tests/**",
+        "src/testing/**",
         "**entry.*.ts",
         "src/lib/parseEnv.ts",
         "src/lib/db/createDb.ts",
@@ -43,7 +43,7 @@ export default defineConfig({
         test: {
           name: { label: "integration", color: "cyan" },
           include: ["**/*.integration.test.ts"],
-          setupFiles: ["./src/tests/vitest.integration.setup.ts"],
+          setupFiles: ["./src/testing/vitest.integration.setup.ts"],
           testTimeout: 15_000,
         },
       },
@@ -51,7 +51,7 @@ export default defineConfig({
         test: {
           name: { label: "concurrency", color: "magenta" },
           include: ["**/*.concurrency.test.ts"],
-          setupFiles: ["./src/tests/vitest.concurrency.setup.ts"],
+          setupFiles: ["./src/testing/vitest.concurrency.setup.ts"],
           testTimeout: 30_000,
         },
       },

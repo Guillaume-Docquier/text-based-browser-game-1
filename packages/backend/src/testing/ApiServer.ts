@@ -2,7 +2,7 @@ import { createServer, type Server } from "node:http"
 import type { AddressInfo } from "node:net"
 import type { Express } from "express"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
+import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#testing/ApiClient.ts"
 
 export class ApiServer {
   private readonly accountsRepository: AccountsRepository

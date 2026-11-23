@@ -27,6 +27,12 @@ This is a TypeScript monorepo using pnpm workspaces.
 | infra/                                | The IaC for 3rd parties that we use.                                                                               |
 | docs/                                 | Detailed project documentation. Repository-level guidance also lives in README.md, CONTRIBUTING.md, and AGENTS.md. |
 
+### Test helpers
+
+Use each package's `src/testing/` directory for reusable test-only helpers and suite setup. Name each file for what it provides, such as `mapGeometry.ts` or `createIntegrationTestDb.ts`. A helper specific to one test file can stay in that file.
+
+Keep package tests beside the code they exercise, including tests for a helper in `src/testing/`. The root `linting/tests/` directory contains the lint rule test suites.
+
 ### Dependencies
 
 ```

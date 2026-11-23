@@ -7,7 +7,7 @@
     "#api/*": "./src/api/*",
     "#turn-processing/*": "./src/turn-processing/*",
     "#lib/*": "./src/lib/*",
-    "#tests/*": "./src/tests/*"
+    "#testing/*": "./src/testing/*"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate --config ./drizzle.config.ts",

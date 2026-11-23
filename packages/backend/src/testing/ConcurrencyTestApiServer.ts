@@ -5,7 +5,7 @@ import { Assert, FatalError, Logger } from "@guillaume-docquier/tools-ts"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { PortListeningMessageSchema } from "#api/PortListeningMessage.ts"
 import type { Database } from "#lib/db/createDb.ts"
-import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
+import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#testing/ApiClient.ts"
 
 const API_LOGS: "ignore" | "inherit" = "inherit"
 

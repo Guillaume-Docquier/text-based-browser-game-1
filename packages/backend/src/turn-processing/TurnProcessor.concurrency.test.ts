@@ -7,9 +7,9 @@ import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { playersTable, turnsTable } from "#lib/db/schema.ts"
-import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
-import { ApiServer } from "#tests/ApiServer.ts"
-import { createConcurrencyTestDb } from "#tests/createConcurrencyTestDb.ts"
+import type { AuthenticatedApiClient } from "#testing/ApiClient.ts"
+import { ApiServer } from "#testing/ApiServer.ts"
+import { createConcurrencyTestDb } from "#testing/createConcurrencyTestDb.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 
 describe("TurnProcessor concurrency", () => {

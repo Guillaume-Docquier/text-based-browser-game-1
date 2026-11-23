@@ -1,7 +1,7 @@
 import { Pool } from "pg"
 import { describe, expect, it } from "vitest"
-import { createConcurrencyTestDb } from "#tests/createConcurrencyTestDb.ts"
-import { createPostgresPoolDisposal } from "#tests/createPostgresPoolDisposal.ts"
+import { createConcurrencyTestDb } from "#testing/createConcurrencyTestDb.ts"
+import { createPostgresPoolDisposal } from "#testing/createPostgresPoolDisposal.ts"
 
 describe("createPostgresPoolDisposal", () => {
   it("should wait for idle and previously removed connections to close during pool disposal", async () => {

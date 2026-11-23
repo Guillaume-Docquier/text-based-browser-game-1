@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { FinishOnboardingError, FinishOnboardingErrorResponses } from "#api/accounts/finishOnboarding.error.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { ApiServer } from "#tests/ApiServer.ts"
-import { createIntegrationTestDb } from "#tests/createIntegrationTestDb.ts"
+import { ApiServer } from "#testing/ApiServer.ts"
+import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
 
 describe("accounts.router", () => {
   describe("isOnboarded", () => {

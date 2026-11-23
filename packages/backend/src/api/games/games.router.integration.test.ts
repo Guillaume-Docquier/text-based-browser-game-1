@@ -16,8 +16,8 @@ import { LeaveGameError, LeaveGameErrorResponses } from "#api/games/leaveGame.er
 import { StartGameError, StartGameErrorResponses } from "#api/games/startGame.error.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { UInt32 } from "#lib/UInt32.ts"
-import { ApiServer } from "#tests/ApiServer.ts"
-import { createIntegrationTestDb } from "#tests/createIntegrationTestDb.ts"
+import { ApiServer } from "#testing/ApiServer.ts"
+import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
 
 describe("games.router", () => {
   describe("getListings", () => {

@@ -4,8 +4,8 @@ import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { describe, expect, it } from "vitest"
 import { page } from "vitest/browser"
-import { setupBrowserApiWorker } from "@/testing/browserApiWorker.test-support.ts"
-import { renderApplicationPage } from "@/testing/renderApplicationPage.test-support.tsx"
+import { setupBrowserApiWorker } from "@/testing/browserApiWorker.ts"
+import { renderApplicationPage } from "@/testing/renderApplicationPage.tsx"
 import { GameListingsPage } from "./GameListingsPage.tsx"
 
 describe("GameListingsPage", () => {

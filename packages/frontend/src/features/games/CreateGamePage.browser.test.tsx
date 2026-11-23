@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { page } from "vitest/browser"
-import { renderApplicationPage } from "@/testing/renderApplicationPage.test-support.tsx"
+import { renderApplicationPage } from "@/testing/renderApplicationPage.tsx"
 import { CreateGamePage } from "./CreateGamePage.tsx"
 
 describe("CreateGamePage", () => {
