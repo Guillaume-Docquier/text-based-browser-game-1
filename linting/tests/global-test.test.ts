@@ -26,7 +26,18 @@ describe("global lint rules in test files", () => {
     "packages/shared/src/fixture.spec.ts",
   ])("should reject finally in %s", async (path) => {
     // Arrange
-    const fixture = { path, code: "export function check(run: () => void, clean: () => void): void { try { run() } finally { clean() } }" }
+    const fixture = {
+      path,
+      code: `
+        export function check(run: () => void, clean: () => void): void {
+          try {
+            run()
+          } finally {
+            clean()
+          }
+        }
+      `,
+    }
 
     // Act
     const diagnostics = await session.lint(fixture)
@@ -39,7 +50,16 @@ describe("global lint rules in test files", () => {
     // Arrange
     const fixture = {
       path: "fixture.test.ts",
-      code: "export function succeeds(run: () => void): boolean { try { run(); return true } catch { return false } }",
+      code: `
+        export function succeeds(run: () => void): boolean {
+          try {
+            run()
+            return true
+          } catch {
+            return false
+          }
+        }
+      `,
     }
 
     // Act
@@ -53,7 +73,15 @@ describe("global lint rules in test files", () => {
     // Arrange
     const fixture = {
       path: "packages/frontend/playwright/specs/fixture.spec.ts",
-      code: "export function check(run: () => void, clean: () => void): void { try { run() } finally { clean() } }",
+      code: `
+        export function check(run: () => void, clean: () => void): void {
+          try {
+            run()
+          } finally {
+            clean()
+          }
+        }
+      `,
     }
 
     // Act
