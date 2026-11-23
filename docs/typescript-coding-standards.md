@@ -25,7 +25,6 @@ New code paths, modules and services should generally follow these standards, bu
 - Prefer composition over inheritance.
 - Prefer imperative shell / functional core.
 - Design deep, cohesive modules with low caller burden.
-- Test behavior through real seams; avoid module mocks and spy-driven tests.
 - Keep code discoverable for humans and agents.
 
 ## Errors and failures
@@ -193,34 +192,6 @@ Entrypoint adapters should be thin protocol translation layers. They parse proto
 
 Authorization belongs in shared application/domain policy, not duplicated in controllers. Entrypoints may authenticate and parse users/sessions/credentials, but shared modules should receive a domain-specific parsed authorization input such as `AdminUser`, `Session`, `Principal`, `DeployCredential`, or `CommandActor`.
 
-## Testing
-
-Prefer confidence-oriented tests:
-
-1. e2e for critical user flows
-2. integration tests through real seams
-3. focused/property tests for pure domain modules
-4. unit tests when they test meaningful behavior, not implementation details
-
-Never use `vi.mock` or `jest.mock` for module mocking. Use real seams:
-
-- constructor-injected interfaces/classes
-- local database substitutes such as PGLite
-- in-memory adapters when behavior is simple
-- fake external adapters when needed
-
-Prefer tests that assert observable input/output behavior:
-
-- returned value/error
-- persisted state
-- emitted event/message
-- rendered response
-- sent email record in a fake/local adapter
-
-Avoid spy-driven tests like `expect(sendEmail).toHaveBeenCalledWith(...)` unless the interaction itself is the only observable behavior.
-
-For persistence behavior, prefer PGLite/local DB-backed tests over hand-rolled in-memory fakes when SQL/schema/transaction behavior matters.
-
 ## Imports, exports, and files
 
 Prefer direct imports from the file that owns the abstraction. Do not use barrel files or re-exports. The backend API types is the only file that can re-export, and it re-exports only types for the frontend.
@@ -286,3 +257,26 @@ Resource creation and cleanup should be explicit and owned by bootstrap/imperati
 Avoid mutable singletons/global state. Constants and pure lookup tables are fine. If a singleton is required by a framework/runtime, isolate it at the boundary.
 
 Inject `Clock` / `Random` services into dependency-bearing modules. Pure domain functions may accept explicit `now` / random values.
+
+## Code Comments
+
+Keep code comments to a minimum. The linter requires a `//` line comment that starts with one of the following prefixes.
+
+- `INTENT:`: Explain non-obvious choices where multiple avenues were possible and the reasons we went this way are not visible in the codebase.
+- `CONSTRAINT:`: A non-obvious constraint forces a certain design choice. Name the constraint and provide sources where applicable.
+- `oxlint-disable`: Used when we absolutely have to bypass the linter
+- `@ts-expect-error`: Used when we absolutely have to bypass the type checker
+- `Arrange`, `Act`, `Assert`: Used in unit tests only
+
+An `INTENT` or `CONSTRAINT` comment is only needed when it's not clear why the code is the way it is, and changing that code would go unnoticed or fail in non-obvious ways. Always favor better names, type-level constraints, enforced lint rules, clear glossary and focused descriptive tests over a code comment when possible. Reserve the comments for those rare cases where we can't otherwise enforce the tacit knowledge and an understanding failure would lead to wasted debugging time or outages.
+
+## Enum members
+
+Always use enum members instead of their literal values, for example `PlayerColor.TURQUOISE` instead of `"TURQUOISE"`.
+
+## @guillaume-docquier/tools-ts
+
+Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. This is a TypeScript library of utilities made by us. Their README.md contains a high-level view of the available utilities, read it.
+
+- When importing a value and a type of the same name from the same package (e.g `Range` or `Result`), just import the value. Do not import the type to rename it.
+- Prefer the specialized `Range.float({ min, max })` and `Range.integer({ min, max })` constructors over `Range.create` whenever possible.

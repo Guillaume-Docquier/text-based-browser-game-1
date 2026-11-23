@@ -18,6 +18,10 @@ For more info on the project, see [the milestones](https://github.com/Guillaume-
 
 The game is not available for play at the moment. Stay tuned.
 
+## Architecture
+
+See the [system architecture](ARCHITECTURE.md) for package responsibilities and dependencies.
+
 ## Contributing
 
 If you want to contribute to the project in any way, read [the contribution guidelines](./CONTRIBUTING.md).

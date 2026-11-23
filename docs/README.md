@@ -14,25 +14,26 @@ Use this map to find the smallest useful documentation set for a change. Do not 
 | Product direction             | `game-design/`                                                         |
 | Game design decisions index   | [game-design/decisions/README.md](./game-design/decisions/README.md)   |
 | New or changed GDDR workflow  | [game-design/decisions/how-to.md](./game-design/decisions/how-to.md)   |
-| Architecture direction        | `architecture/`                                                        |
 | Architecture decisions index  | [architecture/decisions/README.md](./architecture/decisions/README.md) |
-| Current architecture overview | [architecture/overview.md](./architecture/overview.md)                 |
+| Current architecture overview | [Root architecture](../ARCHITECTURE.md)                                |
 
-It all starts with game design:
+## Game design
 
 - `game-design/brainstorm/` is where we keep future and past ideas.
 - `game-design/decisions/` is where we keep durable decisions about the game's philosophy and direction.
 
-Then we derive the architecture:
+## Architecture
 
-- `architecture/decisions/` is where we keep track of architecture decisions to understand why the codebase is the way it is, which leads to implementation.
+Start with the root architecture overview and follow its links to the area you are changing. The decision records explain why the project adopted those designs.
 
 ## Source Of Truth
 
 - The code is the source of truth for current behavior.
 - Accepted GDDRs are the source of truth for durable game design decisions.
 - Accepted ADRs are the source of truth for durable architecture decisions.
-- `AGENTS.md` is the source of truth for agent workflow, verification, commands, and project-specific gotchas.
+- Scoped `ARCHITECTURE.md` files describe the design and implementation rules for their directories.
+- Scoped `TESTING.md` files cover test selection, conventions and commands.
+- Scoped `AGENTS.md` files cover agent workflow and verification. The [root instructions](../AGENTS.md#scoped-instructions) explain how to apply all three.
 - Files under `game-design/brainstorm/` are design notes. They do not mean a feature is implemented.
 
 ## Before Changing Docs
