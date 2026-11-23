@@ -38,6 +38,7 @@ If what you are trying to test does not fit in the above, raise it to the human.
 
 Use E2E tests when the regression depends on the real application. End-to-end tests are best used when they test user flows, not UI behavior. Assert the resulting application state.
 
+- E2E tests use the application like a user does. Do not simulate events or run scripts on the page that a user wouldn't do.
 - Use the existing `alice` and `bob` fixtures for authentication. Never authenticate through `test.use()`.
 - Structure tests with descriptive `test.step()` blocks that reflect user behavior. Do not use AAA sections.
 - Page objects own selectors, reusable interactions, and routes. Call methods that express user intent, such as `page.navbar.signOut()`. Navigation methods return the destination page object.
@@ -54,7 +55,7 @@ Use stories for states that benefit from isolated inspection. The `render` Vites
 
 - Keep stories next to their components. Use `Design System/<Component>` for shared components in `src/components` and `Application/<Component>` for selected feature components. Design System appears first in the sidebar; not every feature component needs a story.
 - Keep visual examples static. Cover meaningful implemented states without enumerating every prop combination or adding assertions solely because a story exists.
-- The first story is always a stateful `Interactive` story.
+- The first story is always a story called `Interactive` that implement every interactive elements of the component. Add the story event if the component doesn't have any interactive elements.
 - Use `play` when the sequence demonstrates a useful state, and leave the component in that state. Put sequences that exist only for verification in browser tests. Opening a story should not cycle through hover, focus, typing, and clicks just to check behavior.
 - Import story types from `@storybook/react-vite` and instrumented assertions and test helpers from `storybook/test`. The frontend Oxlint override checks these imports.
 - Keep stories independent of live authentication and backend services. Use deterministic fixtures.
@@ -71,5 +72,6 @@ Use the `interactions` project for sequences that verify component behavior, inc
 - Use focused tests with explicit expectations. Table-driven cases are useful when behavior and assertions are identical. Do not branch between different requirements or test environments inside a test.
 - Keep test controls and decorators in the test file. Establish a known pointer and focus position for each case; native pointer position can persist between tests.
 - Use `expect.element` or `expect.poll` for retrying assertions. Vitest's `toBeVisible` treats `opacity: 0` as visible; use an opacity-aware visibility check when transparent content is the behavior under test.
+- Use MSW to mock network responses to exercise as much production code as possible.
 
 Run browser mode tests with `pnpm --filter frontend test:interactions`.
