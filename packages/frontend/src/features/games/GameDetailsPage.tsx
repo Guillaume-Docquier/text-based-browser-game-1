@@ -1,4 +1,4 @@
-import type * as ApiTypes from "@api-types"
+import type { GameConfigurationDetails, GameDetails, Player } from "@api-types"
 import { Navigate, useNavigate } from "@tanstack/react-router"
 import type { ReactElement, ReactNode } from "react"
 import type { GameId } from "shared/domain/games/GameId.ts"
@@ -36,7 +36,7 @@ export function GameDetailsPage({ gameId }: { gameId: GameId }): ReactElement {
   )
 }
 
-function GameDetails({ gameDetails }: { gameDetails: ApiTypes.GameDetails }): ReactElement {
+function GameDetails({ gameDetails }: { gameDetails: GameDetails }): ReactElement {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={gameDetails.configuration.name} />
@@ -66,7 +66,7 @@ function GameDetails({ gameDetails }: { gameDetails: ApiTypes.GameDetails }): Re
   )
 }
 
-function GameDetailsActions({ gameDetails }: { gameDetails: ApiTypes.GameDetails }): ReactElement {
+function GameDetailsActions({ gameDetails }: { gameDetails: GameDetails }): ReactElement {
   const navigate = useNavigate()
   const joinGame = useJoinGameMutation()
   const leaveGame = useLeaveGameMutation()
@@ -119,11 +119,7 @@ function GameDetailsActions({ gameDetails }: { gameDetails: ApiTypes.GameDetails
   )
 }
 
-function GameConfigurationDetails({
-  gameConfigurationDetails,
-}: {
-  gameConfigurationDetails: ApiTypes.GameConfigurationDetails
-}): ReactElement {
+function GameConfigurationDetails({ gameConfigurationDetails }: { gameConfigurationDetails: GameConfigurationDetails }): ReactElement {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <DetailBlock label="Number of seats" value={`${gameConfigurationDetails.nbSeats} players`} />
@@ -143,7 +139,7 @@ function DetailBlock({ label, value }: { label: string; value: ReactNode }): Rea
   )
 }
 
-function Player({ player }: { player: ApiTypes.Player }): ReactElement {
+function Player({ player }: { player: Player }): ReactElement {
   const colorLabel = formatPlayerColor(player.color)
 
   return (

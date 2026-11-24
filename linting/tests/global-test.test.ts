@@ -91,6 +91,45 @@ describe("global lint rules in test files", () => {
     expect(diagnostics).toStrictEqual([])
   })
 
+  describe("namespace imports in frontend browser tests", () => {
+    it("should allow a story module namespace for composeStories", async () => {
+      // Arrange
+      const fixture = {
+        path: "packages/frontend/src/components/fixture.browser.test.tsx",
+        code: `
+          import { composeStories } from "@storybook/react-vite"
+          import * as stories from "./button.stories.tsx"
+
+          export const composedStories = composeStories(stories)
+        `,
+      }
+
+      // Act
+      const diagnostics = await session.lint(fixture)
+
+      // Assert
+      expect(diagnostics).toStrictEqual([])
+    })
+
+    it("should reject a namespace import from another module", async () => {
+      // Arrange
+      const fixture = {
+        path: "packages/frontend/src/components/fixture.browser.test.tsx",
+        code: `
+          import * as tools from "@guillaume-docquier/tools-ts"
+
+          export const result = tools.Result.Success(1)
+        `,
+      }
+
+      // Act
+      const diagnostics = await session.lint(fixture)
+
+      // Assert
+      expect(diagnostics).toStrictEqual(["import(no-namespace)"])
+    })
+  })
+
   describe.each([
     ["root", "fixture.test.ts"],
     ["backend", "packages/backend/src/fixture.test.ts"],

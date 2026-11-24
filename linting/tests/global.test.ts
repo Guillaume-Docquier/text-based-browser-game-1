@@ -80,6 +80,36 @@ describe("global lint rules in source files", () => {
       })
     })
 
+    describe("no namespace imports", () => {
+      it.each([
+        {
+          name: "value imports",
+          code: `
+            import * as tools from "@guillaume-docquier/tools-ts"
+
+            export const result = tools.Result.Success(1)
+          `,
+        },
+        {
+          name: "type-only imports",
+          code: `
+            import type * as fs from "node:fs"
+
+            export type FileDetails = fs.Stats
+          `,
+        },
+      ])("should reject namespace $name", async ({ code }) => {
+        // Arrange
+        const fixture = { path, code }
+
+        // Act
+        const diagnostics = await session.lint(fixture)
+
+        // Assert
+        expect(diagnostics).toStrictEqual(["import(no-namespace)"])
+      })
+    })
+
     describe("strict comments", () => {
       it("should allow an INTENT comment", async () => {
         // Arrange

@@ -1,13 +1,13 @@
 import { Separator as SeparatorPrimitive } from "@base-ui/react/separator"
 import { cn } from "cn"
-import * as React from "react"
+import type { JSX } from "react"
 
 export function Separator({
   className,
   orientation = "horizontal",
   decorative = true,
   ...props
-}: SeparatorPrimitive.Props & { decorative?: boolean }): React.JSX.Element {
+}: SeparatorPrimitive.Props & { decorative?: boolean }): JSX.Element {
   return (
     <SeparatorPrimitive
       data-slot="separator"

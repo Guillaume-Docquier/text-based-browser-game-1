@@ -75,6 +75,7 @@ export default defineConfig({
   rules: {
     "cosmic-empires/allowed-comments": ["error", allowedComments],
     "eslint-js/no-restricted-syntax": restrictedSyntax,
+    "import/no-namespace": "error",
     "unicorn/prefer-export-from": "error",
   },
 } satisfies OxlintConfig)

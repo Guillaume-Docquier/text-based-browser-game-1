@@ -1,7 +1,7 @@
 import { cn } from "cn"
-import * as React from "react"
+import type { ComponentProps, JSX } from "react"
 
-export function Input({ className, type, ...props }: React.ComponentProps<"input">): React.JSX.Element {
+export function Input({ className, type, ...props }: ComponentProps<"input">): JSX.Element {
   return (
     <input
       type={type}

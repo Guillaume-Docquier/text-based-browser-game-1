@@ -1,6 +1,6 @@
 import { Slider as SliderPrimitive } from "@base-ui/react/slider"
 import { cn } from "cn"
-import * as React from "react"
+import type { JSX } from "react"
 
 export function RangeSlider({
   className,
@@ -10,7 +10,7 @@ export function RangeSlider({
 }: Omit<SliderPrimitive.Root.Props<[number, number]>, "defaultValue" | "value"> & {
   value: [number, number]
   thumbLabels: [string, string]
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <SliderPrimitive.Root
       data-slot="range-slider"

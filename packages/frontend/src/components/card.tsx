@@ -1,11 +1,7 @@
 import { cn } from "cn"
-import * as React from "react"
+import type { ComponentProps, JSX } from "react"
 
-export function Card({
-  className,
-  size = "default",
-  ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }): React.JSX.Element {
+export function Card({ className, size = "default", ...props }: ComponentProps<"div"> & { size?: "default" | "sm" }): JSX.Element {
   return (
     <div
       data-slot="card"
@@ -19,7 +15,7 @@ export function Card({
   )
 }
 
-export function CardHeader({ className, ...props }: React.ComponentProps<"div">): React.JSX.Element {
+export function CardHeader({ className, ...props }: ComponentProps<"div">): JSX.Element {
   return (
     <div
       data-slot="card-header"
@@ -32,25 +28,25 @@ export function CardHeader({ className, ...props }: React.ComponentProps<"div">)
   )
 }
 
-export function CardTitle({ className, ...props }: React.ComponentProps<"div">): React.JSX.Element {
+export function CardTitle({ className, ...props }: ComponentProps<"div">): JSX.Element {
   return <div data-slot="card-title" className={cn("font-heading text-base font-medium", className)} {...props} />
 }
 
-export function CardDescription({ className, ...props }: React.ComponentProps<"div">): React.JSX.Element {
+export function CardDescription({ className, ...props }: ComponentProps<"div">): JSX.Element {
   return <div data-slot="card-description" className={cn("text-sm text-muted-foreground", className)} {...props} />
 }
 
-export function CardAction({ className, ...props }: React.ComponentProps<"div">): React.JSX.Element {
+export function CardAction({ className, ...props }: ComponentProps<"div">): JSX.Element {
   return (
     <div data-slot="card-action" className={cn("col-start-2 row-span-2 row-start-1 self-start justify-self-end", className)} {...props} />
   )
 }
 
-export function CardContent({ className, ...props }: React.ComponentProps<"div">): React.JSX.Element {
+export function CardContent({ className, ...props }: ComponentProps<"div">): JSX.Element {
   return <div data-slot="card-content" className={cn("px-(--card-spacing)", className)} {...props} />
 }
 
-export function CardFooter({ className, ...props }: React.ComponentProps<"div">): React.JSX.Element {
+export function CardFooter({ className, ...props }: ComponentProps<"div">): JSX.Element {
   return (
     <div
       data-slot="card-footer"

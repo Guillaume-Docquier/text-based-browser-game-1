@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
-import * as React from "react"
+import type { ComponentProps, JSX } from "react"
 
 const alertVariants = cva(
   "group/alert relative grid w-full gap-0.5 rounded-2xl border px-4 py-3 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2.5 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
@@ -17,15 +17,11 @@ const alertVariants = cva(
   },
 )
 
-export function Alert({
-  className,
-  variant,
-  ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>): React.JSX.Element {
+export function Alert({ className, variant, ...props }: ComponentProps<"div"> & VariantProps<typeof alertVariants>): JSX.Element {
   return <div data-slot="alert" role="alert" className={cn(alertVariants({ variant }), className)} {...props} />
 }
 
-export function AlertTitle({ className, ...props }: React.ComponentProps<"div">): React.JSX.Element {
+export function AlertTitle({ className, ...props }: ComponentProps<"div">): JSX.Element {
   return (
     <div
       data-slot="alert-title"
@@ -38,7 +34,7 @@ export function AlertTitle({ className, ...props }: React.ComponentProps<"div">)
   )
 }
 
-export function AlertDescription({ className, ...props }: React.ComponentProps<"div">): React.JSX.Element {
+export function AlertDescription({ className, ...props }: ComponentProps<"div">): JSX.Element {
   return (
     <div
       data-slot="alert-description"
@@ -51,6 +47,6 @@ export function AlertDescription({ className, ...props }: React.ComponentProps<"
   )
 }
 
-export function AlertAction({ className, ...props }: React.ComponentProps<"div">): React.JSX.Element {
+export function AlertAction({ className, ...props }: ComponentProps<"div">): JSX.Element {
   return <div data-slot="alert-action" className={cn("absolute top-2.5 right-3", className)} {...props} />
 }

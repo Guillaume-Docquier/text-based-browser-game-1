@@ -194,24 +194,6 @@ Authorization belongs in shared application/domain policy, not duplicated in con
 
 ## Imports, exports, and files
 
-For domain modules, avoid namespace imports if you need to preserve the module shape. Export a const instead:
-
-Avoid:
-
-```ts
-import * as EmailAddress from "./email-address"
-
-EmailAddress.parse(input)
-```
-
-Prefer:
-
-```ts
-import { EmailAddress } from "./email-address"
-
-EmailAddress.parse(input)
-```
-
 Always use named exports:
 
 ```ts

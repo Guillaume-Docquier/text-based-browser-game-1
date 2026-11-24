@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import * as React from "react"
+import { useState } from "react"
 import { RangeSlider } from "./RangeSlider.tsx"
 
 const meta = {
@@ -20,7 +20,7 @@ type Story = StoryObj<typeof meta>
 
 export const Interactive: Story = {
   render: function Render(args) {
-    const [value, setValue] = React.useState(args.value)
+    const [value, setValue] = useState(args.value)
     return (
       <div className="grid gap-4">
         <RangeSlider {...args} value={value} onValueChange={setValue} />

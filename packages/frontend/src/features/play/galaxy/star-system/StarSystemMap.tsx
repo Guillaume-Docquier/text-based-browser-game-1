@@ -1,4 +1,4 @@
-import type { Player, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
+import type { Player, Planet, PlanetSize, StarSystem } from "@api-types"
 import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import { useState } from "react"
@@ -21,7 +21,7 @@ const PLANET_RADII = {
   LARGE: 35,
 } as const satisfies Record<PlanetSize, number>
 
-type PlanetViewModel = PlanetModel & {
+type PlanetViewModel = Planet & {
   radius: number
   orbitRadius: number
 }
@@ -37,7 +37,7 @@ export function StarSystemMap({
   players: readonly Player[]
   resetSignal: number
   onSelectGalaxy: () => void
-  onSelectPlanet: (planet: PlanetModel) => void
+  onSelectPlanet: (planet: Planet) => void
 }): ReactElement {
   const panZoom = useMapPanZoom({ resetSignal, viewportCenter: VIEWPORT_CENTER })
   const [hoveredBody, setHoveredBody] = useState<string>()
@@ -167,7 +167,7 @@ function Planet({
   planet: PlanetViewModel
   players: readonly Player[]
   ownerName: string | undefined
-  onSelect: (planet: PlanetModel) => void
+  onSelect: (planet: Planet) => void
 }): ReactElement {
   const owner = players.find(({ id }) => id === planet.ownerPlayerId)
   const ownerColor = owner === undefined ? "#e5edf6" : PLAYER_COLOR_HEX[owner.color]
@@ -273,7 +273,7 @@ function StarLabel({ x, y, text }: { x: number; y: number; text: string }): Reac
   )
 }
 
-function getPlanetOwnerName(planet: PlanetModel, players: readonly Player[]): string | undefined {
+function getPlanetOwnerName(planet: Planet, players: readonly Player[]): string | undefined {
   if (planet.ownerPlayerId === null) {
     return undefined
   }
