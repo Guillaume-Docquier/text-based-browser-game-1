@@ -1,96 +1,31 @@
 # Cosmic Empires
 
+Everything is in TypeScript. Never write JavaScript files if you can do it in TypeScript.
+
+## Scoped instructions
+
+For each directory you work in, read the existing `AGENTS.md` and `ARCHITECTURE.md` files from the repository root down to that directory. When choosing, writing, or running tests, also read the `TESTING.md` files along the same path. Apply guidance from root to leaf. A local exception overrides only the inherited rule it identifies. For changes in multiple directories, follow the path for each one.
+
+## Project priorities
+
 Cosmic Empires is a multiplayer turn based space strategy game where games span over weeks or months.
 
 The goal is to build a game that's as fun as persistent browser games, but that are finite and don't reward being the most active player.
-
-## Current status
 
 The project is only getting started, and we are focused on building strong foundations. We've built the infrastructure, deployed on Railway, established the tech that we will use, and developed testing strategies.
 
 Code quality and architecture design choices matter more than speed of execution.
 
-We have 0 users. When dealing with database schema changes, we never need to backfill. We can always reset the db.
-
-## Project Structure
-
-This is a TypeScript monorepo using pnpm workspaces.
-
-### Key Directories
-
-| Directory                             | Description                                                                                                        |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| packages/frontend/                    | The web application.                                                                                               |
-| packages/backend/src/api/             | The API for the frontend.                                                                                          |
-| packages/backend/src/turn-processing/ | The turn processing engine.                                                                                        |
-| packages/shared/                      | Domain definitions and gameplay behavior shared by the frontend and backend.                                       |
-| infra/                                | The IaC for 3rd parties that we use.                                                                               |
-| docs/                                 | Detailed project documentation. Repository-level guidance also lives in README.md, CONTRIBUTING.md, and AGENTS.md. |
-
-### Test helpers
-
-Use each package's `src/testing/` directory for reusable test-only helpers and suite setup. Name each file for what it provides, such as `mapGeometry.ts` or `createIntegrationTestDb.ts`. A helper specific to one test file can stay in that file.
-
-Keep package tests beside the code they exercise, including tests for a helper in `src/testing/`. The root `linting/tests/` directory contains the lint rule test suites.
-
-### Dependencies
-
-```
-packages/frontend/ ──▶ packages/shared/ ◀── packages/backend/
-packages/frontend/ ──type-only API contracts──▶ packages/backend/src/api/types.ts
-packages/backend/src/api/ ───▶ packages/backend/src/turn-processing/
-```
-
-Across workspace projects, runtime imports from the apps may only target shared packages. The frontend may import backend API contract types through `@api-types` with `import type`; it must not import backend runtime code or other backend modules. The backend must not import from the frontend, and shared packages must not import from either app, including type-only imports.
-
-## Scoped Instructions
-
-Before changing files in a subtree, read the nearest `AGENTS.md` in that subtree.
-
-## Testing
-
-When modifying tests at the root (outside of packages), follow instructions from `TESTING.md`
-
-## CI/CD
-
-All code changes require a pull request before merging to main. A CI enforces the quality gates there.
-
-All merges to main are automatically deployed to Railway based on which files changed.
-
-## Tech Stack
-
-We use:
-
-- pnpm to manage the pnpm and node versions (via packageJson.devEngines)
-- oxfmt for formatting
-- oxlint for linting
-- typescript 7
-
-Always use enum members instead of their literal values, for example `PlayerColor.TURQUOISE` instead of `"TURQUOISE"`.
-
-### @guillaume-docquier/tools-ts
-
-Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. This is a TypeScript library of utilities made by us. Their README.md contains a high-level view of the available utilities, read it.
-
 ## Documentation
 
-- Read `docs/typescript-coding-standards.md` before writing TypeScript.
-- Read `docs/glossary.md` for project-specific terms. Update it when introducing new vocabulary.
-- Before changing architecture, read the ADR index and relevant accepted ADRs. Stop and discuss any contradiction with the human.
-- Before implementing gameplay, read and follow the relevant accepted GDDRs. Discuss design mismatches with the human before changing direction.
-- New GDDRs require explicit human approval. Follow `docs/AGENTS.md` when editing documentation.
+- Before writing TypeScript, read the [TypeScript coding standards](docs/typescript-coding-standards.md), including the code comment conventions.
+- Read the [glossary](docs/glossary.md) for project terms and update it when introducing new vocabulary.
+- Before changing architecture, read the [ADR index](docs/architecture/decisions/README.md) and the relevant accepted decisions. Discuss any contradiction with the human.
+- Before implementing gameplay, read and follow the relevant [accepted game design decisions](docs/game-design/decisions/README.md). Discuss design mismatches with the human before changing direction. New GDDRs require explicit human approval.
 
-## Code Comments
+When editing documentation, use the [documentation map](docs/README.md) to find relevant guidance. Keep instructions concise and link to the rule where it applies. Verify documentation claims against the code.
 
-Keep code comments to a minimum. The linter requires a `//` line comment that starts with one of the following prefixes.
-
-- `INTENT:`: Explain non-obvious choices where multiple avenues were possible and the reasons we went this way are not visible in the codebase.
-- `CONSTRAINT:`: A non-obvious constraint forces a certain design choice. Name the constraint and provide sources where applicable.
-- `oxlint-disable`: Used when we absolutely have to bypass the linter
-- `@ts-expect-error`: Used when we absolutely have to bypass the type checker
-- `Arrange`, `Act`, `Assert`: Used in unit tests only
-
-An `INTENT` or `CONSTRAINT` comment is only needed when it's not clear why the code is the way it is, and changing that code would go unnoticed or fail in non-obvious ways. Always favor better names, type-level constraints, enforced lint rules, clear glossary and focused descriptive tests over a code comment when possible. Reserve the comments for those rare cases where we can't otherwise enforce the tacit knowledge and an understanding failure would lead to wasted debugging time or outages.
+For documentation-only changes, run only oxfmt in write mode on the changed files and `git diff --check`.
 
 ## Commands
 
@@ -100,13 +35,6 @@ When formatting the code, always run oxfmt with write. oxfmt is deterministic, t
 
 If the database container is not running, call `pnpm db:up`
 
-## Env Vars
+Never change environment variable values yourself. Ask the user to make the required change.
 
-Every service parses env vars via a zod schema very early at boot. This serves as documentation for the required env vars and as validation that the application has all the configuration needed.
-
-Never change environment variable values yourself. Ask the user to do it, and suggest the required change if needed.
-
-## `@guillaume-docquier/tools-ts` Gotchas
-
-- When importing a value and a type of the same name from the same package (e.g `Range` or `Result`), just import the value. Do not import the type to rename it.
-- Prefer the specialized `Range.float({ min, max })` and `Range.integer({ min, max })` constructors over `Range.create` whenever possible.
+All code changes require a pull request before merging to main. CI enforces the quality gates there.

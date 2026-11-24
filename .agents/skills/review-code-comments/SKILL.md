@@ -5,7 +5,7 @@ description: Review added, edited, and removed code comments in a Git branch dif
 
 # Review Code Comments
 
-Review the necessity of changed source and configuration comments. Follow the current Code Comments guidance in [AGENTS.md](../../../AGENTS.md) and any instructions for the files under review. Use a read-only review and report findings in chat.
+Review the necessity of changed source and configuration comments. Follow the current [code comment conventions](../../../docs/typescript-coding-standards.md#code-comments) and any instructions for the files under review. Use a read-only review and report findings in chat.
 
 ## Select the diff
 

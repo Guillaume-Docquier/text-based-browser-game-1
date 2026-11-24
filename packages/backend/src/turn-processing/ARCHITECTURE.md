@@ -2,7 +2,7 @@
 
 Turn Processing is the process via which turns that must be resolved are found and sent for resolution at the right time. This is different from Turn Resolution because it is game agnostic.
 
-The backend worker in `packages/backend/src/turn-processing` owns Turn scheduling, persistence, and orchestration. The shared [Turn Resolution](turn-resolution.md) code in `packages/shared/src/turn-resolution` owns deterministic game state resolution. This separation follows [ADR 011](./decisions/011-turn-processing-in-worker-thread.md) and [ADR 007](./decisions/007-code-sharing.md).
+The backend worker in `packages/backend/src/turn-processing` owns Turn scheduling, persistence, and orchestration. The shared [Turn Resolution](../../../shared/src/turn-resolution/ARCHITECTURE.md) code in `packages/shared/src/turn-resolution` owns deterministic game state resolution. This separation follows [ADR 011](../../../../docs/architecture/decisions/011-turn-processing-in-worker-thread.md) and [ADR 007](../../../../docs/architecture/decisions/007-code-sharing.md).
 
 The turn processing pipeline doesn't know much about how turns are resolved. It only knows what data to supply to the `resolveTurn` function and how to handle the state that comes out.
 

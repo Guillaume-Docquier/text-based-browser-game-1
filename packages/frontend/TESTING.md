@@ -34,20 +34,7 @@ If what you are trying to test does not fit in the above, raise it to the human.
 - Use negative assertions for real alternative states or required disappearance. Do not invent loading, error, retry, or other UI solely to assert that it is absent.
 - Assert callbacks only when the callback itself is the public contract. Prefer a stateful component or real application flow when it exposes the result.
 
-## Playwright: application flows
-
-Use E2E tests when the regression depends on the real application. End-to-end tests are best used when they test user flows, not UI behavior. Assert the resulting application state.
-
-- E2E tests use the application like a user does. Do not simulate events or run scripts on the page that a user wouldn't do.
-- Use the existing `alice` and `bob` fixtures for authentication. Never authenticate through `test.use()`.
-- Structure tests with descriptive `test.step()` blocks that reflect user behavior. Do not use AAA sections.
-- Page objects own selectors, reusable interactions, and routes. Call methods that express user intent, such as `page.navbar.signOut()`. Navigation methods return the destination page object.
-- Expose semantic locators for assertions only. Tests must perform interactions through page-object methods. Prefer locator assertions over boolean state methods for automatic waiting and diagnostics.
-- Put reusable page-specific actions on the corresponding page object. Do not create `utils` or `helpers` directories for behavior that belongs to a page. Use a precisely named shared module only for behavior that spans pages.
-- Use component objects for cohesive shared UI, not individual elements.
-- Follow the [Playwright page-object conventions](playwright/AGENTS.md), including branded locators at page-object method boundaries.
-
-Run E2E tests with `pnpm --filter frontend e2e`.
+See the [Playwright testing guide](playwright/TESTING.md) for application flows and page objects.
 
 ## Storybook: component states and render tests
 
