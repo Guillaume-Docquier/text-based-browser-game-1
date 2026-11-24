@@ -16,14 +16,14 @@ Cosmic Empires has a React frontend and an Express backend in a TypeScript pnpm 
 
 ```
 packages/frontend/ ──▶ packages/shared/ ◀── packages/backend/
-packages/frontend/ ──type-only API imports──▶ packages/backend/src/api/types.ts
+packages/frontend/ ──type-only API contracts──▶ packages/backend/src/api/types.ts
 packages/backend/src/api/ ───▶ packages/backend/src/turn-processing/
 ```
 
-Across workspace projects, runtime imports from the apps may only target shared packages. The frontend may access the backend only through `@api-types` as described below. The backend must not import from the frontend, and shared packages must not import from either app, including type-only imports.
+Across workspace projects, runtime imports from the apps may only target shared packages. The frontend may access the backend only through the API contract types described below. The backend must not import from the frontend, and shared packages must not import from either app, including type-only imports.
 
-- Use `import type` from `@api-types` for named backend API contracts and for the tRPC client's `TrpcRouter`.
-- Derive named contracts, including nested types, in `packages/backend/src/api/types.ts` using `inferRouterInputs<TrpcRouter>` or `inferRouterOutputs<TrpcRouter>`. Import those names in frontend code to use the types inferred from the API.
+- Use `import type` from `@api-types` only for named backend contract types and the tRPC client's `TrpcRouter`. Do not use indexed access to extract nested API types in frontend code, or unroll/reconstruct their shapes locally.
+- When a needed contract type is missing, add a named export in `packages/backend/src/api/types.ts` derived from the tRPC router output (`inferRouterOutputs<TrpcRouter>`). Derive nested types there as well, so the frontend uses the actual API output type despite Zod inference quirks.
 - Import shared domain types with `import type` directly from the shared modules that define them.
 - The frontend owns types for component state, rendering, and interactions.
 
