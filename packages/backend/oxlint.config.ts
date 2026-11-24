@@ -17,6 +17,7 @@ const noConcurrencyDb = {
 export default defineConfig({
   extends: [baseConfig],
   ignorePatterns: baseConfig.ignorePatterns,
+  settings: baseConfig.settings,
   env: {
     node: true,
   },

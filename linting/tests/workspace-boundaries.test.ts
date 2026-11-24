@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { LintSession } from "./lint-session.ts"
 
-const workspaceBoundaries = "cosmic-empires(workspace-boundaries)"
+const workspaceBoundaries = "boundaries(dependencies)"
 const backend = "packages/backend/src/boundary-fixture.ts"
 const frontend = "packages/frontend/src/boundary-fixture.ts"
 const shared = "packages/shared/src/boundary-fixture.ts"

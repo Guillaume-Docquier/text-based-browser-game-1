@@ -20,7 +20,7 @@ packages/frontend/ ──type-only API contracts──▶ packages/backend/src/a
 packages/backend/src/api/ ───▶ packages/backend/src/turn-processing/
 ```
 
-The [Oxlint workspace-boundaries rule](linting/plugins/workspace-boundaries.ts) enforces imports across the frontend, backend, and shared packages. Shared code gives both apps one implementation of common domain behavior. The type-only API contract keeps frontend typechecking tied to the tRPC output without pulling backend runtime code into the browser.
+Oxlint enforces imports across the frontend, backend, and shared packages through the [workspace boundary policies](linting/boundaries.ts). Shared code gives both apps one implementation of common domain behavior. The type-only API contract keeps frontend typechecking tied to the tRPC output without pulling backend runtime code into the browser.
 
 Review changes for these requirements.
 

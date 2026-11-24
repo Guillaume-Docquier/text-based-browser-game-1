@@ -1,6 +1,7 @@
 import path from "node:path"
 import type { DependenciesPolicy, Rules, Settings } from "eslint-plugin-boundaries"
 import type { OxlintConfig } from "oxlint"
+import { WorkspaceBoundaries } from "../../linting/boundaries.ts"
 
 type Element = (typeof Elements)[keyof typeof Elements]
 type Policy = Required<Pick<DependenciesPolicy, "from" | "allow" | "disallow">>
@@ -12,37 +13,44 @@ const Elements = {
   TURN_RESOLUTION: { type: "turn-resolution", pattern: "src/turn-resolution" },
 } as const
 const TestFiles = { category: "stubs-and-tests", pattern: ["**/*.stub.ts", "**/*.test.ts"] } as const
+const [, workspaceDependencies] = WorkspaceBoundaries.rules["boundaries/dependencies"]
 
 export const Boundaries = {
   settings: {
-    "boundaries/root-path": import.meta.dirname,
-    "boundaries/flag-as-external": { unresolvableAlias: false, inNodeModules: true },
+    ...WorkspaceBoundaries.settings,
     "import/resolver": { typescript: { project: path.resolve(import.meta.dirname, "tsconfig.package.json") } },
-    "boundaries/elements": Object.values(Elements).map((definition) => ({ ...definition, partialMatch: false })),
-    "boundaries/files": [{ ...TestFiles, pattern: [...TestFiles.pattern] }],
+    "boundaries/elements": Object.values(Elements).map((definition) => ({
+      ...definition,
+      pattern: `packages/shared/${definition.pattern}`,
+      partialMatch: false,
+    })),
+    "boundaries/files": [
+      ...WorkspaceBoundaries.settings["boundaries/files"],
+      { ...TestFiles, pattern: [...TestFiles.pattern], basePattern: "packages/shared" },
+    ],
   } satisfies Settings & Pick<NonNullable<OxlintConfig["settings"]>, "import/resolver">,
   rules: {
     "boundaries/dependencies": [
       "error",
       {
-        default: "allow",
-        checkAllOrigins: false,
-        checkUnknownLocals: true,
-        checkInternals: true,
-        policies: additivePolicies([
-          policy({ from: fileCategory(TestFiles), onlyAllow: [Elements.TESTING] }),
-          policy({ from: element(Elements.DOMAIN), onlyAllow: [Elements.DOMAIN] }),
-          policy({ from: element(Elements.TESTING), onlyAllow: [Elements.TESTING, Elements.DOMAIN] }),
-          policy({ from: element(Elements.GALAXY_CREATION), onlyAllow: [Elements.GALAXY_CREATION, Elements.DOMAIN] }),
-          policy({
-            from: element(Elements.ACTION_SUBMISSION),
-            onlyAllow: [Elements.ACTION_SUBMISSION, Elements.TURN_RESOLUTION, Elements.DOMAIN],
-          }),
-          policy({
-            from: element(Elements.TURN_RESOLUTION),
-            onlyAllow: [Elements.TURN_RESOLUTION, Elements.ACTION_SUBMISSION, Elements.DOMAIN],
-          }),
-        ]),
+        ...workspaceDependencies,
+        policies: [
+          ...additivePolicies([
+            policy({ from: fileCategory(TestFiles), onlyAllow: [Elements.TESTING] }),
+            policy({ from: element(Elements.DOMAIN), onlyAllow: [Elements.DOMAIN] }),
+            policy({ from: element(Elements.TESTING), onlyAllow: [Elements.TESTING, Elements.DOMAIN] }),
+            policy({ from: element(Elements.GALAXY_CREATION), onlyAllow: [Elements.GALAXY_CREATION, Elements.DOMAIN] }),
+            policy({
+              from: element(Elements.ACTION_SUBMISSION),
+              onlyAllow: [Elements.ACTION_SUBMISSION, Elements.TURN_RESOLUTION, Elements.DOMAIN],
+            }),
+            policy({
+              from: element(Elements.TURN_RESOLUTION),
+              onlyAllow: [Elements.TURN_RESOLUTION, Elements.ACTION_SUBMISSION, Elements.DOMAIN],
+            }),
+          ]),
+          ...workspaceDependencies.policies,
+        ],
       },
     ],
   } satisfies Pick<Rules, "boundaries/dependencies">,
