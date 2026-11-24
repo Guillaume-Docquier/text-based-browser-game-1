@@ -1,7 +1,7 @@
-import type { GameId } from "@api-types"
 import { branded } from "@guillaume-docquier/tools-ts"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import type { ReactElement } from "react"
+import type { GameId } from "shared/domain/games/GameId.ts"
 import { z } from "zod"
 import { PlayGameLayout } from "@/features/play/PlayGameLayout.tsx"
 

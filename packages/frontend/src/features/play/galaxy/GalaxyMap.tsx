@@ -1,5 +1,6 @@
-import type { Galaxy, PlayerId, StarSystem } from "@api-types"
+import type { Galaxy, StarSystem } from "@api-types"
 import type { KeyboardEvent, ReactElement } from "react"
+import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
 const GALAXY_SIZE = 1_000

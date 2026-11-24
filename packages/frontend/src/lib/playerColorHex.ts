@@ -1,4 +1,4 @@
-import type { PlayerColor } from "@api-types"
+import type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 
 export const PLAYER_COLOR_HEX = {
   TURQUOISE: "#00CDB7",

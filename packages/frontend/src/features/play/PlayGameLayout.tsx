@@ -1,6 +1,6 @@
-import type { GameId } from "@api-types"
 import { Outlet } from "@tanstack/react-router"
 import type { ReactElement } from "react"
+import type { GameId } from "shared/domain/games/GameId.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"

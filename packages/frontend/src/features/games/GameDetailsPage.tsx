@@ -1,6 +1,7 @@
 import type * as ApiTypes from "@api-types"
 import { Navigate, useNavigate } from "@tanstack/react-router"
 import type { ReactElement, ReactNode } from "react"
+import type { GameId } from "shared/domain/games/GameId.ts"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent } from "@/components/card.tsx"
 import { Separator } from "@/components/separator.tsx"
@@ -15,7 +16,7 @@ import { useLogger } from "@/lib/LoggerContext.tsx"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 import { timeAgo } from "@/lib/timeAgo.ts"
 
-export function GameDetailsPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
+export function GameDetailsPage({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const gameDetailsQuery = useGameDetailsQuery(gameId)
 

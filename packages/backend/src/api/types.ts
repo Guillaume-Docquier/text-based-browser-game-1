@@ -6,12 +6,6 @@ type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
 
 export type { TrpcRouter }
 
-export type { GameId } from "shared/domain/games/GameId.ts"
-export type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
-export type { PlayerId } from "shared/domain/players/PlayerId.ts"
-export type { AccountId } from "shared/domain/accounts/AccountId.ts"
-export type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
-
 export type GameDetails = TrpcRouterOutput["games"]["getDetails"]
 export type GameStatus = GameDetails["status"]
 export type Player = GameDetails["creator"]

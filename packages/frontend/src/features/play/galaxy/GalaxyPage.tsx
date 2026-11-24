@@ -1,6 +1,7 @@
-import type { Planet, PlanetId, StarSystem } from "@api-types"
+import type { Planet, StarSystem } from "@api-types"
 import { ArrowLeft, LocateFixed } from "lucide-react"
 import { type AnimationEvent, type MouseEvent, type ReactElement, useState } from "react"
+import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import { Button } from "@/components/button.tsx"
 import { GalaxyMap } from "@/features/play/galaxy/GalaxyMap.tsx"
 import { PlanetDetailsPane } from "@/features/play/galaxy/star-system/PlanetDetailsPane.tsx"
