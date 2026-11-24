@@ -22,7 +22,7 @@ packages/backend/src/api/ ───▶ packages/backend/src/turn-processing/
 
 Across workspace projects, runtime imports from the apps may only target shared packages. The frontend may access the backend only through the API contract types described below. The backend must not import from the frontend, and shared packages must not import from either app, including type-only imports.
 
-- Use `import type` from `@api-types` only for named backend contract types and the tRPC client's `TrpcRouter`. Do not use indexed access to extract nested API types in frontend code, or unroll/reconstruct their shapes locally.
+- Import named backend contract types with `import type` from `@api-types`. Do not use indexed access to extract nested API types in frontend code, or unroll/reconstruct their shapes locally.
 - When a needed contract type is missing, add a named export in `packages/backend/src/api/types.ts` derived from the tRPC router output (`inferRouterOutputs<TrpcRouter>`). Derive nested types there as well, so the frontend uses the actual API output type despite Zod inference quirks.
 - Import shared domain types with `import type` directly from the shared modules that define them.
 - The frontend owns types for component state, rendering, and interactions.
