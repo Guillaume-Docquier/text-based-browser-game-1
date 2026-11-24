@@ -9,7 +9,7 @@
 
 ## Structure and content
 
-- [ ] The filename uses `NNN-slug.md` with a unique number, and the title names the decision.
+- [ ] The filename uses `NNN-slug.md` with a unique number. The slug matches the ADR title in lowercase, with words separated by hyphens.
 - [ ] The record has `Status`, `Context`, `Decision`, and `Consequences`. Supporting material fits within those sections, and all template placeholders are replaced.
 - [ ] The status reflects the decision. Rejected, deprecated, or superseded records explain the reason and any replacement.
 - [ ] Context stands on its own. It explains what prompted the decision, relevant constraints, and any alternatives that explain the choice.
