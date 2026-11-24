@@ -194,33 +194,6 @@ Authorization belongs in shared application/domain policy, not duplicated in con
 
 ## Imports, exports, and files
 
-Prefer direct imports from the file that owns the abstraction. Do not use barrel files or re-exports. The backend API types is the only file that can re-export, and it re-exports only types for the frontend.
-
-For domain modules, avoid namespace imports if you need to preserve the module shape. Export a const instead:
-
-Avoid:
-
-```ts
-import * as EmailAddress from "./email-address"
-
-EmailAddress.parse(input)
-```
-
-Prefer:
-
-```ts
-import { EmailAddress } from "./email-address"
-
-EmailAddress.parse(input)
-```
-
-Always use named exports:
-
-```ts
-import { PasswordReset } from "./password-reset"
-import { casesHandled } from "./prelude"
-```
-
 Export only what callers should use. Keep internal helpers unexported unless intentionally shared. Do not export internals just for tests.
 
 Avoid vague files:

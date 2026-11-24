@@ -1,4 +1,5 @@
 import { allowedComments } from "./allowed-comments.ts"
+import { noRenamedImports } from "./no-renamed-imports.ts"
 
 export default {
   meta: {
@@ -6,5 +7,6 @@ export default {
   },
   rules: {
     "allowed-comments": allowedComments,
+    "no-renamed-imports": noRenamedImports,
   },
 }

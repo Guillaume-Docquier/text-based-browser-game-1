@@ -44,5 +44,11 @@ export default defineConfig({
       files: ["**/*.{ts,tsx}"],
       excludeFiles: ["playwright/**/*"],
     },
+    {
+      files: ["**/*.browser.test.{ts,tsx}"],
+      rules: {
+        "import/no-namespace": ["error", { ignore: ["**/*.stories.{ts,tsx}"] }],
+      },
+    },
   ],
 } satisfies OxlintConfig)

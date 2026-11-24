@@ -1,4 +1,4 @@
-import type * as ApiTypes from "@api-types"
+import type { GameListing } from "@api-types"
 import { Link } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
@@ -62,7 +62,7 @@ export function GameListingsPage({ isSignedIn }: { isSignedIn: boolean }): React
   )
 }
 
-function GameListing({ gameListing }: { gameListing: ApiTypes.GameListing }): ReactElement {
+function GameListing({ gameListing }: { gameListing: GameListing }): ReactElement {
   return (
     <Link to="/games/$gameId" params={{ gameId: gameListing.id }} className="block">
       <Card size="sm" className="border border-border/60 transition-colors hover:bg-muted/40">

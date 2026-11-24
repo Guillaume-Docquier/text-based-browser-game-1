@@ -24,8 +24,6 @@ Across workspace projects, runtime imports from the apps may only target shared 
 
 - Import named backend contract types with `import type` from `@api-types`. Do not use indexed access to extract nested API types in frontend code, or unroll/reconstruct their shapes locally.
 - When a needed contract type is missing, add a named export in `packages/backend/src/api/types.ts` derived from the tRPC router output (`inferRouterOutputs<TrpcRouter>`). Derive nested types there as well, so the frontend uses the actual API output type despite Zod inference quirks.
-- Do not re-export other backend types as frontend contracts. Direct re-exports are reserved for simple branded scalar types, such as IDs and `TargetTag`.
-- The frontend owns types for component state, rendering, and interactions.
 
 See [ADR-007](docs/architecture/decisions/007-code-sharing.md) and [ADR-022](docs/architecture/decisions/022-frontend-api-contract-types.md).
 

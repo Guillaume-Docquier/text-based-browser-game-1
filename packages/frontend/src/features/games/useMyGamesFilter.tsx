@@ -1,10 +1,10 @@
-import type * as ApiTypes from "@api-types"
+import type { GameListing } from "@api-types"
 import { UserRoundCheck } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/button.tsx"
 import type { Filter } from "@/features/games/Filter.ts"
 
-export function useMyGamesFilter(): Filter<ApiTypes.GameListing> {
+export function useMyGamesFilter(): Filter<GameListing> {
   const [showOnlyMyGames, setShowOnlyMyGames] = useState(false)
 
   return {

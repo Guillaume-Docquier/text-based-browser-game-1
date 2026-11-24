@@ -4,6 +4,7 @@ import { pushSchema } from "drizzle-kit/api"
 import { drizzle } from "drizzle-orm/pglite"
 import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
+// oxlint-disable-next-line import/no-namespace -- Drizzle Kit needs the complete schema for pushSchema.
 import * as schema from "#lib/db/schema.ts"
 
 // CONSTRAINT: We leverage `isolate: false` to set up only once.

@@ -1,7 +1,7 @@
 import { cn } from "cn"
-import * as React from "react"
+import type { ComponentProps, JSX } from "react"
 
-export function Label({ className, ...props }: React.ComponentProps<"label">): React.JSX.Element {
+export function Label({ className, ...props }: ComponentProps<"label">): JSX.Element {
   return (
     <label
       data-slot="label"

@@ -1,7 +1,7 @@
-import type { PlanetId } from "@api-types"
 import { branded } from "@guillaume-docquier/tools-ts"
 import { createFileRoute } from "@tanstack/react-router"
 import type { ReactElement } from "react"
+import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import { z } from "zod"
 import { GalaxyPage } from "@/features/play/galaxy/GalaxyPage.tsx"
 

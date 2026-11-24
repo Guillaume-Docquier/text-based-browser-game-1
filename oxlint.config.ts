@@ -15,6 +15,10 @@ const allowedComments = {
 const restrictedSyntax = [
   ...typescript.rules["eslint-js/no-restricted-syntax"],
   { selector: "ImportExpression", message: "Use a static import declaration." },
+  {
+    selector: "ExportNamedDeclaration[source]",
+    message: "Import directly from the module that defines the binding.",
+  },
 ] satisfies NonNullable<OxlintConfig["rules"]>[string]
 
 export default defineConfig({
@@ -25,7 +29,19 @@ export default defineConfig({
     denyWarnings: true,
   },
   ignorePatterns: ["*.gen.*"],
+  rules: {
+    "cosmic-empires/allowed-comments": ["error", allowedComments],
+    "cosmic-empires/no-renamed-imports": "error",
+    "eslint-js/no-restricted-syntax": restrictedSyntax,
+    "import/no-default-export": "error",
+    "import/no-namespace": "error",
+    "unicorn/prefer-export-from": "error",
+  },
   overrides: [
+    {
+      files: ["**/*.config.*", ".railway/railway.ts", "linting/plugins/**", "**/*.stories.{ts,tsx}", "**/.storybook/**"],
+      rules: { "import/no-default-export": "off" },
+    },
     {
       files: ["**/*"],
       excludeFiles: ["**/playwright/**/*"],
@@ -68,8 +84,4 @@ export default defineConfig({
       },
     },
   ],
-  rules: {
-    "cosmic-empires/allowed-comments": ["error", allowedComments],
-    "eslint-js/no-restricted-syntax": restrictedSyntax,
-  },
 } satisfies OxlintConfig)

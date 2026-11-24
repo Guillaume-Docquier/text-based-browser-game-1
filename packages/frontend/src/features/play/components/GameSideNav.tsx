@@ -1,7 +1,7 @@
-import type { GameId } from "@api-types"
 import { Link } from "@tanstack/react-router"
 import { Earth, Map, type LucideIcon, Users } from "lucide-react"
 import type { ReactElement } from "react"
+import type { GameId } from "shared/domain/games/GameId.ts"
 import logo from "@/assets/logo.png"
 import type { FileRouteTypes } from "@/routeTree.gen.ts"
 
