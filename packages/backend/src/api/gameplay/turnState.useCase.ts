@@ -34,12 +34,7 @@ export class TurnStateUseCase {
       return
     }
 
-    let game = this.games.get(gameId)
-    if (game === undefined) {
-      game = { events: new EventEmitter().setMaxListeners(0), needsRefresh: false, isReading: false, retry: undefined }
-      this.games.set(gameId, game)
-    }
-
+    const game = this.getOrCreateGame(gameId)
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Node's on() omits the event argument types, which the emitter enforces.
     const snapshots = on(game.events, "snapshot", signal === undefined ? {} : { signal }) as NodeJS.AsyncIterator<[TurnStateResult]>
     if (!game.isReading) {
@@ -48,12 +43,7 @@ export class TurnStateUseCase {
 
     try {
       for await (const [snapshot] of snapshots) {
-        if (Result.isSuccess(snapshot) && !Object.hasOwn(snapshot.value.readinessByPlayerId, playerId)) {
-          yield Result.Failure(TurnStateError.NOT_A_MEMBER)
-          return
-        }
-
-        yield snapshot
+        yield snapshotForPlayer(snapshot, playerId)
       }
     } catch (error: unknown) {
       if (!(error instanceof Error && error.name === "AbortError")) {
@@ -81,6 +71,22 @@ export class TurnStateUseCase {
     for (const gameId of this.games.keys()) {
       this.refresh(gameId)
     }
+  }
+
+  private getOrCreateGame(gameId: GameId): GameSubscription {
+    const existing = this.games.get(gameId)
+    if (existing !== undefined) {
+      return existing
+    }
+
+    const game: GameSubscription = {
+      events: new EventEmitter().setMaxListeners(0),
+      needsRefresh: false,
+      isReading: false,
+      retry: undefined,
+    }
+    this.games.set(gameId, game)
+    return game
   }
 
   private async readSnapshots(gameId: GameId, game: GameSubscription): Promise<void> {
@@ -115,4 +121,12 @@ export class TurnStateUseCase {
       this.games.delete(gameId)
     }
   }
+}
+
+function snapshotForPlayer(snapshot: TurnStateResult, playerId: PlayerId): TurnStateResult {
+  if (Result.isSuccess(snapshot) && !Object.hasOwn(snapshot.value.readinessByPlayerId, playerId)) {
+    return Result.Failure(TurnStateError.NOT_A_MEMBER)
+  }
+
+  return snapshot
 }

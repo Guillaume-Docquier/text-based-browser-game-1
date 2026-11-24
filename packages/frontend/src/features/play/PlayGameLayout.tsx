@@ -1,3 +1,4 @@
+import type { GameDetails, PlayerView, TurnState } from "@api-types"
 import { Outlet } from "@tanstack/react-router"
 import { type ReactElement, useEffect, useState } from "react"
 import type { GameId } from "shared/domain/games/GameId.ts"
@@ -23,16 +24,6 @@ function PlayGame({ gameId }: { gameId: GameId }): ReactElement {
   const { subscription, isLive } = useTurnState(gameId)
   const turnState = subscription.data
   const playerViewQuery = usePlayerViewQuery(gameId, turnState?.turn)
-  const [currentTime, setCurrentTime] = useState(Date.now)
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(Date.now())
-    }, 1_000)
-    return (): void => {
-      clearInterval(timer)
-    }
-  }, [])
 
   if (gameDetailsQuery.isPending || playerViewQuery.isPending) {
     return <GameLayoutSkeleton />
@@ -42,7 +33,7 @@ function PlayGame({ gameId }: { gameId: GameId }): ReactElement {
     logger.error("Could not fetch game", { gameId, error: gameDetailsQuery.error.message })
     return (
       <GameLoadError
-        message={gameDetailsQuery.error.message ?? "Please try again."}
+        message={gameDetailsQuery.error.message}
         onRetry={() => {
           void gameDetailsQuery.refetch()
         }}
@@ -54,7 +45,7 @@ function PlayGame({ gameId }: { gameId: GameId }): ReactElement {
     logger.error("Could not fetch game state", { gameId, error: playerViewQuery.error.message })
     return (
       <GameLoadError
-        message={playerViewQuery.error.message ?? "Please try again."}
+        message={playerViewQuery.error.message}
         onRetry={() => {
           void playerViewQuery.refetch()
         }}
@@ -70,15 +61,35 @@ function PlayGame({ gameId }: { gameId: GameId }): ReactElement {
     return <GameLayoutSkeleton />
   }
 
-  const gameDetails = gameDetailsQuery.data
-  const playerView = playerViewQuery.data
-  const currentTurnEndsAt = new Date(turnState.turnEndsAt).getTime()
-  const canUpdateReadiness =
-    isLive &&
-    gameDetails.status !== GameStatus.ENDED &&
-    turnState.turnStatus === TurnStatus.COLLECTING_ACTIONS &&
-    turnState.turn === playerView.turn &&
-    currentTime < currentTurnEndsAt
+  return <LoadedPlayGame gameDetails={gameDetailsQuery.data} playerView={playerViewQuery.data} turnState={turnState} isLive={isLive} />
+}
+
+function LoadedPlayGame({
+  gameDetails,
+  playerView,
+  turnState,
+  isLive,
+}: {
+  gameDetails: GameDetails
+  playerView: PlayerView
+  turnState: TurnState
+  isLive: boolean
+}): ReactElement {
+  const [currentTime, setCurrentTime] = useState(Date.now)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now())
+    }, 1_000)
+    return (): void => {
+      clearInterval(timer)
+    }
+  }, [])
+
+  const isCurrentTurn = isLive && turnState.turn === playerView.turn
+  const turnEndsAt = new Date(turnState.turnEndsAt).getTime()
+  const isTurnOpen = turnState.turnStatus === TurnStatus.COLLECTING_ACTIONS && currentTime < turnEndsAt
+  const canUpdateReadiness = isCurrentTurn && isTurnOpen && gameDetails.status !== GameStatus.ENDED
 
   const context: PlayGameContextValue = { gameDetails, playerView, turnState, canUpdateReadiness }
 

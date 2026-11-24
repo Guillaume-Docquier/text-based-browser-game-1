@@ -53,9 +53,7 @@ export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepos
 
   const publicProcedure = t.procedure.use(async ({ next, ctx, path, type }) => {
     const startTime = Timer.start()
-    if ((type === "subscription") !== (ctx.transport === "websocket")) {
-      throw new TRPCError({ code: "METHOD_NOT_SUPPORTED" })
-    }
+    requireMatchingTransport(type, ctx.transport)
 
     const result = await next()
 
@@ -97,6 +95,12 @@ export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepos
     privateProcedure: privateProcedure as RequireProcedureSchemas<typeof privateProcedure>,
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: Only exposed method types change; the native builder and inferred context are preserved.
     inGameProcedure: inGameProcedure as RequireProcedureSchemas<typeof inGameProcedure>,
+  }
+}
+
+function requireMatchingTransport(type: string, transport: TrpcContext["transport"]): void {
+  if ((type === "subscription") !== (transport === "websocket")) {
+    throw new TRPCError({ code: "METHOD_NOT_SUPPORTED" })
   }
 }
 

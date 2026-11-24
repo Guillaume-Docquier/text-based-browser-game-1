@@ -22,14 +22,15 @@ export function usePlayerViewQuery(gameId: GameId, liveTurn: number | undefined)
 
   const viewTurn = query.data?.turn
   const canRefresh = query.fetchStatus === "idle" && !query.isError
+  const isViewBehind = liveTurn !== undefined && viewTurn !== undefined && liveTurn > viewTurn
   useEffect(() => {
-    if (!canRefresh || viewTurn === undefined || liveTurn === undefined || liveTurn <= viewTurn || requestedTurn.current === liveTurn) {
+    if (!canRefresh || !isViewBehind || requestedTurn.current === liveTurn) {
       return
     }
 
     requestedTurn.current = liveTurn
     void queryClient.invalidateQueries({ queryKey: playerView.queryKey({ gameId }), exact: true })
-  }, [canRefresh, gameId, liveTurn, playerView, queryClient, viewTurn])
+  }, [canRefresh, gameId, isViewBehind, liveTurn, playerView, queryClient])
 
   return query
 }
