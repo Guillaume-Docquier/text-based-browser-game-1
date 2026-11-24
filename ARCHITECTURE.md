@@ -20,10 +20,13 @@ packages/frontend/ ──type-only API contracts──▶ packages/backend/src/a
 packages/backend/src/api/ ───▶ packages/backend/src/turn-processing/
 ```
 
-Across workspace projects, runtime imports from the apps may only target shared packages. The frontend may access the backend only through the API contract types described below. The backend must not import from the frontend, and shared packages must not import from either app, including type-only imports.
+The [Oxlint workspace-boundaries rule](linting/plugins/workspace-boundaries.ts) enforces imports across the frontend, backend, and shared packages. Shared code gives both apps one implementation of common domain behavior. The type-only API contract keeps frontend typechecking tied to the tRPC output without pulling backend runtime code into the browser.
 
-- Import named backend contract types with `import type` from `@api-types`. Do not use indexed access to extract nested API types in frontend code, or unroll/reconstruct their shapes locally.
+Review changes for these requirements.
+
+- Use named backend contract types directly. Keep indexed access and other derivations in the backend contract file. Use that contract as the source for frontend types that describe API data.
 - When a needed contract type is missing, add a named export in `packages/backend/src/api/types.ts` derived from the tRPC router output (`inferRouterOutputs<TrpcRouter>`). Derive nested types there as well, so the frontend uses the actual API output type despite Zod inference quirks.
+- Keep Turn Processing independent of the backend API. See the [backend architecture](packages/backend/ARCHITECTURE.md).
 
 See [ADR-007](docs/architecture/decisions/007-code-sharing.md) and [ADR-022](docs/architecture/decisions/022-frontend-api-contract-types.md).
 
