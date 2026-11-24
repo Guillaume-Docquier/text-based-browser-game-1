@@ -129,7 +129,7 @@ describe("galaxyGenerator", () => {
     })
 
     // Assert
-    // INTENT: Hard to assert that this is correct without looking at it. Run `pnpm map-gen galaxy spiral --seed 1234 --grid` and the matching DEFAULT_OPTIONS to visualize the spiral. If you're happy, run `pnpm btu --update` to update the snapshot
+    // INTENT: Inspect the layout with `pnpm map-gen galaxy spiral --grid --seed 1234` before accepting an intended change with `pnpm --filter shared test galaxy.generator.unit.test.ts --update`.
     expect(galaxy).toMatchSnapshot()
   })
 })

@@ -22,8 +22,6 @@ Before adding a test, decide what behavior you want to check and how the test wi
 | Demonstrate a state that requires interaction to reach                               | Storybook story with a short `play` function | Colocated `*.stories.tsx`                   | Open a menu and leave it open for inspection                                   |
 | Verify isolated interaction or presentation behavior                                 | Vitest browser test                          | Colocated `*.browser.test.tsx`              | Hover reveals the action; keyboard activation toggles lock-in; Tab moves focus |
 
-If what you are trying to test does not fit in the above, raise it to the human.
-
 ## Guidelines for automated tests
 
 - Test concrete, implemented behavior through visible results, values, accessible state, focus, or persisted application state.

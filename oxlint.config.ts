@@ -56,7 +56,7 @@ export default defineConfig({
           {
             selector: "TryStatement[finalizer]",
             message:
-              "Use afterEach for routine or inexpensive cleanup. Reserve onTestFinished for resources local to one test or expensive cleanup that only a few tests need.",
+              "Use afterEach for routine or inexpensive cleanup. Reserve onTestFinished or Explicit Resource Management with `using` or `await using` and resources that implement `Symbol.dispose` or `Symbol.asyncDispose` for resources local to one test or expensive cleanup that only a few tests need.",
           },
         ],
       },

@@ -33,3 +33,7 @@ For persistence behavior, prefer PGLite/local DB-backed tests over hand-rolled i
 - Declare Vitest tests with `it` or `test` imported from `vitest`. Do not use Vitest custom fixtures. See [ADR-035](docs/architecture/decisions/035-do-not-use-vitest-custom-fixtures.md).
 
 Lint rule tests live in [linting/tests](linting/tests/TESTING.md).
+
+## Package test files
+
+Keep package tests beside the code they exercise. Put reusable test-only helpers and suite setup in the package's `src/testing/` directory, and keep tests for a helper beside it. Name helpers for what they provide, such as `mapGeometry.ts` or `createIntegrationTestDb.ts`. A helper used by one test file can stay in that file.

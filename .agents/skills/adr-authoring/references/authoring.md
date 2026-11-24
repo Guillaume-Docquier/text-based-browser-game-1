@@ -10,7 +10,7 @@ Before drafting, inspect the relevant packages, contracts, schemas, tests, or in
 
 Use `000-adr-template.md` in the architecture decisions directory. Gather enough information to explain what prompted the decision, what constraints apply, which alternatives were considered, why the chosen rule applies, and what gets easier or harder. Ask only about material gaps, one question at a time. Confirm the decision, scope, rationale, and tradeoffs with the human before drafting.
 
-1. Assign the next unused number in the `NNN-slug.md` format. Check both active records and the `deprecated/` directory. Use a title that names the decision.
+1. Assign the next unused number in the `NNN-slug.md` format. Check both active records and the `deprecated/` directory. Use the decision title as the filename slug, in lowercase with words separated by hyphens. If the title changes, rename the file to match, keep its number, and update the index and links.
 2. Use `Proposed` until the human accepts the decision, then use `Accepted`.
 3. In `Context`, explain the problem, relevant constraints, and any alternatives that help explain the choice.
 4. In `Decision`, state the rule, its scope, and any exceptions that affect how contributors apply it.
@@ -24,4 +24,4 @@ Edit proposed records directly. For a material refinement to an accepted decisio
 
 When a new decision replaces or reverses an accepted one, write a new ADR, mark the old one `Superseded`, and link the records in both directions. Explain the reason and any replacement when deprecating a decision.
 
-Keep proposed and accepted records in the architecture decisions directory. Move rejected, deprecated, and superseded records to its `deprecated/` directory, keeping their filenames. Update incoming and outgoing links affected by a move. Update the architecture decisions index when an ADR is accepted, rejected, deprecated, superseded, or changes when contributors should consult it. Keep historical entries in the index.
+Keep proposed and accepted records in the architecture decisions directory. Move rejected, deprecated, and superseded records to its `deprecated/` directory, keeping their filenames. Update incoming and outgoing links affected by a move. Update the architecture decisions index when an ADR is accepted, rejected, deprecated, superseded, or changes when contributors should consult it. In each index entry, use the linked filename without its directory or `.md` extension as the link text, for example `016-use-repositories-in-tests`. Keep historical entries in the index.
