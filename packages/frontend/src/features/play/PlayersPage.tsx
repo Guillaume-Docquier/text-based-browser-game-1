@@ -1,5 +1,4 @@
-import type { Player, PlayerView } from "@api-types"
-import { Assert } from "@guillaume-docquier/tools-ts"
+import type { Player } from "@api-types"
 import { Check, CircleDashed } from "lucide-react"
 import type { ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
@@ -10,7 +9,7 @@ import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function PlayersPage(): ReactElement {
-  const { gameDetails, playerView } = usePlayGameContext()
+  const { gameDetails, playerView, turnState, canUpdateReadiness } = usePlayGameContext()
   const updateReadiness = useUpdateReadiness()
 
   return (
@@ -21,10 +20,11 @@ export function PlayersPage(): ReactElement {
           <PlayerRow
             key={player.id}
             player={player}
-            playerView={playerView}
-            isReadinessPending={updateReadiness.isPending}
+            isCurrentPlayer={player.id === playerView.player.id}
+            isReady={turnState.readinessByPlayerId[player.id] ?? false}
+            disabled={!canUpdateReadiness || updateReadiness.isPending}
             onUpdateReadiness={(isReady) => {
-              updateReadiness.mutate({ gameId: gameDetails.id, turn: playerView.turn, isReady })
+              updateReadiness.mutate({ gameId: gameDetails.id, turn: turnState.turn, isReady })
             }}
           />
         ))}
@@ -52,28 +52,27 @@ function PlayersTable({ children }: { children: ReactElement[] }): ReactElement 
 
 function PlayerRow({
   player,
-  playerView,
-  isReadinessPending,
+  isCurrentPlayer,
+  isReady,
+  disabled,
   onUpdateReadiness,
 }: {
   player: Player
-  playerView: PlayerView
-  isReadinessPending: boolean
+  isCurrentPlayer: boolean
+  isReady: boolean
+  disabled: boolean
   onUpdateReadiness: (isReady: boolean) => void
 }): ReactElement {
   const colorLabel = formatPlayerColor(player.color)
-  const isCurrentPlayer = player.id === playerView.player.id
-  const playerState = isCurrentPlayer ? playerView.player : playerView.opponents[player.id]
-  Assert.isDefined(playerState)
 
   return (
     <div className="flex items-center gap-3 rounded-3xl border border-border/60 bg-muted/20 px-4 py-3">
       <PlayerReadiness
         isCurrentPlayer={isCurrentPlayer}
-        isReady={playerState.isReady}
-        disabled={playerView.turnStatus !== "COLLECTING_ACTIONS" || isReadinessPending}
+        isReady={isReady}
+        disabled={disabled}
         onToggle={() => {
-          onUpdateReadiness(!playerState.isReady)
+          onUpdateReadiness(!isReady)
         }}
       />
       <span

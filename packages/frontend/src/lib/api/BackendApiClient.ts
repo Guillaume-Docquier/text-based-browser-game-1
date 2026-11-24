@@ -1,7 +1,7 @@
 import type { TrpcRouter } from "@api-types"
 import type { Logger } from "@guillaume-docquier/tools-ts"
 import type { QueryClient } from "@tanstack/react-query"
-import { createTRPCClient, httpBatchLink, loggerLink } from "@trpc/client"
+import { createTRPCClient, createWSClient, httpBatchLink, loggerLink, splitLink, wsLink } from "@trpc/client"
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query"
 import { unlessProtected } from "@/lib/api/queryInvalidation.ts"
 
@@ -12,12 +12,26 @@ export function createBackendApiClient({
   queryClient,
   logger,
   isDevelopment,
+  getSessionToken,
 }: {
   baseUrl: string
   queryClient: QueryClient
   logger: Logger
   isDevelopment: boolean
+  getSessionToken?: () => Promise<string | null>
 }) {
+  const trpcUrl = `${baseUrl}/trpc`
+  const webSocketUrl = new URL(trpcUrl, window.location.origin)
+  webSocketUrl.protocol = webSocketUrl.protocol === "https:" ? "wss:" : "ws:"
+  const webSocketClient = createWSClient({
+    url: webSocketUrl.toString(),
+    lazy: { enabled: true, closeMs: 0 },
+    connectionParams: async () => {
+      const token = await getSessionToken?.()
+      return token === undefined || token === null ? null : { token }
+    },
+  })
+
   return createTRPCOptionsProxy<TrpcRouter>({
     client: createTRPCClient<TrpcRouter>({
       links: [
@@ -62,8 +76,10 @@ export function createBackendApiClient({
             })
           },
         }),
-        httpBatchLink({
-          url: `${baseUrl}/trpc`,
+        splitLink({
+          condition: ({ type }) => type === "subscription",
+          true: wsLink({ client: webSocketClient }),
+          false: httpBatchLink({ url: trpcUrl }),
         }),
       ],
     }),

@@ -3,6 +3,7 @@ import { initTRPC, TRPCError } from "@trpc/server"
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import { getHTTPStatusCodeFromError } from "@trpc/server/http"
 import type { MiddlewareResult } from "@trpc/server/unstable-core-do-not-import"
+import type { Account } from "shared/domain/accounts/Account.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { v4 } from "uuid"
 import { z } from "zod"
@@ -37,14 +38,10 @@ class ApiTrpcError extends TRPCError {
   }
 }
 
-type ExpressContextOptions = Pick<CreateExpressContextOptions, "req" | "res">
-export type TrpcContext = ExpressContextOptions & { requestId: string }
-export const createTrpcContext = ({ req, res }: ExpressContextOptions): TrpcContext => {
-  return {
-    req,
-    res,
-    requestId: v4(),
-  }
+type ExpressContextOptions = Pick<CreateExpressContextOptions, "req">
+export type TrpcContext = { account: Account | undefined; requestId: string; transport: "http" | "websocket" }
+export function createTrpcContext({ req }: ExpressContextOptions): TrpcContext {
+  return { account: req.account, requestId: v4(), transport: "http" }
 }
 
 export type Trpc = ReturnType<typeof createTrpc>
@@ -56,7 +53,11 @@ export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepos
 
   const publicProcedure = t.procedure.use(async ({ next, ctx, path, type }) => {
     const startTime = Timer.start()
-    const result = await next({ ctx: { account: ctx.req.account } })
+    if ((type === "subscription") !== (ctx.transport === "websocket")) {
+      throw new TRPCError({ code: "METHOD_NOT_SUPPORTED" })
+    }
+
+    const result = await next()
 
     const logEntry = createLogEntry(result, { startTime, route: path, type, requestId: ctx.requestId })
     logger[logEntry.level](logEntry.message, logEntry.context)

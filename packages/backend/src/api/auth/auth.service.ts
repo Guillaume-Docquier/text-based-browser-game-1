@@ -41,7 +41,26 @@ export class AuthService {
     return [this.authProvider.parseTokenMiddleware(), this.recordAccountMiddleware()]
   }
 
-  // CONSTRAINT: We can't full rely on Clerk webhooks to sync data (and we haven't set one up anyway).
+  public async authenticateSessionToken(token: string | null | undefined): Promise<Account | undefined> {
+    if (token === undefined || token === null || token === "") {
+      return undefined
+    }
+
+    const authStatus = await this.authProvider.authenticateSessionToken(token)
+    if (!authStatus.isAuthenticated) {
+      return undefined
+    }
+
+    const account = await this.accountsRepository.getAccountByAuthId({ authId: authStatus.authId })
+    if (Result.isFailure(account)) {
+      this.logger.error("Could not get account for WebSocket session", { authId: authStatus.authId, error: account.error })
+      return undefined
+    }
+
+    return account.value
+  }
+
+  // CONSTRAINT: We can't fully rely on Clerk webhooks to sync data (and we haven't set one up anyway).
   private recordAccountMiddleware(): RequestHandler {
     return async (req, res, next) => {
       const authStatus = this.authProvider.parseAuthStatus({ req })

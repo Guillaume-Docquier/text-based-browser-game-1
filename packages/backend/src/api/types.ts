@@ -14,6 +14,7 @@ export type Player = GameDetails["creator"]
 export type GameConfigurationDetails = GameDetails["configuration"]
 export type GameListing = TrpcRouterOutput["games"]["getListings"][number]
 
+export type TurnState = TrpcRouterOutput["gameplay"]["turnState"] extends AsyncIterable<infer TSnapshot> ? TSnapshot : never
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
 export type Galaxy = PlayerView["galaxy"]
 export type StarSystem = Galaxy["systems"][number]

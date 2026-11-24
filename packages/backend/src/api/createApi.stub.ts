@@ -1,9 +1,8 @@
 import { Logger } from "@guillaume-docquier/tools-ts"
-import type { Express } from "express"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { AuthService } from "#api/auth/auth.service.ts"
 import { TestHeaderAuthProvider } from "#api/auth/TestHeaderAuthProvider.ts"
-import { createApi } from "#api/createApi.ts"
+import { type Api, createApi } from "#api/createApi.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { GamesRepository } from "#api/games/games.repository.ts"
 import { Clock } from "#lib/Clock.ts"
@@ -11,7 +10,7 @@ import { createCreateTransaction, type Database } from "#lib/db/createDb.ts"
 
 type AllServices = Omit<Parameters<typeof createApi>[0], "authService">
 
-export async function createApiStub({ db, clock = Clock }: { db: Database; clock?: Clock }): Promise<AllServices & { api: Express }> {
+export async function createApiStub({ db, clock = Clock }: { db: Database; clock?: Clock }): Promise<AllServices & Api> {
   const logger = Logger.get()
   const accountsRepository = new AccountsRepository({ db, logger })
 
@@ -29,6 +28,6 @@ export async function createApiStub({ db, clock = Clock }: { db: Database; clock
 
   return {
     ...apiServices,
-    api,
+    ...api,
   }
 }

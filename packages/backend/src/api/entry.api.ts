@@ -13,6 +13,7 @@ import type { PortListeningMessage } from "#api/PortListeningMessage.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
+import { TurnStateListener } from "#lib/db/TurnStateListener.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
 import { BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
 import { startTurnProcessing } from "#turn-processing/entry.turn-processing.ts"
@@ -51,7 +52,7 @@ async function main(): Promise<void> {
   })
 
   logger.info("Creating the API")
-  const app = await createApi({
+  const { api, attachWebSocket, turnStateUseCase } = await createApi({
     logger,
     clock,
     createTransaction: createCreateTransaction(db),
@@ -59,8 +60,23 @@ async function main(): Promise<void> {
     ...repositories,
   })
 
+  const listener = new TurnStateListener({ databaseUrl: env.DATABASE_URL, logger })
+  const listenerLifetime = new AbortController()
+  const firstListen = Promise.withResolvers<undefined>()
+  void listener.listen({
+    signal: listenerLifetime.signal,
+    onListening: () => {
+      turnStateUseCase.refreshAll()
+      firstListen.resolve(undefined)
+    },
+    onChange: (gameId) => {
+      turnStateUseCase.refresh(gameId)
+    },
+  })
+  await firstListen.promise
+
   // CONSTRAINT: Listen to all interfaces (::) for railway's IPv6 internal network
-  const server = app.listen(env.PORT, "::", () => {
+  const server = api.listen(env.PORT, "::", () => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- I don't know when it's not actually an AddressInfo
     const serverAddress = server.address() as AddressInfo
 
@@ -68,6 +84,12 @@ async function main(): Promise<void> {
     logger.info(`API listening on port ${serverAddress.port}`)
     // CONSTRAINT: This is currently only used for concurrency tests to know which port the api is using
     process.send?.({ type: "listening", port: serverAddress.port } as const satisfies PortListeningMessage)
+  })
+
+  const closeWebSocket = attachWebSocket(server)
+  server.once("close", () => {
+    listenerLifetime.abort()
+    closeWebSocket()
   })
 
   logger.info("Starting turn processing")

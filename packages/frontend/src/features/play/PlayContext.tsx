@@ -1,9 +1,11 @@
-import type { GameDetails, PlayerView } from "@api-types"
+import type { GameDetails, PlayerView, TurnState } from "@api-types"
 import { createContext, type FC, type PropsWithChildren, useContext } from "react"
 
 export type PlayGameContextValue = {
   gameDetails: GameDetails
   playerView: PlayerView
+  turnState: TurnState
+  canUpdateReadiness: boolean
 }
 
 const PlayContext = createContext<PlayGameContextValue | undefined>(undefined)

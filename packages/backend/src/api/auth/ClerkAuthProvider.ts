@@ -1,6 +1,7 @@
 import { clerkClient, clerkMiddleware, getAuth } from "@clerk/express"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { RequestHandler, Request } from "express"
+import { z } from "zod"
 import type { AuthProvider, AuthStatus, User } from "#api/auth/AuthProvider.ts"
 import { FetchUserError } from "#api/auth/fetchUser.error.ts"
 
@@ -22,6 +23,26 @@ export class ClerkAuthProvider implements AuthProvider {
     }
 
     return { isAuthenticated: true, authId: auth.userId }
+  }
+
+  public async authenticateSessionToken(token: string): Promise<AuthStatus> {
+    if (!z.jwt().safeParse(token).success) {
+      return { isAuthenticated: false }
+    }
+
+    const result = await Result.tryCatch(async () => {
+      const request = new Request("http://localhost", { headers: { Authorization: `Bearer ${token}` } })
+      return await clerkClient.authenticateRequest(request)
+    })
+    if (Result.isFailure(result)) {
+      this.logger.error("Could not authenticate WebSocket session", { error: result.error })
+      return { isAuthenticated: false }
+    }
+
+    const auth = result.value.toAuth()
+    return auth?.isAuthenticated === true && auth.userId !== null
+      ? { isAuthenticated: true, authId: auth.userId }
+      : { isAuthenticated: false }
   }
 
   public async fetchUser({ authId }: { authId: string }): Promise<Result<User, FetchUserError>> {

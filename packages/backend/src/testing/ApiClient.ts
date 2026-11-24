@@ -1,4 +1,4 @@
-import { createTRPCClient, httpBatchLink, type TRPCClient } from "@trpc/client"
+import { createTRPCClient, createWSClient, httpBatchLink, splitLink, type TRPCClient, wsLink } from "@trpc/client"
 import { createAccountStub } from "shared/domain/accounts/Account.stub.ts"
 import type { Account } from "shared/domain/accounts/Account.ts"
 import { v4 } from "uuid"
@@ -57,10 +57,20 @@ export async function createApiClient({
 function createTrpcClient({ port, authId }: { port: number; authId: string | undefined }): TRPCClient<TrpcRouter> {
   return createTRPCClient<TrpcRouter>({
     links: [
-      httpBatchLink({
-        url: `http://localhost:${port}/trpc`,
-        // CONSTRAINT: The AUTH_ID_HEADER is serialized as "undefined" if the value is undefined. We have to avoid setting it when there is no account
-        headers: authId === undefined ? {} : { [AUTH_ID_HEADER]: authId },
+      splitLink({
+        condition: ({ type }) => type === "subscription",
+        true: wsLink({
+          client: createWSClient({
+            url: `ws://localhost:${port}/trpc`,
+            lazy: { enabled: true, closeMs: 0 },
+            connectionParams: authId === undefined ? null : { token: authId },
+          }),
+        }),
+        false: httpBatchLink({
+          url: `http://localhost:${port}/trpc`,
+          // CONSTRAINT: The AUTH_ID_HEADER is serialized as "undefined" if the value is undefined.
+          headers: authId === undefined ? {} : { [AUTH_ID_HEADER]: authId },
+        }),
       }),
     ],
   })

@@ -18,5 +18,6 @@ export type User = {
 export interface AuthProvider {
   parseTokenMiddleware: () => RequestHandler
   parseAuthStatus: (args: { req: Request }) => AuthStatus
+  authenticateSessionToken: (token: string) => Promise<AuthStatus>
   fetchUser: (args: { authId: string }) => Promise<Result<User, FetchUserError>>
 }

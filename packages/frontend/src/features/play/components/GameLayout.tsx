@@ -1,23 +1,23 @@
-import type { GameDetails, PlayerView } from "@api-types"
 import type { ReactElement, ReactNode } from "react"
 import { Skeleton } from "@/components/skeleton.tsx"
 import { GameSideNav } from "@/features/play/components/GameSideNav.tsx"
 import { GameTopBar } from "@/features/play/components/GameTopBar.tsx"
+import type { PlayGameContextValue } from "@/features/play/PlayContext.tsx"
 
 export function GameLayout({
-  gameDetails,
-  playerView,
+  game,
+  currentTime,
   children,
 }: {
-  gameDetails: GameDetails
-  playerView: PlayerView
+  game: PlayGameContextValue
+  currentTime: number
   children: ReactNode
 }): ReactElement {
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
-      <GameSideNav gameId={gameDetails.id} />
+      <GameSideNav gameId={game.gameDetails.id} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <GameTopBar gameDetails={gameDetails} playerView={playerView} />
+        <GameTopBar game={game} currentTime={currentTime} />
         <main className="flex min-h-0 min-w-0 flex-1">{children}</main>
       </div>
     </div>

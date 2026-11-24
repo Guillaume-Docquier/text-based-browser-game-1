@@ -4,6 +4,10 @@ import { NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
 import { GetPlayerViewErrorResponses } from "./getPlayerView.error.ts"
 import { GetPlayerViewQuerySchema } from "./getPlayerView.query.ts"
 import type { GetPlayerViewUseCase } from "./getPlayerView.useCase.ts"
+import { TurnStateErrorResponses } from "./turnState.error.ts"
+import { TurnStateQuerySchema } from "./turnState.query.ts"
+import { TurnStateStreamSchema } from "./TurnState.ts"
+import type { TurnStateUseCase } from "./turnState.useCase.ts"
 import { UpdateReadinessCommandSchema } from "./updateReadiness.command.ts"
 import type { UpdateReadinessUseCase } from "./updateReadiness.useCase.ts"
 
@@ -11,13 +15,24 @@ import type { UpdateReadinessUseCase } from "./updateReadiness.useCase.ts"
 export function createGameplayRouter({
   trpc,
   getPlayerViewUseCase,
+  turnStateUseCase,
   updateReadinessUseCase,
 }: {
   trpc: Trpc
   getPlayerViewUseCase: GetPlayerViewUseCase
+  turnStateUseCase: TurnStateUseCase
   updateReadinessUseCase: UpdateReadinessUseCase
 }) {
   return trpc.router({
+    turnState: trpc.inGameProcedure
+      .input(TurnStateQuerySchema)
+      .output(TurnStateStreamSchema)
+      .subscription(async function* ({ input, ctx: { playerId }, signal }) {
+        for await (const result of turnStateUseCase.execute(input, { playerId, signal })) {
+          yield await toTrpcOutput(Promise.resolve(result), TurnStateErrorResponses)
+        }
+      }),
+
     updateReadiness: trpc.inGameProcedure
       .input(UpdateReadinessCommandSchema)
       .output(NO_OUTPUT)

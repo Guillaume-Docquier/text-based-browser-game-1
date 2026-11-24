@@ -11,7 +11,7 @@ export abstract class GamePage extends BasePage {
   private readonly playersLink: Locator
 
   public readonly gameNameHeading: Locator
-  private readonly turnButton: Locator
+  public readonly turnButton: Locator
 
   protected constructor(page: Page) {
     super(page)

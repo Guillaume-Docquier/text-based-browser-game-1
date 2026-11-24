@@ -10,6 +10,7 @@ import { playersTable, turnsTable } from "#lib/db/schema.ts"
 import type { AuthenticatedApiClient } from "#testing/ApiClient.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createConcurrencyTestDb } from "#testing/createConcurrencyTestDb.ts"
+import { readTurnState } from "#testing/readTurnState.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 
 describe("TurnProcessor concurrency", () => {
@@ -38,14 +39,14 @@ describe("TurnProcessor concurrency", () => {
     await concurrency.waitForBlockedQuery({ blockedBy: claimBlock.pid, command: "update", table: turnsTable, lock: "row" })
 
     expect(await concurrency.waitForCompletion(secondProcessor.processNextDueTurn())).toBe("processed")
-    expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
+    expect(await readTurnState(player, laterGameId)).toMatchObject({
       turn: 2,
       turnStatus: TurnStatus.COLLECTING_ACTIONS,
     })
 
     await claimBlock.release()
     expect(await firstOutcome).toStrictEqual(Result.Success("processed"))
-    expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
+    expect(await readTurnState(player, earlierGameId)).toMatchObject({
       turn: 2,
       turnStatus: TurnStatus.COLLECTING_ACTIONS,
     })
@@ -74,7 +75,7 @@ describe("TurnProcessor concurrency", () => {
 
     await claimBlock.release()
     expect(await firstOutcome).toStrictEqual(Result.Success("processed"))
-    expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
+    expect(await readTurnState(player, gameId)).toMatchObject({
       turn: 2,
       turnStatus: TurnStatus.COLLECTING_ACTIONS,
     })
@@ -98,7 +99,7 @@ describe("TurnProcessor concurrency", () => {
     // Act & Assert
     const firstOutcome = Result.tryCatch(firstProcessor.processNextDueTurn())
     await concurrency.waitForBlockedQuery({ blockedBy: saveBlock.pid, command: "update", table: playersTable, lock: "table" })
-    expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
+    expect(await readTurnState(player, gameId)).toMatchObject({
       turn: 1,
       turnStatus: TurnStatus.PROCESSING,
     })
@@ -106,7 +107,7 @@ describe("TurnProcessor concurrency", () => {
 
     await saveBlock.release()
     expect(await firstOutcome).toStrictEqual(Result.Success("processed"))
-    expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
+    expect(await readTurnState(player, gameId)).toMatchObject({
       turn: 2,
       turnStatus: TurnStatus.COLLECTING_ACTIONS,
     })

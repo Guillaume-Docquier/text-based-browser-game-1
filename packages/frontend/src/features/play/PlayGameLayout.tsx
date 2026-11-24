@@ -1,6 +1,8 @@
 import { Outlet } from "@tanstack/react-router"
-import type { ReactElement } from "react"
+import { type ReactElement, useEffect, useState } from "react"
 import type { GameId } from "shared/domain/games/GameId.ts"
+import { GameStatus } from "shared/domain/games/GameStatus.ts"
+import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
@@ -8,12 +10,29 @@ import { GameLayout, GameLayoutSkeleton } from "@/features/play/components/GameL
 import { PlayGameContextProvider, type PlayGameContextValue } from "@/features/play/PlayContext.tsx"
 import { useGameDetailsQuery } from "@/lib/api/useGameDetailsQuery.ts"
 import { usePlayerViewQuery } from "@/lib/api/usePlayerViewQuery.ts"
+import { useTurnState } from "@/lib/api/useTurnState.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
 export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
+  return <PlayGame key={gameId} gameId={gameId} />
+}
+
+function PlayGame({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const gameDetailsQuery = useGameDetailsQuery(gameId)
-  const playerViewQuery = usePlayerViewQuery(gameId)
+  const { subscription, isLive } = useTurnState(gameId)
+  const turnState = subscription.data
+  const playerViewQuery = usePlayerViewQuery(gameId, turnState?.turn)
+  const [currentTime, setCurrentTime] = useState(Date.now)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now())
+    }, 1_000)
+    return (): void => {
+      clearInterval(timer)
+    }
+  }, [])
 
   if (gameDetailsQuery.isPending || playerViewQuery.isPending) {
     return <GameLayoutSkeleton />
@@ -43,11 +62,29 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
     )
   }
 
-  const context: PlayGameContextValue = { gameDetails: gameDetailsQuery.data, playerView: playerViewQuery.data }
+  if (subscription.status === "error") {
+    return <GameLoadError message={subscription.error.message} onRetry={subscription.reset} />
+  }
+
+  if (turnState === undefined) {
+    return <GameLayoutSkeleton />
+  }
+
+  const gameDetails = gameDetailsQuery.data
+  const playerView = playerViewQuery.data
+  const currentTurnEndsAt = new Date(turnState.turnEndsAt).getTime()
+  const canUpdateReadiness =
+    isLive &&
+    gameDetails.status !== GameStatus.ENDED &&
+    turnState.turnStatus === TurnStatus.COLLECTING_ACTIONS &&
+    turnState.turn === playerView.turn &&
+    currentTime < currentTurnEndsAt
+
+  const context: PlayGameContextValue = { gameDetails, playerView, turnState, canUpdateReadiness }
 
   return (
     <PlayGameContextProvider value={context}>
-      <GameLayout gameDetails={context.gameDetails} playerView={context.playerView}>
+      <GameLayout game={context} currentTime={currentTime}>
         <Outlet />
       </GameLayout>
     </PlayGameContextProvider>

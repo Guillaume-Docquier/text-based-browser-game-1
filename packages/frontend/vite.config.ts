@@ -37,6 +37,7 @@ export default defineConfig(({ mode }) => {
         [env.VITE_BACKEND_BASE_URL]: {
           target: env.VITE_BACKEND_HOST,
           changeOrigin: true,
+          ws: true,
           rewrite: (path): string => path.replace(proxyRewriteRegex, ""),
         },
       },
