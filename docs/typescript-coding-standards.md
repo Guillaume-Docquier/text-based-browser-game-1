@@ -194,13 +194,6 @@ Authorization belongs in shared application/domain policy, not duplicated in con
 
 ## Imports, exports, and files
 
-Always use named exports:
-
-```ts
-import { PasswordReset } from "./password-reset"
-import { casesHandled } from "./prelude"
-```
-
 Export only what callers should use. Keep internal helpers unexported unless intentionally shared. Do not export internals just for tests.
 
 Avoid vague files:

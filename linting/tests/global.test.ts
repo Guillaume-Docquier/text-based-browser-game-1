@@ -15,6 +15,28 @@ describe("global lint rules in source files", () => {
     await session.stop()
   })
 
+  describe("default export exceptions for tool entry points", () => {
+    it.each([
+      ["Railway's auto-discovered config", ".railway/railway.ts"],
+      ["Oxlint's plugin loader", "linting/plugins/fixture.ts"],
+      ["Storybook's config loader", "packages/frontend/.storybook/main.ts"],
+    ])("should allow a default export for %s", async (_reason, path) => {
+      // Arrange
+      const fixture = {
+        path,
+        code: `
+          export default { enabled: true }
+        `,
+      }
+
+      // Act
+      const diagnostics = await session.lint(fixture)
+
+      // Assert
+      expect(diagnostics).toStrictEqual([])
+    })
+  })
+
   describe.each([
     ["root", "fixture.ts"],
     ["backend", "packages/backend/src/fixture.ts"],
@@ -107,6 +129,53 @@ describe("global lint rules in source files", () => {
 
         // Assert
         expect(diagnostics).toStrictEqual(["import(no-namespace)"])
+      })
+    })
+
+    describe("no default exports", () => {
+      it.each([
+        {
+          name: "default export declarations",
+          code: `
+            export default { enabled: true }
+          `,
+        },
+        {
+          name: "exports aliased to default",
+          code: `
+            const settings = { enabled: true }
+
+            export { settings as default }
+          `,
+        },
+      ])("should reject $name", async ({ code }) => {
+        // Arrange
+        const fixture = { path, code }
+
+        // Act
+        const diagnostics = await session.lint(fixture)
+
+        // Assert
+        expect(diagnostics).toStrictEqual(["import(no-default-export)"])
+      })
+
+      it.each([
+        ["tool configuration", ".config.ts"],
+        ["Storybook story metadata", ".stories.tsx"],
+      ])("should allow a default export for %s", async (_reason, suffix) => {
+        // Arrange
+        const fixture = {
+          path: path.replace(/\.ts$/, suffix),
+          code: `
+            export default { enabled: true }
+          `,
+        }
+
+        // Act
+        const diagnostics = await session.lint(fixture)
+
+        // Assert
+        expect(diagnostics).toStrictEqual([])
       })
     })
 

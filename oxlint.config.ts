@@ -29,7 +29,18 @@ export default defineConfig({
     denyWarnings: true,
   },
   ignorePatterns: ["*.gen.*"],
+  rules: {
+    "cosmic-empires/allowed-comments": ["error", allowedComments],
+    "eslint-js/no-restricted-syntax": restrictedSyntax,
+    "import/no-default-export": "error",
+    "import/no-namespace": "error",
+    "unicorn/prefer-export-from": "error",
+  },
   overrides: [
+    {
+      files: ["**/*.config.*", ".railway/railway.ts", "linting/plugins/**", "**/*.stories.{ts,tsx}", "**/.storybook/**"],
+      rules: { "import/no-default-export": "off" },
+    },
     {
       files: ["**/*"],
       excludeFiles: ["**/playwright/**/*"],
@@ -72,10 +83,4 @@ export default defineConfig({
       },
     },
   ],
-  rules: {
-    "cosmic-empires/allowed-comments": ["error", allowedComments],
-    "eslint-js/no-restricted-syntax": restrictedSyntax,
-    "import/no-namespace": "error",
-    "unicorn/prefer-export-from": "error",
-  },
 } satisfies OxlintConfig)
