@@ -35,11 +35,7 @@ export class TurnStateUseCase {
     }
 
     const game = this.getOrCreateGame(gameId)
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Node's on() omits the event argument types, which the emitter enforces.
-    const snapshots = on(game.events, "snapshot", signal === undefined ? {} : { signal }) as NodeJS.AsyncIterator<[TurnStateResult]>
-    if (!game.isReading) {
-      this.refresh(gameId)
-    }
+    const snapshots = this.subscribeToSnapshots(gameId, game, signal)
 
     try {
       for await (const [snapshot] of snapshots) {
@@ -71,6 +67,20 @@ export class TurnStateUseCase {
     for (const gameId of this.games.keys()) {
       this.refresh(gameId)
     }
+  }
+
+  private subscribeToSnapshots(
+    gameId: GameId,
+    game: GameSubscription,
+    signal: AbortSignal | undefined,
+  ): NodeJS.AsyncIterator<[TurnStateResult]> {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Node's on() omits the event argument types, which the emitter enforces.
+    const snapshots = on(game.events, "snapshot", signal === undefined ? {} : { signal }) as NodeJS.AsyncIterator<[TurnStateResult]>
+    if (!game.isReading) {
+      this.refresh(gameId)
+    }
+
+    return snapshots
   }
 
   private getOrCreateGame(gameId: GameId): GameSubscription {
