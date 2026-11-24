@@ -21,10 +21,6 @@ export class TestHeaderAuthProvider implements AuthProvider {
     return { isAuthenticated: true, authId }
   }
 
-  public async authenticateSessionToken(authId: string): Promise<AuthStatus> {
-    return { isAuthenticated: true, authId }
-  }
-
   public async fetchUser(): Promise<Result<User, FetchUserError>> {
     return Result.Success({ email: null })
   }

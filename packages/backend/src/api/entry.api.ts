@@ -51,7 +51,7 @@ async function main(): Promise<void> {
   })
 
   logger.info("Creating the API")
-  const { api, attachWebSocket, startTurnStateListener } = await createApi({
+  const { api, startTurnStateListener } = await createApi({
     logger,
     clock,
     createTransaction: createCreateTransaction(db),
@@ -72,10 +72,8 @@ async function main(): Promise<void> {
     process.send?.({ type: "listening", port: serverAddress.port } as const satisfies PortListeningMessage)
   })
 
-  const closeWebSocket = attachWebSocket(server)
   server.once("close", () => {
     void listener[Symbol.asyncDispose]()
-    closeWebSocket()
   })
 
   logger.info("Starting turn processing")

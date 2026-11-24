@@ -1,12 +1,8 @@
-import type { Server } from "node:http"
 import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
 import type { TRPCError } from "@trpc/server"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
-import { applyWSSHandler } from "@trpc/server/adapters/ws"
 import compression from "compression"
 import express, { type Express } from "express"
-import { v4 } from "uuid"
-import { WebSocketServer } from "ws"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createAccountsRouter } from "#api/accounts/accounts.router.ts"
 import { FinishOnboardingUseCase } from "#api/accounts/finishOnboarding.useCase.ts"
@@ -28,11 +24,10 @@ import { createHealthRouter } from "#api/health/health.router.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { TurnStateListener } from "#lib/db/TurnStateListener.ts"
-import { createTrpc, createTrpcContext, type TrpcContext } from "./trpc.ts"
+import { createTrpc, createTrpcContext } from "./trpc.ts"
 
 export type Api = {
   api: Express
-  attachWebSocket: (server: Server) => () => void
   startTurnStateListener: (databaseUrl: string) => Promise<AsyncDisposable>
 }
 
@@ -84,27 +79,6 @@ export async function createApi({
   return {
     api: app,
     startTurnStateListener: async (databaseUrl) => await startTurnStateListener(databaseUrl, services.logger, turnStateUseCase),
-    attachWebSocket: (server) => {
-      const wss = new WebSocketServer({ server, path: "/trpc", maxPayload: 64 * 1024 })
-      applyWSSHandler({
-        wss,
-        router,
-        onError,
-        keepAlive: { enabled: true, pingMs: 30_000, pongWaitMs: 5_000 },
-        createContext: async ({ info }): Promise<TrpcContext> => ({
-          account: await authService.authenticateSessionToken(info.connectionParams?.token),
-          requestId: v4(),
-          transport: "websocket",
-        }),
-      })
-
-      return () => {
-        for (const client of wss.clients) {
-          client.terminate()
-        }
-        wss.close()
-      }
-    },
   }
 }
 

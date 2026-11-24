@@ -108,16 +108,21 @@ test("a newer live turn disables readiness until the matching world loads", asyn
     }
     await route.fulfill({ response })
   })
-  bob.page.on("websocket", (socket) => {
-    if (!new URL(socket.url()).pathname.endsWith("/trpc")) {
-      return
+  const browserNetwork = await bob.page.context().newCDPSession(bob.page)
+  const turnStateRequests = new Set<string>()
+  let turnStateProtocol: string | undefined
+  browserNetwork.on("Network.responseReceived", ({ requestId, response }) => {
+    if (new URL(response.url).pathname.endsWith("/gameplay.turnState")) {
+      turnStateRequests.add(requestId)
+      turnStateProtocol = response.protocol
     }
-    socket.on("framereceived", ({ payload }) => {
-      if (typeof payload === "string" && /"turn":2[,}]/.test(payload)) {
-        deliveries.emit("liveTurnTwo")
-      }
-    })
   })
+  browserNetwork.on("Network.eventSourceMessageReceived", ({ requestId, eventName, data }) => {
+    if (turnStateRequests.has(requestId) && eventName === "message" && /"turn":2[,}]/.test(data)) {
+      deliveries.emit("liveTurnTwo")
+    }
+  })
+  await browserNetwork.send("Network.enable")
 
   try {
     const bobGalaxy = await bobGameDetails.openGame()
@@ -131,6 +136,7 @@ test("a newer live turn disables readiness until the matching world loads", asyn
         await aliceGalaxy.toggleLockIn()
         await bobOtherGalaxy.toggleLockIn()
         await liveTurnTwo
+        expect(turnStateProtocol).toBe("h2")
       } finally {
         await bobOtherTab.close()
       }
@@ -153,6 +159,7 @@ test("a newer live turn disables readiness until the matching world loads", asyn
   } finally {
     deliveries.emit("releaseInitialWorld")
     deliveries.emit("releaseNextWorld")
+    await browserNetwork.detach()
   }
 })
 

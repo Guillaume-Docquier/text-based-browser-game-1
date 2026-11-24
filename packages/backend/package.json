@@ -31,7 +31,6 @@
     "pg": "^8.23.1",
     "shared": "workspace:*",
     "uuid": "catalog:",
-    "ws": "8.22.0",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -43,10 +42,10 @@
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",
     "@types/pg": "^8.23.1",
-    "@types/ws": "^8.18.2",
     "@vitest/coverage-v8": "catalog:",
     "commander": "^15.1.0",
     "drizzle-kit": "^0.31.11",
+    "eventsource": "^5.1.5",
     "testcontainers": "^12.2.1",
     "typescript": "catalog:",
     "vitest": "catalog:"

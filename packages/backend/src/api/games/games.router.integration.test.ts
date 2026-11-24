@@ -638,8 +638,8 @@ describe("games.router", () => {
     it("should reject joining a game that is full", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      const { api, attachWebSocket, accountsRepository } = await createApiStub({ db })
-      using apiServer = new ApiServer({ api, attachWebSocket, accountsRepository })
+      const { api, accountsRepository } = await createApiStub({ db })
+      using apiServer = new ApiServer({ api, accountsRepository })
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })

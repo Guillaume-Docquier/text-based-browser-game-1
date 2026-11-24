@@ -1,4 +1,5 @@
-import { createTRPCClient, createWSClient, httpBatchLink, splitLink, type TRPCClient, wsLink } from "@trpc/client"
+import { createTRPCClient, httpBatchLink, httpSubscriptionLink, splitLink, type TRPCClient } from "@trpc/client"
+import { EventSource } from "eventsource"
 import { createAccountStub } from "shared/domain/accounts/Account.stub.ts"
 import type { Account } from "shared/domain/accounts/Account.ts"
 import { v4 } from "uuid"
@@ -55,22 +56,20 @@ export async function createApiClient({
 }
 
 function createTrpcClient({ port, authId }: { port: number; authId: string | undefined }): TRPCClient<TrpcRouter> {
+  const url = `http://localhost:${port}/trpc`
+  const headers: Record<string, string> = authId === undefined ? {} : { [AUTH_ID_HEADER]: authId }
   return createTRPCClient<TrpcRouter>({
     links: [
       splitLink({
         condition: ({ type }) => type === "subscription",
-        true: wsLink({
-          client: createWSClient({
-            url: `ws://localhost:${port}/trpc`,
-            lazy: { enabled: true, closeMs: 0 },
-            connectionParams: authId === undefined ? null : { token: authId },
-          }),
+        true: httpSubscriptionLink({
+          url,
+          EventSource,
+          eventSourceOptions: {
+            fetch: async (input, init) => await fetch(input, { ...init, headers: { ...init.headers, ...headers } }),
+          },
         }),
-        false: httpBatchLink({
-          url: `http://localhost:${port}/trpc`,
-          // CONSTRAINT: The AUTH_ID_HEADER is serialized as "undefined" if the value is undefined.
-          headers: authId === undefined ? {} : { [AUTH_ID_HEADER]: authId },
-        }),
+        false: httpBatchLink({ url, headers }),
       }),
     ],
   })

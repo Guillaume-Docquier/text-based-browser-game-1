@@ -3,7 +3,6 @@ import { initTRPC, TRPCError } from "@trpc/server"
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import { getHTTPStatusCodeFromError } from "@trpc/server/http"
 import type { MiddlewareResult } from "@trpc/server/unstable-core-do-not-import"
-import type { Account } from "shared/domain/accounts/Account.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { v4 } from "uuid"
 import { z } from "zod"
@@ -38,10 +37,14 @@ class ApiTrpcError extends TRPCError {
   }
 }
 
-type ExpressContextOptions = Pick<CreateExpressContextOptions, "req">
-export type TrpcContext = { account: Account | undefined; requestId: string; transport: "http" | "websocket" }
-export function createTrpcContext({ req }: ExpressContextOptions): TrpcContext {
-  return { account: req.account, requestId: v4(), transport: "http" }
+type ExpressContextOptions = Pick<CreateExpressContextOptions, "req" | "res">
+export type TrpcContext = ExpressContextOptions & { requestId: string }
+export const createTrpcContext = ({ req, res }: ExpressContextOptions): TrpcContext => {
+  return {
+    req,
+    res,
+    requestId: v4(),
+  }
 }
 
 export type Trpc = ReturnType<typeof createTrpc>
@@ -49,13 +52,14 @@ export type Trpc = ReturnType<typeof createTrpc>
 export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepository: GamesRepository; logger: Logger }) {
   const logger = baseLogger.child({ scope: "trpc" })
   // CONSTRAINT: { isDev: false } disables stack traces, see https://trpc.io/docs/server/error-handling#stack-traces-in-production
-  const t = initTRPC.context<TrpcContext>().create({ isDev: false })
+  const t = initTRPC.context<TrpcContext>().create({
+    isDev: false,
+    sse: { ping: { enabled: true, intervalMs: 15_000 }, client: { reconnectAfterInactivityMs: 45_000 } },
+  })
 
   const publicProcedure = t.procedure.use(async ({ next, ctx, path, type }) => {
     const startTime = Timer.start()
-    requireMatchingTransport(type, ctx.transport)
-
-    const result = await next()
+    const result = await next({ ctx: { account: ctx.req.account } })
 
     const logEntry = createLogEntry(result, { startTime, route: path, type, requestId: ctx.requestId })
     logger[logEntry.level](logEntry.message, logEntry.context)
@@ -95,12 +99,6 @@ export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepos
     privateProcedure: privateProcedure as RequireProcedureSchemas<typeof privateProcedure>,
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: Only exposed method types change; the native builder and inferred context are preserved.
     inGameProcedure: inGameProcedure as RequireProcedureSchemas<typeof inGameProcedure>,
-  }
-}
-
-function requireMatchingTransport(type: string, transport: TrpcContext["transport"]): void {
-  if ((type === "subscription") !== (transport === "websocket")) {
-    throw new TRPCError({ code: "METHOD_NOT_SUPPORTED" })
   }
 }
 

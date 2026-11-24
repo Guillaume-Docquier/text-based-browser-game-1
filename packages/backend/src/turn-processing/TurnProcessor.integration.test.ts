@@ -59,8 +59,8 @@ describe("TurnProcessor", () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
-      const { api, attachWebSocket, accountsRepository, logger } = await createApiStub({ db, clock })
-      using apiServer = new ApiServer({ api, attachWebSocket, accountsRepository })
+      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
+      using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(100, UnitOfTime.SECONDS)
@@ -102,8 +102,8 @@ describe("TurnProcessor", () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
-      const { api, attachWebSocket, accountsRepository } = await createApiStub({ db, clock })
-      using apiServer = new ApiServer({ api, attachWebSocket, accountsRepository })
+      const { api, accountsRepository } = await createApiStub({ db, clock })
+      using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
@@ -252,8 +252,8 @@ describe("TurnProcessor", () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
-      const { api, attachWebSocket, accountsRepository, logger } = await createApiStub({ db, clock })
-      using apiServer = new ApiServer({ api, attachWebSocket, accountsRepository })
+      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
+      using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const failingTurnInterval = Time.create(50, UnitOfTime.SECONDS)
@@ -290,8 +290,8 @@ describe("TurnProcessor", () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
-      const { api, attachWebSocket, accountsRepository, logger } = await createApiStub({ db, clock })
-      using apiServer = new ApiServer({ api, attachWebSocket, accountsRepository })
+      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
+      using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.games.create.mutate({

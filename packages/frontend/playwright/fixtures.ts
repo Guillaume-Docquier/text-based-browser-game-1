@@ -50,7 +50,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   ],
   expectedBrowserDiagnostics: [{ messages: [] }, { option: true }],
   browserSessions: [
-    async ({ browser, context, expectedBrowserDiagnostics }, use, testInfo): Promise<void> => {
+    async ({ browser, context, expectedBrowserDiagnostics, ignoreHTTPSErrors }, use, testInfo): Promise<void> => {
       const sessions: Array<{ context: BrowserContext; user: AuthenticatedUser }> = []
       const diagnostics: string[] = []
       const removeContextListeners: Array<() => void> = []
@@ -83,6 +83,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       await use({
         for: async (user) => {
           const userContext = await browser.newContext({
+            ignoreHTTPSErrors,
             storageState: user.authFilePath,
             recordVideo: { dir: testInfo.outputPath("videos") },
           })

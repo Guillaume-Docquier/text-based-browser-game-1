@@ -1,15 +1,10 @@
-import { createServer } from "node:http"
-import { Assert, branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { describe, expect, it } from "vitest"
-import { AuthService } from "#api/auth/auth.service.ts"
-import { ClerkAuthProvider } from "#api/auth/ClerkAuthProvider.ts"
-import { AUTH_ID_HEADER } from "#api/auth/TestHeaderAuthProvider.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createApi } from "#api/createApi.ts"
 import { GetPlayerViewError, GetPlayerViewErrorResponses } from "#api/gameplay/getPlayerView.error.ts"
 import { UpdateReadinessError, UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
@@ -88,51 +83,6 @@ describe("gameplay.router", () => {
 
       // Assert
       await expect(snapshot).rejects.toMatchObject({ data: { code: "NOT_FOUND" } })
-    })
-
-    it("should reject a turn-state stream requested over HTTP", async () => {
-      // Arrange
-      await using db = await createIntegrationTestDb()
-      const services = await createApiStub({ db })
-      using apiServer = new ApiServer(services)
-      const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-
-      await using http = createServer(services.api).listen()
-      const address = http.address()
-      Assert.isDefined(address)
-      Assert.isTrue(typeof address !== "string")
-      const url = new URL(`http://localhost:${address.port}/trpc/gameplay.turnState`)
-      url.searchParams.set("input", JSON.stringify({ gameId: createdGameId }))
-
-      // Act
-      const response = await fetch(url, {
-        headers: { accept: "text/event-stream", [AUTH_ID_HEADER]: player.account.authId },
-        signal: AbortSignal.timeout(5_000),
-      })
-
-      // Assert
-      const events = await response.text()
-      expect(events).toContain("event: serialized-error")
-      expect(events).toContain('"code":"METHOD_NOT_SUPPORTED"')
-    })
-
-    it("should reject a malformed Clerk session token over WebSocket", async () => {
-      // Arrange
-      await using db = await createIntegrationTestDb()
-      const services = await createApiStub({ db })
-      const { logger, accountsRepository } = services
-      const authService = new AuthService({ logger, accountsRepository, authProvider: new ClerkAuthProvider({ logger }) })
-      const api = await createApi({ ...services, authService })
-      using apiServer = new ApiServer({ ...api, accountsRepository })
-      const player = await apiServer.createClient({ authenticated: true })
-
-      // Act
-      const snapshot = readTurnState(player, branded(1))
-
-      // Assert
-      await expect(snapshot).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } })
     })
   })
 
