@@ -24,3 +24,7 @@
 <!-- Is a DB wipe necessary? -->
 <!-- Do we need to set up new infra? -->
 <!-- Write N/A if there is nothing to mention -->
+
+## Retro
+
+<!-- After CI is green, add the implementation retro here. -->

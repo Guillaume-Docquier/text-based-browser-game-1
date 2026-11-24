@@ -72,6 +72,8 @@ For a suspected flaky test:
 
 Use bounded polling with progress updates rather than a tight loop. If the same unrelated failure persists after three reruns, or unavailable services/permissions prevent progress, report the blocker and evidence instead of retrying indefinitely or claiming completion. Continue all work that is not blocked.
 
+Once CI is green for the current head, use the [implementation retro skill](../implementation-retro/SKILL.md) to fill in the `## Retro` section of the PR description. Preserve the rest of the description.
+
 ## 6. Optional Greptile review
 
 Skip this section entirely unless the user enabled Greptile review.
@@ -109,6 +111,7 @@ Before declaring completion, verify that:
 
 - All intended changes are committed and pushed, and the PR remains open against `main`.
 - CI is green for the current PR head and any unrelated flakes are documented in the PR.
+- The PR description includes the retro. If later review or CI work changed its findings, update that section once the latest head is green.
 - If requested, Greptile's review has completed and every actionable finding has a reasoned response; all resolvable threads have been resolved.
 
 Mark the PR as ready for review. Return the open PR link and a very short summary of the changes. If a required step is blocked, return the PR link when available and the specific unfinished step instead of claiming completion.
