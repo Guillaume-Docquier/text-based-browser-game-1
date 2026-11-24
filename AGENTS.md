@@ -6,6 +6,10 @@ Everything is in TypeScript. Never write JavaScript files if you can do it in Ty
 
 For each directory you work in, read the existing `AGENTS.md` and `ARCHITECTURE.md` files from the repository root down to that directory. When choosing, writing, or running tests, also read the `TESTING.md` files along the same path. Apply guidance from root to leaf. A local exception overrides only the inherited rule it identifies. For changes in multiple directories, follow the path for each one.
 
+## Testing
+
+If the existing test strategies cannot cover a behavior you think needs testing, raise it with the human. Explain what failure the test would catch and why the available approaches cannot exercise it. Wait for agreement on the need and approach before building or extending a test harness or other test infrastructure for that case.
+
 ## Project priorities
 
 Cosmic Empires is a multiplayer turn based space strategy game where games span over weeks or months.
