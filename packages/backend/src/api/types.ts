@@ -4,7 +4,8 @@ import type { TrpcRouter } from "./createApi.ts"
 type TrpcRouterInput = inferRouterInputs<TrpcRouter>
 type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
 
-export type { TrpcRouter }
+// oxlint-disable-next-line eslint-js/no-restricted-syntax -- The frontend tRPC client imports its router type through @api-types.
+export type { TrpcRouter } from "./createApi.ts"
 
 export type GameDetails = TrpcRouterOutput["games"]["getDetails"]
 export type GameStatus = GameDetails["status"]

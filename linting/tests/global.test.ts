@@ -21,140 +21,201 @@ describe("global lint rules in source files", () => {
     ["frontend", "packages/frontend/src/fixture.ts"],
     ["shared", "packages/shared/src/fixture.ts"],
   ])("%s source files", (_scope, path) => {
-    it("should allow an INTENT comment", async () => {
-      // Arrange
-      const fixture = {
-        path,
-        code: `
-        // INTENT: Keep the default available before startup.
-        export const defaultLimit = 10
-      `,
-      }
+    describe("no barrel files", () => {
+      it.each([
+        {
+          name: "wildcard re-exports",
+          code: `
+            export * from "node:assert/strict"
+          `,
+          diagnostic: "oxc(no-barrel-file)",
+        },
+        {
+          name: "type-only wildcard re-exports",
+          code: `
+            export type * from "@guillaume-docquier/tools-ts"
+          `,
+          diagnostic: "oxc(no-barrel-file)",
+        },
+        {
+          name: "namespace re-exports",
+          code: `
+            export * as react from "react"
+          `,
+          diagnostic: "oxc(no-barrel-file)",
+        },
+        {
+          name: "named re-exports",
+          code: `
+            export { describe } from "vitest"
+          `,
+          diagnostic: "eslint-js(no-restricted-syntax)",
+        },
+        {
+          name: "type-only re-exports",
+          code: `
+            export type { Branded } from "@guillaume-docquier/tools-ts"
+          `,
+          diagnostic: "eslint-js(no-restricted-syntax)",
+        },
+        {
+          name: "re-exports of imported types used locally",
+          code: `
+            import type { Branded } from "@guillaume-docquier/tools-ts"
 
-      // Act
-      const diagnostics = await session.lint(fixture)
+            export type ExampleId = Branded<"ExampleId", string>
+            export type { Branded }
+          `,
+          diagnostic: "unicorn(prefer-export-from)",
+        },
+      ])("should reject $name", async ({ code, diagnostic }) => {
+        // Arrange
+        const fixture = { path, code }
 
-      // Assert
-      expect(diagnostics).toStrictEqual([])
+        // Act
+        const diagnostics = await session.lint(fixture)
+
+        // Assert
+        expect(diagnostics).toStrictEqual([diagnostic])
+      })
     })
 
-    it("should allow a CONSTRAINT comment", async () => {
-      // Arrange
-      const fixture = {
-        path,
-        code: `
-        // CONSTRAINT: The protocol reserves the first identifier.
-        export const firstId = 2
-      `,
-      }
+    describe("strict comments", () => {
+      it("should allow an INTENT comment", async () => {
+        // Arrange
+        const fixture = {
+          path,
+          code: `
+          // INTENT: Keep the default available before startup.
+          export const defaultLimit = 10
+        `,
+        }
 
-      // Act
-      const diagnostics = await session.lint(fixture)
+        // Act
+        const diagnostics = await session.lint(fixture)
 
-      // Assert
-      expect(diagnostics).toStrictEqual([])
-    })
+        // Assert
+        expect(diagnostics).toStrictEqual([])
+      })
 
-    it("should allow an oxlint disable directive", async () => {
-      // Arrange
-      const fixture = {
-        path,
-        code: `
-        // oxlint-disable-next-line no-debugger
-        debugger
-      `,
-      }
+      it("should allow a CONSTRAINT comment", async () => {
+        // Arrange
+        const fixture = {
+          path,
+          code: `
+          // CONSTRAINT: The protocol reserves the first identifier.
+          export const firstId = 2
+        `,
+        }
 
-      // Act
-      const diagnostics = await session.lint(fixture)
+        // Act
+        const diagnostics = await session.lint(fixture)
 
-      // Assert
-      expect(diagnostics).toStrictEqual([])
-    })
+        // Assert
+        expect(diagnostics).toStrictEqual([])
+      })
 
-    it("should allow a TypeScript expect-error directive", async () => {
-      // Arrange
-      const fixture = {
-        path,
-        code: `
-        // @ts-expect-error: Exercise an invalid value.
-        export const count: number = "invalid"
-      `,
-      }
+      it("should allow an oxlint disable directive", async () => {
+        // Arrange
+        const fixture = {
+          path,
+          code: `
+          // oxlint-disable-next-line no-debugger
+          debugger
+        `,
+        }
 
-      // Act
-      const diagnostics = await session.lint(fixture)
+        // Act
+        const diagnostics = await session.lint(fixture)
 
-      // Assert
-      expect(diagnostics).toStrictEqual([])
-    })
+        // Assert
+        expect(diagnostics).toStrictEqual([])
+      })
 
-    it("should reject an ordinary comment", async () => {
-      // Arrange
-      const fixture = {
-        path,
-        code: `
-        // Set the default limit.
-        export const defaultLimit = 10
-      `,
-      }
+      it("should allow a TypeScript expect-error directive", async () => {
+        // Arrange
+        const fixture = {
+          path,
+          code: `
+          // @ts-expect-error: Exercise an invalid value.
+          export const count: number = "invalid"
+        `,
+        }
 
-      // Act
-      const diagnostics = await session.lint(fixture)
+        // Act
+        const diagnostics = await session.lint(fixture)
 
-      // Assert
-      expect(diagnostics).toStrictEqual([allowedComments])
-    })
+        // Assert
+        expect(diagnostics).toStrictEqual([])
+      })
 
-    it.each(["Arrange", "Act", "Assert"])("should reject %s", async (phase) => {
-      // Arrange
-      const fixture = {
-        path,
-        code: `
-        // ${phase}
-        export const defaultLimit = 10
-      `,
-      }
+      it("should reject an ordinary comment", async () => {
+        // Arrange
+        const fixture = {
+          path,
+          code: `
+          // Set the default limit.
+          export const defaultLimit = 10
+        `,
+        }
 
-      // Act
-      const diagnostics = await session.lint(fixture)
+        // Act
+        const diagnostics = await session.lint(fixture)
 
-      // Assert
-      expect(diagnostics).toStrictEqual([allowedComments])
-    })
+        // Assert
+        expect(diagnostics).toStrictEqual([allowedComments])
+      })
 
-    it("should reject a block comment with an allowed prefix", async () => {
-      // Arrange
-      const fixture = {
-        path,
-        code: `
-        /* INTENT: Keep the default available before startup. */
-        export const defaultLimit = 10
-      `,
-      }
+      it.each(["Arrange", "Act", "Assert"])("should reject %s", async (phase) => {
+        // Arrange
+        const fixture = {
+          path,
+          code: `
+          // ${phase}
+          export const defaultLimit = 10
+        `,
+        }
 
-      // Act
-      const diagnostics = await session.lint(fixture)
+        // Act
+        const diagnostics = await session.lint(fixture)
 
-      // Assert
-      expect(diagnostics).toStrictEqual([allowedComments])
-    })
+        // Assert
+        expect(diagnostics).toStrictEqual([allowedComments])
+      })
 
-    it("should require the prefix at the start of the comment text", async () => {
-      // Arrange
-      const fixture = {
-        path,
-        code: `
-        // An example of an INTENT: comment.
-        export const defaultLimit = 10
-      `,
-      }
+      it("should reject a block comment with an allowed prefix", async () => {
+        // Arrange
+        const fixture = {
+          path,
+          code: `
+          /* INTENT: Keep the default available before startup. */
+          export const defaultLimit = 10
+        `,
+        }
 
-      // Act
-      const diagnostics = await session.lint(fixture)
+        // Act
+        const diagnostics = await session.lint(fixture)
 
-      // Assert
-      expect(diagnostics).toStrictEqual([allowedComments])
+        // Assert
+        expect(diagnostics).toStrictEqual([allowedComments])
+      })
+
+      it("should require the prefix at the start of the comment text", async () => {
+        // Arrange
+        const fixture = {
+          path,
+          code: `
+          // An example of an INTENT: comment.
+          export const defaultLimit = 10
+        `,
+        }
+
+        // Act
+        const diagnostics = await session.lint(fixture)
+
+        // Assert
+        expect(diagnostics).toStrictEqual([allowedComments])
+      })
     })
 
     it("should reject an unhandled promise returned by a callback", async () => {

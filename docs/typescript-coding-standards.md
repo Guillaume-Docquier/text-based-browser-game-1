@@ -194,8 +194,6 @@ Authorization belongs in shared application/domain policy, not duplicated in con
 
 ## Imports, exports, and files
 
-Prefer direct imports from the file that owns the abstraction. Do not use barrel files or re-exports. The backend API types is the only file that can re-export, and it re-exports only types for the frontend.
-
 For domain modules, avoid namespace imports if you need to preserve the module shape. Export a const instead:
 
 Avoid:

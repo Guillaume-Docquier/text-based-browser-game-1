@@ -15,6 +15,10 @@ const allowedComments = {
 const restrictedSyntax = [
   ...typescript.rules["eslint-js/no-restricted-syntax"],
   { selector: "ImportExpression", message: "Use a static import declaration." },
+  {
+    selector: "ExportNamedDeclaration[source]",
+    message: "Import directly from the module that defines the binding.",
+  },
 ] satisfies NonNullable<OxlintConfig["rules"]>[string]
 
 export default defineConfig({
@@ -71,5 +75,6 @@ export default defineConfig({
   rules: {
     "cosmic-empires/allowed-comments": ["error", allowedComments],
     "eslint-js/no-restricted-syntax": restrictedSyntax,
+    "unicorn/prefer-export-from": "error",
   },
 } satisfies OxlintConfig)

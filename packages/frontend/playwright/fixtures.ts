@@ -1,4 +1,5 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
+// oxlint-disable-next-line unicorn/prefer-export-from -- The fixture exports `expect` so it can supply custom matchers.
 import { expect, test as base, type BrowserContext, type ConsoleMessage, type WebError } from "@playwright/test"
 import { type User, users } from "./auth.ts"
 import type { AuthenticatedUser } from "./AuthenticatedUser.ts"

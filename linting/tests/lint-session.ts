@@ -6,6 +6,7 @@ import {
   createProtocolConnection,
   type Diagnostic,
   DiagnosticRefreshRequest,
+  DiagnosticSeverity,
   DidCloseTextDocumentNotification,
   DidOpenTextDocumentNotification,
   DocumentDiagnosticReportKind,
@@ -56,7 +57,7 @@ export class LintSession {
     try {
       const report = await this.connection.sendRequest(DocumentDiagnosticRequest.type, { textDocument: { uri } })
       assert(report.kind === DocumentDiagnosticReportKind.Full)
-      return report.items.map((diagnostic) => diagnostic.code)
+      return report.items.filter((diagnostic) => diagnostic.severity !== DiagnosticSeverity.Hint).map((diagnostic) => diagnostic.code)
     } finally {
       await this.connection.sendNotification(DidCloseTextDocumentNotification.type, { textDocument: { uri } })
     }
