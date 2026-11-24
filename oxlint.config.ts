@@ -31,6 +31,7 @@ export default defineConfig({
   ignorePatterns: ["*.gen.*"],
   rules: {
     "cosmic-empires/allowed-comments": ["error", allowedComments],
+    "cosmic-empires/no-renamed-imports": "error",
     "eslint-js/no-restricted-syntax": restrictedSyntax,
     "import/no-default-export": "error",
     "import/no-namespace": "error",

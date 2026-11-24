@@ -179,6 +179,78 @@ describe("global lint rules in source files", () => {
       })
     })
 
+    describe("no renamed imports", () => {
+      it.each([
+        {
+          name: "reject a renamed value import",
+          code: `
+            import { Result as ToolsResult } from "@guillaume-docquier/tools-ts"
+
+            export const result = ToolsResult.Success(1)
+          `,
+          expected: ["cosmic-empires(no-renamed-imports)"],
+        },
+        {
+          name: "reject a renamed type import",
+          code: `
+            import type { Branded as IdBrand } from "@guillaume-docquier/tools-ts"
+
+            export type ExampleId = IdBrand<"ExampleId", string>
+          `,
+          expected: ["cosmic-empires(no-renamed-imports)"],
+        },
+        {
+          name: "allow a Base UI wrapper to identify the headless import with the Primitive suffix",
+          code: `
+            import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
+
+            export function getDialog(): unknown {
+              return DialogPrimitive
+            }
+          `,
+          expected: [],
+        },
+        {
+          name: "reject a different rename of a Base UI import",
+          code: `
+            import { Dialog as Modal } from "@base-ui/react/dialog"
+
+            export function getDialog(): unknown {
+              return Modal
+            }
+          `,
+          expected: ["cosmic-empires(no-renamed-imports)"],
+        },
+        {
+          name: "reject the Primitive suffix for an import from another package",
+          code: `
+            import { Result as ResultPrimitive } from "@guillaume-docquier/tools-ts"
+
+            export const result = ResultPrimitive.Success(1)
+          `,
+          expected: ["cosmic-empires(no-renamed-imports)"],
+        },
+        {
+          name: "allow a named import to use its exported name",
+          code: `
+            import { Result } from "@guillaume-docquier/tools-ts"
+
+            export const result = Result.Success(1)
+          `,
+          expected: [],
+        },
+      ])("should $name", async ({ code, expected }) => {
+        // Arrange
+        const fixture = { path, code }
+
+        // Act
+        const diagnostics = await session.lint(fixture)
+
+        // Assert
+        expect(diagnostics).toStrictEqual(expected)
+      })
+    })
+
     describe("strict comments", () => {
       it("should allow an INTENT comment", async () => {
         // Arrange

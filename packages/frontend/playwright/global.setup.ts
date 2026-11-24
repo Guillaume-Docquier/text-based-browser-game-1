@@ -1,20 +1,20 @@
 import { clerk, clerkSetup } from "@clerk/testing/playwright"
 import { z } from "zod"
 import { users } from "./auth.ts"
-import { expect, test as setup } from "./fixtures.ts"
+import { expect, test } from "./fixtures.ts"
 import { HomePage } from "./pages/HomePage.ts"
 
-setup.describe.configure({ mode: "serial" })
+test.describe.configure({ mode: "serial" })
 
-setup("configure Clerk for testing", async ({ clerkConfig }) => {
+test("configure Clerk for testing", async ({ clerkConfig }) => {
   await clerkSetup(clerkConfig)
 })
 
 for (const { alias, email, authFilePath } of Object.values(users)) {
-  setup(`authenticate ${alias} and complete onboarding`, async ({ page, isCI }) => {
+  test(`authenticate ${alias} and complete onboarding`, async ({ page, isCI }) => {
     const createGamePage = await HomePage.goto(page)
 
-    const needsOnboarding = await setup.step("sign in", async () => {
+    const needsOnboarding = await test.step("sign in", async () => {
       if (isCI) {
         await clerk.signIn({ page, emailAddress: email })
         return true
@@ -27,7 +27,7 @@ for (const { alias, email, authFilePath } of Object.values(users)) {
       return !isOnboarded(await onboardingStatusResponse.json())
     })
 
-    await setup.step("complete onboarding", async () => {
+    await test.step("complete onboarding", async () => {
       if (needsOnboarding) {
         await expect(createGamePage.onboarding.heading).toBeVisible()
         await createGamePage.onboarding.chooseAlias(alias)
@@ -37,7 +37,7 @@ for (const { alias, email, authFilePath } of Object.values(users)) {
       await expect(createGamePage.onboarding.heading).not.toBeVisible()
     })
 
-    await setup.step("save auth state", async () => {
+    await test.step("save auth state", async () => {
       await page.context().storageState({ path: authFilePath })
     })
   })

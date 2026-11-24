@@ -1,4 +1,5 @@
-import { setTimeout as delay } from "node:timers/promises"
+// oxlint-disable-next-line cosmic-empires/no-renamed-imports -- Distinguish the promise timer from the callback timer.
+import { setTimeout as setTimeoutAsync } from "node:timers/promises"
 import { Assert, FatalError } from "@guillaume-docquier/tools-ts"
 import { getTableName, type SQL, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/node-postgres"
@@ -89,7 +90,7 @@ export class PostgresConcurrency {
       if (match !== undefined) {
         return match.pid
       }
-      await delay(10)
+      await setTimeoutAsync(10)
     } while (performance.now() < deadline)
 
     throw new FatalError("Concurrency schedule was not established", { expected: details, sessions })
