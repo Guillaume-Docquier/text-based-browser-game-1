@@ -9,6 +9,11 @@ type Project = (typeof projectNames)[number]
 
 const packagesDirectory = path.resolve(import.meta.dirname, "../../packages")
 const projectNames = ["backend", "frontend", "shared"] as const
+const forbiddenProjectImports: Record<Project, readonly Project[]> = {
+  backend: ["frontend"],
+  frontend: ["backend"],
+  shared: ["backend", "frontend"],
+}
 const contractAlias = "@api-types"
 const contractFile = path.join(packagesDirectory, "backend/src/api/types.ts")
 const contractImportMessage = 'Use import type { ... } from "@api-types" to import named backend contracts.'
@@ -28,26 +33,13 @@ export const workspaceBoundaries = {
     }
 
     const checkImport = (source: ImportSource, isNamedTypeImport = false): void => {
-      const specifier = source.value
-      if (specifier === contractAlias) {
-        if (importerProject !== "frontend") {
-          context.report({ node: source, message: 'The "@api-types" alias is reserved for the frontend.' })
-        } else if (!isNamedTypeImport || resolvers.frontend.resolve(specifier, importer).path !== contractFile) {
-          context.report({ node: source, message: contractImportMessage })
-        }
-        return
-      }
-
-      const targetProject = importedProject(specifier, importer, importerProject)
-      if (targetProject === undefined || targetProject === importerProject || targetProject === "shared") {
-        return
-      }
-
       const message =
-        importerProject === "frontend"
-          ? contractImportMessage
-          : `The ${importerProject} project cannot import from the ${targetProject} project.`
-      context.report({ node: source, message })
+        source.value === contractAlias
+          ? contractImportViolation(importer, importerProject, isNamedTypeImport)
+          : projectImportViolation(source.value, importer, importerProject)
+      if (message !== undefined) {
+        context.report({ node: source, message })
+      }
     }
 
     return {
@@ -75,6 +67,29 @@ export const workspaceBoundaries = {
     }
   },
 } satisfies OxlintRule
+
+function contractImportViolation(importer: string, importerProject: Project, isNamedTypeImport: boolean): string | undefined {
+  if (importerProject !== "frontend") {
+    return 'The "@api-types" alias is reserved for the frontend.'
+  }
+  if (!isNamedTypeImport) {
+    return contractImportMessage
+  }
+  if (resolvers.frontend.resolve(contractAlias, importer).path !== contractFile) {
+    return 'The "@api-types" alias must resolve to packages/backend/src/api/types.ts.'
+  }
+  return undefined
+}
+
+function projectImportViolation(specifier: string, importer: string, importerProject: Project): string | undefined {
+  const targetProject = importedProject(specifier, importer, importerProject)
+  if (targetProject === undefined || !forbiddenProjectImports[importerProject].includes(targetProject)) {
+    return undefined
+  }
+  return importerProject === "frontend"
+    ? contractImportMessage
+    : `The ${importerProject} project cannot import from the ${targetProject} project.`
+}
 
 function createResolver(tsconfig: string): ReturnType<typeof createTypeScriptImportResolver> {
   return createTypeScriptImportResolver({
