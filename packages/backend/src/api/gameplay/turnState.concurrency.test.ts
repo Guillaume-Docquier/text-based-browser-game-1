@@ -1,4 +1,4 @@
-import { Assert, branded, Logger } from "@guillaume-docquier/tools-ts"
+import { Assert, branded } from "@guillaume-docquier/tools-ts"
 import { eq, sql } from "drizzle-orm"
 import { Client } from "pg"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
@@ -7,10 +7,10 @@ import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import type { TurnState } from "#api/types.ts"
-import { playersTable } from "#lib/db/schema.ts"
-import { TurnStateListener } from "#lib/db/TurnStateListener.ts"
+import { playersTable, turnsTable } from "#lib/db/schema.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createConcurrencyTestDb } from "#testing/createConcurrencyTestDb.ts"
+import { readTurnState } from "#testing/readTurnState.ts"
 
 describe("turn-state notifications", () => {
   it("should send database notifications only for committed turn-state changes", async () => {
@@ -72,26 +72,7 @@ describe("turn-state notifications", () => {
     await bob.client.games.join.mutate({ gameId })
     await alice.client.games.startGame.mutate({ gameId })
 
-    const listener = new TurnStateListener({ databaseUrl, logger: Logger.get() })
-    const lifetime = new AbortController()
-    const listening = Promise.withResolvers<undefined>()
-    const run = listener.listen({
-      signal: lifetime.signal,
-      onListening: () => {
-        api.turnStateUseCase.refreshAll()
-        listening.resolve(undefined)
-      },
-      onChange: (id) => {
-        api.turnStateUseCase.refresh(id)
-      },
-    })
-    await using _listenerCleanup = {
-      [Symbol.asyncDispose]: async (): Promise<void> => {
-        lifetime.abort()
-        await run
-      },
-    }
-    await listening.promise
+    await using _listener = await api.startTurnStateListener(databaseUrl)
 
     const initial = Promise.withResolvers<TurnState>()
     const received: Array<TurnState | Error> = []
@@ -116,6 +97,17 @@ describe("turn-state notifications", () => {
     const initialSnapshot = await initial.promise
 
     // Act
+    await db.execute(sql`SELECT pg_notify('turn_state_changed', 'invalid game id')`)
+    const { createdGameId: otherGameId } = await alice.client.games.create.mutate({ configuration: createGameConfigurationStub() })
+    await alice.client.games.startGame.mutate({ gameId: otherGameId })
+    await alice.client.gameplay.updateReadiness.mutate({ gameId, turn: 1, isReady: true })
+    await expect
+      .poll(() => received[1])
+      .toStrictEqual({
+        ...initialSnapshot,
+        readinessByPlayerId: { [alice.account.id]: true, [bob.account.id]: false },
+      })
+
     const { rows } = await db.execute<{ pid: number }>(
       sql`SELECT pid FROM pg_stat_activity WHERE datname = current_database() AND application_name = 'turn-state-listener'`,
     )
@@ -125,19 +117,59 @@ describe("turn-state notifications", () => {
       await tx.execute(sql`SELECT pg_terminate_backend(${listenerSession.pid}, 5000)`)
       await tx
         .update(playersTable)
-        .set({ isReady: true })
+        .set({ isReady: false })
         .where(eq(playersTable.playerId, branded<PlayerId>(alice.account.id)))
     })
 
     // Assert
     expect(initialSnapshot.readinessByPlayerId).toStrictEqual({ [alice.account.id]: false, [bob.account.id]: false })
     await expect
-      .poll(() => received[1])
+      .poll(() => received[2])
       .toStrictEqual({
         ...initialSnapshot,
         turn: 1,
         turnStatus: TurnStatus.COLLECTING_ACTIONS,
-        readinessByPlayerId: { [alice.account.id]: true, [bob.account.id]: false },
+        readinessByPlayerId: { [alice.account.id]: false, [bob.account.id]: false },
       })
+  })
+
+  it("should retry a cancelled snapshot read on the same subscription", async () => {
+    // Arrange
+    await using postgres = await createConcurrencyTestDb()
+    const { db, concurrency } = postgres
+    using server = new ApiServer(await createApiStub({ db }))
+    const player = await server.createClient({ authenticated: true })
+    const { createdGameId: gameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
+    await player.client.games.startGame.mutate({ gameId })
+
+    const blocker = await db.$client.connect()
+    using _blocker = {
+      [Symbol.dispose](): void {
+        blocker.release(true)
+      },
+    }
+    const { rows: blockerRows } = await blocker.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")
+    const blockerSession = blockerRows[0]
+    Assert.isDefined(blockerSession)
+    await blocker.query("BEGIN; LOCK TABLE turns IN ACCESS EXCLUSIVE MODE")
+
+    // Act
+    const snapshot = readTurnState(player, gameId)
+    const readPid = await concurrency.waitForBlockedQuery({
+      blockedBy: blockerSession.pid,
+      command: "select",
+      table: turnsTable,
+      lock: "table",
+    })
+    const { rows: cancellation } = await db.execute<{ cancelled: boolean }>(sql`SELECT pg_cancel_backend(${readPid}) AS cancelled`)
+    await blocker.query("ROLLBACK")
+
+    // Assert
+    expect(cancellation).toStrictEqual([{ cancelled: true }])
+    await expect(snapshot).resolves.toMatchObject({
+      turn: 1,
+      turnStatus: TurnStatus.COLLECTING_ACTIONS,
+      readinessByPlayerId: { [player.account.id]: false },
+    })
   })
 })

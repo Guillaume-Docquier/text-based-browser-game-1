@@ -2,8 +2,14 @@ import { setTimeout } from "node:timers/promises"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { Client } from "pg"
 import { type GameId, GameIdSchema } from "shared/domain/games/GameId.ts"
+import { z } from "zod"
 
 const CHANNEL = "turn_state_changed"
+const NotificationGameIdSchema = z
+  .string()
+  .regex(/^[1-9]\d*$/)
+  .transform(Number)
+  .pipe(GameIdSchema)
 
 export class TurnStateListener {
   private readonly databaseUrl: string
@@ -54,12 +60,8 @@ export class TurnStateListener {
       this.logger.error("PostgreSQL turn-state listener disconnected", { error })
       disconnect()
     })
-    client.on("notification", ({ channel, payload }) => {
-      if (channel !== CHANNEL || payload === undefined || !/^[1-9]\d*$/.test(payload)) {
-        return
-      }
-
-      const gameId = GameIdSchema.safeParse(Number(payload))
+    client.on("notification", ({ payload }) => {
+      const gameId = NotificationGameIdSchema.safeParse(payload)
       if (gameId.success) {
         onChange(gameId.data)
       }

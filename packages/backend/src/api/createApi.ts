@@ -27,12 +27,13 @@ import { StartGameUseCase } from "#api/games/startGame.useCase.ts"
 import { createHealthRouter } from "#api/health/health.router.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
+import { TurnStateListener } from "#lib/db/TurnStateListener.ts"
 import { createTrpc, createTrpcContext, type TrpcContext } from "./trpc.ts"
 
 export type Api = {
   api: Express
   attachWebSocket: (server: Server) => () => void
-  turnStateUseCase: TurnStateUseCase
+  startTurnStateListener: (databaseUrl: string) => Promise<AsyncDisposable>
 }
 
 export async function createApi({
@@ -82,7 +83,7 @@ export async function createApi({
 
   return {
     api: app,
-    turnStateUseCase,
+    startTurnStateListener: async (databaseUrl) => await startTurnStateListener(databaseUrl, services.logger, turnStateUseCase),
     attachWebSocket: (server) => {
       const wss = new WebSocketServer({ server, path: "/trpc", maxPayload: 64 * 1024 })
       applyWSSHandler({
@@ -103,6 +104,29 @@ export async function createApi({
         }
         wss.close()
       }
+    },
+  }
+}
+
+async function startTurnStateListener(databaseUrl: string, logger: Logger, turnState: TurnStateUseCase): Promise<AsyncDisposable> {
+  const listener = new TurnStateListener({ databaseUrl, logger })
+  const lifetime = new AbortController()
+  const ready = Promise.withResolvers<undefined>()
+  const run = listener.listen({
+    signal: lifetime.signal,
+    onListening: () => {
+      turnState.refreshAll()
+      ready.resolve(undefined)
+    },
+    onChange: (gameId) => {
+      turnState.refresh(gameId)
+    },
+  })
+  await ready.promise
+  return {
+    async [Symbol.asyncDispose](): Promise<void> {
+      lifetime.abort()
+      await run
     },
   }
 }

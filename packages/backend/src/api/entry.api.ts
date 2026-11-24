@@ -13,7 +13,6 @@ import type { PortListeningMessage } from "#api/PortListeningMessage.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
-import { TurnStateListener } from "#lib/db/TurnStateListener.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
 import { BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
 import { startTurnProcessing } from "#turn-processing/entry.turn-processing.ts"
@@ -52,7 +51,7 @@ async function main(): Promise<void> {
   })
 
   logger.info("Creating the API")
-  const { api, attachWebSocket, turnStateUseCase } = await createApi({
+  const { api, attachWebSocket, startTurnStateListener } = await createApi({
     logger,
     clock,
     createTransaction: createCreateTransaction(db),
@@ -60,20 +59,7 @@ async function main(): Promise<void> {
     ...repositories,
   })
 
-  const listener = new TurnStateListener({ databaseUrl: env.DATABASE_URL, logger })
-  const listenerLifetime = new AbortController()
-  const firstListen = Promise.withResolvers<undefined>()
-  void listener.listen({
-    signal: listenerLifetime.signal,
-    onListening: () => {
-      turnStateUseCase.refreshAll()
-      firstListen.resolve(undefined)
-    },
-    onChange: (gameId) => {
-      turnStateUseCase.refresh(gameId)
-    },
-  })
-  await firstListen.promise
+  const listener = await startTurnStateListener(env.DATABASE_URL)
 
   // CONSTRAINT: Listen to all interfaces (::) for railway's IPv6 internal network
   const server = api.listen(env.PORT, "::", () => {
@@ -88,7 +74,7 @@ async function main(): Promise<void> {
 
   const closeWebSocket = attachWebSocket(server)
   server.once("close", () => {
-    listenerLifetime.abort()
+    void listener[Symbol.asyncDispose]()
     closeWebSocket()
   })
 

@@ -25,7 +25,8 @@ export function createBackendApiClient({
   webSocketUrl.protocol = webSocketUrl.protocol === "https:" ? "wss:" : "ws:"
   const webSocketClient = createWSClient({
     url: webSocketUrl.toString(),
-    lazy: { enabled: true, closeMs: 0 },
+    // CONSTRAINT: tRPC re-arms this timer while a subscription is active.
+    lazy: { enabled: true, closeMs: 10_000 },
     connectionParams: async () => {
       const token = await getSessionToken?.()
       return token === undefined || token === null ? null : { token }
