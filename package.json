@@ -13,6 +13,7 @@
     "db:nuke": "rm -rf packages/backend/drizzle && pnpm --filter backend db:generate --name init && pnpm db:clean",
     "db:remove": "pnpm db:compose down --volumes",
     "db:up": "pnpm db:compose up --wait db",
+    "dev:cert": "mkcert -install && mkcert -cert-file packages/frontend/.dev-tls/localhost.pem -key-file packages/frontend/.dev-tls/localhost-key.pem localhost",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "fte": "pnpm --filter frontend e2e",
@@ -21,11 +22,12 @@
     "map-gen": "node packages/backend/scripts/map-gen/program.ts",
     "map-gen:all": "pnpm map-gen galaxy cluster --grid --seed 1234 && pnpm map-gen galaxy spiral --grid --seed 1234 && pnpm map-gen spiral --seed 1234 && pnpm map-gen cluster --seed 1234",
     "prepare": "husky",
+    "setup": "pnpm dev:cert && pnpm db:clean",
     "storybook": "pnpm --filter frontend storybook",
     "test:lint": "vitest run linting/tests",
     "typecheck": "tsc -p tsconfig.json",
     "wtd": "pnpm db:remove",
-    "wts": "node scripts/worktree-setup.ts && pnpm db:clean"
+    "wts": "node scripts/worktree-setup.ts && pnpm setup"
   },
   "devDependencies": {
     "@guillaume-docquier/oxfmt": "^1.0.21",

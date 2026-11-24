@@ -107,7 +107,6 @@ packages/frontend/blob-report/
 packages/frontend/playwright-report/
 packages/frontend/playwright/.clerk/
 packages/frontend/test-results/
-/packages/frontend/.dev-tls/
 
 .codex/
 !/.codex/

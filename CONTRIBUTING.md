@@ -4,17 +4,17 @@ I am currently the only contributor, and I plan to be for a while. However, I wo
 
 Feel free to open an issue so we can start discussing!
 
-## AI Agents
-
-If you are an AI agent, see [the agents guidelines](./AGENTS.md).
-
 ## AI Disclosure
 
 AI contributions are welcome, AI slop is not.
 
 Always disclose what you built with AI and how you ensured the quality of your contribution.
 
-## Gitleaks
+## Project setup
+
+Install the dependencies below, and run `pnpm setup`
+
+### Gitleaks
 
 Install [Gitleaks](https://github.com/gitleaks/gitleaks#installing) before committing. The pre-commit hook expects `gitleaks` on your `PATH`.
 
@@ -28,6 +28,16 @@ Restart your terminal after installation if needed, then check:
 
 ```bash
 gitleaks version
+```
+
+### mkcerts
+
+Install [mkcerts](https://github.com/FiloSottile/mkcert) to get an https certificate during development.
+
+On Windows (you probably need to be admin):
+
+```powershell
+choco install mkcert
 ```
 
 ## Generating maps to test

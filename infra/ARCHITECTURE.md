@@ -8,11 +8,6 @@ Vite proxies API requests in development. In production, Caddy forwards `/api` r
 
 Vite serves the game over `https://localhost` on the configured frontend port. This lets turn-state streams and short API requests share an HTTP/2 connection. The backend listens on its existing internal HTTP port.
 
-For a trusted certificate in your development browser, use [mkcert](https://github.com/FiloSottile/mkcert) and run these commands from the repository root after installing its local CA with `mkcert -install`.
-
-```powershell
-New-Item -ItemType Directory -Force packages/frontend/.dev-tls
-mkcert -cert-file packages/frontend/.dev-tls/localhost.pem -key-file packages/frontend/.dev-tls/localhost-key.pem localhost
-```
+For a trusted certificate in your development browser, install [mkcert](https://github.com/FiloSottile/mkcert) and run `pnpm dev:cert` from the repository root. The script installs the local CA and writes the certificate and key to `packages/frontend/.dev-tls`.
 
 Vite generates a self-signed certificate when these files are absent. Playwright accepts it in its isolated test browser. Railway provides public HTTPS and HTTP/2 in production.

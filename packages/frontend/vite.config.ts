@@ -49,11 +49,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
 })
 
 async function loadDevHttps(): Promise<ServerOptions["https"]> {
-  const cert = new URL("./.dev-tls/localhost.pem", import.meta.url)
-  const key = new URL("./.dev-tls/localhost-key.pem", import.meta.url)
-  if (existsSync(cert) && existsSync(key)) {
-    const [certificate, privateKey] = await Promise.all([readFile(cert), readFile(key)])
-    return { cert: certificate, key: privateKey }
+  const certPath = new URL("./.dev-tls/localhost.pem", import.meta.url)
+  const keyPath = new URL("./.dev-tls/localhost-key.pem", import.meta.url)
+  if (existsSync(certPath) && existsSync(keyPath)) {
+    const [cert, key] = await Promise.all([readFile(certPath), readFile(keyPath)])
+    return { cert, key }
   }
 
   const cacheDir = fileURLToPath(new URL("./node_modules/.vite/basic-ssl", import.meta.url))
