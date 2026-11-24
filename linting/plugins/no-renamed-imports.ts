@@ -14,11 +14,9 @@ export const noRenamedImports = {
         }
 
         const declaration = specifier.parent
-        if (
-          localName === `${importedName}Primitive` &&
-          declaration.type === "ImportDeclaration" &&
-          (declaration.source.value === "@base-ui/react" || declaration.source.value.startsWith("@base-ui/react/"))
-        ) {
+        const source = declaration.type === "ImportDeclaration" ? declaration.source.value : ""
+        const isBaseUi = source === "@base-ui/react" || source.startsWith("@base-ui/react/")
+        if (isBaseUi && localName === `${importedName}Primitive`) {
           return
         }
 
