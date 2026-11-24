@@ -12,8 +12,6 @@ There is no backend build. Node 26+ runs TypeScript natively, so code requires i
 
 Turn Processing is isolated so workers can scale independently or move to another runtime later. Turn Processing must not depend on the API.
 
-Everything is in TypeScript. Never write JavaScript files if you can do it in TypeScript.
-
 Keep Clerk calls in the auth service and Drizzle queries in repositories. See [ADR-006](../../docs/architecture/decisions/006-abstracting-3rd-parties.md).
 
 ## Migrations

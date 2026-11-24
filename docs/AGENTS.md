@@ -7,7 +7,6 @@ ADRs live in `architecture/decisions/` and capture durable architecture decision
 - Read the index and relevant accepted ADRs before changing architecture, dependencies, API design, infrastructure, or established patterns.
 - Follow accepted decisions and their implementation patterns.
 - If code and an accepted ADR disagree, flag the mismatch before changing direction.
-- Follow the [ADR authoring skill](../.agents/skills/adr-authoring/SKILL.md) when proposing, creating, or updating an ADR.
 
 ## Game Design Decision Records
 

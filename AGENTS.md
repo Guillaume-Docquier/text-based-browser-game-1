@@ -1,5 +1,7 @@
 # Cosmic Empires
 
+Everything is in TypeScript. Never write JavaScript files if you can do it in TypeScript.
+
 ## Scoped instructions
 
 For each directory you work in, read the existing `AGENTS.md` and `ARCHITECTURE.md` files from the repository root down to that directory. When choosing, writing, or running tests, also read the `TESTING.md` files along the same path. Apply guidance from root to leaf. A local exception overrides only the inherited rule it identifies. For changes in multiple directories, follow the path for each one.
