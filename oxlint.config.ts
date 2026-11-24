@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url"
 import { typescript, vitest } from "@guillaume-docquier/oxlint"
 import { defineConfig, type OxlintConfig } from "oxlint"
+import { WorkspaceBoundaries } from "./linting/boundaries.ts"
 
 const noVitestFixtures = {
   property: "extend",
@@ -23,13 +24,15 @@ const restrictedSyntax = [
 
 export default defineConfig({
   extends: [typescript],
-  jsPlugins: [fileURLToPath(new URL("./linting/plugins/cosmic-empires-plugin.ts", import.meta.url))],
+  jsPlugins: [fileURLToPath(new URL("./linting/plugins/cosmic-empires-plugin.ts", import.meta.url)), "eslint-plugin-boundaries"],
+  settings: WorkspaceBoundaries.settings,
   options: {
     reportUnusedDisableDirectives: "deny",
     denyWarnings: true,
   },
   ignorePatterns: ["*.gen.*"],
   rules: {
+    ...WorkspaceBoundaries.rules,
     "cosmic-empires/allowed-comments": ["error", allowedComments],
     "cosmic-empires/no-renamed-imports": "error",
     "eslint-js/no-restricted-syntax": restrictedSyntax,
