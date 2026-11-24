@@ -35,12 +35,6 @@ export default defineConfig({
       },
       {
         test: {
-          name: { label: "unit", color: "green" },
-          include: ["**/*.unit.test.ts"],
-        },
-      },
-      {
-        test: {
           name: { label: "integration", color: "cyan" },
           include: ["**/*.integration.test.ts"],
           setupFiles: ["./src/testing/vitest.integration.setup.ts"],

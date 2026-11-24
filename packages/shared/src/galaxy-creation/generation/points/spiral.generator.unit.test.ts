@@ -53,7 +53,7 @@ describe("spiralGenerator", () => {
     const points = spiralGenerator({ ...DEFAULT_OPTIONS, rng: createSeededRng(1234) })
 
     // Assert
-    // INTENT: Hard to assert that this is correct without looking at it. Run `pnpm map-gen spiral --seed 1234` and the matching DEFAULT_OPTIONS to visualize the spiral. If you're happy, run `pnpm btu --update` to update the snapshot
+    // INTENT: Inspect the point distribution with `pnpm map-gen spiral --seed 1234` before accepting an intended change with `pnpm --filter shared test spiral.generator.unit.test.ts --update`.
     expect(points).toMatchSnapshot()
   })
 })
