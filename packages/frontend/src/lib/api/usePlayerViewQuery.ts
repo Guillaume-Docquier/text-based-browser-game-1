@@ -18,10 +18,15 @@ export function usePlayerViewQuery(gameId: GameId, liveTurn: number | undefined)
   const fetchStatus = query.fetchStatus
 
   useEffect(() => {
-    if (worldTurn === undefined || liveTurn === undefined || worldTurn >= liveTurn || fetchStatus !== "idle") {
+    if (fetchStatus !== "idle") {
       return
     }
-    if (refreshRequested.current !== undefined && refreshRequested.current >= liveTurn) {
+    if (worldTurn === undefined || liveTurn === undefined) {
+      return
+    }
+
+    const latestRequestedTurn = Math.max(worldTurn, refreshRequested.current ?? worldTurn)
+    if (liveTurn <= latestRequestedTurn) {
       return
     }
 

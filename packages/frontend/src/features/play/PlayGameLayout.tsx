@@ -1,3 +1,4 @@
+import type { TurnState } from "@api-types"
 import { Outlet } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import type { GameId } from "shared/domain/games/GameId.ts"
@@ -46,15 +47,11 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
     )
   }
 
-  const readinessTurn =
-    isLive && turnState?.turnStatus === TurnStatus.COLLECTING_ACTIONS && turnState.turn === playerViewQuery.data.turn
-      ? turnState.turn
-      : undefined
   const context: PlayGameContextValue = {
     gameDetails: gameDetailsQuery.data,
     playerView: playerViewQuery.data,
     turnState,
-    readinessTurn,
+    readinessTurn: getReadinessTurn(playerViewQuery.data.turn, turnState, isLive),
   }
 
   return (
@@ -64,6 +61,13 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
       </GameLayout>
     </PlayGameContextProvider>
   )
+}
+
+function getReadinessTurn(worldTurn: number, turnState: TurnState | undefined, isLive: boolean): number | undefined {
+  if (!isLive || turnState?.turnStatus !== TurnStatus.COLLECTING_ACTIONS) {
+    return undefined
+  }
+  return turnState.turn === worldTurn ? worldTurn : undefined
 }
 
 function GameLoadError({ message, onRetry }: { message: string; onRetry: () => void }): ReactElement {
