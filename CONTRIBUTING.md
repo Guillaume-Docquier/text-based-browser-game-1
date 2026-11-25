@@ -14,6 +14,14 @@ AI contributions are welcome, AI slop is not.
 
 Always disclose what you built with AI and how you ensured the quality of your contribution.
 
+## Local development
+
+Install Docker and [mkcert](https://github.com/FiloSottile/mkcert). Copy `.env.example` to `.env` and fill in the local configuration. Start Docker, then run `pnpm install` and `pnpm dev:setup` at the workspace root. Setup installs the local CA, creates a localhost certificate and key, and rebuilds and seeds the local database.
+
+Run `pnpm --filter backend dev` and `pnpm --filter frontend dev` in separate terminals. Open the HTTPS localhost URL printed by Vite. Run `pnpm dev:cert` to generate a certificate for an existing checkout without resetting its database.
+
+For a new Git worktree, run `pnpm wts` at that worktree's root. It assigns local ports and runs the same setup.
+
 ## Gitleaks
 
 Install [Gitleaks](https://github.com/gitleaks/gitleaks#installing) before committing. The pre-commit hook expects `gitleaks` on your `PATH`.
