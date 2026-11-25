@@ -1,21 +1,21 @@
 import { type Branded, Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, desc, eq, gt } from "drizzle-orm"
 import type { GameId } from "shared/domain/games/GameId.ts"
-import type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import type { Star } from "shared/domain/world/stars/Star.ts"
 import { GetPlayerViewError, GetPlayerViewRollbackError } from "#api/gameplay/getPlayerView.error.ts"
 import type { PlayerView } from "#api/gameplay/PlayerView.ts"
+import { TurnStateError } from "#api/gameplay/turnState.error.ts"
+import type { TurnState } from "#api/gameplay/TurnState.ts"
 import { UpdateReadinessError, UpdateReadinessRollbackError } from "#api/gameplay/updateReadiness.error.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { planetsTable, playersTable, starsTable, turnsTable, turnsProcessingTable } from "#lib/db/schema.ts"
 
-type PlayerViewPlayerModel = Readonly<{
+type PlayerReadiness = Readonly<{
   id: PlayerId
-  color: PlayerColor
   isReady: boolean
 }>
 
@@ -25,7 +25,7 @@ export type ReadinessForUpdate = Branded<
     gameId: GameId
     playerId: PlayerId
     turn: number
-    players: readonly PlayerViewPlayerModel[]
+    players: readonly PlayerReadiness[]
   }>
 >
 
@@ -49,8 +49,6 @@ export class GameplayRepository extends PostgresRepository {
           const turns = await tx
             .select({
               turn: turnsTable.turn,
-              status: turnsTable.status,
-              endsAt: turnsTable.endsAt,
             })
             .from(turnsTable)
             .where(eq(turnsTable.gameId, gameId))
@@ -67,7 +65,6 @@ export class GameplayRepository extends PostgresRepository {
             .select({
               id: playersTable.playerId,
               color: playersTable.color,
-              isReady: playersTable.isReady,
             })
             .from(playersTable)
             .where(eq(playersTable.gameId, gameId))
@@ -84,8 +81,6 @@ export class GameplayRepository extends PostgresRepository {
             galaxy: toGalaxyModel({ stars, planets }),
             gameId,
             turn: turn.turn,
-            turnStatus: turn.status,
-            turnEndsAt: turn.endsAt,
           }
         },
         { isolationLevel: "repeatable read" },
@@ -102,6 +97,49 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     return playerViewResult
+  }
+
+  public async getTurnState(gameId: GameId): Promise<Result<TurnState, TurnStateError>> {
+    const currentTurn = this.db
+      .select({ gameId: turnsTable.gameId, turn: turnsTable.turn, turnStatus: turnsTable.status, turnEndsAt: turnsTable.endsAt })
+      .from(turnsTable)
+      .where(eq(turnsTable.gameId, gameId))
+      .orderBy(desc(turnsTable.turn))
+      .limit(1)
+      .as("current_turn")
+
+    const result = await Result.tryCatch(
+      this.db
+        .select({
+          turn: currentTurn.turn,
+          turnStatus: currentTurn.turnStatus,
+          turnEndsAt: currentTurn.turnEndsAt,
+          player: { id: playersTable.playerId, isReady: playersTable.isReady },
+        })
+        .from(currentTurn)
+        .leftJoin(playersTable, eq(playersTable.gameId, currentTurn.gameId))
+        .execute(),
+    )
+
+    if (Result.isFailure(result)) {
+      this.logger.error("Could not read turn state", { gameId, error: result.error })
+      return Result.Failure(TurnStateError.UNKNOWN)
+    }
+
+    const current = result.value[0]
+    if (current === undefined) {
+      return Result.Failure(TurnStateError.TURN_NOT_FOUND)
+    }
+
+    const readinessByPlayerId = Object.fromEntries(
+      result.value.flatMap(({ player }) => (player === null ? [] : [[player.id, player.isReady]])),
+    )
+    return Result.Success({
+      turn: current.turn,
+      turnStatus: current.turnStatus,
+      turnEndsAt: current.turnEndsAt,
+      readinessByPlayerId,
+    })
   }
 
   public async getReadinessForUpdate(
@@ -132,7 +170,7 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     const players = await tx
-      .select({ id: playersTable.playerId, color: playersTable.color, isReady: playersTable.isReady })
+      .select({ id: playersTable.playerId, isReady: playersTable.isReady })
       .from(playersTable)
       .where(eq(playersTable.gameId, gameId))
     Assert.isTrue(players.some((player) => player.id === playerId))

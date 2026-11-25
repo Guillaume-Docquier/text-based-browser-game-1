@@ -52,7 +52,13 @@ export type Trpc = ReturnType<typeof createTrpc>
 export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepository: GamesRepository; logger: Logger }) {
   const logger = baseLogger.child({ scope: "trpc" })
   // CONSTRAINT: { isDev: false } disables stack traces, see https://trpc.io/docs/server/error-handling#stack-traces-in-production
-  const t = initTRPC.context<TrpcContext>().create({ isDev: false })
+  const t = initTRPC.context<TrpcContext>().create({
+    isDev: false,
+    sse: {
+      ping: { enabled: true, intervalMs: 15_000 },
+      client: { reconnectAfterInactivityMs: 45_000 },
+    },
+  })
 
   const publicProcedure = t.procedure.use(async ({ next, ctx, path, type }) => {
     const startTime = Timer.start()

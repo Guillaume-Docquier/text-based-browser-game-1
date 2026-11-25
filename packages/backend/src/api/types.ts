@@ -15,6 +15,9 @@ export type GameConfigurationDetails = GameDetails["configuration"]
 export type GameListing = TrpcRouterOutput["games"]["getListings"][number]
 
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
+export type TurnState = AsyncIteratorYield<TrpcRouterOutput["gameplay"]["turnState"]>
+
+type AsyncIteratorYield<T> = T extends AsyncIterable<infer Value> ? Value : never
 export type Galaxy = PlayerView["galaxy"]
 export type StarSystem = Galaxy["systems"][number]
 export type Planet = StarSystem["planets"][number]

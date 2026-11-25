@@ -5,6 +5,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
+import { readTurnState } from "#testing/readTurnState.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import { type ProcessedTurnModel, TurnsRepository } from "#turn-processing/turns.repository.ts"
 
@@ -125,8 +126,10 @@ describe("TurnProcessor", () => {
       expect(playerView).toStrictEqual<typeof playerView>({
         ...initialPlayerView,
         turn: 2,
-        turnEndsAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
       })
+      expect((await readTurnState(player, createdGameId)).turnEndsAt).toBe(
+        Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
+      )
     })
 
     it.each([
@@ -172,7 +175,7 @@ describe("TurnProcessor", () => {
       await turnProcessor.processNextDueTurn()
 
       // Assert
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+      expect(await readTurnState(player, createdGameId)).toMatchObject({
         turn: 2,
         turnEndsAt: expectedDeadline,
       })

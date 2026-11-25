@@ -35,6 +35,10 @@ This index summarizes all accepted ADRs. When applying the concepts, you should 
 | [035-do-not-use-vitest-custom-fixtures](035-do-not-use-vitest-custom-fixtures.md)                                                                       | Declare tests with native Vitest functions so Oxlint can check them consistently.                                                                                                              | You want to write a custom Vitest fixture.                                                     |
 | [036-keep-handwritten-postgresql-schema-sql-outside-generated-migrations](./036-keep-handwritten-postgresql-schema-sql-outside-generated-migrations.md) | Keep handwritten PostgreSQL schema SQL in `packages/backend/migrations/` so Drizzle migrations can be rebuilt from source.                                                                     | You add database objects that require handwritten SQL or change the database rebuild workflow. |
 
+## Proposed ADRs
+
+- [037 Use Server-Sent Events over HTTP/2](./037-use-server-sent-events-over-http-2.md)
+
 ## Deprecated / Superseded / Rejected ADRs
 
 These records are kept in `deprecated/` for historical context.

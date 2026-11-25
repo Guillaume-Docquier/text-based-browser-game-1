@@ -9,7 +9,7 @@ const isCI = process.env.CI === "true"
 
 const env = parseEnv({ envFilePath: isCI ? undefined : path.resolve(frontendDirectory, "../../.env") })
 const backendUrl = `http://localhost:${env.PORT}`
-const frontendUrl = `http://localhost:${env.VITE_DEV_PORT}`
+const frontendUrl = `https://localhost:${env.VITE_DEV_PORT}`
 
 const isUiMode = process.argv.includes("--ui")
 
@@ -19,6 +19,7 @@ export default defineConfig({
   reporter: "html",
   use: {
     baseURL: frontendUrl,
+    ignoreHTTPSErrors: isCI,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -42,6 +43,7 @@ export default defineConfig({
         VITE_CLERK_PUBLISHABLE_KEY: env.VITE_CLERK_PUBLISHABLE_KEY,
       },
       url: frontendUrl,
+      ignoreHTTPSErrors: true,
       reuseExistingServer: !isCI,
     },
   ],

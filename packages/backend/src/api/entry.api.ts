@@ -8,12 +8,14 @@ import type { AuthProvider } from "#api/auth/AuthProvider.ts"
 import { ClerkAuthProvider } from "#api/auth/ClerkAuthProvider.ts"
 import { TestHeaderAuthProvider } from "#api/auth/TestHeaderAuthProvider.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
+import { TurnStateUseCase } from "#api/gameplay/turnState.useCase.ts"
 import { GamesRepository } from "#api/games/games.repository.ts"
 import type { PortListeningMessage } from "#api/PortListeningMessage.ts"
 import { AuthProviderKind } from "#lib/AuthProviderKind.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
+import { listenForTurnStateChanges } from "#lib/db/listenForTurnStateChanges.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
 import { BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
 import { startTurnProcessing } from "#turn-processing/entry.turn-processing.ts"
@@ -51,12 +53,31 @@ async function main(): Promise<void> {
     accountsRepository: repositories.accountsRepository,
   })
 
+  const turnStateUseCase = new TurnStateUseCase(repositories.gameplayRepository)
+  const listenerLifetime = new AbortController()
+  const listenerReady = Promise.withResolvers<undefined>()
+  void listenForTurnStateChanges({
+    databaseUrl: env.DATABASE_URL,
+    onChange: (gameId) => {
+      turnStateUseCase.refresh(gameId)
+    },
+    onListening: () => {
+      turnStateUseCase.refreshAll()
+      listenerReady.resolve(undefined)
+    },
+    logger,
+    signal: listenerLifetime.signal,
+  })
+
+  await listenerReady.promise
+
   logger.info("Creating the API")
   const app = await createApi({
     logger,
     clock,
     createTransaction: createCreateTransaction(db),
     authService,
+    turnStateUseCase,
     ...repositories,
   })
 
@@ -69,6 +90,10 @@ async function main(): Promise<void> {
     logger.info(`API listening on port ${serverAddress.port}`)
     // CONSTRAINT: This is currently only used for concurrency tests to know which port the api is using
     process.send?.({ type: "listening", port: serverAddress.port } as const satisfies PortListeningMessage)
+  })
+
+  server.once("close", () => {
+    listenerLifetime.abort()
   })
 
   logger.info("Starting turn processing")

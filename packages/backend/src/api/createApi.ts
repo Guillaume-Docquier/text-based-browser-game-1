@@ -10,6 +10,7 @@ import type { AuthService } from "#api/auth/auth.service.ts"
 import type { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
 import { GetPlayerViewUseCase } from "#api/gameplay/getPlayerView.useCase.ts"
+import type { TurnStateUseCase } from "#api/gameplay/turnState.useCase.ts"
 import { UpdateReadinessUseCase } from "#api/gameplay/updateReadiness.useCase.ts"
 import { CreateGameUseCase } from "#api/games/createGame.useCase.ts"
 import type { GamesRepository } from "#api/games/games.repository.ts"
@@ -36,6 +37,7 @@ export async function createApi({
   accountsRepository: AccountsRepository
   gamesRepository: GamesRepository
   gameplayRepository: GameplayRepository
+  turnStateUseCase: TurnStateUseCase
 }): Promise<Express> {
   const applicationServices = { ...services, createTransaction }
   const useCases = {
@@ -85,6 +87,7 @@ function createTrpcRouter({
   getPlayerViewUseCase: GetPlayerViewUseCase
   startGameUseCase: StartGameUseCase
   updateReadinessUseCase: UpdateReadinessUseCase
+  turnStateUseCase: TurnStateUseCase
   logger: Logger
 }) {
   const trpc = createTrpc({ logger, gamesRepository })

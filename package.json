@@ -13,6 +13,8 @@
     "db:nuke": "rm -rf packages/backend/drizzle && pnpm --filter backend db:generate --name init && pnpm --filter backend db:sync-custom && pnpm db:clean",
     "db:remove": "pnpm db:compose down --volumes",
     "db:up": "pnpm db:compose up --wait db",
+    "dev:cert": "node scripts/dev-cert.ts",
+    "dev:setup": "pnpm dev:cert && pnpm db:clean",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "fte": "pnpm --filter frontend e2e",
@@ -25,7 +27,7 @@
     "test:lint": "vitest run linting/tests",
     "typecheck": "tsc -p tsconfig.json",
     "wtd": "pnpm db:remove",
-    "wts": "node scripts/worktree-setup.ts && pnpm db:clean"
+    "wts": "node scripts/worktree-setup.ts && pnpm dev:setup"
   },
   "devDependencies": {
     "@guillaume-docquier/oxfmt": "^1.0.21",

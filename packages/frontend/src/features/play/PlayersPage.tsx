@@ -1,8 +1,6 @@
-import type { Player, PlayerView } from "@api-types"
-import { Assert } from "@guillaume-docquier/tools-ts"
+import type { Player } from "@api-types"
 import { Check, CircleDashed } from "lucide-react"
 import type { ReactElement } from "react"
-import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent } from "@/components/card.tsx"
@@ -11,7 +9,7 @@ import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function PlayersPage(): ReactElement {
-  const { gameDetails, playerView } = usePlayGameContext()
+  const { gameDetails, playerView, turnState, readinessTurn } = usePlayGameContext()
   const updateReadiness = useUpdateReadiness()
 
   return (
@@ -22,10 +20,13 @@ export function PlayersPage(): ReactElement {
           <PlayerRow
             key={player.id}
             player={player}
-            playerView={playerView}
-            isReadinessPending={updateReadiness.isPending}
+            isCurrentPlayer={player.id === playerView.player.id}
+            isReady={turnState?.readinessByPlayerId[player.id]}
+            readinessDisabled={readinessTurn === undefined || updateReadiness.isPending}
             onUpdateReadiness={(isReady) => {
-              updateReadiness.mutate({ gameId: gameDetails.id, turn: playerView.turn, isReady })
+              if (readinessTurn !== undefined && turnState !== undefined && Date.now() < Date.parse(turnState.turnEndsAt)) {
+                updateReadiness.mutate({ gameId: gameDetails.id, turn: readinessTurn, isReady })
+              }
             }}
           />
         ))}
@@ -53,30 +54,22 @@ function PlayersTable({ children }: { children: ReactElement[] }): ReactElement 
 
 function PlayerRow({
   player,
-  playerView,
-  isReadinessPending,
+  isCurrentPlayer,
+  isReady,
+  readinessDisabled,
   onUpdateReadiness,
 }: {
   player: Player
-  playerView: PlayerView
-  isReadinessPending: boolean
+  isCurrentPlayer: boolean
+  isReady: boolean | undefined
+  readinessDisabled: boolean
   onUpdateReadiness: (isReady: boolean) => void
 }): ReactElement {
   const colorLabel = formatPlayerColor(player.color)
-  const isCurrentPlayer = player.id === playerView.player.id
-  const playerState = isCurrentPlayer ? playerView.player : playerView.opponents[player.id]
-  Assert.isDefined(playerState)
 
   return (
     <div className="flex items-center gap-3 rounded-3xl border border-border/60 bg-muted/20 px-4 py-3">
-      <PlayerReadiness
-        isCurrentPlayer={isCurrentPlayer}
-        isReady={playerState.isReady}
-        disabled={playerView.turnStatus !== TurnStatus.COLLECTING_ACTIONS || isReadinessPending}
-        onToggle={() => {
-          onUpdateReadiness(!playerState.isReady)
-        }}
-      />
+      <PlayerReadiness isCurrentPlayer={isCurrentPlayer} isReady={isReady} disabled={readinessDisabled} onToggle={onUpdateReadiness} />
       <span
         aria-label={`${colorLabel} player color`}
         className="size-4 shrink-0 rounded-full border border-foreground/20"
@@ -99,13 +92,26 @@ function PlayerReadiness({
   onToggle,
 }: {
   isCurrentPlayer: boolean
-  isReady: boolean
+  isReady: boolean | undefined
   disabled: boolean
-  onToggle: () => void
+  onToggle: (isReady: boolean) => void
 }): ReactElement {
+  if (isReady === undefined) {
+    return <span role="img" aria-label="Readiness unavailable" className="size-9" />
+  }
+
   if (isCurrentPlayer) {
     return (
-      <Button variant="ghost" size="icon" aria-label="Ready" aria-pressed={isReady} disabled={disabled} onClick={onToggle}>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Ready"
+        aria-pressed={isReady}
+        disabled={disabled}
+        onClick={() => {
+          onToggle(!isReady)
+        }}
+      >
         <ReadinessIcon isReady={isReady} />
       </Button>
     )

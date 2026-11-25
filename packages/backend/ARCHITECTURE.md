@@ -24,6 +24,10 @@ Sync the custom migrations with `pnpm --filter backend db:sync-custom`. `pnpm db
 
 Every handwritten file must work after the current schema is generated. See [ADR-036](../../docs/architecture/decisions/036-keep-handwritten-postgresql-schema-sql-outside-generated-migrations.md).
 
+## Live turn state
+
+The authenticated `gameplay.turnState` subscription sends complete snapshots to game members. Each API process has one dedicated PostgreSQL listener. The gameplay use case reads a game only while it has subscribers, shares each refresh across those subscribers, and serializes the reads. After `LISTEN` is re-established, the API refreshes all active subscriptions. The browser receives a heartbeat every 15 seconds and reconnects after 45 seconds of silence. See [ADR-037](../../docs/architecture/decisions/037-use-server-sent-events-over-http-2.md).
+
 ## Transactions and locks
 
 Lock the owning row before reading state used for a decision. Joining, leaving, and starting a game lock the game row. Readiness and Turn Processing lock the current Turn row. Keep the lock and writes in the same transaction. See [ADR-026](../../docs/architecture/decisions/026-use-game-rows-as-concurrency-locks.md).

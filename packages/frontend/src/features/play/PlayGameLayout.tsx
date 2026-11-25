@@ -1,6 +1,7 @@
 import { Outlet } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import type { GameId } from "shared/domain/games/GameId.ts"
+import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
@@ -8,12 +9,14 @@ import { GameLayout, GameLayoutSkeleton } from "@/features/play/components/GameL
 import { PlayGameContextProvider, type PlayGameContextValue } from "@/features/play/PlayContext.tsx"
 import { useGameDetailsQuery } from "@/lib/api/useGameDetailsQuery.ts"
 import { usePlayerViewQuery } from "@/lib/api/usePlayerViewQuery.ts"
+import { useTurnState } from "@/lib/api/useTurnState.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
 export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const gameDetailsQuery = useGameDetailsQuery(gameId)
-  const playerViewQuery = usePlayerViewQuery(gameId)
+  const { turnState, isLive } = useTurnState(gameId)
+  const playerViewQuery = usePlayerViewQuery(gameId, turnState?.turn)
 
   if (gameDetailsQuery.isPending || playerViewQuery.isPending) {
     return <GameLayoutSkeleton />
@@ -43,11 +46,20 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
     )
   }
 
-  const context: PlayGameContextValue = { gameDetails: gameDetailsQuery.data, playerView: playerViewQuery.data }
+  const readinessTurn =
+    isLive && turnState?.turnStatus === TurnStatus.COLLECTING_ACTIONS && turnState.turn === playerViewQuery.data.turn
+      ? turnState.turn
+      : undefined
+  const context: PlayGameContextValue = {
+    gameDetails: gameDetailsQuery.data,
+    playerView: playerViewQuery.data,
+    turnState,
+    readinessTurn,
+  }
 
   return (
     <PlayGameContextProvider value={context}>
-      <GameLayout gameDetails={context.gameDetails} playerView={context.playerView}>
+      <GameLayout>
         <Outlet />
       </GameLayout>
     </PlayGameContextProvider>
