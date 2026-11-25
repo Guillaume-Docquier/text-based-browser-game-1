@@ -12,7 +12,7 @@ Always disclose what you built with AI and how you ensured the quality of your c
 
 ## Project setup
 
-Install the dependencies below, and run `pnpm setup`
+Install the dependencies below, and run `pnpm dev:setup`
 
 ### Gitleaks
 
