@@ -117,7 +117,7 @@ export class GameplayRepository extends PostgresRepository {
           player: { id: playersTable.playerId, isReady: playersTable.isReady },
         })
         .from(currentTurn)
-        .leftJoin(playersTable, eq(playersTable.gameId, currentTurn.gameId))
+        .innerJoin(playersTable, eq(playersTable.gameId, currentTurn.gameId))
         .execute(),
     )
 
@@ -131,9 +131,7 @@ export class GameplayRepository extends PostgresRepository {
       return Result.Failure(TurnStateError.TURN_NOT_FOUND)
     }
 
-    const readinessByPlayerId = Object.fromEntries(
-      result.value.flatMap(({ player }) => (player === null ? [] : [[player.id, player.isReady]])),
-    )
+    const readinessByPlayerId = Object.fromEntries(result.value.map(({ player }) => [player.id, player.isReady]))
     return Result.Success({
       turn: current.turn,
       turnStatus: current.turnStatus,

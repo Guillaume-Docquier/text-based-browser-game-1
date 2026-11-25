@@ -23,6 +23,7 @@ import { StartGameUseCase } from "#api/games/startGame.useCase.ts"
 import { createHealthRouter } from "#api/health/health.router.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
+import { listenForTurnStateChanges } from "#lib/db/listenForTurnStateChanges.ts"
 import { createTrpc, createTrpcContext } from "./trpc.ts"
 
 export async function createApi({
@@ -68,6 +69,34 @@ export async function createApi({
   app.use(createHealthRouter())
 
   return app
+}
+
+export function startTurnStateUpdates({
+  databaseUrl,
+  turnStateUseCase,
+  logger,
+  signal,
+}: {
+  databaseUrl: string
+  turnStateUseCase: TurnStateUseCase
+  logger: Logger
+  signal: AbortSignal
+}): { ready: Promise<undefined>; stopped: Promise<void> } {
+  const ready = Promise.withResolvers<undefined>()
+  const stopped = listenForTurnStateChanges({
+    databaseUrl,
+    onChange: (gameId) => {
+      turnStateUseCase.refresh(gameId)
+    },
+    onListening: () => {
+      turnStateUseCase.refreshAll()
+      ready.resolve(undefined)
+    },
+    logger,
+    signal,
+  })
+
+  return { ready: ready.promise, stopped }
 }
 
 export type TrpcRouter = ReturnType<typeof createTrpcRouter>

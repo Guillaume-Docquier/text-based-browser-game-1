@@ -15,11 +15,10 @@ import { AuthProviderKind } from "#lib/AuthProviderKind.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
-import { listenForTurnStateChanges } from "#lib/db/listenForTurnStateChanges.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
 import { BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
 import { startTurnProcessing } from "#turn-processing/entry.turn-processing.ts"
-import { createApi } from "./createApi.ts"
+import { createApi, startTurnStateUpdates } from "./createApi.ts"
 
 main().catch((error) => {
   Logger.get().error("Unhandled application error", { error })
@@ -55,21 +54,8 @@ async function main(): Promise<void> {
 
   const turnStateUseCase = new TurnStateUseCase(repositories.gameplayRepository)
   const listenerLifetime = new AbortController()
-  const listenerReady = Promise.withResolvers<undefined>()
-  void listenForTurnStateChanges({
-    databaseUrl: env.DATABASE_URL,
-    onChange: (gameId) => {
-      turnStateUseCase.refresh(gameId)
-    },
-    onListening: () => {
-      turnStateUseCase.refreshAll()
-      listenerReady.resolve(undefined)
-    },
-    logger,
-    signal: listenerLifetime.signal,
-  })
-
-  await listenerReady.promise
+  const { ready } = startTurnStateUpdates({ databaseUrl: env.DATABASE_URL, turnStateUseCase, logger, signal: listenerLifetime.signal })
+  await ready
 
   logger.info("Creating the API")
   const app = await createApi({

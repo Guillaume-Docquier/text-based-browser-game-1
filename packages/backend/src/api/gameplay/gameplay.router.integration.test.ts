@@ -5,6 +5,7 @@ import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { GetPlayerViewError, GetPlayerViewErrorResponses } from "#api/gameplay/getPlayerView.error.ts"
+import { TurnStateError, TurnStateErrorResponses } from "#api/gameplay/turnState.error.ts"
 import { UpdateReadinessError, UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
@@ -46,6 +47,9 @@ describe("gameplay.router", () => {
 
       // Assert
       await expect(playerView).rejects.toMatchErrorResponse(GetPlayerViewErrorResponses[GetPlayerViewError.TURN_NOT_FOUND])
+      await expect(readTurnState(player, createdGameId)).rejects.toMatchErrorResponse(
+        TurnStateErrorResponses[TurnStateError.TURN_NOT_FOUND],
+      )
     })
 
     it("should get the authenticated player's state for a started game", async () => {

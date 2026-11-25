@@ -1,11 +1,15 @@
-import { eq } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { describe, expect, it, onTestFinished } from "vitest"
+import { createApiStub } from "#api/createApi.stub.ts"
+import { startTurnStateUpdates } from "#api/createApi.ts"
 import type { TurnState } from "#api/types.ts"
-import { playersTable } from "#lib/db/schema.ts"
+import { createDb } from "#lib/db/createDb.ts"
+import { ApiServer } from "#testing/ApiServer.ts"
 import { ConcurrencyTestApiServer } from "#testing/ConcurrencyTestApiServer.ts"
 import { createConcurrencyTestDb } from "#testing/createConcurrencyTestDb.ts"
+import { createPostgresPoolDisposal } from "#testing/createPostgresPoolDisposal.ts"
 
 describe("gameplay.turnState on PostgreSQL", () => {
   it("should refresh open streams after the database listener reconnects", async () => {
@@ -14,10 +18,21 @@ describe("gameplay.turnState on PostgreSQL", () => {
     onTestFinished(async () => {
       await postgres[Symbol.asyncDispose]()
     })
-    const api = await ConcurrencyTestApiServer.create(postgres)
-    onTestFinished(async () => {
-      await api[Symbol.asyncDispose]()
+    const services = await createApiStub({ db: postgres.db })
+    const listenerLifetime = new AbortController()
+    const listener = startTurnStateUpdates({
+      databaseUrl: postgres.databaseUrl,
+      turnStateUseCase: services.turnStateUseCase,
+      logger: services.logger,
+      signal: listenerLifetime.signal,
     })
+    onTestFinished(async () => {
+      listenerLifetime.abort()
+      await listener.stopped
+    })
+    await listener.ready
+
+    using api = new ApiServer(services)
     const creator = await api.createClient({ authenticated: true })
     const opponent = await api.createClient({ authenticated: true })
     const configuration = createGameConfigurationStub({ nbSeats: 2, turnIntervalSeconds: 3600 })
@@ -49,16 +64,30 @@ describe("gameplay.turnState on PostgreSQL", () => {
     await expect.poll(() => creatorStates.at(-1)).toMatchObject(initialState)
     await expect.poll(() => opponentStates.at(-1)).toMatchObject(initialState)
 
+    await opponent.client.gameplay.updateReadiness.mutate({ gameId, turn: 1, isReady: true })
+    const notifiedState = {
+      ...initialState,
+      readinessByPlayerId: { [creator.account.id]: false, [opponent.account.id]: true },
+    }
+    await expect.poll(() => creatorStates.at(-1)).toMatchObject(notifiedState)
+    await expect.poll(() => opponentStates.at(-1)).toMatchObject(notifiedState)
+
+    const target = sql.identifier(new URL(postgres.databaseUrl).pathname.slice(1))
+    const admin = createDb({ databaseUrl: new URL("/postgres", postgres.databaseUrl).href })
+    onTestFinished(createPostgresPoolDisposal(admin.$client))
+    const writer = await postgres.db.$client.connect()
+    onTestFinished(() => {
+      writer.release(true)
+    })
+
     // Act
-    const { rows } = await postgres.db.$client.query<{ disconnected: boolean }>(
+    await admin.execute(sql`ALTER DATABASE ${target} ALLOW_CONNECTIONS false`)
+    const { rows } = await writer.query<{ disconnected: boolean }>(
       "SELECT pg_terminate_backend(pid, 1000) AS disconnected FROM pg_stat_activity WHERE application_name = 'turn-state-listener' AND datname = current_database()",
     )
     expect(rows).toStrictEqual([{ disconnected: true }])
-    await postgres.db.update(playersTable).set({ isReady: true }).where(eq(playersTable.gameId, gameId))
-    const listenerDuringWrite = await postgres.db.$client.query(
-      "SELECT pid FROM pg_stat_activity WHERE application_name = 'turn-state-listener' AND datname = current_database()",
-    )
-    expect(listenerDuringWrite.rows).toStrictEqual([])
+    await writer.query("UPDATE players SET is_ready = true WHERE game_id = $1", [gameId])
+    await admin.execute(sql`ALTER DATABASE ${target} ALLOW_CONNECTIONS true`)
 
     // Assert
     const recoveredState = {
