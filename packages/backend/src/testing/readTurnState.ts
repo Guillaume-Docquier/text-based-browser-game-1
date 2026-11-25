@@ -1,4 +1,5 @@
-import type { GameId, TurnState } from "#api/types.ts"
+import type { GameId } from "shared/domain/games/GameId.ts"
+import type { TurnState } from "#api/types.ts"
 import type { AuthenticatedApiClient, AnonymousApiClient } from "./ApiClient.ts"
 
 export async function readTurnState({ client }: AuthenticatedApiClient | AnonymousApiClient, gameId: GameId): Promise<TurnState> {
