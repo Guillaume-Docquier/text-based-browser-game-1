@@ -25,10 +25,15 @@ export function createPlayGameContextStub({ galaxy = { systems: [] } }: { galaxy
     },
     playerView: {
       gameId,
-      player: { id: player.id, color: player.color, isReady: false },
+      player: { id: player.id, color: player.color },
       opponents: {},
       galaxy,
       turn: 1,
+    },
+    canUpdateReadiness: true,
+    turnState: {
+      turn: 1,
+      readinessByPlayerId: { [player.id]: false },
       turnStatus: TurnStatus.COLLECTING_ACTIONS,
       turnEndsAt: "2026-01-01T01:00:00Z",
     },

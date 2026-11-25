@@ -1,17 +1,17 @@
-import type { GameDetails, PlayerView } from "@api-types"
+import { Assert } from "@guillaume-docquier/tools-ts"
 import { RefreshCw } from "lucide-react"
-import { type ReactElement, useEffect, useState } from "react"
-import { GameStatus } from "shared/domain/games/GameStatus.ts"
-import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import { type ReactElement, useState } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { TurnButton } from "@/features/play/components/TurnButton.tsx"
 import { TurnStatusBadge } from "@/features/play/components/TurnStatusBadge.tsx"
+import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
 import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
-export function GameTopBar({ gameDetails, playerView }: { gameDetails: GameDetails; playerView: PlayerView }): ReactElement {
+export function GameTopBar({ currentTime }: { currentTime: Date }): ReactElement {
+  const { gameDetails, turnState } = usePlayGameContext()
   return (
     <header className="shrink-0 border-b border-border/70 bg-background/80 px-4 sm:px-6">
       <div className="grid min-w-0 grid-cols-1 items-center gap-x-4 sm:h-[calc(6rem-1px)] sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
@@ -21,24 +21,26 @@ export function GameTopBar({ gameDetails, playerView }: { gameDetails: GameDetai
             <h1 className="min-w-0 truncate font-heading text-xl font-semibold text-foreground sm:text-2xl">
               {gameDetails.configuration.name}
             </h1>
-            <TurnStatusBadge status={playerView.turnStatus} />
+            <TurnStatusBadge status={turnState.turnStatus} />
           </div>
         </div>
         <div className="min-w-0 justify-self-center self-stretch">
-          <TurnControl gameDetails={gameDetails} playerView={playerView} />
+          <TurnControl currentTime={currentTime} />
         </div>
       </div>
     </header>
   )
 }
 
-function TurnControl({ gameDetails, playerView }: { gameDetails: GameDetails; playerView: PlayerView }): ReactElement {
+function TurnControl({ currentTime }: { currentTime: Date }): ReactElement {
+  const { gameDetails, playerView, turnState, canUpdateReadiness } = usePlayGameContext()
+  const isReady = turnState.readinessByPlayerId[playerView.player.id]
+  Assert.isDefined(isReady)
   const logger = useLogger()
   const updateReadiness = useUpdateReadiness()
   const refreshClientData = useRefreshClientData()
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [currentTime, setCurrentTime] = useState(() => new Date())
-  const turnEndsAt = new Date(playerView.turnEndsAt)
+  const turnEndsAt = new Date(turnState.turnEndsAt)
   const timeLeft = calculateTimeLeft({ past: currentTime, future: turnEndsAt })
   const turnEndsAtLabel = new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -46,16 +48,6 @@ function TurnControl({ gameDetails, playerView }: { gameDetails: GameDetails; pl
     hour: "numeric",
     minute: "2-digit",
   }).format(turnEndsAt)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-
-    return (): void => {
-      clearInterval(interval)
-    }
-  }, [])
 
   async function refreshGameData(): Promise<void> {
     setIsRefreshing(true)
@@ -84,16 +76,14 @@ function TurnControl({ gameDetails, playerView }: { gameDetails: GameDetails; pl
   return (
     <div className="relative h-full">
       <TurnButton
-        turn={playerView.turn}
+        turn={turnState.turn}
         countdown={timeLeft.duration}
         deadline={turnEndsAtLabel}
-        isLockedIn={playerView.player.isReady}
+        isLockedIn={isReady}
         isPending={updateReadiness.isPending}
-        disabled={
-          updateReadiness.isPending || playerView.turnStatus !== TurnStatus.COLLECTING_ACTIONS || gameDetails.status === GameStatus.ENDED
-        }
+        disabled={updateReadiness.isPending || !canUpdateReadiness}
         onToggle={() => {
-          updateReadiness.mutate({ gameId: gameDetails.id, turn: playerView.turn, isReady: !playerView.player.isReady })
+          updateReadiness.mutate({ gameId: gameDetails.id, turn: turnState.turn, isReady: !isReady })
         }}
       />
       {updateReadiness.error === null ? null : (

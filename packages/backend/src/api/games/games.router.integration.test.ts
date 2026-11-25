@@ -169,13 +169,13 @@ describe("games.router", () => {
       // Act
       const startGameResult = await player.client.games.startGame.mutate({ gameId: createdGameId })
       const lobby = await player.client.games.getDetails.query({ gameId: createdGameId })
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const turnState = await player.client.gameplay.turnState.query({ gameId: createdGameId })
 
       // Assert
       expect(startGameResult).toBeUndefined()
       expect(lobby.status).toBe(GameStatus.IN_PROGRESS)
       expect(lobby.startedAt).toBe(clock.now().toISOString())
-      expect(playerView.turnEndsAt).toBe(
+      expect(turnState.turnEndsAt).toBe(
         Datetime.increment({
           date: clock.now(),
           time: Time.create(newGameSettings.turnIntervalSeconds, UnitOfTime.SECONDS),

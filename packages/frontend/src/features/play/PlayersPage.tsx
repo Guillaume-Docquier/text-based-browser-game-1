@@ -1,8 +1,7 @@
-import type { Player, PlayerView } from "@api-types"
+import type { Player } from "@api-types"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { Check, CircleDashed } from "lucide-react"
 import type { ReactElement } from "react"
-import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent } from "@/components/card.tsx"
@@ -11,24 +10,29 @@ import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function PlayersPage(): ReactElement {
-  const { gameDetails, playerView } = usePlayGameContext()
+  const { gameDetails, playerView, turnState, canUpdateReadiness } = usePlayGameContext()
   const updateReadiness = useUpdateReadiness()
 
   return (
     <section className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
       <Header />
       <PlayersTable>
-        {gameDetails.players.map((player) => (
-          <PlayerRow
-            key={player.id}
-            player={player}
-            playerView={playerView}
-            isReadinessPending={updateReadiness.isPending}
-            onUpdateReadiness={(isReady) => {
-              updateReadiness.mutate({ gameId: gameDetails.id, turn: playerView.turn, isReady })
-            }}
-          />
-        ))}
+        {gameDetails.players.map((player) => {
+          const isReady = turnState.readinessByPlayerId[player.id]
+          Assert.isDefined(isReady)
+          return (
+            <PlayerRow
+              key={player.id}
+              player={player}
+              isCurrentPlayer={player.id === playerView.player.id}
+              isReady={isReady}
+              disabled={!canUpdateReadiness || updateReadiness.isPending}
+              onToggle={() => {
+                updateReadiness.mutate({ gameId: gameDetails.id, turn: turnState.turn, isReady: !isReady })
+              }}
+            />
+          )
+        })}
       </PlayersTable>
       <UpdateReadinessAlert error={updateReadiness.error} />
     </section>
@@ -53,30 +57,21 @@ function PlayersTable({ children }: { children: ReactElement[] }): ReactElement 
 
 function PlayerRow({
   player,
-  playerView,
-  isReadinessPending,
-  onUpdateReadiness,
+  isCurrentPlayer,
+  isReady,
+  disabled,
+  onToggle,
 }: {
   player: Player
-  playerView: PlayerView
-  isReadinessPending: boolean
-  onUpdateReadiness: (isReady: boolean) => void
+  isCurrentPlayer: boolean
+  isReady: boolean
+  disabled: boolean
+  onToggle: () => void
 }): ReactElement {
   const colorLabel = formatPlayerColor(player.color)
-  const isCurrentPlayer = player.id === playerView.player.id
-  const playerState = isCurrentPlayer ? playerView.player : playerView.opponents[player.id]
-  Assert.isDefined(playerState)
-
   return (
     <div className="flex items-center gap-3 rounded-3xl border border-border/60 bg-muted/20 px-4 py-3">
-      <PlayerReadiness
-        isCurrentPlayer={isCurrentPlayer}
-        isReady={playerState.isReady}
-        disabled={playerView.turnStatus !== TurnStatus.COLLECTING_ACTIONS || isReadinessPending}
-        onToggle={() => {
-          onUpdateReadiness(!playerState.isReady)
-        }}
-      />
+      <PlayerReadiness isCurrentPlayer={isCurrentPlayer} isReady={isReady} disabled={disabled} onToggle={onToggle} />
       <span
         aria-label={`${colorLabel} player color`}
         className="size-4 shrink-0 rounded-full border border-foreground/20"

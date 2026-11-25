@@ -1,6 +1,8 @@
 import { Outlet } from "@tanstack/react-router"
-import type { ReactElement } from "react"
+import { type ReactElement, useEffect, useState } from "react"
 import type { GameId } from "shared/domain/games/GameId.ts"
+import { GameStatus } from "shared/domain/games/GameStatus.ts"
+import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
@@ -8,12 +10,24 @@ import { GameLayout, GameLayoutSkeleton } from "@/features/play/components/GameL
 import { PlayGameContextProvider, type PlayGameContextValue } from "@/features/play/PlayContext.tsx"
 import { useGameDetailsQuery } from "@/lib/api/useGameDetailsQuery.ts"
 import { usePlayerViewQuery } from "@/lib/api/usePlayerViewQuery.ts"
+import { useTurnState } from "@/lib/api/useTurnState.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
 export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const gameDetailsQuery = useGameDetailsQuery(gameId)
-  const playerViewQuery = usePlayerViewQuery(gameId)
+  const turnState = useTurnState(gameId)
+  const playerViewQuery = usePlayerViewQuery(gameId, turnState.data?.turn)
+  const [currentTime, setCurrentTime] = useState(() => new Date())
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+
+    return (): void => {
+      clearInterval(interval)
+    }
+  }, [])
 
   if (gameDetailsQuery.isPending || playerViewQuery.isPending) {
     return <GameLayoutSkeleton />
@@ -43,11 +57,25 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
     )
   }
 
-  const context: PlayGameContextValue = { gameDetails: gameDetailsQuery.data, playerView: playerViewQuery.data }
+  if (turnState.data === undefined) {
+    return turnState.error === null ? <GameLayoutSkeleton /> : <GameLoadError message={turnState.error.message} onRetry={turnState.retry} />
+  }
+
+  const context: PlayGameContextValue = {
+    gameDetails: gameDetailsQuery.data,
+    playerView: playerViewQuery.data,
+    turnState: turnState.data,
+    canUpdateReadiness:
+      turnState.isLive &&
+      playerViewQuery.data.turn === turnState.data.turn &&
+      turnState.data.turnStatus === TurnStatus.COLLECTING_ACTIONS &&
+      gameDetailsQuery.data.status !== GameStatus.ENDED &&
+      currentTime.getTime() < Date.parse(turnState.data.turnEndsAt),
+  }
 
   return (
     <PlayGameContextProvider value={context}>
-      <GameLayout gameDetails={context.gameDetails} playerView={context.playerView}>
+      <GameLayout gameId={gameId} currentTime={currentTime}>
         <Outlet />
       </GameLayout>
     </PlayGameContextProvider>
