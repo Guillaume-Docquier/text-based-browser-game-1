@@ -13,6 +13,7 @@
     "db:generate": "drizzle-kit generate --config ./drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config ./drizzle.config.ts",
     "db:seed": "node --env-file=../../.env scripts/db/seed.ts",
+    "db:sync-custom": "node scripts/db/syncCustomMigrations.ts",
     "dev": "node --watch --env-file=../../.env src/api/entry.api.ts",
     "start": "node src/api/entry.api.ts",
     "test": "vitest run --silent",
