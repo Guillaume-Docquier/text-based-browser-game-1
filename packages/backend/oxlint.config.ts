@@ -1,5 +1,8 @@
 import { defineConfig, type OxlintConfig, type OxlintOverride } from "oxlint"
+import { WorkspaceBoundaries } from "../../linting/boundaries.ts"
 import baseConfig from "../../oxlint.config.ts"
+
+const [, workspaceDependencies] = WorkspaceBoundaries.rules["boundaries/dependencies"]
 
 const noRollbackError = {
   group: ["**/TransactionRollbackError", "**/TransactionRollbackError.*"],
@@ -18,6 +21,30 @@ export default defineConfig({
   extends: [baseConfig],
   ignorePatterns: baseConfig.ignorePatterns,
   settings: baseConfig.settings,
+  rules: {
+    "boundaries/dependencies": [
+      "error",
+      {
+        ...workspaceDependencies,
+        policies: [
+          ...workspaceDependencies.policies,
+          {
+            from: { file: { path: "packages/backend/src/api/entry.api.ts" } },
+            disallow: { to: { file: { path: "packages/backend/src/**/*{.useCase,UseCase}.ts" } } },
+            message: "Create use cases in createApi.ts. Keep use-case types and values out of entry.api.ts.",
+          },
+          {
+            from: { file: { path: "packages/backend/src/api/createApi.ts" } },
+            disallow: {
+              to: { file: { path: "packages/backend/src/**/*{.repository,Repository}.ts" } },
+              dependency: { kind: "value" },
+            },
+            message: "Create repositories in entry.api.ts and import only their types in createApi.ts.",
+          },
+        ],
+      },
+    ],
+  },
   env: {
     node: true,
   },
