@@ -25,15 +25,7 @@ export async function prepareIntegrationTestDb(): Promise<void> {
   const db = pgliteToDb(pgliteTemplate)
   const push = await pushSchema(schema, db)
   await push.apply()
-
-  const migrationsDirectory = new URL("../../migrations/", import.meta.url)
-  const migrations = (await readdir(migrationsDirectory, { withFileTypes: true }))
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".sql"))
-    .map((entry) => entry.name)
-    .sort()
-  for (const migration of migrations) {
-    await pgliteTemplate.exec(await readFile(new URL(migration, migrationsDirectory), "utf8"))
-  }
+  await applyCustomMigrations(pgliteTemplate)
 
   loadDataDir = await pgliteTemplate.dumpDataDir("none")
 }
@@ -43,6 +35,17 @@ export async function createIntegrationTestDb(): Promise<Database & AsyncDisposa
 
   const pgliteClone = await PGlite.create({ loadDataDir })
   return Object.assign(pgliteToDb(pgliteClone), { [Symbol.asyncDispose]: pgliteClone.close.bind(pgliteClone) })
+}
+
+async function applyCustomMigrations(pglite: PGlite): Promise<void> {
+  const migrationsDirectory = new URL("../../migrations/", import.meta.url)
+  const migrations = (await readdir(migrationsDirectory, { withFileTypes: true }))
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".sql"))
+    .map((entry) => entry.name)
+    .sort()
+  for (const migration of migrations) {
+    await pglite.exec(await readFile(new URL(migration, migrationsDirectory), "utf8"))
+  }
 }
 
 function pgliteToDb(pglite: PGlite): Database {
