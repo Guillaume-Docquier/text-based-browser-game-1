@@ -1,11 +1,5 @@
-import type { Enumify } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
-
-export type AuthProviderKind = Enumify<typeof AuthProviderKind>
-export const AuthProviderKind = {
-  CLERK: "clerk",
-  TEST_HEADER: "test-header",
-} as const
+import { AuthProviderKind } from "#lib/AuthProviderKind.ts"
 
 export const BackendEnvSchema = z.object({
   // CONSTRAINT: PORT is injected by Railway and is not configurable, you can't rename this.
