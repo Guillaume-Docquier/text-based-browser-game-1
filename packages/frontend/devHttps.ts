@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process"
-import { existsSync, mkdirSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 
 export function devHttps({ isCI }: { isCI: boolean }): { cert: string; key: string } {
@@ -8,7 +8,6 @@ export function devHttps({ isCI }: { isCI: boolean }): { cert: string; key: stri
   const key = fileURLToPath(new URL(isCI ? "ci-localhost-key.pem" : "localhost-key.pem", directory))
 
   if (isCI) {
-    mkdirSync(directory, { recursive: true })
     execFileSync(
       "openssl",
       [

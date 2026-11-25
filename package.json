@@ -13,7 +13,7 @@
     "db:nuke": "rm -rf packages/backend/drizzle && pnpm --filter backend db:generate --name init && pnpm --filter backend db:sync-custom && pnpm db:clean",
     "db:remove": "pnpm db:compose down --volumes",
     "db:up": "pnpm db:compose up --wait db",
-    "dev:cert": "node scripts/dev-cert.ts",
+    "dev:cert": "mkcert -install && mkcert -cert-file packages/frontend/.dev-tls/localhost.pem -key-file packages/frontend/.dev-tls/localhost-key.pem localhost",
     "dev:setup": "pnpm dev:cert && pnpm db:clean",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
