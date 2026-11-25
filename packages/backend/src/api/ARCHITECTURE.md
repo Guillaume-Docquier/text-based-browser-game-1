@@ -1,5 +1,7 @@
 # API slices
 
+The entry point [entry.api.ts](entry.api.ts) creates the repositories and passes them to [createApi.ts](createApi.ts). `createApi.ts` imports repositories only as types and constructs the use cases. Use-case types and values stay internal to the API.
+
 Each slice contains a router, one use case per operation, and a repository. The router defines the input and output schemas and calls a single use case through `toTrpcOutput`.
 
 - Put the business logic for one operation in its use case. Pass the query or command as the first argument and server-authoritative data as the second. Omit arguments the operation does not need.

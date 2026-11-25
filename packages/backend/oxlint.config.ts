@@ -1,5 +1,6 @@
 import { defineConfig, type OxlintConfig, type OxlintOverride } from "oxlint"
 import baseConfig from "../../oxlint.config.ts"
+import { Boundaries } from "./boundaries.ts"
 
 const noRollbackError = {
   group: ["**/TransactionRollbackError", "**/TransactionRollbackError.*"],
@@ -17,7 +18,8 @@ const noConcurrencyDb = {
 export default defineConfig({
   extends: [baseConfig],
   ignorePatterns: baseConfig.ignorePatterns,
-  settings: baseConfig.settings,
+  settings: Boundaries.settings,
+  rules: Boundaries.rules,
   env: {
     node: true,
   },
