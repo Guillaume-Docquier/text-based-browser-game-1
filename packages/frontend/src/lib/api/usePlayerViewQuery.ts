@@ -18,13 +18,13 @@ export function usePlayerViewQuery(gameId: GameId, liveTurn: number | undefined)
     ),
   )
 
-  const { data, isSuccess, refetch, fetchStatus } = query
-  const worldTurn = data?.turn
+  const { refetch, fetchStatus } = query
+  const needsRefresh = query.isSuccess && liveTurn !== undefined && query.data.turn < liveTurn
   useEffect(() => {
-    if (isSuccess && fetchStatus === "idle" && worldTurn !== undefined && liveTurn !== undefined && worldTurn < liveTurn) {
+    if (needsRefresh && fetchStatus === "idle") {
       void refetch({ cancelRefetch: false })
     }
-  }, [worldTurn, liveTurn, isSuccess, fetchStatus, refetch])
+  }, [needsRefresh, fetchStatus, refetch])
 
   return query
 }

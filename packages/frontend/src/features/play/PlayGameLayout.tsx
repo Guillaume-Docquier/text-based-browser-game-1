@@ -18,17 +18,6 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const gameDetailsQuery = useGameDetailsQuery(gameId)
   const turnState = useTurnState(gameId)
   const playerViewQuery = usePlayerViewQuery(gameId, turnState.data?.turn)
-  const [currentTime, setCurrentTime] = useState(() => new Date())
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-
-    return (): void => {
-      clearInterval(interval)
-    }
-  }, [])
-
   if (gameDetailsQuery.isPending || playerViewQuery.isPending) {
     return <GameLayoutSkeleton />
   }
@@ -61,21 +50,39 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
     return turnState.error === null ? <GameLayoutSkeleton /> : <GameLoadError message={turnState.error.message} onRetry={turnState.retry} />
   }
 
-  const context: PlayGameContextValue = {
-    gameDetails: gameDetailsQuery.data,
-    playerView: playerViewQuery.data,
-    turnState: turnState.data,
-    canUpdateReadiness:
-      turnState.isLive &&
-      playerViewQuery.data.turn === turnState.data.turn &&
-      turnState.data.turnStatus === TurnStatus.COLLECTING_ACTIONS &&
-      gameDetailsQuery.data.status !== GameStatus.ENDED &&
-      currentTime.getTime() < Date.parse(turnState.data.turnEndsAt),
-  }
-
   return (
-    <PlayGameContextProvider value={context}>
-      <GameLayout gameId={gameId} currentTime={currentTime}>
+    <LoadedGame
+      gameDetails={gameDetailsQuery.data}
+      playerView={playerViewQuery.data}
+      turnState={turnState.data}
+      isLive={turnState.isLive}
+    />
+  )
+}
+
+function LoadedGame({
+  gameDetails,
+  playerView,
+  turnState,
+  isLive,
+}: Omit<PlayGameContextValue, "canUpdateReadiness"> & { isLive: boolean }): ReactElement {
+  const [currentTime, setCurrentTime] = useState(() => new Date())
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+
+    return (): void => {
+      clearInterval(interval)
+    }
+  }, [])
+
+  const turnIsOpen = turnState.turnStatus === TurnStatus.COLLECTING_ACTIONS && currentTime.getTime() < Date.parse(turnState.turnEndsAt)
+  const worldIsCurrent = isLive && playerView.turn === turnState.turn
+  const canUpdateReadiness = turnIsOpen && worldIsCurrent && gameDetails.status !== GameStatus.ENDED
+  return (
+    <PlayGameContextProvider value={{ gameDetails, playerView, turnState, canUpdateReadiness }}>
+      <GameLayout gameId={gameDetails.id} currentTime={currentTime}>
         <Outlet />
       </GameLayout>
     </PlayGameContextProvider>
