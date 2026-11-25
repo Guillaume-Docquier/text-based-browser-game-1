@@ -20,14 +20,14 @@ const useCaseValue = `
 `
 
 const useCaseType = `
-  import type { GetGameDetailsUseCase } from "./games/getGameDetailsUseCase.ts"
+  import type { GetGameDetailsUseCase } from "./games/getGameDetails.useCase.ts"
 
   export type Operations = { getGameDetails: GetGameDetailsUseCase }
 `
 
 const useCaseTypeExpression = `
   // oxlint-disable-next-line typescript/consistent-type-imports -- Isolate the boundary check for type import expressions.
-  export type Operations = { getGameDetails: import("./games/getGameDetailsUseCase.ts").GetGameDetailsUseCase }
+  export type Operations = { getGameDetails: import("./games/getGameDetails.useCase.ts").GetGameDetailsUseCase }
 `
 
 describe("backend lint rules", () => {
@@ -75,7 +75,7 @@ describe("backend lint rules", () => {
       { behavior: "allow repository values", code: repositoryValue, expected: [] },
       { behavior: "allow repository types", code: repositoryType, expected: [] },
       { behavior: "reject use-case values", code: useCaseValue, expected: ["boundaries(dependencies)"] },
-      { behavior: "reject type-only imports from a UseCase module", code: useCaseType, expected: ["boundaries(dependencies)"] },
+      { behavior: "reject type-only imports from a use-case module", code: useCaseType, expected: ["boundaries(dependencies)"] },
       { behavior: "reject use-case types in import expressions", code: useCaseTypeExpression, expected: ["boundaries(dependencies)"] },
     ])("should $behavior", async ({ code, expected }) => {
       // Arrange

@@ -5,7 +5,7 @@ export const Boundaries = {
   rules: extendWorkspaceRules([
     {
       from: filePath("packages/backend/src/api/entry.api.ts"),
-      disallow: { to: filePath("packages/backend/src/**/*{.useCase,UseCase}.ts") },
+      disallow: { to: filePath("packages/backend/src/**/*.useCase.ts") },
       message: "Create use cases in createApi.ts. Keep use-case types and values out of entry.api.ts.",
     },
     {

@@ -14,7 +14,7 @@ import { UpdateReadinessUseCase } from "#api/gameplay/updateReadiness.useCase.ts
 import { CreateGameUseCase } from "#api/games/createGame.useCase.ts"
 import type { GamesRepository } from "#api/games/games.repository.ts"
 import { createGamesRouter } from "#api/games/games.router.ts"
-import { GetGameDetailsUseCase } from "#api/games/getGameDetailsUseCase.ts"
+import { GetGameDetailsUseCase } from "#api/games/getGameDetails.useCase.ts"
 import { GetGameListingsUseCase } from "#api/games/getGameListings.useCase.ts"
 import { JoinGameUseCase } from "#api/games/joinGame.useCase.ts"
 import { LeaveGameUseCase } from "#api/games/leaveGame.useCase.ts"
