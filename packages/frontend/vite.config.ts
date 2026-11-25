@@ -1,10 +1,10 @@
+import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import babel from "@rolldown/plugin-babel"
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
 import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import { defineConfig, loadEnv, type ServerOptions } from "vite"
-import { devHttps } from "./devHttps.ts"
 import { parseEnv } from "./src/parseEnv.ts"
 
 export default defineConfig(({ command, mode, isPreview }) => {
@@ -29,7 +29,10 @@ export default defineConfig(({ command, mode, isPreview }) => {
   }
 
   if (command === "serve" && isPreview !== true) {
-    server.https = devHttps({ isCI: process.env.CI === "true" })
+    server.https = {
+      cert: readFileSync(new URL("./.dev-tls/localhost.pem", import.meta.url)),
+      key: readFileSync(new URL("./.dev-tls/localhost-key.pem", import.meta.url)),
+    }
   }
 
   return {

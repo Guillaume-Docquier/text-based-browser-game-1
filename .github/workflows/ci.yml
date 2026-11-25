@@ -122,6 +122,13 @@ jobs:
       - name: Install Playwright browser
         run: pnpm --filter frontend e2e:install
 
+      - name: Generate localhost certificate for Playwright
+        working-directory: packages/frontend/.dev-tls
+        run: >-
+          openssl req -x509 -newkey rsa:2048 -noenc -days 1
+          -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost"
+          -out localhost.pem -keyout localhost-key.pem
+
       - name: End-to-end tests
         run: pnpm --filter frontend e2e
         env:
