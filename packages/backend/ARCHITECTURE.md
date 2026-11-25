@@ -18,6 +18,12 @@ Keep Clerk calls in the auth service and Drizzle queries in repositories. See [A
 
 Generate migrations with `pnpm --filter backend db:generate --name <descriptive-migration-name>`. Always pass `--name`. The backend applies migrations at startup. At the current project stage, the database can be reset after schema changes without a backfill. See [ADR-025](../../docs/architecture/decisions/025-backend-initiated-db-migrations.md).
 
+Use the Drizzle TypeScript schema for the objects it can generate. Put handwritten SQL that drizzle cannot generate, such as trigger functions and triggers, in [migrations/](./migrations/). Use `NNNN_descriptive-name.sql` with the next available number and a unique name. The name identifies the migration in the Drizzle journal. The source number controls the order among handwritten files.
+
+Sync the custom migrations with `pnpm --filter backend db:sync-custom`. `pnpm db:nuke` handles the custom migrations as well.
+
+Every handwritten file must work after the current schema is generated. See [ADR-036](../../docs/architecture/decisions/036-keep-handwritten-postgresql-schema-sql-outside-generated-migrations.md).
+
 ## Transactions and locks
 
 Lock the owning row before reading state used for a decision. Joining, leaving, and starting a game lock the game row. Readiness and Turn Processing lock the current Turn row. Keep the lock and writes in the same transaction. See [ADR-026](../../docs/architecture/decisions/026-use-game-rows-as-concurrency-locks.md).

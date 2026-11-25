@@ -1,3 +1,4 @@
+import { readdir, readFile } from "node:fs/promises"
 import { PGlite } from "@electric-sql/pglite"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { pushSchema } from "drizzle-kit/api"
@@ -24,6 +25,7 @@ export async function prepareIntegrationTestDb(): Promise<void> {
   const db = pgliteToDb(pgliteTemplate)
   const push = await pushSchema(schema, db)
   await push.apply()
+  await applyCustomMigrations(pgliteTemplate)
 
   loadDataDir = await pgliteTemplate.dumpDataDir("none")
 }
@@ -33,6 +35,17 @@ export async function createIntegrationTestDb(): Promise<Database & AsyncDisposa
 
   const pgliteClone = await PGlite.create({ loadDataDir })
   return Object.assign(pgliteToDb(pgliteClone), { [Symbol.asyncDispose]: pgliteClone.close.bind(pgliteClone) })
+}
+
+async function applyCustomMigrations(pglite: PGlite): Promise<void> {
+  const migrationsDirectory = new URL("../../migrations/", import.meta.url)
+  const migrations = (await readdir(migrationsDirectory, { withFileTypes: true }))
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".sql"))
+    .map((entry) => entry.name)
+    .sort()
+  for (const migration of migrations) {
+    await pglite.exec(await readFile(new URL(migration, migrationsDirectory), "utf8"))
+  }
 }
 
 function pgliteToDb(pglite: PGlite): Database {
