@@ -21,7 +21,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.90",
+    "@clerk/express": "^2.1.96",
     "@guillaume-docquier/tools-ts": "catalog:",
     "@trpc/server": "^11.19.0",
     "compression": "^1.8.2",
