@@ -83,9 +83,17 @@ describe("global lint rules in source files", () => {
         {
           name: "allow a separately typed object after an && condition",
           code: `
-            export function getServerOptions(isDev: boolean): { port: number; https?: boolean } {
-              const httpsOptions: { https: boolean } = { https: true }
-              return { port: 5173, ...(isDev && httpsOptions) }
+            type ServerOptions = {
+              port: number
+              https?: { key: string }
+            }
+
+            export function getServerOptions(isDev: boolean): ServerOptions {
+              const httpsOptions: Required<Pick<ServerOptions, "https">> = { https: { key: "local-key" } }
+              return {
+                port: 5173,
+                ...(isDev && httpsOptions),
+              }
             }
           `,
           expected: [],
