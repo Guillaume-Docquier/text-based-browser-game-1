@@ -1,14 +1,14 @@
-import type { GameStatus } from "@api-types"
+import { GameStatus } from "shared/domain/games/GameStatus.ts"
 
 export function formatGameStatus(gameStatus: GameStatus): string {
   switch (gameStatus) {
-    case "WAITING_FOR_PLAYERS":
+    case GameStatus.WAITING_FOR_PLAYERS:
       return "Waiting for more players"
-    case "READY_TO_START":
+    case GameStatus.READY_TO_START:
       return "Ready to start"
-    case "IN_PROGRESS":
+    case GameStatus.IN_PROGRESS:
       return "In progress"
-    case "ENDED":
+    case GameStatus.ENDED:
       return "Ended"
   }
 }

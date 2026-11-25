@@ -1,8 +1,9 @@
-import type { Player, Planet, PlanetSize, StarSystem } from "@api-types"
+import type { Player, Planet, StarSystem } from "@api-types"
 import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import { useState } from "react"
 import { flushSync } from "react-dom"
+import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
 import starImage from "@/assets/planets/star-small.png"
 import { PLANET_BIOME_IMAGES } from "@/features/play/galaxy/star-system/planetBiomeImages.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
@@ -16,9 +17,9 @@ const ORBIT_SPACING = 70
 const ORBIT_SPACING_AU = 5
 const VIEW_PADDING = 60
 const PLANET_RADII = {
-  SMALL: 25,
-  MEDIUM: 30,
-  LARGE: 35,
+  [PlanetSize.SMALL]: 25,
+  [PlanetSize.MEDIUM]: 30,
+  [PlanetSize.LARGE]: 35,
 } as const satisfies Record<PlanetSize, number>
 
 type PlanetViewModel = Planet & {

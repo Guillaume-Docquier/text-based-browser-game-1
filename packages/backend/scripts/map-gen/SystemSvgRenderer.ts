@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import path from "node:path"
 import type { XY } from "@guillaume-docquier/tools-ts"
-import type { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
-import type { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
+import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
+import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
 import type { GeneratedPlanet } from "shared/galaxy-creation/generation/planet.generator.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 
@@ -13,15 +13,15 @@ const PANEL_PLOT_SIZE = 320
 const SCALE = PANEL_PLOT_SIZE / (SYSTEM_RADIUS * 2)
 const STAR_RADIUS = 8
 const PLANET_COLORS = {
-  OCEANIC: "#3452eb",
-  METALLIC: "#798391",
-  FROZEN: "#ffffff",
-  VOLCANIC: "#f97316",
+  [PlanetBiome.OCEANIC]: "#3452eb",
+  [PlanetBiome.METALLIC]: "#798391",
+  [PlanetBiome.FROZEN]: "#ffffff",
+  [PlanetBiome.VOLCANIC]: "#f97316",
 } as const satisfies Record<PlanetBiome, `#${string}`>
 const PLANET_RADII = {
-  SMALL: STAR_RADIUS / 4,
-  MEDIUM: STAR_RADIUS / 2,
-  LARGE: STAR_RADIUS / 1.25,
+  [PlanetSize.SMALL]: STAR_RADIUS / 4,
+  [PlanetSize.MEDIUM]: STAR_RADIUS / 2,
+  [PlanetSize.LARGE]: STAR_RADIUS / 1.25,
 } as const satisfies Record<PlanetSize, number>
 const PANEL_CENTERS = [
   { x: 240, y: 300 },

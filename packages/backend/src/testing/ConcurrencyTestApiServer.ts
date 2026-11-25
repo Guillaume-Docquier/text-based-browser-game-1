@@ -5,6 +5,7 @@ import { Assert, FatalError, Logger } from "@guillaume-docquier/tools-ts"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { PortListeningMessageSchema } from "#api/PortListeningMessage.ts"
 import type { Database } from "#lib/db/createDb.ts"
+import { AuthProviderKind } from "#lib/parseEnv.ts"
 import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#testing/ApiClient.ts"
 
 const API_LOGS: "ignore" | "inherit" = "inherit"
@@ -60,7 +61,7 @@ async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<
     cwd: process.cwd(),
     detached: true,
     env: {
-      AUTH_SERVICE: "test-header",
+      AUTH_SERVICE: AuthProviderKind.TEST_HEADER,
       CLERK_PUBLISHABLE_KEY: "does not matter with test-header auth",
       CLERK_SECRET_KEY: "does not matter with test-header auth",
       DATABASE_URL: databaseUrl,

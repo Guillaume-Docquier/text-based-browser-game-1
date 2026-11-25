@@ -14,7 +14,7 @@ import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
-import { BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
+import { AuthProviderKind, BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
 import { startTurnProcessing } from "#turn-processing/entry.turn-processing.ts"
 import { createApi } from "./createApi.ts"
 
@@ -90,11 +90,11 @@ async function migrateDatabase(db: Database, { migrationsFolder, logger }: { mig
   )
 }
 
-function createAuthProvider({ provider, logger }: { provider: "clerk" | "test-header"; logger: Logger }): AuthProvider {
+function createAuthProvider({ provider, logger }: { provider: AuthProviderKind; logger: Logger }): AuthProvider {
   switch (provider) {
-    case "clerk":
+    case AuthProviderKind.CLERK:
       return new ClerkAuthProvider({ logger })
-    case "test-header":
+    case AuthProviderKind.TEST_HEADER:
       return new TestHeaderAuthProvider()
   }
 }
