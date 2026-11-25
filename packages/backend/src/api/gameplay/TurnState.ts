@@ -1,4 +1,4 @@
-import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { TypeGuard } from "@guillaume-docquier/tools-ts"
 import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
 import { TurnStatusSchema } from "shared/domain/turns/TurnStatus.ts"
 import { z } from "zod"
@@ -13,9 +13,9 @@ const TurnStateSchema = z.object({
 export type TurnState = z.infer<typeof TurnStateSchema>
 
 export const TurnStateStreamSchema = z
-  .custom<AsyncIterable<TurnState>>((value: unknown) => typeof value === "object" && value !== null && Symbol.asyncIterator in value)
+  .custom<AsyncIterable<unknown>>((value) => TypeGuard.isRecord(value) && TypeGuard.isFunction(value[Symbol.asyncIterator]))
   .transform(async function* (snapshots): AsyncGenerator<TurnState> {
     for await (const snapshot of snapshots) {
-      yield typedParse(TurnStateSchema, snapshot)
+      yield TurnStateSchema.parse(snapshot)
     }
   })
