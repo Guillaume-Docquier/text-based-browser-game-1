@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto"
+import { Logger } from "@guillaume-docquier/tools-ts"
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import type { Pool } from "pg"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
+import { createPostgresNotificationListener, type ListenForPostgresNotifications } from "#lib/db/createPostgresNotificationListener.ts"
 import { createPostgresPoolDisposal } from "#testing/createPostgresPoolDisposal.ts"
 import { POSTGRES_IMAGE } from "#testing/POSTGRES_IMAGE.ts"
 import { PostgresConcurrency } from "#testing/PostgresConcurrency.ts"
@@ -27,7 +29,11 @@ export async function prepareConcurrencyTestDb(): Promise<void> {
 }
 
 export async function createConcurrencyTestDb(): Promise<
-  AsyncDisposable & { db: Database; databaseUrl: string; concurrency: PostgresConcurrency }
+  AsyncDisposable & {
+    db: Database & { listenForPostgresNotifications: ListenForPostgresNotifications }
+    databaseUrl: string
+    concurrency: PostgresConcurrency
+  }
 > {
   const adminPool = createDb({ databaseUrl: connectionUri }).$client
   const cleanupAdminPool = createPostgresPoolDisposal(adminPool)
@@ -46,7 +52,7 @@ export async function createConcurrencyTestDb(): Promise<
   await migrate(db, { migrationsFolder: "./drizzle/" })
 
   return {
-    db,
+    db: Object.assign(db, { listenForPostgresNotifications: createPostgresNotificationListener({ databaseUrl, logger: Logger.get() }) }),
     databaseUrl,
     concurrency: new PostgresConcurrency(db.$client),
     [Symbol.asyncDispose]: async () => {

@@ -39,11 +39,32 @@ class ApiTrpcError extends TRPCError {
 
 type ExpressContextOptions = Pick<CreateExpressContextOptions, "req" | "res">
 export type TrpcContext = ExpressContextOptions & { requestId: string }
-export const createTrpcContext = ({ req, res }: ExpressContextOptions): TrpcContext => {
-  return {
-    req,
-    res,
-    requestId: v4(),
+export function createTrpcContextFactory(shutdownSignal: AbortSignal): (options: CreateExpressContextOptions) => TrpcContext {
+  const openSubscriptions = new Set<CreateExpressContextOptions["res"]>()
+  shutdownSignal.addEventListener(
+    "abort",
+    () => {
+      for (const response of openSubscriptions) {
+        response.destroy()
+      }
+      openSubscriptions.clear()
+    },
+    { once: true },
+  )
+
+  return ({ req, res, info }) => {
+    if (info.type === "subscription") {
+      if (shutdownSignal.aborted) {
+        res.destroy()
+      } else if (!res.destroyed) {
+        openSubscriptions.add(res)
+        res.once("close", () => {
+          openSubscriptions.delete(res)
+        })
+      }
+    }
+
+    return { req, res, requestId: v4() }
   }
 }
 

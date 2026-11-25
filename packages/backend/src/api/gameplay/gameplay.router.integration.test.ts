@@ -7,6 +7,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { GetPlayerViewError, GetPlayerViewErrorResponses } from "#api/gameplay/getPlayerView.error.ts"
 import { TurnStateError, TurnStateErrorResponses } from "#api/gameplay/turnState.error.ts"
 import { UpdateReadinessError, UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
+import type { TurnState } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
@@ -17,7 +18,7 @@ describe("gameplay.router", () => {
   it("should reject all gameplay routes when the authenticated player has not joined the game", async () => {
     // Arrange
     await using db = await createIntegrationTestDb()
-    using apiServer = new ApiServer(await createApiStub({ db }))
+    await using apiServer = await ApiServer.create(createApiStub({ db }))
     const creator = await apiServer.createClient({ authenticated: true })
     const nonPlayer = await apiServer.createClient({ authenticated: true })
 
@@ -36,7 +37,7 @@ describe("gameplay.router", () => {
     it("should report a missing Turn for a member of an unstarted game", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.games.create.mutate({
         configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
@@ -56,7 +57,7 @@ describe("gameplay.router", () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = await ApiServer.create(createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const gameConfiguration = createGameConfigurationStub()
@@ -82,7 +83,7 @@ describe("gameplay.router", () => {
     it("should expose the current player and every opponent with their colors", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const firstOpponent = await apiServer.createClient({ authenticated: true })
       const secondOpponent = await apiServer.createClient({ authenticated: true })
@@ -109,7 +110,7 @@ describe("gameplay.router", () => {
     it("should reject invalid game ids", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -123,7 +124,7 @@ describe("gameplay.router", () => {
     it("should reject anonymous game state reads", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -138,7 +139,7 @@ describe("gameplay.router", () => {
     // Arrange
     await using db = await createIntegrationTestDb()
     const clock = new ControlledClock()
-    using apiServer = new ApiServer(await createApiStub({ db, clock }))
+    await using apiServer = await ApiServer.create(createApiStub({ db, clock }))
     const creator = await apiServer.createClient({ authenticated: true })
     const opponent = await apiServer.createClient({ authenticated: true })
     const configuration = createGameConfigurationStub({ nbSeats: 2 })
@@ -165,12 +166,56 @@ describe("gameplay.router", () => {
     expect(opponentSnapshot).toStrictEqual(creatorSnapshot)
   })
 
+  it("should send readiness changes to an open turn state subscription", async () => {
+    // Arrange
+    await using db = await createIntegrationTestDb()
+    await using apiServer = await ApiServer.create(createApiStub({ db }))
+    const creator = await apiServer.createClient({ authenticated: true })
+    const opponent = await apiServer.createClient({ authenticated: true })
+    const configuration = createGameConfigurationStub({ nbSeats: 2 })
+    const { createdGameId: gameId } = await creator.client.games.create.mutate({ configuration })
+    await opponent.client.games.join.mutate({ gameId })
+    await creator.client.games.startGame.mutate({ gameId })
+
+    let latestSnapshot: TurnState | undefined
+    const subscription = creator.client.gameplay.turnState.subscribe(
+      { gameId },
+      {
+        onData: (snapshot) => {
+          latestSnapshot = snapshot
+        },
+      },
+    )
+    using _subscriptionCleanup = {
+      [Symbol.dispose](): void {
+        subscription.unsubscribe()
+      },
+    }
+    await expect
+      .poll(() => latestSnapshot?.readinessByPlayerId)
+      .toStrictEqual({
+        [creator.account.id]: false,
+        [opponent.account.id]: false,
+      })
+
+    // Act
+    await opponent.client.gameplay.updateReadiness.mutate({ gameId, turn: 1, isReady: true })
+
+    // Assert
+    await expect
+      .poll(() => latestSnapshot?.readinessByPlayerId)
+      .toStrictEqual({
+        [creator.account.id]: false,
+        [opponent.account.id]: true,
+      })
+  })
+
   // INTENT: This test suite is often failing, but only in the CI. Not sure if it is hanging or just taking longer. If we get timeouts on a 20s budget, this is definitely hanging and there's an issue running on the CI that we should address.
   describe("updateReadiness", { timeout: 20_000 }, () => {
     it.each([true, false])("should set the player readiness to %s", async (isReady) => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -200,8 +245,8 @@ describe("gameplay.router", () => {
       const clock = new ControlledClock()
       const turnsRepository = new TurnsRepository({ db, logger })
 
-      const apiServices = await createApiStub({ db, clock })
-      using apiServer = new ApiServer(apiServices)
+      const apiServices = createApiStub({ db, clock })
+      await using apiServer = await ApiServer.create(apiServices)
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -240,7 +285,7 @@ describe("gameplay.router", () => {
     it("should reject readiness for the wrong turn", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.games.create.mutate({
@@ -262,7 +307,7 @@ describe("gameplay.router", () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = await ApiServer.create(createApiStub({ db, clock }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(10, UnitOfTime.SECONDS)
@@ -289,7 +334,7 @@ describe("gameplay.router", () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = await ApiServer.create(createApiStub({ db, clock }))
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true })
 

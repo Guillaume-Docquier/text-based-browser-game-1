@@ -3,7 +3,6 @@ import { createGameConfigurationStub } from "shared/domain/games/GameConfigurati
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { describe, expect, it, onTestFinished } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { startTurnStateUpdates } from "#api/createApi.ts"
 import type { TurnState } from "#api/types.ts"
 import { createDb } from "#lib/db/createDb.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
@@ -18,21 +17,8 @@ describe("turnState concurrency", () => {
     onTestFinished(async () => {
       await postgres[Symbol.asyncDispose]()
     })
-    const services = await createApiStub({ db: postgres.db })
-    const listenerLifetime = new AbortController()
-    const listener = startTurnStateUpdates({
-      databaseUrl: postgres.databaseUrl,
-      turnStateUseCase: services.turnStateUseCase,
-      logger: services.logger,
-      signal: listenerLifetime.signal,
-    })
-    onTestFinished(async () => {
-      listenerLifetime.abort()
-      await listener.stopped
-    })
-    await listener.ready
-
-    using api = new ApiServer(services)
+    const services = createApiStub(postgres)
+    await using api = await ApiServer.create(services)
     const creator = await api.createClient({ authenticated: true })
     const opponent = await api.createClient({ authenticated: true })
     const configuration = createGameConfigurationStub({ nbSeats: 2, turnIntervalSeconds: 3600 })
@@ -83,7 +69,7 @@ describe("turnState concurrency", () => {
     // Act
     await admin.execute(sql`ALTER DATABASE ${target} ALLOW_CONNECTIONS false`)
     const { rows } = await writer.query<{ disconnected: boolean }>(
-      "SELECT pg_terminate_backend(pid, 1000) AS disconnected FROM pg_stat_activity WHERE application_name = 'turn-state-listener' AND datname = current_database()",
+      "SELECT pg_terminate_backend(pid, 1000) AS disconnected FROM pg_stat_activity WHERE application_name = 'postgres-notification-listener' AND datname = current_database()",
     )
     expect(rows).toStrictEqual([{ disconnected: true }])
     await writer.query("UPDATE players SET is_ready = true WHERE game_id = $1", [gameId])
@@ -96,6 +82,7 @@ describe("turnState concurrency", () => {
     }
     await expect.poll(() => creatorStates.at(-1), { timeout: 5_000 }).toMatchObject(recoveredState)
     await expect.poll(() => opponentStates.at(-1), { timeout: 5_000 }).toMatchObject(recoveredState)
+    await services.api.close()
   })
 
   it("should publish only committed turn-state changes", async () => {

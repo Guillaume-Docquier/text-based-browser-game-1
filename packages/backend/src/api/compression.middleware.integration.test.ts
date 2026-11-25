@@ -1,29 +1,32 @@
-import { createServer } from "node:http"
-import type { AddressInfo } from "node:net"
+import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { describe, expect, it } from "vitest"
+import { AUTH_ID_HEADER } from "#api/auth/TestHeaderAuthProvider.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
+import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
 
 describe("compression middleware", () => {
   it("should return Brotli-compressed responses that preserve the body", async () => {
     // Arrange
     await using db = await createIntegrationTestDb()
-    const { api } = await createApiStub({ db })
-    const responseBody = "Cosmic empires is a persistent turn-based space strategy game. ".repeat(64)
-    api.get("/__test__/compression", (_request, response) => {
-      response.type("text/plain").send(responseBody)
+    await using server = await ApiServer.create(createApiStub({ db }))
+    const { client, account } = await server.createClient({ authenticated: true })
+    const { createdGameId: gameId } = await client.games.create.mutate({
+      configuration: createGameConfigurationStub(),
     })
-    await using server = createServer(api).listen()
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- A listener on port 0 has an assigned TCP address.
-    const address = server.address() as AddressInfo
+    await client.games.startGame.mutate({ gameId })
+    const url = new URL(`http://localhost:${server.port}/trpc/gameplay.getPlayerView`)
+    url.searchParams.set("input", JSON.stringify({ gameId }))
 
     // Act
-    const response = await fetch(`http://localhost:${address.port}/__test__/compression`, {
-      headers: { "Accept-Encoding": "br" },
-    })
+    const headers = { [AUTH_ID_HEADER]: account.authId }
+    const uncompressed = await fetch(url, { headers: { ...headers, "Accept-Encoding": "identity" } })
+    const compressed = await fetch(url, { headers: { ...headers, "Accept-Encoding": "br" } })
 
     // Assert
-    expect(response.headers.get("content-encoding")).toBe("br")
-    expect(await response.text()).toBe(responseBody)
+    expect(uncompressed.status).toBe(200)
+    expect(compressed.status).toBe(200)
+    expect(compressed.headers.get("content-encoding")).toBe("br")
+    expect(await compressed.text()).toBe(await uncompressed.text())
   })
 })

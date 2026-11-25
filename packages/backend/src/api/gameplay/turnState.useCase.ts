@@ -17,11 +17,11 @@ type GameSubscriptions = {
 }
 
 export class TurnStateUseCase {
-  private readonly repository: GameplayRepository
+  private readonly gameplayRepository: GameplayRepository
   private readonly gameSubscriptions = new Map<GameId, GameSubscriptions>()
 
-  public constructor(repository: GameplayRepository) {
-    this.repository = repository
+  public constructor({ gameplayRepository }: { gameplayRepository: GameplayRepository }) {
+    this.gameplayRepository = gameplayRepository
   }
 
   public async *execute({ gameId }: TurnStateQuery, signal: AbortSignal | undefined): AsyncGenerator<Snapshot> {
@@ -63,7 +63,7 @@ export class TurnStateUseCase {
     try {
       while (game.refreshRequested && game.events.listenerCount(SNAPSHOT_EVENT) > 0) {
         game.refreshRequested = false
-        const snapshot = await this.repository.getTurnState(gameId)
+        const snapshot = await this.gameplayRepository.getTurnState(gameId)
         game.events.emit(SNAPSHOT_EVENT, snapshot)
       }
     } finally {

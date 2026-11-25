@@ -1,4 +1,3 @@
-import type { AddressInfo } from "node:net"
 import { Logger } from "@guillaume-docquier/tools-ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
@@ -8,17 +7,17 @@ import type { AuthProvider } from "#api/auth/AuthProvider.ts"
 import { ClerkAuthProvider } from "#api/auth/ClerkAuthProvider.ts"
 import { TestHeaderAuthProvider } from "#api/auth/TestHeaderAuthProvider.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
-import { TurnStateUseCase } from "#api/gameplay/turnState.useCase.ts"
 import { GamesRepository } from "#api/games/games.repository.ts"
 import type { PortListeningMessage } from "#api/PortListeningMessage.ts"
 import { AuthProviderKind } from "#lib/AuthProviderKind.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
+import { createPostgresNotificationListener } from "#lib/db/createPostgresNotificationListener.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
 import { BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
 import { startTurnProcessing } from "#turn-processing/entry.turn-processing.ts"
-import { createApi, startTurnStateUpdates } from "./createApi.ts"
+import { createApi } from "./createApi.ts"
 
 main().catch((error) => {
   Logger.get().error("Unhandled application error", { error })
@@ -52,35 +51,32 @@ async function main(): Promise<void> {
     accountsRepository: repositories.accountsRepository,
   })
 
-  const turnStateUseCase = new TurnStateUseCase(repositories.gameplayRepository)
-  const listenerLifetime = new AbortController()
-  const { ready } = startTurnStateUpdates({ databaseUrl: env.DATABASE_URL, turnStateUseCase, logger, signal: listenerLifetime.signal })
-  await ready
-
   logger.info("Creating the API")
-  const app = await createApi({
+  const api = createApi({
     logger,
     clock,
     createTransaction: createCreateTransaction(db),
     authService,
-    turnStateUseCase,
+    listenForPostgresNotifications: createPostgresNotificationListener({ databaseUrl: env.DATABASE_URL, logger }),
     ...repositories,
   })
 
   // CONSTRAINT: Listen to all interfaces (::) for railway's IPv6 internal network
-  const server = app.listen(env.PORT, "::", () => {
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- I don't know when it's not actually an AddressInfo
-    const serverAddress = server.address() as AddressInfo
+  const { port } = await api.listen(env.PORT, "::")
+  logger.info(`API listening on port ${port}`)
+  process.send?.({ type: "listening", port } satisfies PortListeningMessage)
 
-    // CONSTRAINT: If env.PORT is 0, a random port will be attributed, so we log the server port instead of env.PORT
-    logger.info(`API listening on port ${serverAddress.port}`)
-    // CONSTRAINT: This is currently only used for concurrency tests to know which port the api is using
-    process.send?.({ type: "listening", port: serverAddress.port } as const satisfies PortListeningMessage)
-  })
-
-  server.once("close", () => {
-    listenerLifetime.abort()
-  })
+  const shutdown = (): void => {
+    void api.close().then(
+      () => process.exit(0),
+      (error: unknown) => {
+        logger.error("Could not close the API", { error })
+        process.exit(1)
+      },
+    )
+  }
+  process.once("SIGINT", shutdown)
+  process.once("SIGTERM", shutdown)
 
   logger.info("Starting turn processing")
   startTurnProcessing({ logger })

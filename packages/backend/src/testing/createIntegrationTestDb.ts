@@ -1,10 +1,13 @@
+import { once } from "node:events"
 import { readdir, readFile } from "node:fs/promises"
 import { PGlite } from "@electric-sql/pglite"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { pushSchema } from "drizzle-kit/api"
 import { drizzle } from "drizzle-orm/pglite"
+import { escapeIdentifier } from "pg"
 import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
+import type { ListenForPostgresNotifications } from "#lib/db/createPostgresNotificationListener.ts"
 // oxlint-disable-next-line import/no-namespace -- Drizzle Kit needs the complete schema for pushSchema.
 import * as schema from "#lib/db/schema.ts"
 
@@ -30,11 +33,32 @@ export async function prepareIntegrationTestDb(): Promise<void> {
   loadDataDir = await pgliteTemplate.dumpDataDir("none")
 }
 
-export async function createIntegrationTestDb(): Promise<Database & AsyncDisposable> {
+export async function createIntegrationTestDb(): Promise<
+  Database & AsyncDisposable & { listenForPostgresNotifications: ListenForPostgresNotifications }
+> {
   Assert.isDefined(loadDataDir)
 
   const pgliteClone = await PGlite.create({ loadDataDir })
-  return Object.assign(pgliteToDb(pgliteClone), { [Symbol.asyncDispose]: pgliteClone.close.bind(pgliteClone) })
+  const listenForPostgresNotifications: ListenForPostgresNotifications = async ({ channel, onNotification, onListening, signal }) => {
+    if (signal.aborted) {
+      return
+    }
+    const unlisten = await pgliteClone.listen(escapeIdentifier(channel), onNotification)
+    try {
+      if (!signal.aborted) {
+        onListening()
+      }
+      if (!signal.aborted) {
+        await once(signal, "abort")
+      }
+    } finally {
+      await unlisten()
+    }
+  }
+  return Object.assign(pgliteToDb(pgliteClone), {
+    listenForPostgresNotifications,
+    [Symbol.asyncDispose]: pgliteClone.close.bind(pgliteClone),
+  })
 }
 
 async function applyCustomMigrations(pglite: PGlite): Promise<void> {

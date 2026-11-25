@@ -2,15 +2,17 @@ import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
 import type { TRPCError } from "@trpc/server"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import compression from "compression"
-import express, { type Express } from "express"
+import express from "express"
+import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createAccountsRouter } from "#api/accounts/accounts.router.ts"
 import { FinishOnboardingUseCase } from "#api/accounts/finishOnboarding.useCase.ts"
+import { Api } from "#api/Api.ts"
 import type { AuthService } from "#api/auth/auth.service.ts"
 import type { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
 import { GetPlayerViewUseCase } from "#api/gameplay/getPlayerView.useCase.ts"
-import type { TurnStateUseCase } from "#api/gameplay/turnState.useCase.ts"
+import { TurnStateUseCase } from "#api/gameplay/turnState.useCase.ts"
 import { UpdateReadinessUseCase } from "#api/gameplay/updateReadiness.useCase.ts"
 import { CreateGameUseCase } from "#api/games/createGame.useCase.ts"
 import type { GamesRepository } from "#api/games/games.repository.ts"
@@ -23,14 +25,12 @@ import { StartGameUseCase } from "#api/games/startGame.useCase.ts"
 import { createHealthRouter } from "#api/health/health.router.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { listenForTurnStateChanges } from "#lib/db/listenForTurnStateChanges.ts"
-import { createTrpc, createTrpcContext } from "./trpc.ts"
+import type { ListenForPostgresNotifications } from "#lib/db/createPostgresNotificationListener.ts"
+import { createTrpc, createTrpcContextFactory } from "./trpc.ts"
 
-export async function createApi({
-  createTransaction,
-  authService,
-  ...services
-}: {
+const TURN_STATE_CHANGED_CHANNEL = "turn_state_changed"
+
+type CreateApiOptions = {
   createTransaction: CreateTransaction
   authService: AuthService
   logger: Logger
@@ -38,9 +38,12 @@ export async function createApi({
   accountsRepository: AccountsRepository
   gamesRepository: GamesRepository
   gameplayRepository: GameplayRepository
-  turnStateUseCase: TurnStateUseCase
-}): Promise<Express> {
+  listenForPostgresNotifications: ListenForPostgresNotifications
+}
+
+export function createApi({ createTransaction, authService, listenForPostgresNotifications, ...services }: CreateApiOptions): Api {
   const applicationServices = { ...services, createTransaction }
+  const lifetime = new AbortController()
   const useCases = {
     finishOnboardingUseCase: new FinishOnboardingUseCase(applicationServices),
     getGameListingsUseCase: new GetGameListingsUseCase(applicationServices),
@@ -51,6 +54,7 @@ export async function createApi({
     getPlayerViewUseCase: new GetPlayerViewUseCase(applicationServices),
     startGameUseCase: new StartGameUseCase(applicationServices),
     updateReadinessUseCase: new UpdateReadinessUseCase(applicationServices),
+    turnStateUseCase: new TurnStateUseCase(applicationServices),
   }
 
   const app = express()
@@ -61,38 +65,43 @@ export async function createApi({
     "/trpc",
     createExpressMiddleware({
       router: createTrpcRouter({ ...useCases, ...services }),
-      createContext: createTrpcContext,
+      createContext: createTrpcContextFactory(lifetime.signal),
       onError: createErrorHandler({ logger: services.logger }),
     }),
   )
 
   app.use(createHealthRouter())
 
-  return app
+  return new Api({
+    app,
+    lifetime,
+    startUpdates: (signal) =>
+      startTurnStateUpdates({ listenForPostgresNotifications, turnStateUseCase: useCases.turnStateUseCase, signal }),
+  })
 }
 
-export function startTurnStateUpdates({
-  databaseUrl,
+function startTurnStateUpdates({
+  listenForPostgresNotifications,
   turnStateUseCase,
-  logger,
   signal,
 }: {
-  databaseUrl: string
+  listenForPostgresNotifications: ListenForPostgresNotifications
   turnStateUseCase: TurnStateUseCase
-  logger: Logger
   signal: AbortSignal
-}): { ready: Promise<undefined>; stopped: Promise<void> } {
+}): { ready: Promise<void>; stopped: Promise<void> } {
   const ready = Promise.withResolvers<undefined>()
-  const stopped = listenForTurnStateChanges({
-    databaseUrl,
-    onChange: (gameId) => {
-      void turnStateUseCase.refresh(gameId)
+  const stopped = Promise.try(listenForPostgresNotifications, {
+    channel: TURN_STATE_CHANGED_CHANNEL,
+    onNotification: (payload) => {
+      const parsed = GameIdSchema.safeParse(Number(payload))
+      if (parsed.success) {
+        void turnStateUseCase.refresh(parsed.data)
+      }
     },
     onListening: () => {
       turnStateUseCase.refreshAll()
       ready.resolve(undefined)
     },
-    logger,
     signal,
   })
 

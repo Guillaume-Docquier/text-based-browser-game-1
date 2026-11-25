@@ -1,18 +1,26 @@
 import { Logger } from "@guillaume-docquier/tools-ts"
-import type { Express } from "express"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
+import type { Api } from "#api/Api.ts"
 import { AuthService } from "#api/auth/auth.service.ts"
 import { TestHeaderAuthProvider } from "#api/auth/TestHeaderAuthProvider.ts"
 import { createApi } from "#api/createApi.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
-import { TurnStateUseCase } from "#api/gameplay/turnState.useCase.ts"
 import { GamesRepository } from "#api/games/games.repository.ts"
 import { Clock } from "#lib/Clock.ts"
 import { createCreateTransaction, type Database } from "#lib/db/createDb.ts"
+import type { ListenForPostgresNotifications } from "#lib/db/createPostgresNotificationListener.ts"
 
-type AllServices = Omit<Parameters<typeof createApi>[0], "authService">
+type AllServices = Omit<Parameters<typeof createApi>[0], "authService" | "listenForPostgresNotifications">
 
-export async function createApiStub({ db, clock = Clock }: { db: Database; clock?: Clock }): Promise<AllServices & { api: Express }> {
+export function createApiStub({
+  db,
+  clock = Clock,
+  listenForPostgresNotifications = db.listenForPostgresNotifications,
+}: {
+  db: Database & { listenForPostgresNotifications: ListenForPostgresNotifications }
+  clock?: Clock
+  listenForPostgresNotifications?: ListenForPostgresNotifications
+}): AllServices & { api: Api } {
   const logger = Logger.get()
   const accountsRepository = new AccountsRepository({ db, logger })
 
@@ -25,10 +33,9 @@ export async function createApiStub({ db, clock = Clock }: { db: Database; clock
     accountsRepository,
     gamesRepository: new GamesRepository({ db, logger }),
     gameplayRepository,
-    turnStateUseCase: new TurnStateUseCase(gameplayRepository),
-  } as const satisfies Parameters<typeof createApi>[0]
+  }
 
-  const api = await createApi(apiServices)
+  const api = createApi({ ...apiServices, listenForPostgresNotifications })
 
   return {
     ...apiServices,

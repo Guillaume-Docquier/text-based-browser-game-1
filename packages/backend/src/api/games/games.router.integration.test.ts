@@ -25,7 +25,7 @@ describe("games.router", () => {
     it("should get game listings when anonymous", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
 
       const anonymous = await apiServer.createClient({ authenticated: false })
 
@@ -55,7 +55,7 @@ describe("games.router", () => {
     it("should get game listings when authenticated", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
 
       const creator = await apiServer.createClient({ authenticated: true })
       const joinedGameSettings = createGameConfigurationStub({ name: "Joined game" })
@@ -99,7 +99,7 @@ describe("games.router", () => {
     it("should reject starting a game as an account that has not joined", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const nonPlayer = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await creator.client.games.create.mutate({ configuration: createGameConfigurationStub() })
@@ -114,7 +114,7 @@ describe("games.router", () => {
     it("should generate a deterministic galaxy from the game's seed", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true, id: "7f80447c-442a-4229-8d52-39b675b3e80c" })
       const { createdGameId } = await player.client.games.create.mutate({
         configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
@@ -161,7 +161,7 @@ describe("games.router", () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = await ApiServer.create(createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const newGameSettings = createGameConfigurationStub({ turnIntervalSeconds: 60 })
@@ -187,7 +187,7 @@ describe("games.router", () => {
     it("should assign one unique Home Planet to every player", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
 
       const creator = await apiServer.createClient({ authenticated: true })
       const firstOpponent = await apiServer.createClient({ authenticated: true })
@@ -218,7 +218,7 @@ describe("games.router", () => {
     it("should reject starting a game as a non-creator", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -235,7 +235,7 @@ describe("games.router", () => {
     it("should reject starting a game that has already started", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.games.create.mutate({ configuration: createGameConfigurationStub() })
@@ -251,7 +251,7 @@ describe("games.router", () => {
     it("should reject anonymous game start", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -266,7 +266,7 @@ describe("games.router", () => {
     it.each([0, UInt32.max])("should accept the UInt32 seed %i", async (mapGenerationSeed) => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -281,7 +281,7 @@ describe("games.router", () => {
     it.each([-1, UInt32.max + 1, 1.5])("should reject the invalid seed %i", async (mapGenerationSeed) => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -294,7 +294,7 @@ describe("games.router", () => {
     it("should create a game for the authenticated player", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       const newGameSettings = createGameConfigurationStub()
@@ -335,7 +335,7 @@ describe("games.router", () => {
     it("should create a one-seat game ready to start", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -351,7 +351,7 @@ describe("games.router", () => {
     it("should create a game with MAX_NB_SEATS seats", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -367,7 +367,7 @@ describe("games.router", () => {
     it("should reject a game with MAX_NB_SEATS + 1 seats", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -382,7 +382,7 @@ describe("games.router", () => {
     it("should reject anonymous game creation", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -399,7 +399,7 @@ describe("games.router", () => {
     it("should get a lobby by id when authenticated", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const viewer = await apiServer.createClient({ authenticated: true })
 
@@ -438,7 +438,7 @@ describe("games.router", () => {
     it("should get a lobby by id anonymously", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const anonymous = await apiServer.createClient({ authenticated: false })
 
@@ -477,7 +477,7 @@ describe("games.router", () => {
     it("should only allow joined players to open a started game", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const viewer = await apiServer.createClient({ authenticated: true })
       const anonymous = await apiServer.createClient({ authenticated: false })
@@ -505,7 +505,7 @@ describe("games.router", () => {
     it("should return not found when getting a missing lobby by id", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -520,7 +520,7 @@ describe("games.router", () => {
     it("should allocate high-contrast colors first in a small lobby", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const firstJoiner = await apiServer.createClient({ authenticated: true })
       const secondJoiner = await apiServer.createClient({ authenticated: true })
@@ -546,7 +546,7 @@ describe("games.router", () => {
     it("should assign every player color in a maximum sized lobby", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiners = await Promise.all(
         Array.from({ length: MAX_NB_SEATS - 1 }, async () => await apiServer.createClient({ authenticated: true })),
@@ -566,7 +566,7 @@ describe("games.router", () => {
     it("should assign every player color in a maximum sized lobby as players leave and rejoin", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiners = await Promise.all(
         Array.from({ length: MAX_NB_SEATS - 1 }, async () => await apiServer.createClient({ authenticated: true })),
@@ -592,7 +592,7 @@ describe("games.router", () => {
     it("should join a game", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -638,8 +638,8 @@ describe("games.router", () => {
     it("should reject joining a game that is full", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      const { api, accountsRepository } = await createApiStub({ db })
-      using apiServer = new ApiServer({ api, accountsRepository })
+      const { api, accountsRepository } = createApiStub({ db })
+      await using apiServer = await ApiServer.create({ api, accountsRepository })
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
@@ -663,7 +663,7 @@ describe("games.router", () => {
     it("should reject joining a game that has started", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -683,7 +683,7 @@ describe("games.router", () => {
     it("should successfully join a game the player is already in without joining twice", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -704,7 +704,7 @@ describe("games.router", () => {
     it("should reject anonymous game join", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -719,7 +719,7 @@ describe("games.router", () => {
     it("should leave a game", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
 
@@ -762,7 +762,7 @@ describe("games.router", () => {
     it("should reject leaving a game that has started", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
 
@@ -780,7 +780,7 @@ describe("games.router", () => {
     it("should reject leaving a game as its creator", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
@@ -795,7 +795,7 @@ describe("games.router", () => {
     it("should successfully leave a game the player has not joined", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const nonPlayer = await apiServer.createClient({ authenticated: true })
 
@@ -812,7 +812,7 @@ describe("games.router", () => {
     it("should reject anonymous game leave", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      await using apiServer = await ApiServer.create(createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
