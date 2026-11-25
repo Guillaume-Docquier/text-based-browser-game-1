@@ -1,6 +1,35 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { LintSession } from "./lint-session.ts"
 
+const repositoryValue = `
+  import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
+
+  export const constructors = { AccountsRepository }
+`
+
+const repositoryType = `
+  import type { AccountsRepository } from "./accounts/accounts.repository.ts"
+
+  export type Services = { accounts: AccountsRepository }
+`
+
+const useCaseValue = `
+  import { FinishOnboardingUseCase } from "#api/accounts/finishOnboarding.useCase.ts"
+
+  export const constructors = { FinishOnboardingUseCase }
+`
+
+const useCaseType = `
+  import type { GetGameDetailsUseCase } from "./games/getGameDetailsUseCase.ts"
+
+  export type Operations = { getGameDetails: GetGameDetailsUseCase }
+`
+
+const useCaseTypeExpression = `
+  // oxlint-disable-next-line typescript/consistent-type-imports -- Isolate the boundary check for type import expressions.
+  export type Operations = { getGameDetails: import("./games/getGameDetailsUseCase.ts").GetGameDetailsUseCase }
+`
+
 describe("backend lint rules", () => {
   const session = new LintSession()
 
@@ -41,67 +70,41 @@ describe("backend lint rules", () => {
     expect(diagnostics).toStrictEqual(expected)
   })
 
-  it.each([
-    {
-      dependency: "a repository value through the backend alias",
-      entryDiagnostics: [],
-      createDiagnostics: ["boundaries(dependencies)"],
-      code: `
-        import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
+  describe("entry.api.ts boundaries", () => {
+    it.each([
+      { behavior: "allow repository values", code: repositoryValue, expected: [] },
+      { behavior: "allow repository types", code: repositoryType, expected: [] },
+      { behavior: "reject use-case values", code: useCaseValue, expected: ["boundaries(dependencies)"] },
+      { behavior: "reject type-only imports from a UseCase module", code: useCaseType, expected: ["boundaries(dependencies)"] },
+      { behavior: "reject use-case types in import expressions", code: useCaseTypeExpression, expected: ["boundaries(dependencies)"] },
+    ])("should $behavior", async ({ code, expected }) => {
+      // Arrange
+      const fixture = { path: "packages/backend/src/api/entry.api.ts", code }
 
-        export const constructors = { AccountsRepository }
-      `,
-    },
-    {
-      dependency: "a repository type through a relative path",
-      entryDiagnostics: [],
-      createDiagnostics: [],
-      code: `
-        import type { AccountsRepository } from "./accounts/accounts.repository.ts"
+      // Act
+      const diagnostics = await session.lint(fixture)
 
-        export type Services = { accounts: AccountsRepository }
-      `,
-    },
-    {
-      dependency: "a use-case value through the backend alias",
-      entryDiagnostics: ["boundaries(dependencies)"],
-      createDiagnostics: [],
-      code: `
-        import { FinishOnboardingUseCase } from "#api/accounts/finishOnboarding.useCase.ts"
+      // Assert
+      expect(diagnostics).toStrictEqual(expected)
+    })
+  })
 
-        export const constructors = { FinishOnboardingUseCase }
-      `,
-    },
-    {
-      dependency: "a use-case type from a module with the UseCase suffix",
-      entryDiagnostics: ["boundaries(dependencies)"],
-      createDiagnostics: [],
-      code: `
-        import type { GetGameDetailsUseCase } from "./games/getGameDetailsUseCase.ts"
+  describe("createApi.ts boundaries", () => {
+    it.each([
+      { behavior: "reject repository values", code: repositoryValue, expected: ["boundaries(dependencies)"] },
+      { behavior: "allow repository types for injected dependencies", code: repositoryType, expected: [] },
+      { behavior: "allow use-case constructors", code: useCaseValue, expected: [] },
+      { behavior: "allow use-case types", code: useCaseType, expected: [] },
+      { behavior: "allow use-case types in import expressions under the boundary rule", code: useCaseTypeExpression, expected: [] },
+    ])("should $behavior", async ({ code, expected }) => {
+      // Arrange
+      const fixture = { path: "packages/backend/src/api/createApi.ts", code }
 
-        export type Operations = { getGameDetails: GetGameDetailsUseCase }
-      `,
-    },
-    {
-      dependency: "a use-case type referenced with an import expression",
-      entryDiagnostics: ["boundaries(dependencies)"],
-      createDiagnostics: [],
-      code: `
-        // oxlint-disable-next-line typescript/consistent-type-imports -- Isolate the boundary check for type import expressions.
-        export type Operations = { getGameDetails: import("./games/getGameDetailsUseCase.ts").GetGameDetailsUseCase }
-      `,
-    },
-  ])("should enforce the API composition boundaries for $dependency", async ({ code, entryDiagnostics, createDiagnostics }) => {
-    // Arrange
-    const entry = { path: "packages/backend/src/api/entry.api.ts", code }
-    const create = { path: "packages/backend/src/api/createApi.ts", code }
+      // Act
+      const diagnostics = await session.lint(fixture)
 
-    // Act
-    const entryResult = await session.lint(entry)
-    const createResult = await session.lint(create)
-
-    // Assert
-    expect(entryResult).toStrictEqual(entryDiagnostics)
-    expect(createResult).toStrictEqual(createDiagnostics)
+      // Assert
+      expect(diagnostics).toStrictEqual(expected)
+    })
   })
 })
