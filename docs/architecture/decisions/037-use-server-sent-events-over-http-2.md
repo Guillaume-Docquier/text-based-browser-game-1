@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-We use Server-sent events (SSE) to send quick updates to the frontend instead of polling. SSE also reuse the same-origin API and its authentication.
+We plan to use server-sent events (SSE) to send updates to the frontend without polling. SSE can reuse the same-origin API and its authentication.
 
 However, SSE over HTTP/1.1 in Chromium defaults to six connections in the pool shared by tabs for the game origin. With one SSE subscription per play tab, six tabs can fill that pool and throttle other connections. HTTP/2 lets those requests and subscriptions use separate streams on a shared connection. [Chromium connection pool](https://chromium.googlesource.com/chromium/src/+/ef6ba930ba83b74518f3ed7d89247c4c82e84764/net/http/http_stream_pool.h), [RFC 9113, Streams and Multiplexing](https://www.rfc-editor.org/rfc/rfc9113.html#section-5).
 
