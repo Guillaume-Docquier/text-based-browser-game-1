@@ -8,7 +8,7 @@ import { ConcurrencyTestApiServer } from "#testing/ConcurrencyTestApiServer.ts"
 import { createConcurrencyTestDb } from "#testing/createConcurrencyTestDb.ts"
 import type { PostgresConcurrency } from "#testing/PostgresConcurrency.ts"
 
-describe("lobby concurrency", () => {
+describe("games concurrency", () => {
   it.each([
     {
       name: "accept one join and report a full lobby for the other when both compete for the last seat",

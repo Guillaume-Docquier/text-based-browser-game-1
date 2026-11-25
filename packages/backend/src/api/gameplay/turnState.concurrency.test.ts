@@ -11,7 +11,7 @@ import { ConcurrencyTestApiServer } from "#testing/ConcurrencyTestApiServer.ts"
 import { createConcurrencyTestDb } from "#testing/createConcurrencyTestDb.ts"
 import { createPostgresPoolDisposal } from "#testing/createPostgresPoolDisposal.ts"
 
-describe("gameplay.turnState on PostgreSQL", () => {
+describe("turnState concurrency", () => {
   it("should refresh open streams after the database listener reconnects", async () => {
     // Arrange
     const postgres = await createConcurrencyTestDb()

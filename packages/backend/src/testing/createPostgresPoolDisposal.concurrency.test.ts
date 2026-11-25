@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { createConcurrencyTestDb } from "#testing/createConcurrencyTestDb.ts"
 import { createPostgresPoolDisposal } from "#testing/createPostgresPoolDisposal.ts"
 
-describe("createPostgresPoolDisposal", () => {
+describe("createPostgresPoolDisposal concurrency", () => {
   it("should wait for idle and previously removed connections to close during pool disposal", async () => {
     // Arrange
     await using postgres = await createConcurrencyTestDb()
