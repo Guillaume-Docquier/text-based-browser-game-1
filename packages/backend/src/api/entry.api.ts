@@ -10,6 +10,7 @@ import { TestHeaderAuthProvider } from "#api/auth/TestHeaderAuthProvider.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { GamesRepository } from "#api/games/games.repository.ts"
 import type { PortListeningMessage } from "#api/PortListeningMessage.ts"
+import { AuthProviderKind } from "#lib/AuthProviderKind.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
@@ -90,11 +91,11 @@ async function migrateDatabase(db: Database, { migrationsFolder, logger }: { mig
   )
 }
 
-function createAuthProvider({ provider, logger }: { provider: "clerk" | "test-header"; logger: Logger }): AuthProvider {
+function createAuthProvider({ provider, logger }: { provider: AuthProviderKind; logger: Logger }): AuthProvider {
   switch (provider) {
-    case "clerk":
+    case AuthProviderKind.CLERK:
       return new ClerkAuthProvider({ logger })
-    case "test-header":
+    case AuthProviderKind.TEST_HEADER:
       return new TestHeaderAuthProvider()
   }
 }

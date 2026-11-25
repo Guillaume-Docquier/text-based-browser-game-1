@@ -1,4 +1,14 @@
-import { Assert, type Branded, branded, type Logger, Result, Time, UnitOfTime, type RngState } from "@guillaume-docquier/tools-ts"
+import {
+  Assert,
+  type Branded,
+  branded,
+  type Enumify,
+  type Logger,
+  Result,
+  Time,
+  UnitOfTime,
+  type RngState,
+} from "@guillaume-docquier/tools-ts"
 import { and, count, eq, sql } from "drizzle-orm"
 import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import type { GameConfiguration } from "shared/domain/games/GameConfiguration.ts"
@@ -20,6 +30,11 @@ import { CreateGameError } from "./createGame.error.ts"
 import { JoinGameError, JoinGameRollbackError } from "./joinGame.error.ts"
 import { LeaveGameError, LeaveGameRollbackError } from "./leaveGame.error.ts"
 import { StartGameError, StartGameRollbackError } from "./startGame.error.ts"
+
+type GetPlayerIdError = Enumify<typeof GetPlayerIdError>
+const GetPlayerIdError = {
+  UNKNOWN: "UNKNOWN",
+} as const
 
 type NewTurnRow = typeof turnsTable.$inferInsert
 type NewTurnProcessingRow = typeof turnsProcessingTable.$inferInsert
@@ -124,7 +139,7 @@ export class GamesRepository extends PostgresRepository {
   public async getPlayerId(
     { gameId, accountId }: { gameId: GameId; accountId: AccountId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<PlayerId | undefined, "UNKNOWN">> {
+  ): Promise<Result<PlayerId | undefined, GetPlayerIdError>> {
     const playerIdResult = await Result.tryCatch(async () => {
       const rows = await db
         .select({ playerId: playersTable.playerId })
@@ -137,7 +152,7 @@ export class GamesRepository extends PostgresRepository {
 
     if (Result.isFailure(playerIdResult)) {
       this.logger.error("Could not check if player joined game", { gameId, accountId, error: playerIdResult.error })
-      return Result.Failure("UNKNOWN" as const)
+      return Result.Failure(GetPlayerIdError.UNKNOWN)
     }
 
     return playerIdResult

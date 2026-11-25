@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm"
+import { ne, sql } from "drizzle-orm"
 import {
   bigint,
   boolean,
@@ -105,9 +105,7 @@ export const turnsTable = pgTable(
     primaryKey({
       columns: [table.gameId, table.turn],
     }),
-    uniqueIndex("turns_one_open_turn_per_game_unique")
-      .on(table.gameId)
-      .where(sql`${table.status} <> 'COMPLETED'`),
+    uniqueIndex("turns_one_open_turn_per_game_unique").on(table.gameId).where(ne(table.status, TurnStatus.COMPLETED).inlineParams()),
     index("turns_status_ends_at_idx").on(table.status, table.endsAt),
   ],
 )

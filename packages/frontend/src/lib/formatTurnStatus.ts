@@ -1,14 +1,14 @@
-import type { PlayerView } from "@api-types"
+import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 
-export function formatTurnStatus(status: PlayerView["turnStatus"]): string {
+export function formatTurnStatus(status: TurnStatus): string {
   switch (status) {
-    case "COLLECTING_ACTIONS":
+    case TurnStatus.COLLECTING_ACTIONS:
       return "Collecting actions"
-    case "AWAITING_PROCESSING":
+    case TurnStatus.AWAITING_PROCESSING:
       return "Awaiting processing"
-    case "PROCESSING":
+    case TurnStatus.PROCESSING:
       return "Processing"
-    case "COMPLETED":
+    case TurnStatus.COMPLETED:
       return "Completed"
   }
 }

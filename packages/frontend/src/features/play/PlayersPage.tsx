@@ -2,6 +2,7 @@ import type { Player, PlayerView } from "@api-types"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { Check, CircleDashed } from "lucide-react"
 import type { ReactElement } from "react"
+import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent } from "@/components/card.tsx"
@@ -71,7 +72,7 @@ function PlayerRow({
       <PlayerReadiness
         isCurrentPlayer={isCurrentPlayer}
         isReady={playerState.isReady}
-        disabled={playerView.turnStatus !== "COLLECTING_ACTIONS" || isReadinessPending}
+        disabled={playerView.turnStatus !== TurnStatus.COLLECTING_ACTIONS || isReadinessPending}
         onToggle={() => {
           onUpdateReadiness(!playerState.isReady)
         }}
