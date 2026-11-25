@@ -43,6 +43,61 @@ describe("global lint rules in source files", () => {
     ["frontend", "packages/frontend/src/fixture.ts"],
     ["shared", "packages/shared/src/fixture.ts"],
   ])("%s source files", (_scope, path) => {
+    describe("conditional object spreads", () => {
+      it.each([
+        {
+          name: "reject an inline object after a single && condition",
+          code: `
+            export function getServerOptions(isDev: boolean): { port: number; https?: boolean } {
+              return { port: 5173, ...(isDev && { https: true }) }
+            }
+          `,
+        },
+        {
+          name: "reject an inline object after chained && conditions",
+          code: `
+            type ServerOptions = {
+              port: number
+              https?: { key: string }
+            }
+
+            export function getServerOptions(isDev: boolean, isPreview: boolean): ServerOptions {
+              return {
+                port: 5173,
+                ...(isDev && !isPreview && { htttps: { key: "local-key" } }),
+              }
+            }
+          `,
+        },
+        {
+          name: "reject a ternary with an empty object branch",
+          code: `
+            export function getServerOptions(isDev: boolean): { port: number; https?: boolean } {
+              return { port: 5173, ...(isDev ? { https: true } : {}) }
+            }
+          `,
+        },
+        {
+          name: "reject a separately typed object after an && condition",
+          code: `
+            export function getServerOptions(isDev: boolean): { port: number; https?: boolean } {
+              const httpsOptions: { https: boolean } = { https: true }
+              return { port: 5173, ...(isDev && httpsOptions) }
+            }
+          `,
+        },
+      ])("should $name", async ({ code }) => {
+        // Arrange
+        const fixture = { path, code }
+
+        // Act
+        const diagnostics = await session.lint(fixture)
+
+        // Assert
+        expect(diagnostics).toStrictEqual(["eslint-js(no-restricted-syntax)"])
+      })
+    })
+
     describe("no barrel files", () => {
       it.each([
         {
