@@ -34,10 +34,7 @@ This index summarizes all accepted ADRs. When applying the concepts, you should 
 | [034-use-railway-infrastructure-as-code](./034-use-railway-infrastructure-as-code.md)                                                                   | Use Railway's project-level Infrastructure as Code for the deployed environment.                                                                                                               | You change Railway infrastructure or deployment settings.                                      |
 | [035-do-not-use-vitest-custom-fixtures](035-do-not-use-vitest-custom-fixtures.md)                                                                       | Declare tests with native Vitest functions so Oxlint can check them consistently.                                                                                                              | You want to write a custom Vitest fixture.                                                     |
 | [036-keep-handwritten-postgresql-schema-sql-outside-generated-migrations](./036-keep-handwritten-postgresql-schema-sql-outside-generated-migrations.md) | Keep handwritten PostgreSQL schema SQL in `packages/backend/migrations/` so Drizzle migrations can be rebuilt from source.                                                                     | You add database objects that require handwritten SQL or change the database rebuild workflow. |
-
-## Proposed ADRs
-
-- [037 Use Server-Sent Events over HTTP/2](./037-use-server-sent-events-over-http-2.md)
+| [037-use-server-sent-events-over-http-2](./037-use-server-sent-events-over-http-2.md)                                                                   | Avoid HTTP/1.1 connection pool restrictions for SSE.                                                                                                                                           | You are changing HTTPS, HTTP/2, SSE, or WebSocket code.                                        |
 
 ## Deprecated / Superseded / Rejected ADRs
 

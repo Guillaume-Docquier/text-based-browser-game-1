@@ -1,25 +1,23 @@
-# Use Server-Sent Events over HTTP/2
+# Use SSE over HTTP/2
 
 ## Status
 
-Proposed in [#451](https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/451).
+Accepted
 
 ## Context
 
-Open play tabs need current turn status and Readiness even while players are idle. Polling the full player view repeats work and delays updates. Server-Sent Events (SSE) provide a persistent HTTP response for updates from the server to the browser.
+We use Server-sent events (SSE) to send quick updates to the frontend instead of polling. SSE also reuse the same-origin API and its authentication.
 
-Chromium typically allows six HTTP/1.1 connections per origin across tabs. Each SSE response occupies one connection for its lifetime. Six open streams can delay short requests such as Lock in. HTTP/2 multiplexes independent streams on a shared connection. Each connection still has a concurrent stream limit.
+However, SSE over HTTP/1.1 in Chromium defaults to six connections in the pool shared by tabs for the game origin. With one SSE subscription per play tab, six tabs can fill that pool and throttle other connections. HTTP/2 lets those requests and subscriptions use separate streams on a shared connection. [Chromium connection pool](https://chromium.googlesource.com/chromium/src/+/ef6ba930ba83b74518f3ed7d89247c4c82e84764/net/http/http_stream_pool.h), [RFC 9113, Streams and Multiplexing](https://www.rfc-editor.org/rfc/rfc9113.html#section-5).
 
 ## Decision
 
-Use same-origin SSE for live server-to-browser updates. Subscriptions use the existing API authentication. Client mutations use regular HTTP requests.
+Use SSE when real time updates are needed and use HTTP for any mutations the frontend wants to do. Serve the deployed game origin over HTTPS with HTTP/2 on the browser-facing connection to avoid the six connections pool restrictions of HTTP/1.1.
 
-Require HTTPS and HTTP/2 on the browser-facing connection at the Railway public edge and in Vite for local development and Playwright. The proxy can forward requests to Express over HTTP/1.1.
-
-The public proxy must forward SSE events as they arrive. A browser reconnects when the connection closes or goes silent. Each new stream sends the current snapshot, so the browser can resume after an edge timeout without replaying missed events.
+HTTP/2 with Vite will require HTTPS, so we'll need local certificates for dev and for playwright.
 
 ## Consequences
 
-Open tabs can receive updates while short API requests share the same origin. Development requires a trusted localhost certificate. Playwright verifies HTTP/2 on the subscription response. After deployment, use a signed-in browser at the Railway public endpoint to confirm that the subscription uses `h2` and delivers an update while its response remains open.
+Open play tabs can receive updates while short API requests proceed on other streams, up to the concurrent stream limit advertised by the HTTP/2 endpoint. [RFC 9113, Stream Concurrency](https://www.rfc-editor.org/rfc/rfc9113.html#section-5.1.2).
 
-See [Railway public networking](https://docs.railway.com/networking/public-networking/specs-and-limits), [HTTP/2](https://www.rfc-editor.org/rfc/rfc9113.html), [Caddy streaming](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#streaming).
+The public edge must support HTTP/2 and streaming responses. Railway supports HTTP/2 on its public HTTPS endpoint and caps the lifetime of HTTP responses, so clients must reconnect when a stream closes and receive the current turn state. [Railway public networking limits](https://docs.railway.com/networking/public-networking/specs-and-limits).
