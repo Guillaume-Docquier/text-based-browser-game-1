@@ -52,7 +52,6 @@ describe("global lint rules in source files", () => {
               return { port: 5173, ...(isDev && { https: true }) }
             }
           `,
-          expected: ["eslint-js(no-restricted-syntax)"],
         },
         {
           name: "reject an inline object after chained && conditions",
@@ -69,7 +68,6 @@ describe("global lint rules in source files", () => {
               }
             }
           `,
-          expected: ["eslint-js(no-restricted-syntax)"],
         },
         {
           name: "reject a ternary with an empty object branch",
@@ -78,10 +76,9 @@ describe("global lint rules in source files", () => {
               return { port: 5173, ...(isDev ? { https: true } : {}) }
             }
           `,
-          expected: ["eslint-js(no-restricted-syntax)"],
         },
         {
-          name: "allow a separately typed object after an && condition",
+          name: "reject a separately typed object after an && condition",
           code: `
             type ServerOptions = {
               port: number
@@ -96,9 +93,8 @@ describe("global lint rules in source files", () => {
               }
             }
           `,
-          expected: [],
         },
-      ])("should $name", async ({ code, expected }) => {
+      ])("should $name", async ({ code }) => {
         // Arrange
         const fixture = { path, code }
 
@@ -106,7 +102,7 @@ describe("global lint rules in source files", () => {
         const diagnostics = await session.lint(fixture)
 
         // Assert
-        expect(diagnostics).toStrictEqual(expected)
+        expect(diagnostics).toStrictEqual(["eslint-js(no-restricted-syntax)"])
       })
     })
 

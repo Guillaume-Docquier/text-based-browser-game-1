@@ -16,8 +16,8 @@ const allowedComments = {
 const restrictedSyntax = [
   ...typescript.rules["eslint-js/no-restricted-syntax"],
   {
-    selector: "ObjectExpression > SpreadElement > LogicalExpression[operator='&&'][right.type='ObjectExpression']",
-    message: "Give the spread object a type derived from the target object type so TypeScript can check for typos.",
+    selector: "ObjectExpression > SpreadElement > LogicalExpression[operator='&&']",
+    message: "Use an if statement to set optional properties on a typed object.",
   },
   { selector: "ImportExpression", message: "Use a static import declaration." },
   {
