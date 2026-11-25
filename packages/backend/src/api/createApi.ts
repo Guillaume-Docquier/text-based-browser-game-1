@@ -86,7 +86,7 @@ export function startTurnStateUpdates({
   const stopped = listenForTurnStateChanges({
     databaseUrl,
     onChange: (gameId) => {
-      turnStateUseCase.refresh(gameId)
+      void turnStateUseCase.refresh(gameId)
     },
     onListening: () => {
       turnStateUseCase.refreshAll()

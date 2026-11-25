@@ -6,84 +6,76 @@ import type { TurnStateError } from "./turnState.error.ts"
 import type { TurnStateQuery } from "./turnState.query.ts"
 import type { TurnState } from "./TurnState.ts"
 
+const SNAPSHOT_EVENT = "snapshot"
+
 type Snapshot = Result<TurnState, TurnStateError>
+type GameEvents = { [SNAPSHOT_EVENT]: [Snapshot] }
 type GameSubscriptions = {
-  events: EventEmitter<{ snapshot: [Snapshot] }>
+  events: EventEmitter<GameEvents>
   reading: boolean
   refreshRequested: boolean
 }
 
 export class TurnStateUseCase {
   private readonly repository: GameplayRepository
-  private readonly games = new Map<GameId, GameSubscriptions>()
+  private readonly gameSubscriptions = new Map<GameId, GameSubscriptions>()
 
   public constructor(repository: GameplayRepository) {
     this.repository = repository
   }
 
   public async *execute({ gameId }: TurnStateQuery, signal: AbortSignal | undefined): AsyncGenerator<Snapshot> {
-    if (signal?.aborted === true) {
-      return
-    }
-
-    const game = this.games.get(gameId) ?? {
-      events: new EventEmitter<{ snapshot: [Snapshot] }>().setMaxListeners(0),
+    const game = this.gameSubscriptions.getOrInsertComputed(gameId, () => ({
+      events: new EventEmitter<GameEvents>().setMaxListeners(0),
       reading: false,
       refreshRequested: false,
-    }
-    this.games.set(gameId, game)
-
-    const snapshots = on(game.events, "snapshot", signal === undefined ? {} : { signal })
-    this.refresh(gameId)
+    }))
 
     try {
+      const snapshots = on(game.events, SNAPSHOT_EVENT, { signal })
+      void this.refresh(gameId)
       for await (const [snapshot] of snapshots) {
         yield snapshot
       }
-    } catch (error) {
-      if (!(error instanceof Error && error.name === "AbortError")) {
-        throw error
-      }
     } finally {
-      this.removeIdleGame(gameId, game)
+      this.removeGameSubscriptionIfIdle(gameId)
     }
   }
 
   public refreshAll(): void {
-    for (const gameId of this.games.keys()) {
-      this.refresh(gameId)
+    for (const gameId of this.gameSubscriptions.keys()) {
+      void this.refresh(gameId)
     }
   }
 
-  public refresh(gameId: GameId): void {
-    const game = this.games.get(gameId)
+  public async refresh(gameId: GameId): Promise<void> {
+    const game = this.gameSubscriptions.get(gameId)
     if (game === undefined) {
       return
     }
 
     game.refreshRequested = true
-    if (!game.reading) {
-      void this.readSnapshots(gameId, game)
+    if (game.reading) {
+      return
     }
-  }
 
-  private async readSnapshots(gameId: GameId, game: GameSubscriptions): Promise<void> {
     game.reading = true
     try {
-      while (game.refreshRequested && game.events.listenerCount("snapshot") > 0) {
+      while (game.refreshRequested && game.events.listenerCount(SNAPSHOT_EVENT) > 0) {
         game.refreshRequested = false
         const snapshot = await this.repository.getTurnState(gameId)
-        game.events.emit("snapshot", snapshot)
+        game.events.emit(SNAPSHOT_EVENT, snapshot)
       }
     } finally {
       game.reading = false
-      this.removeIdleGame(gameId, game)
+      this.removeGameSubscriptionIfIdle(gameId)
     }
   }
 
-  private removeIdleGame(gameId: GameId, game: GameSubscriptions): void {
-    if (!game.reading && game.events.listenerCount("snapshot") === 0 && this.games.get(gameId) === game) {
-      this.games.delete(gameId)
+  private removeGameSubscriptionIfIdle(gameId: GameId): void {
+    const game = this.gameSubscriptions.get(gameId)
+    if (game?.reading === false && game.events.listenerCount(SNAPSHOT_EVENT) === 0) {
+      this.gameSubscriptions.delete(gameId)
     }
   }
 }
