@@ -22,7 +22,7 @@ Use the Drizzle TypeScript schema for the objects it can generate. Put handwritt
 
 Sync the custom migrations with `pnpm --filter backend db:sync-custom`. `pnpm db:nuke` handles the custom migrations as well.
 
-Every handwritten file must work after the current schema is generated. See [ADR-037](../../docs/architecture/decisions/037-keep-handwritten-postgresql-schema-sql-outside-generated-migrations.md).
+Every handwritten file must work after the current schema is generated. See [ADR-036](../../docs/architecture/decisions/036-keep-handwritten-postgresql-schema-sql-outside-generated-migrations.md).
 
 ## Transactions and locks
 
