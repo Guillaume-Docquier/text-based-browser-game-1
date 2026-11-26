@@ -32,7 +32,6 @@ allowBuilds:
   core-js: true
   cpu-features: false
   esbuild: true
-  msw: false
   protobufjs: true
   ssh2: true
   unrs-resolver: true
