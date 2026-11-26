@@ -88,18 +88,18 @@ describe("PlayGameLayout", () => {
       await expect.element(cancel).toBeEnabled()
       expect(worldRequests).toBe(2)
     })
-    await page.mark("Reconnect on the same turn and wait for fresh readiness", async () => {
+    await page.mark("Keep the current readiness controls available during a same-turn reconnect", async () => {
       disconnect()
       await expect.poll(() => connections).toBe(2)
-      await expect.element(cancel).toBeDisabled()
-      sendSnapshot()
       await expect.element(cancel).toBeEnabled()
+      isReady = false
+      sendSnapshot()
+      await expect.element(lockIn).toBeEnabled()
       expect(worldRequests).toBe(2)
     })
     await page.mark("Reconnect after several turns and fetch the current world once", async () => {
       disconnect()
       liveTurn = 8
-      isReady = false
       await expect.poll(() => connections).toBe(3)
       sendSnapshot()
       await expect.element(page.getByText("Turn 8", { exact: true })).toBeVisible()

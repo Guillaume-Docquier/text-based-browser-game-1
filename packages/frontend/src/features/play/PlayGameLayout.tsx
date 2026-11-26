@@ -14,7 +14,7 @@ import { useLogger } from "@/lib/LoggerContext.tsx"
 export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const gameDetailsQuery = useGameDetailsQuery(gameId)
-  const { subscription, hasLiveSnapshot } = useTurnStateSubscription(gameId)
+  const subscription = useTurnStateSubscription(gameId)
   const playerViewQuery = usePlayerViewQuery(gameId, subscription.data?.turn)
 
   if (gameDetailsQuery.isPending || playerViewQuery.isPending) {
@@ -62,12 +62,7 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   }
 
   return (
-    <PlayGameContextProvider
-      hasLiveSnapshot={hasLiveSnapshot}
-      gameDetails={gameDetailsQuery.data}
-      playerView={playerViewQuery.data}
-      turnState={subscription.data}
-    >
+    <PlayGameContextProvider gameDetails={gameDetailsQuery.data} playerView={playerViewQuery.data} turnState={subscription.data}>
       <GameLayout gameId={gameId}>
         <Outlet />
       </GameLayout>

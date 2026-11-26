@@ -35,7 +35,7 @@ const meta = {
   args: { initialPlanetId: undefined },
   decorators: [
     (Story): ReactElement => (
-      <PlayGameContextProvider {...context} hasLiveSnapshot={true}>
+      <PlayGameContextProvider {...context}>
         <div className="flex" style={{ width: 600, height: 600 }}>
           <Story />
         </div>

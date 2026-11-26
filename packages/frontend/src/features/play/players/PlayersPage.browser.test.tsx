@@ -13,7 +13,7 @@ describe("PlayersPage", () => {
       vi.useRealTimers()
     })
     await renderApplicationPage(
-      <PlayGameContextProvider {...data} hasLiveSnapshot={true}>
+      <PlayGameContextProvider {...data}>
         <PlayersPage />
       </PlayGameContextProvider>,
     )
