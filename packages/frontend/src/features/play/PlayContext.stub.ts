@@ -3,9 +3,9 @@ import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
-import type { PlayGameContextValue } from "./PlayContext.tsx"
+import type { PlayGameData } from "./PlayContext.tsx"
 
-export function createPlayGameContextStub({ galaxy = { systems: [] } }: { galaxy?: Galaxy } = {}): PlayGameContextValue {
+export function createPlayGameContextStub({ galaxy = { systems: [] } }: { galaxy?: Galaxy } = {}): PlayGameData {
   const gameId = GameIdSchema.parse(1)
   const player = createPlayerStub()
   return {
@@ -30,7 +30,6 @@ export function createPlayGameContextStub({ galaxy = { systems: [] } }: { galaxy
       galaxy,
       turn: 1,
     },
-    canUpdateReadiness: true,
     turnState: {
       turn: 1,
       readinessByPlayerId: { [player.id]: false },

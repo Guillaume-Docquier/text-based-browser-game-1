@@ -1,24 +1,23 @@
 import { Outlet } from "@tanstack/react-router"
-import { type ReactElement, useEffect, useState } from "react"
+import type { ReactElement } from "react"
 import type { GameId } from "shared/domain/games/GameId.ts"
-import { GameStatus } from "shared/domain/games/GameStatus.ts"
-import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
 import { GameLayout, GameLayoutSkeleton } from "@/features/play/components/GameLayout.tsx"
-import { PlayGameContextProvider, type PlayGameContextValue } from "@/features/play/PlayContext.tsx"
+import { PlayGameContextProvider } from "@/features/play/PlayContext.tsx"
 import { useGameDetailsQuery } from "@/lib/api/useGameDetailsQuery.ts"
 import { usePlayerViewQuery } from "@/lib/api/usePlayerViewQuery.ts"
-import { useTurnState } from "@/lib/api/useTurnState.ts"
+import { useTurnStateQuery } from "@/lib/api/useTurnStateQuery.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
 export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const gameDetailsQuery = useGameDetailsQuery(gameId)
-  const turnState = useTurnState(gameId)
-  const playerViewQuery = usePlayerViewQuery(gameId, turnState.data?.turn)
-  if (gameDetailsQuery.isPending || playerViewQuery.isPending) {
+  const turnStateQuery = useTurnStateQuery(gameId)
+  const playerViewQuery = usePlayerViewQuery(gameId, turnStateQuery.data?.turn)
+
+  if (gameDetailsQuery.isPending || playerViewQuery.isPending || turnStateQuery.isPending) {
     return <GameLayoutSkeleton />
   }
 
@@ -26,7 +25,7 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
     logger.error("Could not fetch game", { gameId, error: gameDetailsQuery.error.message })
     return (
       <GameLoadError
-        message={gameDetailsQuery.error.message ?? "Please try again."}
+        message={gameDetailsQuery.error.message}
         onRetry={() => {
           void gameDetailsQuery.refetch()
         }}
@@ -38,7 +37,7 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
     logger.error("Could not fetch game state", { gameId, error: playerViewQuery.error.message })
     return (
       <GameLoadError
-        message={playerViewQuery.error.message ?? "Please try again."}
+        message={playerViewQuery.error.message}
         onRetry={() => {
           void playerViewQuery.refetch()
         }}
@@ -46,43 +45,21 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
     )
   }
 
-  if (turnState.data === undefined) {
-    return turnState.error === null ? <GameLayoutSkeleton /> : <GameLoadError message={turnState.error.message} onRetry={turnState.retry} />
+  if (turnStateQuery.isLoadingError) {
+    logger.error("Could not fetch turn state", { gameId, error: turnStateQuery.error.message })
+    return (
+      <GameLoadError
+        message={turnStateQuery.error.message}
+        onRetry={() => {
+          void turnStateQuery.refetch()
+        }}
+      />
+    )
   }
 
   return (
-    <LoadedGame
-      gameDetails={gameDetailsQuery.data}
-      playerView={playerViewQuery.data}
-      turnState={turnState.data}
-      isLive={turnState.isLive}
-    />
-  )
-}
-
-function LoadedGame({
-  gameDetails,
-  playerView,
-  turnState,
-  isLive,
-}: Omit<PlayGameContextValue, "canUpdateReadiness"> & { isLive: boolean }): ReactElement {
-  const [currentTime, setCurrentTime] = useState(() => new Date())
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-
-    return (): void => {
-      clearInterval(interval)
-    }
-  }, [])
-
-  const turnIsOpen = turnState.turnStatus === TurnStatus.COLLECTING_ACTIONS && currentTime.getTime() < Date.parse(turnState.turnEndsAt)
-  const worldIsCurrent = isLive && playerView.turn === turnState.turn
-  const canUpdateReadiness = turnIsOpen && worldIsCurrent && gameDetails.status !== GameStatus.ENDED
-  return (
-    <PlayGameContextProvider value={{ gameDetails, playerView, turnState, canUpdateReadiness }}>
-      <GameLayout gameId={gameDetails.id} currentTime={currentTime}>
+    <PlayGameContextProvider gameDetails={gameDetailsQuery.data} playerView={playerViewQuery.data} turnState={turnStateQuery.data}>
+      <GameLayout gameId={gameId}>
         <Outlet />
       </GameLayout>
     </PlayGameContextProvider>

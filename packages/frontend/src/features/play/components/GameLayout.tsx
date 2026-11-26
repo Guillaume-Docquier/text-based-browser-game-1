@@ -4,12 +4,12 @@ import { Skeleton } from "@/components/skeleton.tsx"
 import { GameSideNav } from "@/features/play/components/GameSideNav.tsx"
 import { GameTopBar } from "@/features/play/components/GameTopBar.tsx"
 
-export function GameLayout({ gameId, currentTime, children }: { gameId: GameId; currentTime: Date; children: ReactNode }): ReactElement {
+export function GameLayout({ gameId, children }: { gameId: GameId; children: ReactNode }): ReactElement {
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
       <GameSideNav gameId={gameId} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <GameTopBar currentTime={currentTime} />
+        <GameTopBar />
         <main className="flex min-h-0 min-w-0 flex-1">{children}</main>
       </div>
     </div>

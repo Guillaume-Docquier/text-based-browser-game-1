@@ -10,7 +10,7 @@ import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function PlayersPage(): ReactElement {
-  const { gameDetails, playerView, turnState, canUpdateReadiness } = usePlayGameContext()
+  const { gameDetails, playerView, turnState, canTakeAction } = usePlayGameContext()
   const updateReadiness = useUpdateReadiness()
 
   return (
@@ -26,7 +26,7 @@ export function PlayersPage(): ReactElement {
               player={player}
               isCurrentPlayer={player.id === playerView.player.id}
               isReady={isReady}
-              disabled={!canUpdateReadiness || updateReadiness.isPending}
+              disabled={!canTakeAction || updateReadiness.isPending}
               onToggle={() => {
                 updateReadiness.mutate({ gameId: gameDetails.id, turn: turnState.turn, isReady: !isReady })
               }}

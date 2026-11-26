@@ -1,6 +1,5 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
 import { RefreshCw } from "lucide-react"
-import { type ReactElement, useState } from "react"
+import { type ReactElement, useEffect, useState } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { TurnButton } from "@/features/play/components/TurnButton.tsx"
@@ -10,7 +9,7 @@ import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
 import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
-export function GameTopBar({ currentTime }: { currentTime: Date }): ReactElement {
+export function GameTopBar(): ReactElement {
   const { gameDetails, turnState } = usePlayGameContext()
   return (
     <header className="shrink-0 border-b border-border/70 bg-background/80 px-4 sm:px-6">
@@ -25,17 +24,24 @@ export function GameTopBar({ currentTime }: { currentTime: Date }): ReactElement
           </div>
         </div>
         <div className="min-w-0 justify-self-center self-stretch">
-          <TurnControl currentTime={currentTime} />
+          <TurnControl />
         </div>
       </div>
     </header>
   )
 }
 
-function TurnControl({ currentTime }: { currentTime: Date }): ReactElement {
-  const { gameDetails, playerView, turnState, canUpdateReadiness } = usePlayGameContext()
-  const isReady = turnState.readinessByPlayerId[playerView.player.id]
-  Assert.isDefined(isReady)
+function TurnControl(): ReactElement {
+  const { gameDetails, turnState, canTakeAction, isCurrentPlayerReady } = usePlayGameContext()
+  const [currentTime, setCurrentTime] = useState(() => new Date())
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+    return (): void => {
+      clearInterval(interval)
+    }
+  }, [])
   const logger = useLogger()
   const updateReadiness = useUpdateReadiness()
   const refreshClientData = useRefreshClientData()
@@ -79,11 +85,11 @@ function TurnControl({ currentTime }: { currentTime: Date }): ReactElement {
         turn={turnState.turn}
         countdown={timeLeft.duration}
         deadline={turnEndsAtLabel}
-        isLockedIn={isReady}
+        isLockedIn={isCurrentPlayerReady}
         isPending={updateReadiness.isPending}
-        disabled={updateReadiness.isPending || !canUpdateReadiness}
+        disabled={updateReadiness.isPending || !canTakeAction}
         onToggle={() => {
-          updateReadiness.mutate({ gameId: gameDetails.id, turn: turnState.turn, isReady: !isReady })
+          updateReadiness.mutate({ gameId: gameDetails.id, turn: turnState.turn, isReady: !isCurrentPlayerReady })
         }}
       />
       {updateReadiness.error === null ? null : (

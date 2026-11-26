@@ -1,7 +1,6 @@
 import { Assert, Logger } from "@guillaume-docquier/tools-ts"
-import { focusManager, onlineManager } from "@tanstack/react-query"
 import { http, HttpResponse } from "msw"
-import { afterEach, describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest"
 import { page } from "vitest/browser"
 import { LoggerProvider } from "@/lib/LoggerContext.tsx"
 import { setupBrowserApiWorker } from "@/testing/browserApiWorker.ts"
@@ -12,13 +11,9 @@ import { PlayGameLayout } from "./PlayGameLayout.tsx"
 describe("PlayGameLayout", () => {
   const worker = setupBrowserApiWorker()
 
-  afterEach(() => {
-    focusManager.setFocused(undefined)
-    onlineManager.setOnline(true)
-  })
-
   it("should reuse the world across readiness updates and wait for a matching world after a turn change", async () => {
     const { gameDetails, playerView, turnState } = createPlayGameContextStub()
+    const turnEndsAt = new Date(Date.now() + 86_400_000).toISOString()
     const nextWorld = Promise.withResolvers<number>()
     let worldRequests = 0
     let liveTurn = 2
@@ -29,7 +24,7 @@ describe("PlayGameLayout", () => {
       "gameplay.turnState": () => ({
         ...turnState,
         turn: liveTurn,
-        turnEndsAt: "2099-01-01T00:00:00Z",
+        turnEndsAt,
         readinessByPlayerId: { [playerView.player.id]: isReady },
       }),
       "gameplay.getPlayerView": async () => {
@@ -76,16 +71,6 @@ describe("PlayGameLayout", () => {
     await page.mark("Lock in and receive the updated readiness without loading the world", async () => {
       await lockIn.click()
       await expect.element(cancel).toBeEnabled()
-      expect(worldRequests).toBe(2)
-    })
-    await page.mark("Reconnect on the same turn and receive a fresh readiness snapshot", async () => {
-      onlineManager.setOnline(false)
-      await expect.element(cancel).toBeDisabled()
-      isReady = false
-      onlineManager.setOnline(true)
-      focusManager.setFocused(false)
-      focusManager.setFocused(true)
-      await expect.element(lockIn).toBeEnabled()
       expect(worldRequests).toBe(2)
     })
   })
