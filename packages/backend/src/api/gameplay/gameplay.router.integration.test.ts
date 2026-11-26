@@ -35,34 +35,43 @@ describe("gameplay.router", () => {
 
   it("should refresh subscribers after notifications resume with a change missed during the gap", async () => {
     // Arrange
-    await using db = await createIntegrationTestDb()
-    const listening = Promise.withResolvers<NotificationHandlers>()
+    const registeredNotificationHandlers = Promise.withResolvers<NotificationHandlers>()
     const notificationListener: NotificationListener = {
       listen: (_channel, handlers) => {
-        listening.resolve(handlers)
+        registeredNotificationHandlers.resolve(handlers)
       },
     }
-    using server = new ApiServer(await createApiStub({ db, notificationListener }))
-    const alice = await server.createClient({ authenticated: true })
-    const bob = await server.createClient({ authenticated: true })
-    const { createdGameId: gameId } = await alice.client.games.create.mutate({ configuration: createGameConfigurationStub() })
-    await bob.client.games.join.mutate({ gameId })
-    await alice.client.games.startGame.mutate({ gameId })
-    const listener = await listening.promise
-    using aliceStream = subscribeToTurnState(alice.client, gameId)
-    using bobStream = subscribeToTurnState(bob.client, gameId)
-    listener.onReady()
-    const [initialAlice, initialBob] = await Promise.all([aliceStream.next(), bobStream.next()])
+
+    await using db = await createIntegrationTestDb()
+    using apiServer = new ApiServer(await createApiStub({ db, notificationListener }))
+    const alice = await apiServer.createClient({ authenticated: true })
+    const bob = await apiServer.createClient({ authenticated: true })
+
+    const { createdGameId } = await alice.client.games.create.mutate({
+      configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
+    })
+    await bob.client.games.join.mutate({ gameId: createdGameId })
+    await alice.client.games.startGame.mutate({ gameId: createdGameId })
+
+    const notificationHandlers = await registeredNotificationHandlers.promise
+    using aliceStream = subscribeToTurnState(alice.client, createdGameId)
+    using bobStream = subscribeToTurnState(bob.client, createdGameId)
+    notificationHandlers.onReady()
+    const [aliceInitialTurnState, bobInitialTurnState] = await Promise.all([aliceStream.next(), bobStream.next()])
 
     // Act
-    await alice.client.gameplay.updateReadiness.mutate({ gameId, turn: 1, isReady: true })
-    listener.onReady()
+    await alice.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
+    notificationHandlers.onReady()
+    const [aliceRefreshedTurnState, bobRefreshedTurnState] = await Promise.all([aliceStream.next(), bobStream.next()])
 
     // Assert
-    expect(initialBob).toStrictEqual(initialAlice)
-    const expected = { ...initialAlice, readinessByPlayerId: { [alice.account.id]: true, [bob.account.id]: false } }
-    expect(await aliceStream.next()).toStrictEqual(expected)
-    expect(await bobStream.next()).toStrictEqual(expected)
+    const expectedTurnState = {
+      ...aliceInitialTurnState,
+      readinessByPlayerId: { [alice.account.id]: true, [bob.account.id]: false },
+    }
+    expect(bobInitialTurnState).toStrictEqual<typeof aliceInitialTurnState>(aliceInitialTurnState)
+    expect(aliceRefreshedTurnState).toStrictEqual<typeof aliceInitialTurnState>(expectedTurnState)
+    expect(bobRefreshedTurnState).toStrictEqual<typeof aliceInitialTurnState>(expectedTurnState)
   })
 
   describe("getPlayerView", () => {

@@ -27,6 +27,10 @@ New code paths, modules and services should generally follow these standards, bu
 - Design deep, cohesive modules with low caller burden.
 - Keep code discoverable for humans and agents.
 
+## Code density
+
+Use newlines to create groups of related statements and separate groups of unrelated statements. This helps readability by avoiding large chunks of continuous code that are hard to scan.
+
 ## Errors and failures
 
 ### Expected failures are values
@@ -194,7 +198,7 @@ Authorization belongs in shared application/domain policy, not duplicated in con
 
 ## Imports, exports, and files
 
-Export only what callers should use. Keep internal helpers unexported unless intentionally shared. Do not export internals just for tests.
+Export only what callers should use. Keep internal helpers unexported unless intentionally shared. Do not export internal implementations just for tests. You can export the types just for tests, however.
 
 Avoid vague files:
 
