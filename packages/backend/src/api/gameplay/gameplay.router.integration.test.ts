@@ -62,7 +62,6 @@ describe("gameplay.router", () => {
     // Act
     await alice.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
     notificationHandlers.onReady()
-    const [aliceRefreshedTurnState, bobRefreshedTurnState] = await Promise.all([aliceStream.next(), bobStream.next()])
 
     // Assert
     const expectedTurnState = {
@@ -70,8 +69,8 @@ describe("gameplay.router", () => {
       readinessByPlayerId: { [alice.account.id]: true, [bob.account.id]: false },
     }
     expect(bobInitialTurnState).toStrictEqual<typeof aliceInitialTurnState>(aliceInitialTurnState)
-    expect(aliceRefreshedTurnState).toStrictEqual<typeof aliceInitialTurnState>(expectedTurnState)
-    expect(bobRefreshedTurnState).toStrictEqual<typeof aliceInitialTurnState>(expectedTurnState)
+    await expect.poll(aliceStream.next).toStrictEqual<typeof aliceInitialTurnState>(expectedTurnState)
+    await expect.poll(bobStream.next).toStrictEqual<typeof aliceInitialTurnState>(expectedTurnState)
   })
 
   describe("getPlayerView", () => {

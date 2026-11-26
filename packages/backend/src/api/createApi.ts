@@ -66,7 +66,7 @@ export async function createApi({
     onPayload: (payload) => {
       const gameId = gameIdPayload.safeParse(payload)
       if (gameId.success) {
-        useCases.getTurnStateUseCase.refresh(gameId.data)
+        void useCases.getTurnStateUseCase.refresh(gameId.data)
       }
     },
     onReady: () => {
