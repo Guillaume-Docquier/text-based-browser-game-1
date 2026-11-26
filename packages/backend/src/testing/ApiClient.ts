@@ -56,8 +56,10 @@ export async function createApiClient({
 }
 
 function createTrpcClient({ port, authId }: { port: number; authId: string | undefined }): TRPCClient<TrpcRouter> {
-  const headers = authId === undefined ? {} : { [AUTH_ID_HEADER]: authId }
   const url = `http://localhost:${port}/trpc`
+  // CONSTRAINT: The AUTH_ID_HEADER is serialized as "undefined" if the value is undefined. We have to avoid setting it when there is no account
+  const headers = authId === undefined ? {} : { [AUTH_ID_HEADER]: authId }
+
   return createTRPCClient<TrpcRouter>({
     links: [
       splitLink({
@@ -65,7 +67,9 @@ function createTrpcClient({ port, authId }: { port: number; authId: string | und
         true: httpSubscriptionLink({
           url,
           EventSource,
-          eventSourceOptions: { fetch: async (input, init) => await fetch(input, { ...init, headers: { ...init.headers, ...headers } }) },
+          eventSourceOptions: {
+            fetch: async (input, init) => await fetch(input, { ...init, headers: { ...init.headers, ...headers } }),
+          },
         }),
         false: httpBatchLink({ url, headers }),
       }),
