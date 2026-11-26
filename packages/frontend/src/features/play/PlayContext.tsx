@@ -31,9 +31,9 @@ export function PlayGameContextProvider({
   gameDetails,
   turnState,
   playerView,
-  hasLiveSnapshot = true,
+  hasLiveSnapshot,
   children,
-}: PropsWithChildren<PlayGameData & { hasLiveSnapshot?: boolean }>): ReactElement {
+}: PropsWithChildren<PlayGameData & { hasLiveSnapshot: boolean }>): ReactElement {
   const beforeDeadline = useBeforeDeadline(turnState.turnEndsAt)
   const canTakeAction =
     hasLiveSnapshot &&
