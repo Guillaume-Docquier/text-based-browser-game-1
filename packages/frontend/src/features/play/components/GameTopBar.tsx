@@ -33,19 +33,11 @@ export function GameTopBar(): ReactElement {
 
 function TurnControl(): ReactElement {
   const { gameDetails, turnState, canTakeAction, isCurrentPlayerReady } = usePlayGameContext()
-  const [currentTime, setCurrentTime] = useState(() => new Date())
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-    return (): void => {
-      clearInterval(interval)
-    }
-  }, [])
   const logger = useLogger()
   const updateReadiness = useUpdateReadiness()
   const refreshClientData = useRefreshClientData()
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [currentTime, setCurrentTime] = useState(() => new Date())
   const turnEndsAt = new Date(turnState.turnEndsAt)
   const timeLeft = calculateTimeLeft({ past: currentTime, future: turnEndsAt })
   const turnEndsAtLabel = new Intl.DateTimeFormat(undefined, {
@@ -54,6 +46,16 @@ function TurnControl(): ReactElement {
     hour: "numeric",
     minute: "2-digit",
   }).format(turnEndsAt)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+
+    return (): void => {
+      clearInterval(interval)
+    }
+  }, [])
 
   async function refreshGameData(): Promise<void> {
     setIsRefreshing(true)

@@ -2,13 +2,14 @@ import type { Planet, StarSystem } from "@api-types"
 import { ArrowLeft, LocateFixed } from "lucide-react"
 import { type AnimationEvent, type MouseEvent, type ReactElement, useState } from "react"
 import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
+import type { StarId } from "shared/domain/world/stars/StarId.ts"
 import { Button } from "@/components/button.tsx"
 import { GalaxyMap } from "@/features/play/galaxy/GalaxyMap.tsx"
 import { PlanetDetailsPane } from "@/features/play/galaxy/star-system/PlanetDetailsPane.tsx"
 import { StarSystemMap } from "@/features/play/galaxy/star-system/StarSystemMap.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 
-type GalaxyView = { type: "galaxy" } | { type: "star-system"; starId: StarSystem["star"]["id"]; transition: "entering" | "exiting" }
+type GalaxyView = { type: "galaxy" } | { type: "star-system"; starId: StarId; transition: "entering" | "exiting" }
 type PlanetDetailsView = { planetId: PlanetId; transition: "open" | "closing" }
 type PlanetTarget = { readonly system: StarSystem; readonly planet: Planet }
 
