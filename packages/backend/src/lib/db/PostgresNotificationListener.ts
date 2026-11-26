@@ -2,7 +2,7 @@ import { setTimeout } from "node:timers/promises"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { Client, escapeIdentifier } from "pg"
 
-type NotificationHandlers = {
+export type NotificationHandlers = {
   onPayload: (payload: string) => void
   onReady: () => void
 }

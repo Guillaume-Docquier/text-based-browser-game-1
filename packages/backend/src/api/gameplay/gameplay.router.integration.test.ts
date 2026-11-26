@@ -7,7 +7,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { GetPlayerViewError, GetPlayerViewErrorResponses } from "#api/gameplay/getPlayerView.error.ts"
 import { UpdateReadinessError, UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
-import type { NotificationListener } from "#lib/db/PostgresNotificationListener.ts"
+import type { NotificationHandlers, NotificationListener } from "#lib/db/PostgresNotificationListener.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
 import { readTurnState, subscribeToTurnState } from "#testing/readTurnState.ts"
@@ -36,7 +36,7 @@ describe("gameplay.router", () => {
   it("should refresh subscribers after notifications resume with a change missed during the gap", async () => {
     // Arrange
     await using db = await createIntegrationTestDb()
-    const listening = Promise.withResolvers<Parameters<NotificationListener["listen"]>[1]>()
+    const listening = Promise.withResolvers<NotificationHandlers>()
     const notificationListener: NotificationListener = {
       listen: (_channel, handlers) => {
         listening.resolve(handlers)
