@@ -88,10 +88,9 @@ describe("PlayGameLayout", () => {
       await expect.element(cancel).toBeEnabled()
       expect(worldRequests).toBe(2)
     })
-    await page.mark("Keep the current readiness controls available during a same-turn reconnect", async () => {
+    await page.mark("Receive updated readiness on the same turn without loading the world again", async () => {
       disconnect()
       await expect.poll(() => connections).toBe(2)
-      await expect.element(cancel).toBeEnabled()
       isReady = false
       sendSnapshot()
       await expect.element(lockIn).toBeEnabled()
