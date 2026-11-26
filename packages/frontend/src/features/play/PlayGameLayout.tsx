@@ -14,8 +14,8 @@ import { useLogger } from "@/lib/LoggerContext.tsx"
 export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const gameDetailsQuery = useGameDetailsQuery(gameId)
-  const subscription = useTurnStateSubscription(gameId)
-  const playerViewQuery = usePlayerViewQuery(gameId, subscription.data?.turn)
+  const turnStateSubscription = useTurnStateSubscription(gameId)
+  const playerViewQuery = usePlayerViewQuery(gameId, turnStateSubscription.data?.turn)
 
   if (gameDetailsQuery.isPending || playerViewQuery.isPending) {
     return <GameLayoutSkeleton />
@@ -45,24 +45,24 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
     )
   }
 
-  if (subscription.status === "error") {
-    logger.error("Could not fetch turn state", { gameId, error: subscription.error.message })
+  if (turnStateSubscription.status === "error") {
+    logger.error("Could not fetch turn state", { gameId, error: turnStateSubscription.error.message })
     return (
       <GameLoadError
-        message={subscription.error.message}
+        message={turnStateSubscription.error.message}
         onRetry={() => {
-          subscription.reset()
+          turnStateSubscription.reset()
         }}
       />
     )
   }
 
-  if (subscription.data === undefined) {
+  if (turnStateSubscription.data === undefined) {
     return <GameLayoutSkeleton />
   }
 
   return (
-    <PlayGameContextProvider gameDetails={gameDetailsQuery.data} playerView={playerViewQuery.data} turnState={subscription.data}>
+    <PlayGameContextProvider gameDetails={gameDetailsQuery.data} playerView={playerViewQuery.data} turnState={turnStateSubscription.data}>
       <GameLayout gameId={gameId}>
         <Outlet />
       </GameLayout>
