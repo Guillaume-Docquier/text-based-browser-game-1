@@ -1,4 +1,4 @@
-import { type Logger, Result, type Time, Timer } from "@guillaume-docquier/tools-ts"
+import { type Logger, type MaybePromise, Result, type Time, Timer } from "@guillaume-docquier/tools-ts"
 import { initTRPC, TRPCError } from "@trpc/server"
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import { getHTTPStatusCodeFromError } from "@trpc/server/http"
@@ -16,7 +16,7 @@ export const NO_OUTPUT = z.void()
 export type TrpcErrorResponse = { code: TRPCError["code"]; message: string }
 
 export async function toTrpcOutput<TValue, TError extends string>(
-  pendingResult: Result<TValue, TError> | Promise<Result<TValue, TError>>,
+  pendingResult: MaybePromise<Result<TValue, TError>>,
   errorResponses: Record<NoInfer<TError>, TrpcErrorResponse>,
 ): Promise<TValue> {
   const result = await pendingResult
