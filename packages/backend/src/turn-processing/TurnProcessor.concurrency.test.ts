@@ -38,14 +38,14 @@ describe("TurnProcessor concurrency", () => {
     await concurrency.waitForBlockedQuery({ blockedBy: claimBlock.pid, command: "update", table: turnsTable, lock: "row" })
 
     expect(await concurrency.waitForCompletion(secondProcessor.processNextDueTurn())).toBe("processed")
-    expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
+    expect(await player.client.gameplay.turnState.query({ gameId: laterGameId })).toMatchObject({
       turn: 2,
       turnStatus: TurnStatus.COLLECTING_ACTIONS,
     })
 
     await claimBlock.release()
     expect(await firstOutcome).toStrictEqual(Result.Success("processed"))
-    expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
+    expect(await player.client.gameplay.turnState.query({ gameId: earlierGameId })).toMatchObject({
       turn: 2,
       turnStatus: TurnStatus.COLLECTING_ACTIONS,
     })
@@ -74,7 +74,7 @@ describe("TurnProcessor concurrency", () => {
 
     await claimBlock.release()
     expect(await firstOutcome).toStrictEqual(Result.Success("processed"))
-    expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
+    expect(await player.client.gameplay.turnState.query({ gameId })).toMatchObject({
       turn: 2,
       turnStatus: TurnStatus.COLLECTING_ACTIONS,
     })
@@ -98,7 +98,7 @@ describe("TurnProcessor concurrency", () => {
     // Act & Assert
     const firstOutcome = Result.tryCatch(firstProcessor.processNextDueTurn())
     await concurrency.waitForBlockedQuery({ blockedBy: saveBlock.pid, command: "update", table: playersTable, lock: "table" })
-    expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
+    expect(await player.client.gameplay.turnState.query({ gameId })).toMatchObject({
       turn: 1,
       turnStatus: TurnStatus.PROCESSING,
     })
@@ -106,7 +106,7 @@ describe("TurnProcessor concurrency", () => {
 
     await saveBlock.release()
     expect(await firstOutcome).toStrictEqual(Result.Success("processed"))
-    expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
+    expect(await player.client.gameplay.turnState.query({ gameId })).toMatchObject({
       turn: 2,
       turnStatus: TurnStatus.COLLECTING_ACTIONS,
     })

@@ -2,14 +2,15 @@ import type { Planet, StarSystem } from "@api-types"
 import { ArrowLeft, LocateFixed } from "lucide-react"
 import { type AnimationEvent, type MouseEvent, type ReactElement, useState } from "react"
 import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
+import type { StarId } from "shared/domain/world/stars/StarId.ts"
 import { Button } from "@/components/button.tsx"
 import { GalaxyMap } from "@/features/play/galaxy/GalaxyMap.tsx"
 import { PlanetDetailsPane } from "@/features/play/galaxy/star-system/PlanetDetailsPane.tsx"
 import { StarSystemMap } from "@/features/play/galaxy/star-system/StarSystemMap.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 
-type GalaxyView = { type: "galaxy" } | { type: "star-system"; system: StarSystem; transition: "entering" | "exiting" }
-type PlanetDetailsView = { planet: Planet; transition: "open" | "closing" }
+type GalaxyView = { type: "galaxy" } | { type: "star-system"; starId: StarId; transition: "entering" | "exiting" }
+type PlanetDetailsView = { planetId: PlanetId; transition: "open" | "closing" }
 type PlanetTarget = { readonly system: StarSystem; readonly planet: Planet }
 
 export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | undefined }): ReactElement {
@@ -18,19 +19,20 @@ export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | un
   const [view, setView] = useState<GalaxyView>(() =>
     initialPlanetTarget === undefined
       ? { type: "galaxy" }
-      : { type: "star-system", system: initialPlanetTarget.system, transition: "entering" },
+      : { type: "star-system", starId: initialPlanetTarget.system.star.id, transition: "entering" },
   )
   const [planetDetailsView, setPlanetDetailsView] = useState<PlanetDetailsView | undefined>(() =>
-    initialPlanetTarget === undefined ? undefined : { planet: initialPlanetTarget.planet, transition: "open" },
+    initialPlanetTarget === undefined ? undefined : { planetId: initialPlanetTarget.planet.id, transition: "open" },
   )
   const [galaxyResetSignal, setGalaxyResetSignal] = useState(0)
   const [starSystemResetSignal, setStarSystemResetSignal] = useState(0)
-  const selectedSystem = view.type === "star-system" ? view.system : undefined
+  const selectedSystem = view.type === "star-system" ? playerView.galaxy.systems.find(({ star }) => star.id === view.starId) : undefined
+  const selectedPlanet = selectedSystem?.planets.find(({ id }) => id === planetDetailsView?.planetId)
   const isExitingStarSystem = view.type === "star-system" && view.transition === "exiting"
   const totalNbPlanets = playerView.galaxy.systems.flatMap((system) => system.planets).length
 
   function resetView(): void {
-    if (view.type === "galaxy") {
+    if (selectedSystem === undefined) {
       setGalaxyResetSignal((currentSignal) => currentSignal + 1)
       return
     }
@@ -60,11 +62,11 @@ export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | un
 
   function showStarSystem(system: StarSystem): void {
     setPlanetDetailsView(undefined)
-    setView({ type: "star-system", system, transition: "entering" })
+    setView({ type: "star-system", starId: system.star.id, transition: "entering" })
   }
 
   function showPlanetDetails(planet: Planet): void {
-    setPlanetDetailsView({ planet, transition: "open" })
+    setPlanetDetailsView({ planetId: planet.id, transition: "open" })
   }
 
   function hidePlanetDetails(event: MouseEvent<HTMLDivElement>): void {
@@ -158,9 +160,9 @@ export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | un
             : "Drag to pan · Scroll or pinch to zoom"}
         </div>
 
-        {planetDetailsView !== undefined && (
+        {selectedPlanet !== undefined && planetDetailsView !== undefined && (
           <PlanetDetailsPane
-            planet={planetDetailsView.planet}
+            planet={selectedPlanet}
             isClosing={planetDetailsView.transition === "closing"}
             onCloseAnimationEnd={finishHidingPlanetDetails}
           />

@@ -1,7 +1,6 @@
 import { type Branded, Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, desc, eq, gt } from "drizzle-orm"
 import type { GameId } from "shared/domain/games/GameId.ts"
-import type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import type { Star } from "shared/domain/world/stars/Star.ts"
@@ -12,12 +11,8 @@ import type { Clock } from "#lib/Clock.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { planetsTable, playersTable, starsTable, turnsTable, turnsProcessingTable } from "#lib/db/schema.ts"
-
-type PlayerViewPlayerModel = Readonly<{
-  id: PlayerId
-  color: PlayerColor
-  isReady: boolean
-}>
+import { GetTurnStateError } from "./getTurnState.error.ts"
+import type { TurnState } from "./TurnState.ts"
 
 export type ReadinessForUpdate = Branded<
   "ReadinessForUpdate",
@@ -25,7 +20,7 @@ export type ReadinessForUpdate = Branded<
     gameId: GameId
     playerId: PlayerId
     turn: number
-    players: readonly PlayerViewPlayerModel[]
+    players: ReadonlyArray<{ id: PlayerId; isReady: boolean }>
   }>
 >
 
@@ -49,8 +44,6 @@ export class GameplayRepository extends PostgresRepository {
           const turns = await tx
             .select({
               turn: turnsTable.turn,
-              status: turnsTable.status,
-              endsAt: turnsTable.endsAt,
             })
             .from(turnsTable)
             .where(eq(turnsTable.gameId, gameId))
@@ -67,7 +60,6 @@ export class GameplayRepository extends PostgresRepository {
             .select({
               id: playersTable.playerId,
               color: playersTable.color,
-              isReady: playersTable.isReady,
             })
             .from(playersTable)
             .where(eq(playersTable.gameId, gameId))
@@ -84,8 +76,6 @@ export class GameplayRepository extends PostgresRepository {
             galaxy: toGalaxyModel({ stars, planets }),
             gameId,
             turn: turn.turn,
-            turnStatus: turn.status,
-            turnEndsAt: turn.endsAt,
           }
         },
         { isolationLevel: "repeatable read" },
@@ -102,6 +92,44 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     return playerViewResult
+  }
+
+  public async getTurnState({ gameId }: { gameId: GameId }): Promise<Result<TurnState, GetTurnStateError>> {
+    const latestTurn = this.db
+      .select({ gameId: turnsTable.gameId, turn: turnsTable.turn, turnStatus: turnsTable.status, turnEndsAt: turnsTable.endsAt })
+      .from(turnsTable)
+      .where(eq(turnsTable.gameId, gameId))
+      .orderBy(desc(turnsTable.turn))
+      .limit(1)
+      .as("latest_turn")
+    const rows = await Result.tryCatch(
+      this.db
+        .select({
+          turn: latestTurn.turn,
+          turnStatus: latestTurn.turnStatus,
+          turnEndsAt: latestTurn.turnEndsAt,
+          playerId: playersTable.playerId,
+          isReady: playersTable.isReady,
+        })
+        .from(latestTurn)
+        .innerJoin(playersTable, eq(playersTable.gameId, latestTurn.gameId)),
+    )
+    if (Result.isFailure(rows)) {
+      this.logger.error("Could not get turn state", { gameId, error: rows.error })
+      return Result.Failure(GetTurnStateError.UNKNOWN)
+    }
+
+    const current = rows.value[0]
+    if (current === undefined) {
+      return Result.Failure(GetTurnStateError.TURN_NOT_FOUND)
+    }
+
+    return Result.Success({
+      turn: current.turn,
+      turnStatus: current.turnStatus,
+      turnEndsAt: current.turnEndsAt,
+      readinessByPlayerId: Object.fromEntries(rows.value.map(({ playerId, isReady }) => [playerId, isReady])),
+    })
   }
 
   public async getReadinessForUpdate(
@@ -132,7 +160,7 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     const players = await tx
-      .select({ id: playersTable.playerId, color: playersTable.color, isReady: playersTable.isReady })
+      .select({ id: playersTable.playerId, isReady: playersTable.isReady })
       .from(playersTable)
       .where(eq(playersTable.gameId, gameId))
     Assert.isTrue(players.some((player) => player.id === playerId))

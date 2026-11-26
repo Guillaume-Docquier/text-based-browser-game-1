@@ -10,6 +10,7 @@ import type { AuthService } from "#api/auth/auth.service.ts"
 import type { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
 import { GetPlayerViewUseCase } from "#api/gameplay/getPlayerView.useCase.ts"
+import { GetTurnStateUseCase } from "#api/gameplay/getTurnState.useCase.ts"
 import { UpdateReadinessUseCase } from "#api/gameplay/updateReadiness.useCase.ts"
 import { CreateGameUseCase } from "#api/games/createGame.useCase.ts"
 import type { GamesRepository } from "#api/games/games.repository.ts"
@@ -46,6 +47,7 @@ export async function createApi({
     joinGameUseCase: new JoinGameUseCase(applicationServices),
     leaveGameUseCase: new LeaveGameUseCase(applicationServices),
     getPlayerViewUseCase: new GetPlayerViewUseCase(applicationServices),
+    getTurnStateUseCase: new GetTurnStateUseCase(applicationServices),
     startGameUseCase: new StartGameUseCase(applicationServices),
     updateReadinessUseCase: new UpdateReadinessUseCase(applicationServices),
   }
@@ -83,6 +85,7 @@ function createTrpcRouter({
   leaveGameUseCase: LeaveGameUseCase
   gamesRepository: GamesRepository
   getPlayerViewUseCase: GetPlayerViewUseCase
+  getTurnStateUseCase: GetTurnStateUseCase
   startGameUseCase: StartGameUseCase
   updateReadinessUseCase: UpdateReadinessUseCase
   logger: Logger

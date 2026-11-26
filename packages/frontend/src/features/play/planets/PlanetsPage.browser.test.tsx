@@ -61,7 +61,7 @@ async function renderPlanets(): Promise<void> {
   const context = createPlayGameContextStub({ galaxy: { systems: [{ star: createStarStub(), planets }] } })
   context.gameDetails.players = [alice, bob]
   await renderApplicationPage(
-    <PlayGameContextProvider value={context}>
+    <PlayGameContextProvider {...context}>
       <PlanetsPage />
     </PlayGameContextProvider>,
   )

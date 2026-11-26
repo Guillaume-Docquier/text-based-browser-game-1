@@ -44,6 +44,11 @@ export default defineConfig({
       ...react,
       files: ["**/*.{ts,tsx}"],
       excludeFiles: ["playwright/**/*"],
+      rules: {
+        ...react.rules,
+        // CONSTRAINT: This rule doesn't take into account the React 19 compiler.
+        "react/jsx-no-constructed-context-values": "off",
+      },
     },
     {
       files: ["**/*.browser.test.{ts,tsx}"],

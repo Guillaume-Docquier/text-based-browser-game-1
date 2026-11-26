@@ -125,6 +125,9 @@ describe("TurnProcessor", () => {
       expect(playerView).toStrictEqual<typeof playerView>({
         ...initialPlayerView,
         turn: 2,
+      })
+      expect(await player.client.gameplay.turnState.query({ gameId: createdGameId })).toMatchObject({
+        turn: 2,
         turnEndsAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
       })
     })
@@ -172,7 +175,7 @@ describe("TurnProcessor", () => {
       await turnProcessor.processNextDueTurn()
 
       // Assert
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+      expect(await player.client.gameplay.turnState.query({ gameId: createdGameId })).toMatchObject({
         turn: 2,
         turnEndsAt: expectedDeadline,
       })
