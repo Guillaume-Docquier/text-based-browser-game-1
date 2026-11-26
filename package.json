@@ -30,21 +30,21 @@
     "wts": "node scripts/worktree-setup.ts && pnpm dev:setup"
   },
   "devDependencies": {
-    "@guillaume-docquier/oxfmt": "^1.0.21",
-    "@guillaume-docquier/oxlint": "^1.11.1",
+    "@guillaume-docquier/oxfmt": "^1.0.22",
+    "@guillaume-docquier/oxlint": "^1.11.3",
     "@guillaume-docquier/show-me": "^1.7.1",
     "@types/node": "^26.6.6",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-boundaries": "^7.4.4",
     "husky": "^9.1.7",
-    "lint-staged": "^17.6.1",
+    "lint-staged": "^17.6.2",
     "oxfmt": ">=0.79.0",
     "oxlint": "^1.94.0",
-    "oxlint-tsgolint": "^7.0.2007",
+    "oxlint-tsgolint": "^7.0.2008",
     "railway": "^3.16.0",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "vscode-languageserver-protocol": "^3.18.5"
+    "vscode-languageserver-protocol": "^3.18.6"
   },
   "devEngines": {
     "packageManager": {
