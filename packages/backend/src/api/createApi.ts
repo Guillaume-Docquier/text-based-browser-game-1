@@ -1,10 +1,10 @@
 import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { TRPCError } from "@trpc/server"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import compression from "compression"
 import express, { type Express } from "express"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
-import { z } from "zod"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createAccountsRouter } from "#api/accounts/accounts.router.ts"
 import { FinishOnboardingUseCase } from "#api/accounts/finishOnboarding.useCase.ts"
@@ -57,17 +57,10 @@ export async function createApi({
     updateReadinessUseCase: new UpdateReadinessUseCase(applicationServices),
   }
 
-  const gameIdPayload = z
-    .string()
-    .regex(/^[1-9][0-9]*$/)
-    .pipe(z.coerce.number<string>().int())
-    .pipe(GameIdSchema)
   notificationListener.listen("turn_state_changed", {
     onPayload: (payload) => {
-      const gameId = gameIdPayload.safeParse(payload)
-      if (gameId.success) {
-        void useCases.getTurnStateUseCase.refresh(gameId.data)
-      }
+      const gameId = typedParse(GameIdSchema, Number(payload))
+      void useCases.getTurnStateUseCase.refresh(gameId)
     },
     onReady: () => {
       useCases.getTurnStateUseCase.listenerReady()
