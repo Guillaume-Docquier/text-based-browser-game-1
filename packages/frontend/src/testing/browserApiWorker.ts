@@ -4,13 +4,13 @@ import { afterAll, afterEach, beforeAll } from "vitest"
 export function setupBrowserApiWorker(): SetupWorker {
   const worker = setupWorker()
   beforeAll(async () => {
-    await worker.start({ onUnhandledRequest: "bypass", quiet: true })
+    await worker.start({ onUnhandledFrame: "bypass", quiet: true })
   })
   afterEach(() => {
     worker.resetHandlers()
   })
-  afterAll(() => {
-    worker.stop()
+  afterAll(async () => {
+    await worker.stop()
   })
   return worker
 }

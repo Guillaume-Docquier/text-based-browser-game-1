@@ -1,5 +1,5 @@
 import { focusManager, QueryClient, useMutation } from "@tanstack/react-query"
-import { http, HttpResponse } from "msw"
+import { http, HttpResponse } from "msw/http"
 import { type ReactElement, useState } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { page } from "vitest/browser"

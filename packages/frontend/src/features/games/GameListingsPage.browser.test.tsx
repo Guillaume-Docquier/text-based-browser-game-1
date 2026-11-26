@@ -1,5 +1,5 @@
 import type { GameListing } from "@api-types"
-import { http, HttpResponse } from "msw"
+import { http, HttpResponse } from "msw/http"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { describe, expect, it } from "vitest"
