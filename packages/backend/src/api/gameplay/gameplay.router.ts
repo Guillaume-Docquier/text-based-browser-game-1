@@ -1,5 +1,6 @@
+import { z } from "zod"
 import { PlayerViewSchema } from "#api/gameplay/PlayerView.ts"
-import { TurnStateSchema } from "#api/gameplay/TurnState.ts"
+import { type TurnState, TurnStateSchema } from "#api/gameplay/TurnState.ts"
 import { UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
 import { NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
 import { GetPlayerViewErrorResponses } from "./getPlayerView.error.ts"
@@ -34,8 +35,12 @@ export function createGameplayRouter({
 
     turnState: trpc.inGameProcedure
       .input(GetTurnStateQuerySchema)
-      .output(TurnStateSchema)
-      .query(async ({ input }) => await toTrpcOutput(getTurnStateUseCase.execute(input), GetTurnStateErrorResponses)),
+      .output(z.custom<AsyncIterable<TurnState>>((value) => value !== null && typeof value === "object" && Symbol.asyncIterator in value))
+      .subscription(async function* ({ input, signal }) {
+        for await (const snapshot of getTurnStateUseCase.execute(input, signal)) {
+          yield TurnStateSchema.parse(await toTrpcOutput(snapshot, GetTurnStateErrorResponses))
+        }
+      }),
 
     getPlayerView: trpc.inGameProcedure
       .input(GetPlayerViewQuerySchema)

@@ -18,6 +18,7 @@ import { ControlledClock } from "#lib/ControlledClock.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
+import { readTurnState } from "#testing/readTurnState.ts"
 
 describe("games.router", () => {
   describe("getListings", () => {
@@ -169,7 +170,7 @@ describe("games.router", () => {
       // Act
       const startGameResult = await player.client.games.startGame.mutate({ gameId: createdGameId })
       const lobby = await player.client.games.getDetails.query({ gameId: createdGameId })
-      const turnState = await player.client.gameplay.turnState.query({ gameId: createdGameId })
+      const turnState = await readTurnState(player.client, createdGameId)
 
       // Assert
       expect(startGameResult).toBeUndefined()

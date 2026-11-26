@@ -5,6 +5,7 @@ import { pushSchema } from "drizzle-kit/api"
 import { drizzle } from "drizzle-orm/pglite"
 import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
+import type { NotificationListener } from "#lib/db/PostgresNotificationListener.ts"
 // oxlint-disable-next-line import/no-namespace -- Drizzle Kit needs the complete schema for pushSchema.
 import * as schema from "#lib/db/schema.ts"
 
@@ -30,11 +31,16 @@ export async function prepareIntegrationTestDb(): Promise<void> {
   loadDataDir = await pgliteTemplate.dumpDataDir("none")
 }
 
-export async function createIntegrationTestDb(): Promise<Database & AsyncDisposable> {
+export async function createIntegrationTestDb(): Promise<Database & AsyncDisposable & { notificationListener: NotificationListener }> {
   Assert.isDefined(loadDataDir)
 
   const pgliteClone = await PGlite.create({ loadDataDir })
-  return Object.assign(pgliteToDb(pgliteClone), { [Symbol.asyncDispose]: pgliteClone.close.bind(pgliteClone) })
+  const notificationListener: NotificationListener = {
+    listen(channel, { onPayload, onReady }) {
+      void pgliteClone.listen(channel, onPayload).then(onReady)
+    },
+  }
+  return Object.assign(pgliteToDb(pgliteClone), { notificationListener, [Symbol.asyncDispose]: pgliteClone.close.bind(pgliteClone) })
 }
 
 async function applyCustomMigrations(pglite: PGlite): Promise<void> {

@@ -1,7 +1,7 @@
 import type { TrpcRouter } from "@api-types"
 import type { Logger } from "@guillaume-docquier/tools-ts"
 import type { QueryClient } from "@tanstack/react-query"
-import { createTRPCClient, httpBatchLink, loggerLink } from "@trpc/client"
+import { createTRPCClient, httpBatchLink, httpSubscriptionLink, splitLink, loggerLink } from "@trpc/client"
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query"
 import { unlessProtected } from "@/lib/api/queryInvalidation.ts"
 
@@ -62,8 +62,10 @@ export function createBackendApiClient({
             })
           },
         }),
-        httpBatchLink({
-          url: `${baseUrl}/trpc`,
+        splitLink({
+          condition: (op) => op.type === "subscription",
+          true: httpSubscriptionLink({ url: `${baseUrl}/trpc` }),
+          false: httpBatchLink({ url: `${baseUrl}/trpc` }),
         }),
       ],
     }),

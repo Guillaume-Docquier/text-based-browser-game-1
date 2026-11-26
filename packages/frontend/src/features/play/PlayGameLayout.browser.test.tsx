@@ -1,5 +1,6 @@
 import { Assert, Logger } from "@guillaume-docquier/tools-ts"
 import { http, HttpResponse } from "msw"
+import { sse } from "msw/sse"
 import { describe, expect, it } from "vitest"
 import { page } from "vitest/browser"
 import { LoggerProvider } from "@/lib/LoggerContext.tsx"
@@ -18,15 +19,12 @@ describe("PlayGameLayout", () => {
     let worldRequests = 0
     let liveTurn = 2
     let isReady = false
-    const worlds = [Promise.resolve(1), nextWorld.promise]
+    let sendSnapshot: () => void
+    let disconnect: () => void
+    let connections = 0
+    const worlds = [Promise.resolve(1), nextWorld.promise, Promise.resolve(8)]
     const queries: Record<string, () => unknown> = {
       "games.getDetails": () => gameDetails,
-      "gameplay.turnState": () => ({
-        ...turnState,
-        turn: liveTurn,
-        turnEndsAt,
-        readinessByPlayerId: { [playerView.player.id]: isReady },
-      }),
       "gameplay.getPlayerView": async () => {
         const world = worlds[worldRequests++]
         Assert.isDefined(world)
@@ -34,6 +32,19 @@ describe("PlayGameLayout", () => {
       },
     }
     worker.use(
+      sse<{ connected: string; message: string }>("*/trpc/gameplay.turnState", ({ client }) => {
+        connections++
+        disconnect = (): void => {
+          client.close()
+        }
+        sendSnapshot = (): void => {
+          client.send({
+            data: JSON.stringify({ ...turnState, turn: liveTurn, turnEndsAt, readinessByPlayerId: { [playerView.player.id]: isReady } }),
+          })
+        }
+        client.send({ retry: 20 })
+        client.send({ event: "connected", data: "{}" })
+      }),
       http.get(/\/trpc\//, async ({ request }) => {
         const procedures = new URL(request.url).pathname.slice("/trpc/".length).split(",")
         const results = await Promise.all(
@@ -47,6 +58,7 @@ describe("PlayGameLayout", () => {
       }),
       http.post("*/trpc/gameplay.updateReadiness", () => {
         isReady = true
+        sendSnapshot()
         return HttpResponse.json([{ result: {} }])
       }),
     )
@@ -58,10 +70,13 @@ describe("PlayGameLayout", () => {
     const lockIn = page.getByRole("button", { name: "Lock in", exact: true })
     const cancel = page.getByRole("button", { name: "Cancel lock in" })
 
-    await page.mark("Receive an older initial world and wait through another turn-state poll", async () => {
+    await page.mark("Receive an older initial world and wait for the matching world", async () => {
+      await expect.poll(() => connections).toBe(1)
+      sendSnapshot()
       await expect.element(lockIn).toBeDisabled()
       await expect.poll(() => worldRequests).toBe(2)
       liveTurn = 3
+      sendSnapshot()
       await expect.element(page.getByText("Turn 3", { exact: true })).toBeVisible()
       await expect.element(lockIn).toBeDisabled()
       expect(worldRequests).toBe(2)
@@ -72,6 +87,24 @@ describe("PlayGameLayout", () => {
       await lockIn.click()
       await expect.element(cancel).toBeEnabled()
       expect(worldRequests).toBe(2)
+    })
+    await page.mark("Reconnect on the same turn and wait for fresh readiness", async () => {
+      disconnect()
+      await expect.poll(() => connections).toBe(2)
+      await expect.element(cancel).toBeDisabled()
+      sendSnapshot()
+      await expect.element(cancel).toBeEnabled()
+      expect(worldRequests).toBe(2)
+    })
+    await page.mark("Reconnect after several turns and fetch the current world once", async () => {
+      disconnect()
+      liveTurn = 8
+      isReady = false
+      await expect.poll(() => connections).toBe(3)
+      sendSnapshot()
+      await expect.element(page.getByText("Turn 8", { exact: true })).toBeVisible()
+      await expect.element(lockIn).toBeEnabled()
+      expect(worldRequests).toBe(3)
     })
   })
 })

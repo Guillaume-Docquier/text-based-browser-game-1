@@ -27,9 +27,16 @@ export const usePlayGameContext = (): PlayGameContextValue => {
   return context
 }
 
-export function PlayGameContextProvider({ gameDetails, turnState, playerView, children }: PropsWithChildren<PlayGameData>): ReactElement {
+export function PlayGameContextProvider({
+  gameDetails,
+  turnState,
+  playerView,
+  hasLiveSnapshot = true,
+  children,
+}: PropsWithChildren<PlayGameData & { hasLiveSnapshot?: boolean }>): ReactElement {
   const beforeDeadline = useBeforeDeadline(turnState.turnEndsAt)
   const canTakeAction =
+    hasLiveSnapshot &&
     gameDetails.status === GameStatus.IN_PROGRESS &&
     turnState.turnStatus === TurnStatus.COLLECTING_ACTIONS &&
     playerView.turn === turnState.turn &&

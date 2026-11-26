@@ -15,7 +15,13 @@ test("an empty turn resolves when all players are ready and resets readiness", a
 
   const alicePlayersPage = await test.step("Alice starts the game and opens the Players tab", async () => {
     await aliceGameDetailsPage.reload()
+    const subscription = alice.page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname.endsWith("/gameplay.turnState") &&
+        response.headers()["content-type"]?.includes("text/event-stream"),
+    )
     const galaxyPage = await aliceGameDetailsPage.startGame()
+    expect(await (await subscription).httpVersion()).toBe("HTTP/2.0")
     return await galaxyPage.openPlayers()
   })
 
