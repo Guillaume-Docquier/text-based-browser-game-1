@@ -35,9 +35,9 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.16",
-    "@inquirer/prompts": "^8.8.0",
-    "@testcontainers/postgresql": "^12.2.1",
+    "@electric-sql/pglite": "^0.5.17",
+    "@inquirer/prompts": "^8.8.1",
+    "@testcontainers/postgresql": "^12.2.2",
     "@trpc/client": "^11.19.0",
     "@types/compression": "^1.8.1",
     "@types/express": "^5.0.6",
@@ -46,7 +46,7 @@
     "@vitest/coverage-v8": "catalog:",
     "commander": "^15.1.0",
     "drizzle-kit": "^0.31.11",
-    "testcontainers": "^12.2.1",
+    "testcontainers": "^12.2.2",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
