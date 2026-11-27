@@ -142,6 +142,30 @@ describe("Turn State notifications", () => {
     // Assert
     expect(delivered).toStrictEqual([String(gameId)])
   })
+
+  it("should notify an open Turn State stream when a commit changes only the deadline", async () => {
+    // Arrange
+    await using postgres = await createConcurrencyTestDb()
+    using server = new ApiServer(await createApiStub({ db: postgres.db }))
+    const player = await server.createClient({ authenticated: true })
+    const { createdGameId: gameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
+    await player.client.games.startGame.mutate({ gameId })
+    using stream = subscribeToTurnState(player.client, gameId)
+    const initial = await stream.next()
+    const newDeadline = new Date(Date.parse(initial.turnEndsAt) + 3_600_000).toISOString()
+    using observer = await connect(postgres.db.$client)
+    await observer.query("LISTEN turn_state_changed")
+    await observer.query("LISTEN test_writes_complete")
+    const received = collectNotifications(observer)
+
+    // Act
+    await postgres.db.$client.query("UPDATE turns SET ends_at = $2 WHERE game_id = $1 AND turn = $3", [gameId, newDeadline, initial.turn])
+    await postgres.db.$client.query("NOTIFY test_writes_complete")
+
+    // Assert
+    expect(await received).toStrictEqual([String(gameId)])
+    await expect.poll(stream.next).toStrictEqual({ ...initial, turnEndsAt: newDeadline })
+  })
 })
 
 async function connect(pool: Pool): Promise<PoolClient & Disposable> {
