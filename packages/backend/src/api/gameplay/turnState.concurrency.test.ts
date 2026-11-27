@@ -1,7 +1,8 @@
+import { EventEmitter, once } from "node:events"
 import { sql } from "drizzle-orm"
 import type { Pool, PoolClient } from "pg"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
-import { describe, expect, it, onTestFinished } from "vitest"
+import { describe, expect, it, onTestFinished, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createDb } from "#lib/db/createDb.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
@@ -10,6 +11,63 @@ import { createPostgresPoolDisposal } from "#testing/createPostgresPoolDisposal.
 import { subscribeToTurnState } from "#testing/readTurnState.ts"
 
 describe("Turn State notifications", () => {
+  it("should refresh both open streams when Readiness changes during an older Turn State read", async () => {
+    // Arrange
+    await using postgres = await createConcurrencyTestDb()
+    const { db, concurrency } = postgres
+    const listenerReady = Promise.withResolvers<undefined>()
+    const notifications = new EventEmitter()
+    const services = await createApiStub({
+      db,
+      notificationListener: {
+        listen(channel, handlers) {
+          db.notificationListener.listen(channel, {
+            onReady() {
+              handlers.onReady()
+              listenerReady.resolve(undefined)
+            },
+            onPayload(payload) {
+              handlers.onPayload(payload)
+              notifications.emit("delivered", payload)
+            },
+          })
+        },
+      },
+    })
+    using server = new ApiServer(services)
+    const alice = await server.createClient({ authenticated: true })
+    const bob = await server.createClient({ authenticated: true })
+    const { createdGameId: gameId } = await alice.client.games.create.mutate({ configuration: createGameConfigurationStub() })
+    await bob.client.games.join.mutate({ gameId })
+    await listenerReady.promise
+    const turnInserted = once(notifications, "delivered")
+    await alice.client.games.startGame.mutate({ gameId })
+    await turnInserted
+
+    using aliceStream = subscribeToTurnState(alice.client, gameId)
+    const initial = await aliceStream.next()
+    const olderStateRead = Promise.withResolvers<undefined>()
+    const readinessDelivered = once(notifications, "delivered")
+    const repository = services.gameplayRepository
+    const getTurnState = repository.getTurnState.bind(repository)
+    using _read = vi.spyOn(repository, "getTurnState").mockImplementationOnce(async (query) => {
+      const state = await getTurnState(query)
+      olderStateRead.resolve(undefined)
+      await readinessDelivered
+      return state
+    })
+
+    // Act
+    using bobStream = subscribeToTurnState(bob.client, gameId)
+    await concurrency.waitForCompletion(olderStateRead.promise)
+    await bob.client.gameplay.updateReadiness.mutate({ gameId, turn: 1, isReady: true })
+
+    // Assert
+    const expected = { ...initial, readinessByPlayerId: { [alice.account.id]: false, [bob.account.id]: true } }
+    await expect.poll(aliceStream.next).toStrictEqual(expected)
+    await expect.poll(bobStream.next).toStrictEqual(expected)
+  })
+
   it("should recover a readiness change missed by both open streams while the PostgreSQL listener is disconnected", async () => {
     // Arrange
     await using postgres = await createConcurrencyTestDb()
