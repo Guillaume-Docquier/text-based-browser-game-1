@@ -24,9 +24,12 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
     "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "catalog:",
     "commander": "^15.1.0",
+    "fast-check": "^4.11.0",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

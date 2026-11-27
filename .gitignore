@@ -116,3 +116,5 @@ packages/frontend/test-results/
 !/.codex/agents/comment-reviewer.toml
 generated/
 show-me.html
+/packages/shared/.stryker-tmp/
+/packages/shared/reports/mutation/

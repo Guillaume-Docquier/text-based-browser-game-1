@@ -1,0 +1,16 @@
+{
+  "plugins": ["@stryker-mutator/vitest-runner"],
+  "testRunner": "vitest",
+  "testFiles": ["src/galaxy-creation/createGalaxy.test.ts"],
+  "mutate": [
+    "src/galaxy-creation/createGalaxy.ts",
+    "src/galaxy-creation/topology/galaxyTopologyGenerator.ts",
+    "src/galaxy-creation/home-planets/generateHomePlanets.ts"
+  ],
+  "ignorePatterns": ["tsconfig*.json"],
+  "concurrency": 4,
+  "reporters": ["clear-text", "json"],
+  "jsonReporter": {
+    "fileName": "reports/mutation/galaxy.json"
+  }
+}
