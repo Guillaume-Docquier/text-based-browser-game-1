@@ -129,7 +129,6 @@ describe("galaxyGenerator", () => {
     })
 
     // Assert
-    // INTENT: Inspect the layout with `pnpm map-gen galaxy spiral --grid --seed 1234` before accepting an intended change with `pnpm --filter shared test galaxy.generator.unit.test.ts --update`.
     expect(galaxy).toMatchSnapshot()
   })
 })

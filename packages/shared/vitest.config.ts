@@ -1,5 +1,8 @@
+import { readdirSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { defineConfig } from "vitest/config"
+
+const moduleDirectories = readdirSync(new URL("./src/", import.meta.url), { withFileTypes: true }).filter((entry) => entry.isDirectory())
 
 export default defineConfig({
   test: {
@@ -11,6 +14,10 @@ export default defineConfig({
     },
     environment: "node",
     globals: false,
+    projects: moduleDirectories.map(({ name }) => ({
+      extends: true as const,
+      test: { name, dir: `src/${name}` },
+    })),
     slowTestThreshold: 15,
   },
 })
