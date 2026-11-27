@@ -26,8 +26,7 @@
     "map-gen:all": "pnpm map-gen galaxy cluster --grid --seed 1234 && pnpm map-gen galaxy spiral --grid --seed 1234 && pnpm map-gen spiral --seed 1234 && pnpm map-gen cluster --seed 1234",
     "prepare": "husky",
     "storybook": "pnpm --filter frontend storybook",
-    "test:format": "vitest run scripts/formatRequirementsFile.test.ts",
-    "test:lint": "vitest run linting/tests",
+    "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
     "wtd": "pnpm db:remove",
     "wts": "node scripts/worktree-setup.ts && pnpm dev:setup"

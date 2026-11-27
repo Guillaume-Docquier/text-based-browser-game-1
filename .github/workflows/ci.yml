@@ -54,11 +54,8 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Test lint rules
-        run: pnpm test:lint
-
-      - name: Test requirements formatter
-        run: pnpm test:format
+      - name: Test linting and scripts
+        run: pnpm test
 
   frontend:
     runs-on: ubuntu-latest
