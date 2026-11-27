@@ -23,7 +23,7 @@
     "lint": "oxlint",
     "lint:fix": "pnpm lint --fix",
     "map-gen": "node packages/shared/src/galaxy-creation/scripts/program.ts",
-    "map-gen:all": "pnpm map-gen previews",
+    "map-gen:previews": "pnpm map-gen galaxy cluster --grid --seed 1234 --output packages/shared/src/galaxy-creation/preview/cluster-galaxy.svg && pnpm map-gen galaxy spiral --grid --seed 1234 --output packages/shared/src/galaxy-creation/preview/spiral-galaxy.svg && pnpm map-gen spiral --seed 1234 --output packages/shared/src/galaxy-creation/preview/spiral.svg && pnpm map-gen cluster --seed 1234 --output packages/shared/src/galaxy-creation/preview/cluster.svg",
     "prepare": "husky",
     "storybook": "pnpm --filter frontend storybook",
     "test": "vitest run",

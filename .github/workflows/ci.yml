@@ -187,7 +187,7 @@ jobs:
       - name: Check generated galaxy previews
         uses: ./.github/actions/check-generated-files
         with:
-          command: pnpm map-gen:all
+          command: pnpm map-gen:previews
 
       - name: Typecheck
         run: pnpm --filter shared typecheck

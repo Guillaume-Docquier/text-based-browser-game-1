@@ -51,4 +51,4 @@ pnpm map-gen galaxy cluster
 pnpm map-gen galaxy spiral
 ```
 
-Run `pnpm map-gen:all` to regenerate the six [tracked previews](packages/shared/src/galaxy-creation/preview/) with seed `1234`. Each galaxy command produces an overview and a sample of star systems. The pre-commit hook regenerates and stages these previews from the current working tree when a change under `packages/shared/src/galaxy-creation/` is staged. The shared CI job runs the same command on the committed code.
+Run `pnpm map-gen:previews` to regenerate the six [tracked previews](packages/shared/src/galaxy-creation/preview/) with seed `1234`. Each galaxy command produces an overview and a sample of star systems. The pre-commit hook regenerates and stages these previews from the current working tree when a change under `packages/shared/src/galaxy-creation/` is staged. The shared CI job runs the same command on the committed code.
