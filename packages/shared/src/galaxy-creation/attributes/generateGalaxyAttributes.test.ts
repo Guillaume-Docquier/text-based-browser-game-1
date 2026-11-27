@@ -1,18 +1,21 @@
 import { describe, expect, it } from "vitest"
 import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "#shared/domain/world/planets/PlanetSize.ts"
-import { BIOME_ATTRIBUTE_RANGES, SIZE_ATTRIBUTE_RANGES, toGalaxy } from "#shared/galaxy-creation/toGalaxy.ts"
+import { generateGalaxyAttributes } from "#shared/galaxy-creation/attributes/generateGalaxyAttributes.ts"
+import { BIOME_ATTRIBUTE_RANGES, SIZE_ATTRIBUTE_RANGES } from "#shared/galaxy-creation/attributes/populatePlanet.ts"
+import { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
 import { createGalaxyTopologyStub } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.stub.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
-describe("toGalaxy", () => {
+describe("generateGalaxyAttributes", () => {
   it("should generate every biome with attributes in its configured ranges", () => {
     // Arrange
     const galaxyTopology = createGalaxyTopologyStub()
     const rng = createSeededRng()
 
     // Act
-    const planets = toGalaxy({ galaxyTopology, rng }).systems.flatMap((system) => system.planets)
+    const galaxy = generateGalaxyAttributes({ galaxyTopology, galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng })
+    const planets = galaxy.systems.flatMap((system) => system.planets)
 
     // Assert
     expect(new Set(planets.map((planet) => planet.biome))).toStrictEqual(new Set(Object.values(PlanetBiome)))
@@ -33,7 +36,8 @@ describe("toGalaxy", () => {
     const rng = createSeededRng()
 
     // Act
-    const planets = toGalaxy({ galaxyTopology, rng }).systems.flatMap((system) => system.planets)
+    const galaxy = generateGalaxyAttributes({ galaxyTopology, galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng })
+    const planets = galaxy.systems.flatMap((system) => system.planets)
 
     // Assert
     expect(new Set(planets.map((planet) => planet.size))).toStrictEqual(new Set(Object.values(PlanetSize)))

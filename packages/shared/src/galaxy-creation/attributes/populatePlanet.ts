@@ -1,18 +1,16 @@
 import { Assert, Range, type Rng } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { v5 } from "uuid"
-import type { Galaxy } from "#shared/domain/world/Galaxy.ts"
 import type { Planet } from "#shared/domain/world/planets/Planet.ts"
 import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetIdSchema } from "#shared/domain/world/planets/PlanetId.ts"
 import { PlanetNameSchema } from "#shared/domain/world/planets/PlanetName.ts"
 import { PlanetSize } from "#shared/domain/world/planets/PlanetSize.ts"
-import { StarIdSchema } from "#shared/domain/world/stars/StarId.ts"
-import { toPlanetCoordinates } from "#shared/galaxy-creation/toPlanetCoordinates.ts"
-import type { GalaxyTopology } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.ts"
-import { toStarCoordinates } from "#shared/galaxy-creation/toStarCoordinates.ts"
+import type { StarCoordinates } from "#shared/domain/world/stars/StarCoordinates.ts"
+import { generateName } from "#shared/galaxy-creation/attributes/generateName.ts"
+import { toPlanetCoordinates } from "#shared/galaxy-creation/attributes/toPlanetCoordinates.ts"
+import type { PlanetTopology } from "#shared/galaxy-creation/topology/planetTopologyGenerator.ts"
 
-const NAME_SUFFIX_RANGE = Range.integer({ min: 999, max: 999999 })
 const PLANET_BIOMES = Object.values(PlanetBiome)
 const PLANET_SIZES = Object.values(PlanetSize)
 const BIOME_INDEX_RANGE = Range.integer({ min: 0, max: PLANET_BIOMES.length - 1 })
@@ -62,35 +60,17 @@ export const SIZE_ATTRIBUTE_RANGES = {
   },
 } as const satisfies Record<PlanetSize, AttributeRanges<"maxPopulation" | "area">>
 
-export function toGalaxy({ galaxyTopology, rng }: { galaxyTopology: GalaxyTopology; rng: Rng }): Galaxy {
-  let nextPlanetId = 1
-  return {
-    systems: galaxyTopology.systems.map((system, starIndex) => {
-      const starCoordinates = toStarCoordinates(system.star)
-
-      return {
-        star: {
-          ...system.star,
-          id: typedParse(StarIdSchema, v5(`star:${starIndex + 1}`, v5.URL)),
-          name: `star ${rng.int(NAME_SUFFIX_RANGE)}`,
-          coordinates: starCoordinates,
-        },
-        planets: system.planets.map((planet) => ({
-          ...generatePlanetAttributes(rng),
-          x: planet.x,
-          y: planet.y,
-          id: typedParse(PlanetIdSchema, v5(`planet:${nextPlanetId++}`, v5.URL)),
-          ownerPlayerId: null,
-          coordinates: toPlanetCoordinates({ starCoordinates, orbitDistanceAU: planet.orbitDistanceAU }),
-        })),
-      }
-    }),
-  }
-}
-
-function generatePlanetAttributes(
-  rng: Rng,
-): Pick<Planet, "name" | "biome" | "size" | "fertility" | "metal" | "fuel" | "energy" | "maxPopulation" | "area"> {
+export function populatePlanet({
+  planet,
+  planetNumber,
+  starCoordinates,
+  rng,
+}: {
+  planet: PlanetTopology
+  planetNumber: number
+  starCoordinates: StarCoordinates
+  rng: Rng
+}): Planet {
   const biome = PLANET_BIOMES[rng.int(BIOME_INDEX_RANGE)]
   const size = PLANET_SIZES[rng.int(SIZE_INDEX_RANGE)]
   Assert.isDefined(biome)
@@ -100,7 +80,7 @@ function generatePlanetAttributes(
   const sizeRanges = SIZE_ATTRIBUTE_RANGES[size]
 
   return {
-    name: typedParse(PlanetNameSchema, `planet ${rng.int(NAME_SUFFIX_RANGE)}`),
+    name: typedParse(PlanetNameSchema, generateName("planet", rng)),
     biome,
     size,
     fertility: rng.int(biomeRanges.fertility),
@@ -109,5 +89,10 @@ function generatePlanetAttributes(
     energy: rng.int(biomeRanges.energy),
     maxPopulation: rng.int(sizeRanges.maxPopulation),
     area: rng.int(sizeRanges.area),
+    x: planet.x,
+    y: planet.y,
+    id: typedParse(PlanetIdSchema, v5(`planet:${planetNumber}`, v5.URL)),
+    ownerPlayerId: null,
+    coordinates: toPlanetCoordinates({ starCoordinates, orbitDistanceAU: planet.orbitDistanceAU }),
   }
 }

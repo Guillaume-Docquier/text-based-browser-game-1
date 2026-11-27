@@ -7,7 +7,7 @@ import { createGalaxyStub } from "#shared/domain/world/Galaxy.stub.ts"
 import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import { createStarStub } from "#shared/domain/world/stars/Star.stub.ts"
 import { createStarSystemStub } from "#shared/domain/world/StarSystem.stub.ts"
-import { assignHomePlanets } from "#shared/galaxy-creation/assignHomePlanets.ts"
+import { assignHomePlanets } from "#shared/galaxy-creation/attributes/assignHomePlanets.ts"
 import { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
 
 describe("assignHomePlanets", () => {

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { PlanetCoordinatesSchema } from "#shared/domain/world/planets/PlanetCoordinates.ts"
 import { StarCoordinatesSchema } from "#shared/domain/world/stars/StarCoordinates.ts"
-import { toOrbitCoordinates } from "#shared/galaxy-creation/toOrbitCoordinates.ts"
-import { toPlanetCoordinates } from "#shared/galaxy-creation/toPlanetCoordinates.ts"
-import { toStarCoordinates } from "#shared/galaxy-creation/toStarCoordinates.ts"
+import { toOrbitCoordinates } from "#shared/galaxy-creation/attributes/toOrbitCoordinates.ts"
+import { toPlanetCoordinates } from "#shared/galaxy-creation/attributes/toPlanetCoordinates.ts"
+import { toStarCoordinates } from "#shared/galaxy-creation/attributes/toStarCoordinates.ts"
 
 describe("galaxy coordinates", () => {
   it("should preserve the region and cell order when converting fractional star positions", () => {

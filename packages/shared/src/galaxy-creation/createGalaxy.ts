@@ -1,9 +1,8 @@
 import type { Rng } from "@guillaume-docquier/tools-ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import type { Galaxy } from "#shared/domain/world/Galaxy.ts"
-import { assignHomePlanets } from "#shared/galaxy-creation/assignHomePlanets.ts"
+import { generateGalaxyAttributes } from "#shared/galaxy-creation/attributes/generateGalaxyAttributes.ts"
 import type { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
-import { toGalaxy } from "#shared/galaxy-creation/toGalaxy.ts"
 import { type GalaxyTopology, galaxyTopologyGenerator } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.ts"
 import { spiralGenerator } from "#shared/galaxy-creation/topology/patterns/spiralGenerator.ts"
 
@@ -17,10 +16,7 @@ export function createGalaxy({
   rng: Rng
 }): Galaxy {
   const galaxyTopology = generateGalaxyTopology({ galaxyCreationSettings, rng })
-  const galaxy = toGalaxy({ galaxyTopology, rng })
-  const withHomePlanets = assignHomePlanets({ galaxyCreationSettings, galaxy, playerIds, rng })
-
-  return withHomePlanets
+  return generateGalaxyAttributes({ galaxyTopology, galaxyCreationSettings, playerIds, rng })
 }
 
 function generateGalaxyTopology({
