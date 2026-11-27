@@ -24,7 +24,7 @@ export const SvgRenderer = {
     await mkdir(path.dirname(options.outputPath), { recursive: true })
     await writeFile(options.outputPath, renderSvg(options), "utf8")
 
-    console.log(`Wrote ${options.outputPath}`)
+    process.stdout.write(`Wrote ${options.outputPath}\n`)
   },
   formatNumber: (value: number, digits = 4): string => {
     if (Object.is(value, -0)) {

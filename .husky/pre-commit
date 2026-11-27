@@ -1,2 +1,7 @@
 # CONSTRAINT: cmd.exe has a limit of 8191 characters and we hit it even though lint-staged is supposed to batch at 8191 chars
 pnpm lint-staged --relative --max-arg-length 6143
+
+galaxy_dir=packages/shared/src/galaxy-creation
+if ! git diff --cached --quiet --no-renames -- "$galaxy_dir"; then
+  pnpm map-gen:all && git add -- "$galaxy_dir/preview"
+fi

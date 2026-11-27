@@ -1,9 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import path from "node:path"
 import type { XY } from "@guillaume-docquier/tools-ts"
-import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
-import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
-import type { PlanetTopology } from "shared/galaxy-creation/topology/planetTopologyGenerator.ts"
+import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
+import { PlanetSize } from "#shared/domain/world/planets/PlanetSize.ts"
+import type { PlanetTopology } from "#shared/galaxy-creation/topology/planetTopologyGenerator.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 
 const SVG_WIDTH = 900
@@ -46,7 +46,7 @@ export const SystemSvgRenderer = {
     await mkdir(path.dirname(options.outputPath), { recursive: true })
     await writeFile(options.outputPath, renderSvg(options), "utf8")
 
-    console.log(`Wrote ${options.outputPath}`)
+    process.stdout.write(`Wrote ${options.outputPath}\n`)
   },
 } as const
 

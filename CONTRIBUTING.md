@@ -42,7 +42,7 @@ choco install mkcert
 
 ## Generating maps to test
 
-We have scripts to create svg of procedurally generated maps for manual testing
+Run these commands from the repository root to write experimental SVGs to the ignored `generated/` directory. Use `--seed` to repeat a run or `--output` to choose a file.
 
 ```bash
 pnpm map-gen cluster
@@ -50,3 +50,5 @@ pnpm map-gen spiral
 pnpm map-gen galaxy cluster
 pnpm map-gen galaxy spiral
 ```
+
+Run `pnpm map-gen:all` to regenerate the six [tracked previews](packages/shared/src/galaxy-creation/preview/) with seed `1234`. Each galaxy command produces an overview and a sample of star systems. The pre-commit hook regenerates and stages these previews from the current working tree when a change under `packages/shared/src/galaxy-creation/` is staged. The shared CI job runs the same command on the committed code.

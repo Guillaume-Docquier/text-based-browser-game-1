@@ -1,0 +1,19 @@
+name: Check generated files
+description: Run a generator and verify that the checkout stays clean.
+inputs:
+  command:
+    description: Command to reproduce the generated files from the repository root.
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        GENERATE_COMMAND: ${{ inputs.command }}
+      run: |
+        bash -e -o pipefail -c "$GENERATE_COMMAND"
+        changes=$(git status --porcelain=v1 --untracked-files=all)
+        if [ -n "$changes" ]; then
+          printf 'Run %s locally and commit the resulting changes.\n%s\n' "$GENERATE_COMMAND" "$changes"
+          exit 1
+        fi

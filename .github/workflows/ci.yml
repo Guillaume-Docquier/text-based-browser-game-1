@@ -35,16 +35,6 @@ jobs:
       - name: Setting up pnpm
         uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3.2.0
 
-      - name: Check generated custom migrations
-        run: |
-          pnpm --filter backend db:sync-custom
-          changes=$(git status --porcelain=v1 --untracked-files=all)
-          if [ -n "$changes" ]; then
-            echo "The checkout has changes after running db:sync-custom. Run it locally and commit the changes."
-            printf '%s\n' "$changes"
-            exit 1
-          fi
-
       - name: Typecheck
         run: pnpm typecheck
 
@@ -155,6 +145,11 @@ jobs:
       - name: Setting up pnpm
         uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3.2.0
 
+      - name: Check generated custom migrations
+        uses: ./.github/actions/check-generated-files
+        with:
+          command: pnpm --filter backend db:sync-custom
+
       - name: Typecheck
         run: pnpm --filter backend typecheck
 
@@ -188,6 +183,11 @@ jobs:
 
       - name: Setting up pnpm
         uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3.2.0
+
+      - name: Check generated galaxy previews
+        uses: ./.github/actions/check-generated-files
+        with:
+          command: pnpm map-gen:all
 
       - name: Typecheck
         run: pnpm --filter shared typecheck

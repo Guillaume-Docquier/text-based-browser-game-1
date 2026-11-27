@@ -12,6 +12,8 @@ Each directory directly under `src/` is a Vitest project named after that direct
 
 When an intentional generator change alters a snapshot, render the map with the test's seed and options. Inspect the SVG before updating the expected output.
 
+Review changes to the [tracked SVG previews](src/galaxy-creation/preview/) alongside the snapshot diff. See the [map generation commands](../../CONTRIBUTING.md#generating-maps-to-test) to regenerate all six previews or render an experiment.
+
 | Snapshot                   | Preview from the repository root                | Update the matching test                                             |
 | -------------------------- | ----------------------------------------------- | -------------------------------------------------------------------- |
 | Spiral points              | `pnpm map-gen spiral --seed 1234`               | `pnpm --filter shared test spiralGenerator.test.ts --update`         |
