@@ -2,11 +2,11 @@ import { RefreshCw } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
+import { useUpdateReadinessAction } from "@/features/play/actions/useUpdateReadinessAction.ts"
 import { TurnButton } from "@/features/play/components/TurnButton.tsx"
 import { TurnStatusBadge } from "@/features/play/components/TurnStatusBadge.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
-import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
 export function GameTopBar(): ReactElement {
@@ -32,9 +32,9 @@ export function GameTopBar(): ReactElement {
 }
 
 function TurnControl(): ReactElement {
-  const { gameDetails, turnState, canTakeAction, isCurrentPlayerReady } = usePlayGameContext()
+  const { turnState, canTakeAction, isCurrentPlayerReady } = usePlayGameContext()
   const logger = useLogger()
-  const updateReadiness = useUpdateReadiness()
+  const updateReadiness = useUpdateReadinessAction()
   const refreshClientData = useRefreshClientData()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentTime, setCurrentTime] = useState(() => new Date())
@@ -91,7 +91,7 @@ function TurnControl(): ReactElement {
         isPending={updateReadiness.isPending}
         disabled={updateReadiness.isPending || !canTakeAction}
         onToggle={() => {
-          updateReadiness.mutate({ gameId: gameDetails.id, turn: turnState.turn, isReady: !isCurrentPlayerReady })
+          updateReadiness.submit({ isReady: !isCurrentPlayerReady })
         }}
       />
       {updateReadiness.error === null ? null : (

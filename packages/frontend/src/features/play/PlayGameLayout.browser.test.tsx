@@ -19,6 +19,7 @@ describe("PlayGameLayout", () => {
     let worldRequests = 0
     let liveTurn = 2
     let isReady = false
+    let readinessRequest: unknown
     let sendSnapshot: () => void
     let disconnect: () => void
     let connections = 0
@@ -56,7 +57,8 @@ describe("PlayGameLayout", () => {
         )
         return HttpResponse.json(results)
       }),
-      http.post("*/trpc/gameplay.updateReadiness", () => {
+      http.post("*/trpc/gameplay.updateReadiness", async ({ request }) => {
+        readinessRequest = await request.json()
         isReady = true
         sendSnapshot()
         return HttpResponse.json([{ result: {} }])
@@ -86,6 +88,7 @@ describe("PlayGameLayout", () => {
     await page.mark("Lock in and receive the updated readiness without loading the world", async () => {
       await lockIn.click()
       await expect.element(cancel).toBeEnabled()
+      expect(readinessRequest).toStrictEqual({ 0: { gameId: playerView.gameId, turn: 3, isReady: true } })
       expect(worldRequests).toBe(2)
     })
     await page.mark("Receive updated readiness on the same turn without loading the world again", async () => {

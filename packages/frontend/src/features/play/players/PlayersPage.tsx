@@ -5,13 +5,13 @@ import type { ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent } from "@/components/card.tsx"
+import { useUpdateReadinessAction } from "@/features/play/actions/useUpdateReadinessAction.ts"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
-import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function PlayersPage(): ReactElement {
   const { gameDetails, playerView, turnState, canTakeAction } = usePlayGameContext()
-  const updateReadiness = useUpdateReadiness()
+  const updateReadiness = useUpdateReadinessAction()
 
   return (
     <section className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
@@ -28,7 +28,7 @@ export function PlayersPage(): ReactElement {
               isReady={isReady}
               disabled={!canTakeAction || updateReadiness.isPending}
               onToggle={() => {
-                updateReadiness.mutate({ gameId: gameDetails.id, turn: turnState.turn, isReady: !isReady })
+                updateReadiness.submit({ isReady: !isReady })
               }}
             />
           )
