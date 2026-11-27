@@ -1,6 +1,6 @@
 import type { Rng, XY } from "@guillaume-docquier/tools-ts"
 import { compose, translate, rotate, applyToPoint } from "transformation-matrix"
-import { clusterGenerator } from "#shared/galaxy-creation/generation/points/cluster.generator.ts"
+import { clusterGenerator } from "#shared/galaxy-creation/points-generation/patterns/cluster.generator.ts"
 
 export function spiralGenerator({
   origin,

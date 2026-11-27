@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { spiralGenerator } from "#shared/galaxy-creation/generation/points/spiral.generator.ts"
+import { spiralGenerator } from "#shared/galaxy-creation/points-generation/patterns/spiral.generator.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
 const DEFAULT_OPTIONS = {

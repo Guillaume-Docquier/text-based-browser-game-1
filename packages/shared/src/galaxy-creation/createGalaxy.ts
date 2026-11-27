@@ -7,8 +7,8 @@ import { PlanetIdSchema } from "#shared/domain/world/planets/PlanetId.ts"
 import { StarIdSchema } from "#shared/domain/world/stars/StarId.ts"
 import { assignHomePlanets } from "#shared/galaxy-creation/assignHomePlanets.ts"
 import type { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
-import { type GeneratedGalaxy, galaxyGenerator } from "#shared/galaxy-creation/generation/galaxy.generator.ts"
-import { spiralGenerator } from "#shared/galaxy-creation/generation/points/spiral.generator.ts"
+import { type GeneratedGalaxy, galaxyGenerator } from "#shared/galaxy-creation/points-generation/galaxy.generator.ts"
+import { spiralGenerator } from "#shared/galaxy-creation/points-generation/patterns/spiral.generator.ts"
 import { toPlanetCoordinates } from "#shared/galaxy-creation/toPlanetCoordinates.ts"
 import { toStarCoordinates } from "#shared/galaxy-creation/toStarCoordinates.ts"
 
@@ -22,7 +22,7 @@ export function createGalaxy({
   rng: Rng
 }): Galaxy {
   const generatedGalaxy = generateGalaxy({ galaxyCreationSettings, rng })
-  const galaxy = toGalaxyModel({ generatedGalaxy })
+  const galaxy = toGalaxy({ generatedGalaxy })
   const withHomePlanets = assignHomePlanets({ galaxyCreationSettings, galaxy, playerIds, rng })
 
   return withHomePlanets
@@ -45,7 +45,7 @@ function generateGalaxy({ galaxyCreationSettings, rng }: { galaxyCreationSetting
   })
 }
 
-function toGalaxyModel({ generatedGalaxy }: { generatedGalaxy: GeneratedGalaxy }): Galaxy {
+function toGalaxy({ generatedGalaxy }: { generatedGalaxy: GeneratedGalaxy }): Galaxy {
   let nextPlanetId = 1
   return {
     systems: generatedGalaxy.systems.map((system, starIndex) => {

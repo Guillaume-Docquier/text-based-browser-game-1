@@ -3,7 +3,7 @@ import path from "node:path"
 import type { XY } from "@guillaume-docquier/tools-ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
-import type { GeneratedPlanet } from "shared/galaxy-creation/generation/planet.generator.ts"
+import type { GeneratedPlanet } from "shared/galaxy-creation/points-generation/planet.generator.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 
 const SVG_WIDTH = 900
