@@ -35,6 +35,7 @@
     "@guillaume-docquier/oxfmt": "^1.0.22",
     "@guillaume-docquier/oxlint": "^1.11.3",
     "@guillaume-docquier/show-me": "^1.7.1",
+    "@guillaume-docquier/tools-ts": "catalog:",
     "@types/node": "^26.6.6",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-boundaries": "^7.4.4",

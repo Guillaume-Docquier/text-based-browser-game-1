@@ -224,6 +224,9 @@ importers:
       '@guillaume-docquier/show-me':
         specifier: ^1.7.1
         version: 1.7.1(graphology-types@0.24.8)
+      '@guillaume-docquier/tools-ts':
+        specifier: 'catalog:'
+        version: 10.3.0(zod@4.6.7)
       '@types/node':
         specifier: ^26.6.6
         version: 26.6.6

@@ -1,3 +1,4 @@
+import { Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { formatRequirementsFile } from "./format-requirements.ts"
 
@@ -30,8 +31,8 @@ Next ID number: 0021
 | GC-ST-0003 | A star. |
 `
 
-    expect(formatRequirementsFile(input)).toBe(expected)
-    expect(formatRequirementsFile(expected)).toBe(expected)
+    expect(formatRequirementsFile(input)).toStrictEqual(Result.Success(expected))
+    expect(formatRequirementsFile(expected)).toStrictEqual(Result.Success(expected))
   })
 
   it("should keep an empty requirements table and leave other tables in their original order", () => {
@@ -48,7 +49,7 @@ Next ID number: 0021
 | A | Second note. |
 `
 
-    expect(formatRequirementsFile(input)).toBe(input)
+    expect(formatRequirementsFile(input)).toStrictEqual(Result.Success(input))
   })
 
   it("should preserve CRLF and the end of the file when the last row moves", () => {
@@ -56,7 +57,7 @@ Next ID number: 0021
     const input = header + "| TR-0002 | Second. |\r\n| TR-0001 | First. |"
     const expected = header + "| TR-0001 | First. |\r\n| TR-0002 | Second. |"
 
-    expect(formatRequirementsFile(input)).toBe(expected)
+    expect(formatRequirementsFile(input)).toStrictEqual(Result.Success(expected))
   })
 
   it("should report a missing requirements table", () => {
@@ -66,6 +67,8 @@ Next ID number: 0021
 | --- | --- |
 `
 
-    expect(() => formatRequirementsFile(input)).toThrow("Missing the ID and Requirement table")
+    expect(formatRequirementsFile(input)).toStrictEqual(
+      Result.Failure(new SyntaxError("Missing the ID and Requirement table under ## Requirements.")),
+    )
   })
 })
