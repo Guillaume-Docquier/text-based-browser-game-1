@@ -8,16 +8,26 @@ import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { GamesRepository } from "#api/games/games.repository.ts"
 import { Clock } from "#lib/Clock.ts"
 import { createCreateTransaction, type Database } from "#lib/db/createDb.ts"
+import type { NotificationListener } from "#lib/db/PostgresNotificationListener.ts"
 
 type AllServices = Omit<Parameters<typeof createApi>[0], "authService">
 
-export async function createApiStub({ db, clock = Clock }: { db: Database; clock?: Clock }): Promise<AllServices & { api: Express }> {
+export async function createApiStub({
+  db,
+  clock = Clock,
+  notificationListener = db.notificationListener,
+}: {
+  db: Database & { notificationListener: NotificationListener }
+  clock?: Clock
+  notificationListener?: NotificationListener
+}): Promise<AllServices & { api: Express }> {
   const logger = Logger.get()
   const accountsRepository = new AccountsRepository({ db, logger })
 
   const apiServices = {
     logger,
     clock,
+    notificationListener,
     authService: new AuthService({ logger, authProvider: new TestHeaderAuthProvider(), accountsRepository }),
     createTransaction: createCreateTransaction(db),
     accountsRepository,

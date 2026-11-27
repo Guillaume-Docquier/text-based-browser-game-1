@@ -8,16 +8,16 @@ import { GameLayout, GameLayoutSkeleton } from "@/features/play/components/GameL
 import { PlayGameContextProvider } from "@/features/play/PlayContext.tsx"
 import { useGameDetailsQuery } from "@/lib/api/useGameDetailsQuery.ts"
 import { usePlayerViewQuery } from "@/lib/api/usePlayerViewQuery.ts"
-import { useTurnStateQuery } from "@/lib/api/useTurnStateQuery.ts"
+import { useTurnStateSubscription } from "@/lib/api/useTurnStateSubscription.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
 export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const gameDetailsQuery = useGameDetailsQuery(gameId)
-  const turnStateQuery = useTurnStateQuery(gameId)
-  const playerViewQuery = usePlayerViewQuery(gameId, turnStateQuery.data?.turn)
+  const turnStateSubscription = useTurnStateSubscription(gameId)
+  const playerViewQuery = usePlayerViewQuery(gameId, turnStateSubscription.data?.turn)
 
-  if (gameDetailsQuery.isPending || playerViewQuery.isPending || turnStateQuery.isPending) {
+  if (gameDetailsQuery.isPending || playerViewQuery.isPending) {
     return <GameLayoutSkeleton />
   }
 
@@ -45,20 +45,24 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
     )
   }
 
-  if (turnStateQuery.isLoadingError) {
-    logger.error("Could not fetch turn state", { gameId, error: turnStateQuery.error.message })
+  if (turnStateSubscription.status === "error") {
+    logger.error("Could not fetch turn state", { gameId, error: turnStateSubscription.error.message })
     return (
       <GameLoadError
-        message={turnStateQuery.error.message}
+        message={turnStateSubscription.error.message}
         onRetry={() => {
-          void turnStateQuery.refetch()
+          turnStateSubscription.reset()
         }}
       />
     )
   }
 
+  if (turnStateSubscription.data === undefined) {
+    return <GameLayoutSkeleton />
+  }
+
   return (
-    <PlayGameContextProvider gameDetails={gameDetailsQuery.data} playerView={playerViewQuery.data} turnState={turnStateQuery.data}>
+    <PlayGameContextProvider gameDetails={gameDetailsQuery.data} playerView={playerViewQuery.data} turnState={turnStateSubscription.data}>
       <GameLayout gameId={gameId}>
         <Outlet />
       </GameLayout>

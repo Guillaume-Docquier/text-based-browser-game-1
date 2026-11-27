@@ -2,7 +2,7 @@ packages:
   - packages/*
 
 catalog:
-  "@guillaume-docquier/tools-ts": ^10.2.2
+  "@guillaume-docquier/tools-ts": ^10.3.0
   "@vitest/coverage-v8": ^5.1.0
   "typescript": ~7.0.2
   "uuid": ^14.0.3

@@ -7,8 +7,10 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { GetPlayerViewError, GetPlayerViewErrorResponses } from "#api/gameplay/getPlayerView.error.ts"
 import { UpdateReadinessError, UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
+import type { NotificationHandlers, NotificationListener } from "#lib/db/PostgresNotificationListener.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
+import { readTurnState, subscribeToTurnState } from "#testing/readTurnState.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import { GetTurnStateError, GetTurnStateErrorResponses } from "./getTurnState.error.ts"
 
@@ -24,11 +26,51 @@ describe("gameplay.router", () => {
 
     // Act & Assert
     const expectedError = { data: { code: "FORBIDDEN" } }
-    await expect(nonPlayer.client.gameplay.turnState.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
+    await expect(readTurnState(nonPlayer.client, createdGameId)).rejects.toMatchObject(expectedError)
     await expect(nonPlayer.client.gameplay.getPlayerView.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
     await expect(nonPlayer.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })).rejects.toMatchObject(
       expectedError,
     )
+  })
+
+  it("should refresh subscribers after notifications resume with a change missed during the gap", async () => {
+    // Arrange
+    const registeredNotificationHandlers = Promise.withResolvers<NotificationHandlers>()
+    const notificationListener: NotificationListener = {
+      listen: (_channel, handlers) => {
+        registeredNotificationHandlers.resolve(handlers)
+      },
+    }
+
+    await using db = await createIntegrationTestDb()
+    using apiServer = new ApiServer(await createApiStub({ db, notificationListener }))
+    const alice = await apiServer.createClient({ authenticated: true })
+    const bob = await apiServer.createClient({ authenticated: true })
+
+    const { createdGameId } = await alice.client.games.create.mutate({
+      configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
+    })
+    await bob.client.games.join.mutate({ gameId: createdGameId })
+    await alice.client.games.startGame.mutate({ gameId: createdGameId })
+
+    const notificationHandlers = await registeredNotificationHandlers.promise
+    using aliceStream = subscribeToTurnState(alice.client, createdGameId)
+    using bobStream = subscribeToTurnState(bob.client, createdGameId)
+    notificationHandlers.onReady()
+    const [aliceInitialTurnState, bobInitialTurnState] = await Promise.all([aliceStream.next(), bobStream.next()])
+
+    // Act
+    await alice.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
+    notificationHandlers.onReady()
+
+    // Assert
+    const expectedTurnState = {
+      ...aliceInitialTurnState,
+      readinessByPlayerId: { [alice.account.id]: true, [bob.account.id]: false },
+    }
+    expect(bobInitialTurnState).toStrictEqual<typeof aliceInitialTurnState>(aliceInitialTurnState)
+    await expect.poll(aliceStream.next).toStrictEqual<typeof aliceInitialTurnState>(expectedTurnState)
+    await expect.poll(bobStream.next).toStrictEqual<typeof aliceInitialTurnState>(expectedTurnState)
   })
 
   describe("getPlayerView", () => {
@@ -46,7 +88,7 @@ describe("gameplay.router", () => {
 
       // Assert
       await expect(playerView).rejects.toMatchErrorResponse(GetPlayerViewErrorResponses[GetPlayerViewError.TURN_NOT_FOUND])
-      await expect(player.client.gameplay.turnState.query({ gameId: createdGameId })).rejects.toMatchErrorResponse(
+      await expect(readTurnState(player.client, createdGameId)).rejects.toMatchErrorResponse(
         GetTurnStateErrorResponses[GetTurnStateError.TURN_NOT_FOUND],
       )
     })
@@ -65,7 +107,7 @@ describe("gameplay.router", () => {
 
       // Act
       const getPlayerViewResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const turnState = await player.client.gameplay.turnState.query({ gameId: createdGameId })
+      const turnState = await readTurnState(player.client, createdGameId)
 
       // Assert
       expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
@@ -156,14 +198,14 @@ describe("gameplay.router", () => {
       await player.client.games.join.mutate({ gameId: createdGameId })
 
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
-      const initialTurnState = await creator.client.gameplay.turnState.query({ gameId: createdGameId })
+      const initialTurnState = await readTurnState(creator.client, createdGameId)
 
       // Act
       await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: !isReady })
       await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady })
 
       // Assert
-      const turnState = await creator.client.gameplay.turnState.query({ gameId: createdGameId })
+      const turnState = await readTurnState(creator.client, createdGameId)
       expect(turnState).toStrictEqual<typeof turnState>({
         ...initialTurnState,
         readinessByPlayerId: { [creator.account.id]: isReady, [player.account.id]: false },
@@ -188,14 +230,15 @@ describe("gameplay.router", () => {
       await player.client.games.join.mutate({ gameId: createdGameId })
 
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
-      const initialTurnState = await creator.client.gameplay.turnState.query({ gameId: createdGameId })
+      using stream = subscribeToTurnState(creator.client, createdGameId)
+      const initialTurnState = await stream.next()
 
       // Act
       await player.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
-      const turnStateWithOnePlayerReady = await creator.client.gameplay.turnState.query({ gameId: createdGameId })
+      const turnStateWithOnePlayerReady = await stream.next()
 
       await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
-      const turnStateWithAllPlayersReady = await player.client.gameplay.turnState.query({ gameId: createdGameId })
+      const turnStateWithAllPlayersReady = await stream.next()
 
       // Assert
       expect(turnStateWithOnePlayerReady).toStrictEqual<typeof initialTurnState>({
@@ -225,14 +268,14 @@ describe("gameplay.router", () => {
       })
 
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
-      const initialTurnState = await creator.client.gameplay.turnState.query({ gameId: createdGameId })
+      const initialTurnState = await readTurnState(creator.client, createdGameId)
 
       // Act
       const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
 
       // Assert
       await expect(updateReadiness).rejects.toMatchErrorResponse(UpdateReadinessErrorResponses[UpdateReadinessError.TURN_NOT_OPEN])
-      const turnState = await creator.client.gameplay.turnState.query({ gameId: createdGameId })
+      const turnState = await readTurnState(creator.client, createdGameId)
       expect(turnState).toStrictEqual<typeof turnState>(initialTurnState)
     })
 
@@ -252,7 +295,7 @@ describe("gameplay.router", () => {
       })
 
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
-      const initialTurnState = await creator.client.gameplay.turnState.query({ gameId: createdGameId })
+      const initialTurnState = await readTurnState(creator.client, createdGameId)
 
       // Act
       clock.increment({ time: turnInterval })
@@ -260,7 +303,7 @@ describe("gameplay.router", () => {
 
       // Assert
       await expect(updateReadiness).rejects.toMatchErrorResponse(UpdateReadinessErrorResponses[UpdateReadinessError.TURN_NOT_OPEN])
-      const turnState = await creator.client.gameplay.turnState.query({ gameId: createdGameId })
+      const turnState = await readTurnState(creator.client, createdGameId)
       expect(turnState).toStrictEqual<typeof turnState>(initialTurnState)
     })
 
@@ -277,14 +320,14 @@ describe("gameplay.router", () => {
       })
 
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
-      const initialTurnState = await creator.client.gameplay.turnState.query({ gameId: createdGameId })
+      const initialTurnState = await readTurnState(creator.client, createdGameId)
 
       // Act
       const updateReadiness = player.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
 
       // Assert
       await expect(updateReadiness).rejects.toMatchObject({ data: { code: "FORBIDDEN" } })
-      const turnState = await creator.client.gameplay.turnState.query({ gameId: createdGameId })
+      const turnState = await readTurnState(creator.client, createdGameId)
       expect(turnState).toStrictEqual<typeof turnState>(initialTurnState)
     })
   })

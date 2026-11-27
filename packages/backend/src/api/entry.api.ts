@@ -14,6 +14,7 @@ import { AuthProviderKind } from "#lib/AuthProviderKind.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
+import { PostgresNotificationListener } from "#lib/db/PostgresNotificationListener.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
 import { BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
 import { startTurnProcessing } from "#turn-processing/entry.turn-processing.ts"
@@ -55,6 +56,7 @@ async function main(): Promise<void> {
   const app = await createApi({
     logger,
     clock,
+    notificationListener: new PostgresNotificationListener({ databaseUrl: env.DATABASE_URL, logger }),
     createTransaction: createCreateTransaction(db),
     authService,
     ...repositories,

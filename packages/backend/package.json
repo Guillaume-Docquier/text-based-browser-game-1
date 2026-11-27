@@ -46,6 +46,7 @@
     "@vitest/coverage-v8": "catalog:",
     "commander": "^15.1.0",
     "drizzle-kit": "^0.31.11",
+    "eventsource": "^4.1.1",
     "testcontainers": "^12.2.2",
     "typescript": "catalog:",
     "vitest": "catalog:"

@@ -184,8 +184,8 @@ settings:
 catalogs:
   default:
     '@guillaume-docquier/tools-ts':
-      specifier: ^10.2.2
-      version: 10.2.4
+      specifier: ^10.3.0
+      version: 10.3.0
     '@vitest/coverage-v8':
       specifier: ^5.1.0
       version: 5.1.0
@@ -271,7 +271,7 @@ importers:
         version: 2.1.96(express@5.3.0(supports-color@7.2.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 10.2.4(zod@4.6.7)
+        version: 10.3.0(zod@4.6.7)
       '@trpc/server':
         specifier: ^11.19.0
         version: 11.19.0(typescript@7.0.2)
@@ -333,6 +333,9 @@ importers:
       drizzle-kit:
         specifier: ^0.31.11
         version: 0.31.11
+      eventsource:
+        specifier: ^4.1.1
+        version: 4.1.1
       testcontainers:
         specifier: ^12.2.2
         version: 12.2.2(supports-color@7.2.0)
@@ -359,7 +362,7 @@ importers:
         version: 5.3.0
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 10.2.4(zod@4.6.7)
+        version: 10.3.0(zod@4.6.7)
       '@tanstack/react-query':
         specifier: ^5.108.2
         version: 5.108.2(@types/react@19.3.0)(react@19.3.1)
@@ -480,7 +483,7 @@ importers:
     dependencies:
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 10.2.4(zod@4.6.7)
+        version: 10.3.0(zod@4.6.7)
       transformation-matrix:
         specifier: ^3.1.0
         version: 3.1.0
@@ -1311,8 +1314,8 @@ packages:
     resolution: {integrity: sha512-EsW2bN6YZeWQc5zn3jc5adhRykj6I7S3efWKD7ee63EwDa2eQb7Tq4SBOJ+rINV2UcNjrXiPPWLyMhq8GVwrWA==}
     hasBin: true
 
-  '@guillaume-docquier/tools-ts@10.2.4':
-    resolution: {integrity: sha512-UiRfGtnlZM3E44swimzbCrfDL34JUBHkPeqr2oMZJ4LTNJViwX4IAzO/wHg/FmmJA+dJKAhKcVfyYeQAZo4NHg==}
+  '@guillaume-docquier/tools-ts@10.3.0':
+    resolution: {integrity: sha512-7GY3+mXvsYDghxcwWfsDvYyRiLIrJ6naf5H14Cdm4/V6+35nmrWThA/e7xySJW8LzpY15NayHbc+uX2m5hVn6g==}
     peerDependencies:
       zod: ^4.6.7
     peerDependenciesMeta:
@@ -4163,6 +4166,14 @@ packages:
   events@3.3.0:
     resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
     engines: {node: '>=0.8.x'}
+
+  eventsource-parser@3.1.1:
+    resolution: {integrity: sha512-EKN1vKAMcZ8MlYMpaNuxN6R9yakzH6uajHcHVTqWJzvu5pWw9DyhbP35HH8MVBQ+dZjAfDxk+A8NiR9KWaXiyQ==}
+    engines: {node: '>=18.0.0'}
+
+  eventsource@4.1.1:
+    resolution: {integrity: sha512-D6bTRWh6KahHTK/m4WnjPQyEinNPf9eFLEZSEoj7d6fTibspnAVYfzHvirL7u/aoX5d9YYfIkBVAhmigUELk9w==}
+    engines: {node: '>=20.0.0'}
 
   execa@5.1.1:
     resolution: {integrity: sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg==}
@@ -7135,7 +7146,7 @@ snapshots:
     transitivePeerDependencies:
       - graphology-types
 
-  '@guillaume-docquier/tools-ts@10.2.4(zod@4.6.7)':
+  '@guillaume-docquier/tools-ts@10.3.0(zod@4.6.7)':
     dependencies:
       '@logtape/logtape': 2.4.2
       '@logtape/redaction': 2.4.2(@logtape/logtape@2.4.2)
@@ -9598,6 +9609,12 @@ snapshots:
       - bare-abort-controller
 
   events@3.3.0: {}
+
+  eventsource-parser@3.1.1: {}
+
+  eventsource@4.1.1:
+    dependencies:
+      eventsource-parser: 3.1.1
 
   execa@5.1.1:
     dependencies:

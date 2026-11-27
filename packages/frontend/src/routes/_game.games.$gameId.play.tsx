@@ -24,5 +24,5 @@ export const Route = createFileRoute("/_game/games/$gameId/play")({
 
 function PlayGameRoute(): ReactElement {
   const { gameId } = Route.useParams()
-  return <PlayGameLayout gameId={gameId} />
+  return <PlayGameLayout key={gameId} gameId={gameId} />
 }

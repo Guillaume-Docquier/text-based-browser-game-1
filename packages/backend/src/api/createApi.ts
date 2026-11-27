@@ -1,8 +1,10 @@
 import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { TRPCError } from "@trpc/server"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import compression from "compression"
 import express, { type Express } from "express"
+import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createAccountsRouter } from "#api/accounts/accounts.router.ts"
 import { FinishOnboardingUseCase } from "#api/accounts/finishOnboarding.useCase.ts"
@@ -23,14 +25,17 @@ import { StartGameUseCase } from "#api/games/startGame.useCase.ts"
 import { createHealthRouter } from "#api/health/health.router.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
+import type { NotificationListener } from "#lib/db/PostgresNotificationListener.ts"
 import { createTrpc, createTrpcContext } from "./trpc.ts"
 
 export async function createApi({
   createTransaction,
   authService,
+  notificationListener,
   ...services
 }: {
   createTransaction: CreateTransaction
+  notificationListener: NotificationListener
   authService: AuthService
   logger: Logger
   clock: Clock
@@ -51,6 +56,16 @@ export async function createApi({
     startGameUseCase: new StartGameUseCase(applicationServices),
     updateReadinessUseCase: new UpdateReadinessUseCase(applicationServices),
   }
+
+  notificationListener.listen("turn_state_changed", {
+    onPayload: (payload) => {
+      const gameId = typedParse(GameIdSchema, Number(payload))
+      void useCases.getTurnStateUseCase.refresh(gameId)
+    },
+    onReady: () => {
+      useCases.getTurnStateUseCase.listenerReady()
+    },
+  })
 
   const app = express()
   app.use(compression())

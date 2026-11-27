@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto"
+import { Logger } from "@guillaume-docquier/tools-ts"
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import type { Pool } from "pg"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
+import { PostgresNotificationListener, type NotificationListener } from "#lib/db/PostgresNotificationListener.ts"
 import { createPostgresPoolDisposal } from "#testing/createPostgresPoolDisposal.ts"
 import { POSTGRES_IMAGE } from "#testing/POSTGRES_IMAGE.ts"
 import { PostgresConcurrency } from "#testing/PostgresConcurrency.ts"
@@ -27,7 +29,7 @@ export async function prepareConcurrencyTestDb(): Promise<void> {
 }
 
 export async function createConcurrencyTestDb(): Promise<
-  AsyncDisposable & { db: Database; databaseUrl: string; concurrency: PostgresConcurrency }
+  AsyncDisposable & { db: Database & { notificationListener: NotificationListener }; databaseUrl: string; concurrency: PostgresConcurrency }
 > {
   const adminPool = createDb({ databaseUrl: connectionUri }).$client
   const cleanupAdminPool = createPostgresPoolDisposal(adminPool)
@@ -40,7 +42,8 @@ export async function createConcurrencyTestDb(): Promise<
   url.pathname = `/${databaseName}`
   const databaseUrl = url.toString()
 
-  const db = createDb({ databaseUrl })
+  const notificationListener = new PostgresNotificationListener({ databaseUrl, logger: Logger.get() })
+  const db = Object.assign(createDb({ databaseUrl }), { notificationListener })
   const cleanupDbPool = createPostgresPoolDisposal(db.$client)
 
   await migrate(db, { migrationsFolder: "./drizzle/" })
@@ -50,6 +53,7 @@ export async function createConcurrencyTestDb(): Promise<
     databaseUrl,
     concurrency: new PostgresConcurrency(db.$client),
     [Symbol.asyncDispose]: async () => {
+      await notificationListener[Symbol.asyncDispose]()
       await cleanupDbPool()
       await cleanupSqlDb()
       await cleanupAdminPool()

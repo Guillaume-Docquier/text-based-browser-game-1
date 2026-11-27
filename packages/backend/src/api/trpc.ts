@@ -1,4 +1,4 @@
-import { type Logger, Result, type Time, Timer } from "@guillaume-docquier/tools-ts"
+import { type Logger, type MaybePromise, Result, type Time, Timer } from "@guillaume-docquier/tools-ts"
 import { initTRPC, TRPCError } from "@trpc/server"
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import { getHTTPStatusCodeFromError } from "@trpc/server/http"
@@ -16,7 +16,7 @@ export const NO_OUTPUT = z.void()
 export type TrpcErrorResponse = { code: TRPCError["code"]; message: string }
 
 export async function toTrpcOutput<TValue, TError extends string>(
-  pendingResult: Promise<Result<TValue, TError>>,
+  pendingResult: MaybePromise<Result<TValue, TError>>,
   errorResponses: Record<NoInfer<TError>, TrpcErrorResponse>,
 ): Promise<TValue> {
   const result = await pendingResult
@@ -52,7 +52,9 @@ export type Trpc = ReturnType<typeof createTrpc>
 export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepository: GamesRepository; logger: Logger }) {
   const logger = baseLogger.child({ scope: "trpc" })
   // CONSTRAINT: { isDev: false } disables stack traces, see https://trpc.io/docs/server/error-handling#stack-traces-in-production
-  const t = initTRPC.context<TrpcContext>().create({ isDev: false })
+  const t = initTRPC
+    .context<TrpcContext>()
+    .create({ isDev: false, sse: { ping: { enabled: true, intervalMs: 15_000 }, client: { reconnectAfterInactivityMs: 45_000 } } })
 
   const publicProcedure = t.procedure.use(async ({ next, ctx, path, type }) => {
     const startTime = Timer.start()
