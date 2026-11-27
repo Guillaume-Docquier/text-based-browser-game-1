@@ -57,6 +57,9 @@ jobs:
       - name: Test lint rules
         run: pnpm test:lint
 
+      - name: Test requirements formatter
+        run: pnpm test:format
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 10
