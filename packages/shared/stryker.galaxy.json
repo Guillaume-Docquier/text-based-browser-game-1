@@ -9,7 +9,7 @@
   ],
   "ignorePatterns": ["tsconfig*.json"],
   "concurrency": 4,
-  "reporters": ["clear-text", "json"],
+  "reporters": ["clear-text", "html", "json"],
   "jsonReporter": {
     "fileName": "reports/mutation/galaxy.json"
   }
