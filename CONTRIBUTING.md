@@ -39,14 +39,3 @@ On Windows (you probably need to be admin):
 ```powershell
 choco install mkcert
 ```
-
-## Generating maps to test
-
-We have scripts to create svg of procedurally generated maps for manual testing
-
-```bash
-pnpm map-gen cluster
-pnpm map-gen spiral
-pnpm map-gen galaxy cluster
-pnpm map-gen galaxy spiral
-```

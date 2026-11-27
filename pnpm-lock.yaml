@@ -184,8 +184,8 @@ settings:
 catalogs:
   default:
     '@guillaume-docquier/tools-ts':
-      specifier: ^10.3.0
-      version: 10.3.0
+      specifier: ^10.4.0
+      version: 10.4.0
     '@vitest/coverage-v8':
       specifier: ^5.1.0
       version: 5.1.0
@@ -226,7 +226,7 @@ importers:
         version: 1.7.1(graphology-types@0.24.8)
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 10.3.0(zod@4.6.7)
+        version: 10.4.0(zod@4.6.7)
       '@types/node':
         specifier: ^26.6.6
         version: 26.6.6
@@ -274,7 +274,7 @@ importers:
         version: 2.1.96(express@5.3.0(supports-color@7.2.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 10.3.0(zod@4.6.7)
+        version: 10.4.0(zod@4.6.7)
       '@trpc/server':
         specifier: ^11.19.0
         version: 11.19.0(typescript@7.0.2)
@@ -330,9 +330,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.1.0(@vitest/browser-playwright@5.1.0)(@vitest/browser@5.1.0)(@vitest/ui@5.1.0)(msw@3.0.7(@types/node@26.6.6)(graphql@16.14.2)(supports-color@7.2.0)(typescript@7.0.2)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vitest@5.1.0)
-      commander:
-        specifier: ^15.1.0
-        version: 15.1.0
       drizzle-kit:
         specifier: ^0.31.11
         version: 0.31.11
@@ -365,7 +362,7 @@ importers:
         version: 5.3.0
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 10.3.0(zod@4.6.7)
+        version: 10.4.0(zod@4.6.7)
       '@tanstack/react-query':
         specifier: ^5.108.2
         version: 5.108.2(@types/react@19.3.0)(react@19.3.1)
@@ -486,7 +483,7 @@ importers:
     dependencies:
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 10.3.0(zod@4.6.7)
+        version: 10.4.0(zod@4.6.7)
       transformation-matrix:
         specifier: ^3.1.0
         version: 3.1.0
@@ -497,9 +494,15 @@ importers:
         specifier: 'catalog:'
         version: 4.6.7
     devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.1.0(@vitest/browser-playwright@5.1.0)(@vitest/browser@5.1.0)(@vitest/ui@5.1.0)(msw@3.0.7(@types/node@26.6.6)(graphql@16.14.2)(supports-color@7.2.0)(typescript@7.0.2)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vitest@5.1.0)
+      commander:
+        specifier: ^15.1.0
+        version: 15.1.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1317,8 +1320,8 @@ packages:
     resolution: {integrity: sha512-EsW2bN6YZeWQc5zn3jc5adhRykj6I7S3efWKD7ee63EwDa2eQb7Tq4SBOJ+rINV2UcNjrXiPPWLyMhq8GVwrWA==}
     hasBin: true
 
-  '@guillaume-docquier/tools-ts@10.3.0':
-    resolution: {integrity: sha512-7GY3+mXvsYDghxcwWfsDvYyRiLIrJ6naf5H14Cdm4/V6+35nmrWThA/e7xySJW8LzpY15NayHbc+uX2m5hVn6g==}
+  '@guillaume-docquier/tools-ts@10.4.0':
+    resolution: {integrity: sha512-gt26HV90M26i3qg9rhixM2zu2UBvh6RFaaqYeCqDyJF723S/jwTl2Y4FKWOcg7kR8mFUYvGdRFljkZLJ5hkXvQ==}
     peerDependencies:
       zod: ^4.6.7
     peerDependenciesMeta:
@@ -7149,7 +7152,7 @@ snapshots:
     transitivePeerDependencies:
       - graphology-types
 
-  '@guillaume-docquier/tools-ts@10.3.0(zod@4.6.7)':
+  '@guillaume-docquier/tools-ts@10.4.0(zod@4.6.7)':
     dependencies:
       '@logtape/logtape': 2.4.2
       '@logtape/redaction': 2.4.2(@logtape/logtape@2.4.2)

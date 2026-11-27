@@ -1,4 +1,4 @@
-import { Datetime, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
+import { Datetime, Time, UnitOfTime, branded, UInt32 } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { MAX_NB_SEATS } from "shared/domain/games/GameConfiguration.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
@@ -15,7 +15,6 @@ import { JoinGameError, JoinGameErrorResponses } from "#api/games/joinGame.error
 import { LeaveGameError, LeaveGameErrorResponses } from "#api/games/leaveGame.error.ts"
 import { StartGameError, StartGameErrorResponses } from "#api/games/startGame.error.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
-import { UInt32 } from "#lib/UInt32.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
 import { readTurnState } from "#testing/readTurnState.ts"

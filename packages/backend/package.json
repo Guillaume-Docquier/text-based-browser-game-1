@@ -44,7 +44,6 @@
     "@types/node": "^26.6.6",
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "catalog:",
-    "commander": "^15.1.0",
     "drizzle-kit": "^0.31.11",
     "eventsource": "^4.1.1",
     "testcontainers": "^12.2.2",
