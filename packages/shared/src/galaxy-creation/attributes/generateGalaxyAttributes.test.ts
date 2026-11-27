@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "#shared/domain/world/planets/PlanetSize.ts"
 import { generateGalaxyAttributes } from "#shared/galaxy-creation/attributes/generateGalaxyAttributes.ts"
-import { BIOME_ATTRIBUTE_RANGES, SIZE_ATTRIBUTE_RANGES } from "#shared/galaxy-creation/attributes/populatePlanet.ts"
+import { BIOME_ATTRIBUTE_RANGES, SIZE_ATTRIBUTE_RANGES } from "#shared/galaxy-creation/attributes/generatePlanetAttributes.ts"
 import { createGalaxyTopologyStub } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.stub.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 

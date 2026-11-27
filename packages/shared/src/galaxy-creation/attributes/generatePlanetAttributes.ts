@@ -60,7 +60,7 @@ export const SIZE_ATTRIBUTE_RANGES = {
   },
 } as const satisfies Record<PlanetSize, AttributeRanges<"maxPopulation" | "area">>
 
-export function populatePlanet({
+export function generatePlanetAttributes({
   planet,
   planetNumber,
   starCoordinates,

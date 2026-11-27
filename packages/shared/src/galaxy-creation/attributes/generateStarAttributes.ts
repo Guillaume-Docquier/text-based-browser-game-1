@@ -7,7 +7,7 @@ import { generateName } from "#shared/galaxy-creation/attributes/generateName.ts
 import { toStarCoordinates } from "#shared/galaxy-creation/attributes/toStarCoordinates.ts"
 import type { StarTopology } from "#shared/galaxy-creation/topology/starTopologyGenerator.ts"
 
-export function populateStar(star: StarTopology, starNumber: number, rng: Rng): Star {
+export function generateStarAttributes(star: StarTopology, starNumber: number, rng: Rng): Star {
   return {
     ...star,
     id: typedParse(StarIdSchema, v5(`star:${starNumber}`, v5.URL)),
