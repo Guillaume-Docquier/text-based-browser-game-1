@@ -4,7 +4,7 @@ import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
 import { type PlanetName, PlanetNameSchema } from "#shared/domain/world/planets/PlanetName.ts"
 import { PlanetSize } from "#shared/domain/world/planets/PlanetSize.ts"
 
-export type GeneratedPlanet = {
+export type PlanetTopology = {
   readonly x: number
   readonly y: number
   readonly name: PlanetName
@@ -24,7 +24,7 @@ const PLANET_SIZES = Object.values(PlanetSize)
 const BIOME_INDEX_RANGE = Range.integer({ min: 0, max: PLANET_BIOMES.length - 1 })
 const SIZE_INDEX_RANGE = Range.integer({ min: 0, max: PLANET_SIZES.length - 1 })
 
-type AttributeRanges<TAttribute extends keyof GeneratedPlanet> = Readonly<Record<TAttribute, ReturnType<typeof Range.integer>>>
+type AttributeRanges<TAttribute extends keyof PlanetTopology> = Readonly<Record<TAttribute, ReturnType<typeof Range.integer>>>
 
 export const BIOME_ATTRIBUTE_RANGES = {
   [PlanetBiome.OCEANIC]: {
@@ -68,7 +68,7 @@ export const SIZE_ATTRIBUTE_RANGES = {
   },
 } as const satisfies Record<PlanetSize, AttributeRanges<"maxPopulation" | "area">>
 
-export function planetGenerator(starPosition: XY, orbitDistance: number, rng: Rng): GeneratedPlanet {
+export function planetTopologyGenerator(starPosition: XY, orbitDistance: number, rng: Rng): PlanetTopology {
   const angle = rng.float(ANGLE_RANGE)
   const biome = PLANET_BIOMES[rng.int(BIOME_INDEX_RANGE)]
   const size = PLANET_SIZES[rng.int(SIZE_INDEX_RANGE)]

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { clusterGenerator } from "#shared/galaxy-creation/points-generation/patterns/cluster.generator.ts"
+import { clusterGenerator } from "#shared/galaxy-creation/topology/patterns/clusterGenerator.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
 describe("clusterGenerator", () => {

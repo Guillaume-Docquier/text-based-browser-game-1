@@ -1,7 +1,7 @@
 import path from "node:path"
 import { Distance, mulberry32Prng, UnitOfDistance, Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
-import { galaxyGenerator } from "shared/galaxy-creation/points-generation/galaxy.generator.ts"
+import { galaxyTopologyGenerator } from "shared/galaxy-creation/topology/galaxyTopologyGenerator.ts"
 import { createClusterCommand, type ClusterRenderOptions } from "./command-cluster.ts"
 import { createSpiralCommand, type SpiralRenderOptions } from "./command-spiral.ts"
 import { Parser } from "./Parser.ts"
@@ -18,7 +18,7 @@ type GalaxyOptions = {
 
 export function createGalaxyCommand(): Command {
   const command = new Command("galaxy")
-    .description("Generate an SVG preview of galaxyGenerator output.")
+    .description("Generate an SVG preview of galaxyTopologyGenerator output.")
     .option("--grid", "render the galaxy coordinate grid")
 
   return command
@@ -92,7 +92,7 @@ async function renderGalaxy({
   const size = radius * 2
   let generatedPointCount = 0
   const rng = Rng.create(mulberry32Prng(seed))
-  const galaxy = galaxyGenerator({
+  const galaxy = galaxyTopologyGenerator({
     size,
     rng,
     pointsGenerator: () => {

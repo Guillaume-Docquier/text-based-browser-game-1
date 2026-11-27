@@ -1,15 +1,15 @@
 import { type Rng, Range, type XY } from "@guillaume-docquier/tools-ts"
-import { type GeneratedSystem, systemGenerator } from "#shared/galaxy-creation/points-generation/system.generator.ts"
+import { type SystemTopology, systemTopologyGenerator } from "#shared/galaxy-creation/topology/systemTopologyGenerator.ts"
 
-export type GeneratedGalaxy = {
+export type GalaxyTopology = {
   width: number
   height: number
-  systems: GeneratedSystem[]
+  systems: SystemTopology[]
 }
 
 type PointsGenerator = (options: { size: number; rng: Rng }) => XY[]
 
-export function galaxyGenerator({
+export function galaxyTopologyGenerator({
   size,
   pointsGenerator,
   rng,
@@ -17,7 +17,7 @@ export function galaxyGenerator({
   size: number
   pointsGenerator: PointsGenerator
   rng: Rng
-}): GeneratedGalaxy {
+}): GalaxyTopology {
   const pointsByCell = new Map<string, XY>()
   const points = pointsGenerator({ size, rng })
   for (const point of points) {
@@ -32,6 +32,6 @@ export function galaxyGenerator({
   return {
     width: size,
     height: size,
-    systems: Array.from(pointsByCell.values(), (origin) => systemGenerator(origin, rng)),
+    systems: Array.from(pointsByCell.values(), (origin) => systemTopologyGenerator(origin, rng)),
   }
 }

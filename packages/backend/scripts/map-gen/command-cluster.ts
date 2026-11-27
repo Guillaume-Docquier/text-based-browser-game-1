@@ -1,6 +1,6 @@
 import { mulberry32Prng, Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
-import { clusterGenerator } from "shared/galaxy-creation/points-generation/patterns/cluster.generator.ts"
+import { clusterGenerator } from "shared/galaxy-creation/topology/patterns/clusterGenerator.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { Parser } from "./Parser.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"

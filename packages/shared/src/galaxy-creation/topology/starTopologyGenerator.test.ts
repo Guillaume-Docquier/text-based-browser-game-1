@@ -1,15 +1,15 @@
 import { Rng, createGeneratorStub } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { starGenerator } from "#shared/galaxy-creation/points-generation/star.generator.ts"
+import { starTopologyGenerator } from "#shared/galaxy-creation/topology/starTopologyGenerator.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
-describe("starGenerator", () => {
+describe("starTopologyGenerator", () => {
   it("should generate a star at the requested position", () => {
     // Arrange
     const position = { x: 10, y: -20 }
 
     // Act
-    const star = starGenerator(position, createSeededRng())
+    const star = starTopologyGenerator(position, createSeededRng())
 
     // Assert
     expect(star).toStrictEqual({
@@ -24,8 +24,8 @@ describe("starGenerator", () => {
     const position = { x: 10, y: -20 }
 
     // Act
-    const firstStar = starGenerator(position, createSeededRng())
-    const secondStar = starGenerator(position, createSeededRng())
+    const firstStar = starTopologyGenerator(position, createSeededRng())
+    const secondStar = starTopologyGenerator(position, createSeededRng())
 
     // Assert
     expect({ firstStar, secondStar }).toStrictEqual({
@@ -36,7 +36,7 @@ describe("starGenerator", () => {
 
   it("should generate the minimum name suffix at the rng lower bound", () => {
     // Act
-    const star = starGenerator({ x: 10, y: -20 }, Rng.create(createGeneratorStub(0)))
+    const star = starTopologyGenerator({ x: 10, y: -20 }, Rng.create(createGeneratorStub(0)))
 
     // Assert
     expect(star).toStrictEqual({ x: 10, y: -20, name: "star 999" })

@@ -1,16 +1,16 @@
 import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { systemGenerator } from "#shared/galaxy-creation/points-generation/system.generator.ts"
+import { systemTopologyGenerator } from "#shared/galaxy-creation/topology/systemTopologyGenerator.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
-describe("systemGenerator", () => {
+describe("systemTopologyGenerator", () => {
   it("should generate a deterministic system at the requested origin", () => {
     // Arrange
     const origin = { x: 10, y: -20 }
 
     // Act
-    const firstSystem = systemGenerator(origin, createSeededRng())
-    const secondSystem = systemGenerator(origin, createSeededRng())
+    const firstSystem = systemTopologyGenerator(origin, createSeededRng())
+    const secondSystem = systemTopologyGenerator(origin, createSeededRng())
 
     // Assert
     expect(firstSystem).toStrictEqual(secondSystem)
@@ -22,7 +22,7 @@ describe("systemGenerator", () => {
     const origin = { x: 10, y: -20 }
 
     // Act
-    const system = systemGenerator(origin, createSeededRng(2))
+    const system = systemTopologyGenerator(origin, createSeededRng(2))
 
     // Assert
     expect(system).toStrictEqual<typeof system>({
@@ -43,7 +43,7 @@ describe("systemGenerator", () => {
     const origin = { x: 10, y: -20 }
 
     // Act
-    const system = systemGenerator(origin, createSeededRng(2))
+    const system = systemTopologyGenerator(origin, createSeededRng(2))
     const orbitsInAstronomicalUnits = system.planets
       .map((planet) => {
         const orbitInLightYears = Distance.create(Math.hypot(planet.x - origin.x, planet.y - origin.y), UnitOfDistance.LIGHT_YEARS)

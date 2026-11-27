@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`galaxyGenerator > should match the default realistic spiral galaxy 1`] = `
+exports[`galaxyTopologyGenerator > should match the default realistic spiral galaxy 1`] = `
 {
   "height": 100,
   "systems": [
