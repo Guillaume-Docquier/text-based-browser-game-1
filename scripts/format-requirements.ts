@@ -1,6 +1,5 @@
 import { execFileSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
-import path from "node:path"
 
 function findFirstRequirementRow(lines: string[]): number | undefined {
   const heading = lines.findIndex((line) => line.trimEnd() === "## Requirements")
@@ -47,11 +46,6 @@ function sortRequirements(lines: string[], firstRow: number): void {
   }
 }
 
-function matchesPath(file: string, input: string): boolean {
-  const pattern = path.relative(".", input).split(path.sep).join("/")
-  return pattern === "" || file === pattern || file.startsWith(pattern + "/") || path.matchesGlob(file, pattern)
-}
-
 function formatFile(file: string, mode: "--check" | "--write"): void {
   const source = readFileSync(file, "utf8")
   let formatted: string
@@ -75,17 +69,11 @@ function formatFile(file: string, mode: "--check" | "--write"): void {
   }
 }
 
-function selectRequirementFiles(paths: string[]): string[] {
-  const includes = paths.filter((path) => !path.startsWith("!"))
-  const excludes = paths.filter((path) => path.startsWith("!")).map((path) => path.slice(1))
-  const files = execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "*.requirements.md"], {
+function listRepositoryRequirementFiles(): string[] {
+  const files = execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", ":(top)*.requirements.md"], {
     encoding: "utf8",
   })
-  return files
-    .split("\0")
-    .filter((file) => existsSync(file))
-    .filter((file) => includes.length === 0 || includes.some((path) => matchesPath(file, path)))
-    .filter((file) => !excludes.some((path) => matchesPath(file, path)))
+  return files.split("\0").filter((file) => existsSync(file))
 }
 
 function main(args: string[]): void {
@@ -94,7 +82,8 @@ function main(args: string[]): void {
     throw new Error("Expected --check or --write")
   }
 
-  for (const file of selectRequirementFiles(paths)) {
+  const files = paths.length === 0 ? listRepositoryRequirementFiles() : paths
+  for (const file of files) {
     formatFile(file, mode)
   }
 }
