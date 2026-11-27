@@ -1,7 +1,7 @@
 import type { Rng, XY } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { galaxyGenerator } from "#shared/galaxy-creation/generation/galaxy.generator.ts"
-import { spiralGenerator } from "#shared/galaxy-creation/generation/points/spiral.generator.ts"
+import { galaxyGenerator } from "#shared/galaxy-creation/points-generation/galaxy.generator.ts"
+import { spiralGenerator } from "#shared/galaxy-creation/points-generation/patterns/spiral.generator.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
 describe("galaxyGenerator", () => {

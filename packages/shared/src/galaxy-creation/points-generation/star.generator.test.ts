@@ -1,6 +1,6 @@
 import { Rng, createGeneratorStub } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { starGenerator } from "#shared/galaxy-creation/generation/star.generator.ts"
+import { starGenerator } from "#shared/galaxy-creation/points-generation/star.generator.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
 describe("starGenerator", () => {

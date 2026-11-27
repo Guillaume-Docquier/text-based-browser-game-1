@@ -2,7 +2,7 @@
 
 The `shared` package contains persistence agnostic domain definitions and gameplay behavior used by the frontend and backend. The package is pure and isomorphic.
 
-The package owns [galaxy creation](src/galaxy-creation/generation/PROCEDURAL_GENERATION_PRIMER.md) and [Turn Resolution](src/turn-resolution/ARCHITECTURE.md).
+The package owns [galaxy creation](src/galaxy-creation/points-generation/PROCEDURAL_GENERATION_PRIMER.md) and [Turn Resolution](src/turn-resolution/ARCHITECTURE.md).
 
 Public domain functions take data and produce data. Callers own I/O and persistence. For example, galaxy creation returns the generated galaxy, and the backend decides how to store it.
 

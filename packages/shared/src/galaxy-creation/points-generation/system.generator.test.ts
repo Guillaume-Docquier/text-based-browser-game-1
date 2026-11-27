@@ -1,6 +1,6 @@
 import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { systemGenerator } from "#shared/galaxy-creation/generation/system.generator.ts"
+import { systemGenerator } from "#shared/galaxy-creation/points-generation/system.generator.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
 describe("systemGenerator", () => {
