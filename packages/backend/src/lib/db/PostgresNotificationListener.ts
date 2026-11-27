@@ -32,6 +32,9 @@ export class PostgresNotificationListener implements NotificationListener, Async
         connectionString: this.databaseUrl,
         application_name: "turn-state-listener",
         connectionTimeoutMillis: 5000,
+        // CONSTRAINT: Detects silent PostgreSQL disconnects, like if Postgres goes down. keepAlive is off by default. This is not tested because it is hard to test.
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 30_000,
       })
       const disconnected = Promise.withResolvers<undefined>()
       const disconnect = (): void => {
