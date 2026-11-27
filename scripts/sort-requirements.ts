@@ -2,22 +2,31 @@ import { execFileSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
-function sortRequirements(source: string): string | undefined {
-  const lines = source.split("\n")
+function findFirstRequirementRow(lines: string[]): number | undefined {
   const heading = lines.findIndex((line) => line.trimEnd() === "## Requirements")
+  if (heading === -1) {
+    return undefined
+  }
   let header = heading + 1
   while (lines[header]?.trim() === "") {
     header++
   }
   if (
-    heading === -1 ||
     !/^\s*\|?\s*ID\s*\|\s*Requirement\s*\|?\s*$/.test(lines[header]) ||
     !/^\s*\|?\s*:?-+:?\s*\|\s*:?-+:?\s*\|?\s*$/.test(lines[header + 1])
   ) {
     return undefined
   }
 
-  const firstRow = header + 2
+  return header + 2
+}
+
+function sortRequirements(source: string): string | undefined {
+  const lines = source.split("\n")
+  const firstRow = findFirstRequirementRow(lines)
+  if (firstRow === undefined) {
+    return undefined
+  }
   const rows = []
   for (const line of lines.slice(firstRow)) {
     const cell = /^\s*\|?\s*([^|\s][^|]*)\|/.exec(line)
