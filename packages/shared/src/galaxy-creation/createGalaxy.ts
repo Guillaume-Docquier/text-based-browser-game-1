@@ -7,9 +7,9 @@ import { PlanetIdSchema } from "#shared/domain/world/planets/PlanetId.ts"
 import { StarIdSchema } from "#shared/domain/world/stars/StarId.ts"
 import { assignHomePlanets } from "#shared/galaxy-creation/assignHomePlanets.ts"
 import type { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
-import { type GeneratedGalaxy, galaxyGenerator } from "#shared/galaxy-creation/points-generation/galaxy.generator.ts"
-import { spiralGenerator } from "#shared/galaxy-creation/points-generation/patterns/spiral.generator.ts"
 import { toPlanetCoordinates } from "#shared/galaxy-creation/toPlanetCoordinates.ts"
+import { type GeneratedGalaxy, galaxyGenerator } from "#shared/galaxy-creation/topology/galaxy.generator.ts"
+import { spiralGenerator } from "#shared/galaxy-creation/topology/patterns/spiral.generator.ts"
 import { toStarCoordinates } from "#shared/galaxy-creation/toStarCoordinates.ts"
 
 export function createGalaxy({

@@ -1,6 +1,6 @@
 import { type Rng, Distance, UnitOfDistance, Range, type XY } from "@guillaume-docquier/tools-ts"
-import { type GeneratedPlanet, planetGenerator } from "#shared/galaxy-creation/points-generation/planet.generator.ts"
-import { type GeneratedStar, starGenerator } from "#shared/galaxy-creation/points-generation/star.generator.ts"
+import { type GeneratedPlanet, planetGenerator } from "#shared/galaxy-creation/topology/planet.generator.ts"
+import { type GeneratedStar, starGenerator } from "#shared/galaxy-creation/topology/star.generator.ts"
 
 export type GeneratedSystem = {
   star: GeneratedStar

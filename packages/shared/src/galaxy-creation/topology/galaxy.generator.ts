@@ -1,5 +1,5 @@
 import { type Rng, Range, type XY } from "@guillaume-docquier/tools-ts"
-import { type GeneratedSystem, systemGenerator } from "#shared/galaxy-creation/points-generation/system.generator.ts"
+import { type GeneratedSystem, systemGenerator } from "#shared/galaxy-creation/topology/system.generator.ts"
 
 export type GeneratedGalaxy = {
   width: number
