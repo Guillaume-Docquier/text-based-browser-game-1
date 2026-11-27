@@ -66,6 +66,7 @@ describe("Turn State notifications", () => {
     using writer = await connect(db.$client)
     const received = collectNotifications(observer)
     await observer.query("LISTEN turn_state_changed")
+    await observer.query("LISTEN test_writes_complete")
 
     // Act
     await writer.query("BEGIN")
@@ -77,7 +78,7 @@ describe("Turn State notifications", () => {
     await writer.query("UPDATE players SET is_ready = true WHERE game_id = $1", [gameId])
     await writer.query("UPDATE turns SET ends_at = ends_at + interval '1 hour' WHERE game_id = $1", [gameId])
     await writer.query("COMMIT")
-    await writer.query("NOTIFY turn_state_changed, 'complete'")
+    await writer.query("NOTIFY test_writes_complete")
     const delivered = await received
 
     // Assert
@@ -97,8 +98,8 @@ async function connect(pool: Pool): Promise<PoolClient & Disposable> {
 async function collectNotifications(observer: PoolClient): Promise<string[]> {
   const delivered: string[] = []
   const completed = Promise.withResolvers<string[]>()
-  observer.on("notification", ({ payload }) => {
-    if (payload === "complete") {
+  observer.on("notification", ({ channel, payload }) => {
+    if (channel === "test_writes_complete") {
       completed.resolve(delivered)
     } else if (payload !== undefined) {
       delivered.push(payload)
