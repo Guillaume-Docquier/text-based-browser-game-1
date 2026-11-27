@@ -10,7 +10,7 @@ Use this map to find the smallest useful documentation set for a change. Do not 
 | Human contribution policy     | [../CONTRIBUTING.md](../CONTRIBUTING.md)                               |
 | Agent workflow and commands   | [../AGENTS.md](../AGENTS.md)                                           |
 | Common domain vocabulary      | [glossary.md](./glossary.md)                                           |
-| Behavioral requirement format | [behavioral-requirements.md](./behavioral-requirements.md)             |
+| Behavioral requirement format | [Skill](../.agents/skills/author-behavioral-requirements/SKILL.md)     |
 | TypeScript coding standards   | [typescript-coding-standards.md](./typescript-coding-standards.md)     |
 | Product direction             | `game-design/`                                                         |
 | Game design decisions index   | [game-design/decisions/README.md](./game-design/decisions/README.md)   |

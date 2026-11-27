@@ -22,6 +22,7 @@ Code quality and architecture design choices matter more than speed of execution
 
 ## Documentation
 
+- When creating or editing a `*.requirements.md` file, use the [behavioral requirements skill](.agents/skills/author-behavioral-requirements/SKILL.md).
 - Before writing TypeScript, read the [TypeScript coding standards](docs/typescript-coding-standards.md), including the code comment conventions.
 - Read the [glossary](docs/glossary.md) for project terms and update it when introducing new vocabulary.
 - Before changing architecture, read the [ADR index](docs/architecture/decisions/README.md) and the relevant accepted decisions. Discuss any contradiction with the human.
