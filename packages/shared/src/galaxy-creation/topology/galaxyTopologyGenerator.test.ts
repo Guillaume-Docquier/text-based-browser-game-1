@@ -1,13 +1,13 @@
 import type { Rng, XY } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { galaxyGenerator } from "#shared/galaxy-creation/topology/galaxy.generator.ts"
-import { spiralGenerator } from "#shared/galaxy-creation/topology/patterns/spiral.generator.ts"
+import { galaxyTopologyGenerator } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.ts"
+import { spiralGenerator } from "#shared/galaxy-creation/topology/patterns/spiralGenerator.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
-describe("galaxyGenerator", () => {
+describe("galaxyTopologyGenerator", () => {
   it("should create a square galaxy and generate systems from points", () => {
     // Act
-    const galaxy = galaxyGenerator({
+    const galaxy = galaxyTopologyGenerator({
       size: 10,
       rng: createSeededRng(),
       pointsGenerator: ({ size }) => {
@@ -38,7 +38,7 @@ describe("galaxyGenerator", () => {
 
   it("should remove points outside every galaxy boundary", () => {
     // Act
-    const galaxy = galaxyGenerator({
+    const galaxy = galaxyTopologyGenerator({
       size: 10,
       rng: createSeededRng(),
       pointsGenerator: () => [
@@ -66,7 +66,7 @@ describe("galaxyGenerator", () => {
 
   it("should keep at most one system per grid cell", () => {
     // Act
-    const galaxy = galaxyGenerator({
+    const galaxy = galaxyTopologyGenerator({
       size: 10,
       rng: createSeededRng(),
       pointsGenerator: () => [
@@ -101,8 +101,8 @@ describe("galaxyGenerator", () => {
       })
 
     // Act
-    const firstGalaxy = galaxyGenerator({ size, pointsGenerator, rng: createSeededRng() })
-    const secondGalaxy = galaxyGenerator({ size, pointsGenerator, rng: createSeededRng() })
+    const firstGalaxy = galaxyTopologyGenerator({ size, pointsGenerator, rng: createSeededRng() })
+    const secondGalaxy = galaxyTopologyGenerator({ size, pointsGenerator, rng: createSeededRng() })
 
     // Assert
     expect(firstGalaxy.systems.length).toBeGreaterThan(0)
@@ -115,7 +115,7 @@ describe("galaxyGenerator", () => {
     const rng = createSeededRng(1234)
 
     // Act
-    const galaxy = galaxyGenerator({
+    const galaxy = galaxyTopologyGenerator({
       size,
       pointsGenerator: () =>
         spiralGenerator({

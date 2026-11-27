@@ -8,8 +8,8 @@ import { StarIdSchema } from "#shared/domain/world/stars/StarId.ts"
 import { assignHomePlanets } from "#shared/galaxy-creation/assignHomePlanets.ts"
 import type { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
 import { toPlanetCoordinates } from "#shared/galaxy-creation/toPlanetCoordinates.ts"
-import { type GeneratedGalaxy, galaxyGenerator } from "#shared/galaxy-creation/topology/galaxy.generator.ts"
-import { spiralGenerator } from "#shared/galaxy-creation/topology/patterns/spiral.generator.ts"
+import { type GalaxyTopology, galaxyTopologyGenerator } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.ts"
+import { spiralGenerator } from "#shared/galaxy-creation/topology/patterns/spiralGenerator.ts"
 import { toStarCoordinates } from "#shared/galaxy-creation/toStarCoordinates.ts"
 
 export function createGalaxy({
@@ -21,15 +21,21 @@ export function createGalaxy({
   playerIds: readonly PlayerId[]
   rng: Rng
 }): Galaxy {
-  const generatedGalaxy = generateGalaxy({ galaxyCreationSettings, rng })
-  const galaxy = toGalaxy({ generatedGalaxy })
+  const galaxyTopology = generateGalaxyTopology({ galaxyCreationSettings, rng })
+  const galaxy = toGalaxy({ galaxyTopology })
   const withHomePlanets = assignHomePlanets({ galaxyCreationSettings, galaxy, playerIds, rng })
 
   return withHomePlanets
 }
 
-function generateGalaxy({ galaxyCreationSettings, rng }: { galaxyCreationSettings: GalaxyCreationSettings; rng: Rng }): GeneratedGalaxy {
-  return galaxyGenerator({
+function generateGalaxyTopology({
+  galaxyCreationSettings,
+  rng,
+}: {
+  galaxyCreationSettings: GalaxyCreationSettings
+  rng: Rng
+}): GalaxyTopology {
+  return galaxyTopologyGenerator({
     size: galaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS,
     pointsGenerator: () =>
       spiralGenerator({
@@ -45,10 +51,10 @@ function generateGalaxy({ galaxyCreationSettings, rng }: { galaxyCreationSetting
   })
 }
 
-function toGalaxy({ generatedGalaxy }: { generatedGalaxy: GeneratedGalaxy }): Galaxy {
+function toGalaxy({ galaxyTopology }: { galaxyTopology: GalaxyTopology }): Galaxy {
   let nextPlanetId = 1
   return {
-    systems: generatedGalaxy.systems.map((system, starIndex) => {
+    systems: galaxyTopology.systems.map((system, starIndex) => {
       const starCoordinates = toStarCoordinates(system.star)
 
       return {

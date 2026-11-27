@@ -12,9 +12,9 @@ Each directory directly under `src/` is a Vitest project named after that direct
 
 When an intentional generator change alters a snapshot, render the map with the test's seed and options. Inspect the SVG before updating the expected output.
 
-| Snapshot                   | Preview from the repository root                | Update the matching test                                      |
-| -------------------------- | ----------------------------------------------- | ------------------------------------------------------------- |
-| Spiral points              | `pnpm map-gen spiral --seed 1234`               | `pnpm --filter shared test spiral.generator.test.ts --update` |
-| Galaxy with spiral systems | `pnpm map-gen galaxy spiral --grid --seed 1234` | `pnpm --filter shared test galaxy.generator.test.ts --update` |
+| Snapshot                   | Preview from the repository root                | Update the matching test                                             |
+| -------------------------- | ----------------------------------------------- | -------------------------------------------------------------------- |
+| Spiral points              | `pnpm map-gen spiral --seed 1234`               | `pnpm --filter shared test spiralGenerator.test.ts --update`         |
+| Galaxy with spiral systems | `pnpm map-gen galaxy spiral --grid --seed 1234` | `pnpm --filter shared test galaxyTopologyGenerator.test.ts --update` |
 
 Review the snapshot diff and rerun the same test without `--update`.

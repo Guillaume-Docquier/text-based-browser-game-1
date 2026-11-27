@@ -2,18 +2,22 @@ import { Rng, createGeneratorStub } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "#shared/domain/world/planets/PlanetSize.ts"
-import { BIOME_ATTRIBUTE_RANGES, planetGenerator, SIZE_ATTRIBUTE_RANGES } from "#shared/galaxy-creation/topology/planet.generator.ts"
+import {
+  BIOME_ATTRIBUTE_RANGES,
+  planetTopologyGenerator,
+  SIZE_ATTRIBUTE_RANGES,
+} from "#shared/galaxy-creation/topology/planetTopologyGenerator.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
-describe("planetGenerator", () => {
+describe("planetTopologyGenerator", () => {
   it("should generate a deterministic planet at the requested orbit distance", () => {
     // Arrange
     const starPosition = { x: 10, y: -20 }
     const orbitDistance = 8
 
     // Act
-    const firstPlanet = planetGenerator(starPosition, orbitDistance, createSeededRng())
-    const secondPlanet = planetGenerator(starPosition, orbitDistance, createSeededRng())
+    const firstPlanet = planetTopologyGenerator(starPosition, orbitDistance, createSeededRng())
+    const secondPlanet = planetTopologyGenerator(starPosition, orbitDistance, createSeededRng())
 
     // Assert
     expect(firstPlanet).toStrictEqual(secondPlanet)
@@ -27,7 +31,7 @@ describe("planetGenerator", () => {
     const quarterTurnRng = Rng.create(createGeneratorStub(0.25))
 
     // Act
-    const planet = planetGenerator(starPosition, orbitDistance, quarterTurnRng)
+    const planet = planetTopologyGenerator(starPosition, orbitDistance, quarterTurnRng)
 
     // Assert
     expect(planet.y).toStrictEqual(starPosition.y + orbitDistance)
@@ -39,7 +43,7 @@ describe("planetGenerator", () => {
     const rng = createSeededRng()
 
     // Act
-    const planets = Array.from({ length: 5_000 }, () => planetGenerator({ x: 0, y: 0 }, 8, rng))
+    const planets = Array.from({ length: 5_000 }, () => planetTopologyGenerator({ x: 0, y: 0 }, 8, rng))
 
     // Assert
     expect(new Set(planets.map((planet) => planet.biome))).toStrictEqual(new Set(Object.values(PlanetBiome)))
@@ -59,7 +63,7 @@ describe("planetGenerator", () => {
     const rng = createSeededRng()
 
     // Act
-    const planets = Array.from({ length: 5_000 }, () => planetGenerator({ x: 0, y: 0 }, 8, rng))
+    const planets = Array.from({ length: 5_000 }, () => planetTopologyGenerator({ x: 0, y: 0 }, 8, rng))
 
     // Assert
     expect(new Set(planets.map((planet) => planet.size))).toStrictEqual(new Set(Object.values(PlanetSize)))
@@ -82,8 +86,8 @@ describe("planetGenerator", () => {
     }
 
     // Act
-    const planet = planetGenerator(starPosition, 8, createSeededRng())
-    const translatedPlanet = planetGenerator(translatedStarPosition, 8, createSeededRng())
+    const planet = planetTopologyGenerator(starPosition, 8, createSeededRng())
+    const translatedPlanet = planetTopologyGenerator(translatedStarPosition, 8, createSeededRng())
 
     // Assert
     expect(translatedPlanet).toStrictEqual({
