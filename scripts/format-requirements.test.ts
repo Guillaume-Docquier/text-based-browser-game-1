@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatRequirementsFile } from "./formatRequirementsFile.ts"
+import { formatRequirementsFile } from "./format-requirements.ts"
 
 describe("formatRequirementsFile", () => {
   it("should sort complete rows by their full IDs", () => {
