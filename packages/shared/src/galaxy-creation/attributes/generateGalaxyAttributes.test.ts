@@ -3,7 +3,6 @@ import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "#shared/domain/world/planets/PlanetSize.ts"
 import { generateGalaxyAttributes } from "#shared/galaxy-creation/attributes/generateGalaxyAttributes.ts"
 import { BIOME_ATTRIBUTE_RANGES, SIZE_ATTRIBUTE_RANGES } from "#shared/galaxy-creation/attributes/populatePlanet.ts"
-import { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
 import { createGalaxyTopologyStub } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.stub.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
@@ -14,7 +13,7 @@ describe("generateGalaxyAttributes", () => {
     const rng = createSeededRng()
 
     // Act
-    const galaxy = generateGalaxyAttributes({ galaxyTopology, galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng })
+    const galaxy = generateGalaxyAttributes({ galaxyTopology, rng })
     const planets = galaxy.systems.flatMap((system) => system.planets)
 
     // Assert
@@ -36,7 +35,7 @@ describe("generateGalaxyAttributes", () => {
     const rng = createSeededRng()
 
     // Act
-    const galaxy = generateGalaxyAttributes({ galaxyTopology, galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng })
+    const galaxy = generateGalaxyAttributes({ galaxyTopology, rng })
     const planets = galaxy.systems.flatMap((system) => system.planets)
 
     // Assert

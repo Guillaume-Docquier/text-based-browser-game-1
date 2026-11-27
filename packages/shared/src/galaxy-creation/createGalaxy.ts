@@ -3,6 +3,7 @@ import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import type { Galaxy } from "#shared/domain/world/Galaxy.ts"
 import { generateGalaxyAttributes } from "#shared/galaxy-creation/attributes/generateGalaxyAttributes.ts"
 import type { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
+import { generateHomePlanets } from "#shared/galaxy-creation/home-planets/generateHomePlanets.ts"
 import { type GalaxyTopology, galaxyTopologyGenerator } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.ts"
 import { spiralGenerator } from "#shared/galaxy-creation/topology/patterns/spiralGenerator.ts"
 
@@ -16,7 +17,8 @@ export function createGalaxy({
   rng: Rng
 }): Galaxy {
   const galaxyTopology = generateGalaxyTopology({ galaxyCreationSettings, rng })
-  return generateGalaxyAttributes({ galaxyTopology, galaxyCreationSettings, playerIds, rng })
+  const galaxy = generateGalaxyAttributes({ galaxyTopology, rng })
+  return generateHomePlanets({ galaxy, galaxyCreationSettings, playerIds, rng })
 }
 
 function generateGalaxyTopology({
