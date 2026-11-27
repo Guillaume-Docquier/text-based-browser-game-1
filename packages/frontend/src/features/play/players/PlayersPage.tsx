@@ -28,7 +28,7 @@ export function PlayersPage(): ReactElement {
               isReady={isReady}
               disabled={!canTakeAction || updateReadiness.isPending}
               onToggle={() => {
-                updateReadiness.mutate({ gameId: gameDetails.id, turn: turnState.turn, isReady: !isReady })
+                updateReadiness.mutate({ gameId: gameDetails.id, turn: playerView.turn, isReady: !isReady })
               }}
             />
           )

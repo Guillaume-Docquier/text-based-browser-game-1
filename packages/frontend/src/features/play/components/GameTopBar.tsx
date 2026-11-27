@@ -32,7 +32,7 @@ export function GameTopBar(): ReactElement {
 }
 
 function TurnControl(): ReactElement {
-  const { gameDetails, turnState, canTakeAction, isCurrentPlayerReady } = usePlayGameContext()
+  const { gameDetails, playerView, turnState, canTakeAction, isCurrentPlayerReady } = usePlayGameContext()
   const logger = useLogger()
   const updateReadiness = useUpdateReadiness()
   const refreshClientData = useRefreshClientData()
@@ -91,7 +91,7 @@ function TurnControl(): ReactElement {
         isPending={updateReadiness.isPending}
         disabled={updateReadiness.isPending || !canTakeAction}
         onToggle={() => {
-          updateReadiness.mutate({ gameId: gameDetails.id, turn: turnState.turn, isReady: !isCurrentPlayerReady })
+          updateReadiness.mutate({ gameId: gameDetails.id, turn: playerView.turn, isReady: !isCurrentPlayerReady })
         }}
       />
       {updateReadiness.error === null ? null : (
