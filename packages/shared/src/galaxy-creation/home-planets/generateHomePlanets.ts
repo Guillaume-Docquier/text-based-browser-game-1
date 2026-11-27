@@ -4,7 +4,7 @@ import type { Galaxy } from "#shared/domain/world/Galaxy.ts"
 import type { StarSystem } from "#shared/domain/world/StarSystem.ts"
 import type { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
 
-export function assignHomePlanets({
+export function generateHomePlanets({
   galaxyCreationSettings,
   galaxy,
   playerIds,

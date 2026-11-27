@@ -52,15 +52,15 @@ test("the galaxy view can be navigated and the star system view can inspect plan
     await galaxyPage.openStarSystem(selectedStar)
     await expect(galaxyPage.starSystemMap).toBeVisible()
 
-    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 72231"))
-    await expect(galaxyPage.planetProfileHeading("planet 72231")).toBeVisible()
+    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 405771"))
+    await expect(galaxyPage.planetProfileHeading("planet 405771")).toBeVisible()
     await expect(galaxyPage.planetDetailsPane).toContainText("Planet attributes")
     await expect(galaxyPage.planetDetailsPane).toContainText("Fertility")
     await expect(galaxyPage.planetDetailsPane).toContainText("Max population")
     await expect(galaxyPage.planetDetailsPane).toContainText("Coordinates")
 
-    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 73768"))
-    await expect(galaxyPage.planetProfileHeading("planet 73768")).toBeVisible()
+    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 120528"))
+    await expect(galaxyPage.planetProfileHeading("planet 120528")).toBeVisible()
 
     await galaxyPage.clickOnTheMap()
     await expect(galaxyPage.planetDetailsPane).not.toBeVisible()

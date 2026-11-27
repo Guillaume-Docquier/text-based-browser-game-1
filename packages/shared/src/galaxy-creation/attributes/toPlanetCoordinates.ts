@@ -1,16 +1,13 @@
-import type { XY } from "@guillaume-docquier/tools-ts"
 import type { PlanetCoordinates } from "#shared/domain/world/planets/PlanetCoordinates.ts"
 import type { StarCoordinates } from "#shared/domain/world/stars/StarCoordinates.ts"
-import { toOrbitCoordinates } from "#shared/galaxy-creation/toOrbitCoordinates.ts"
+import { toOrbitCoordinates } from "#shared/galaxy-creation/attributes/toOrbitCoordinates.ts"
 
 export function toPlanetCoordinates({
   starCoordinates,
-  star,
-  planet,
+  orbitDistanceAU,
 }: {
   starCoordinates: StarCoordinates
-  star: XY
-  planet: XY
+  orbitDistanceAU: number
 }): PlanetCoordinates {
-  return `${starCoordinates}:${toOrbitCoordinates({ star, planet })}`
+  return `${starCoordinates}:${toOrbitCoordinates(orbitDistanceAU)}`
 }

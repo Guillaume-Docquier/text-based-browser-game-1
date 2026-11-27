@@ -4,7 +4,7 @@
   <g font-family="monospace" fill="#ffffff">
     <text x="24" y="32" font-size="20">Cluster galaxy generator (seed: 1234)</text>
     <text x="24" y="60" font-size="16">Systems: 787 generated from 1000 points (1000 requested)</text>
-    <text x="24" y="86" font-size="16">Planets: 3917 | Per system: 3 min / 7 max / 4.98 avg</text>
+    <text x="24" y="86" font-size="16">Planets: 3988 | Per system: 3 min / 7 max / 5.07 avg</text>
     <text x="24" y="112" font-size="16">Radius: 50 | Origin: (50, 50)</text>
     <text x="24" y="138" font-size="16">Standard deviation: 12.5</text>
   </g>

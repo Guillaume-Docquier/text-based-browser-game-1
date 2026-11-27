@@ -1,6 +1,7 @@
 import path from "node:path"
-import { Distance, mulberry32Prng, UnitOfDistance, Rng, type XY } from "@guillaume-docquier/tools-ts"
+import { Distance, mulberry32Prng, UnitOfDistance, Rng } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
+import { generateGalaxyAttributes } from "#shared/galaxy-creation/attributes/generateGalaxyAttributes.ts"
 import { galaxyTopologyGenerator } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.ts"
 import { createClusterCommand, type ClusterRenderOptions } from "./command-cluster.ts"
 import { createSpiralCommand, type SpiralRenderOptions } from "./command-spiral.ts"
@@ -21,12 +22,14 @@ export function createGalaxyCommand(): Command {
     .description("Generate an SVG preview of galaxyTopologyGenerator output.")
     .option("--grid", "render the galaxy coordinate grid")
 
+  const galaxyOptions = (): GalaxyOptions => command.opts<GalaxyOptions>()
+
   return command
     .addCommand(
       createClusterCommand({
         defaultOutputPath: DEFAULT_CLUSTER_OUTPUT_PATH,
         render: async (options) => {
-          await renderClusterGalaxy(options, command.opts<GalaxyOptions>())
+          await renderGalaxy(options, galaxyOptions(), "Cluster", [`Standard deviation: ${SvgRenderer.formatNumber(options.radius / 4)}`])
         },
       }),
     )
@@ -34,65 +37,25 @@ export function createGalaxyCommand(): Command {
       createSpiralCommand({
         defaultOutputPath: DEFAULT_SPIRAL_OUTPUT_PATH,
         render: async (options) => {
-          await renderSpiralGalaxy(options, command.opts<GalaxyOptions>())
+          await renderGalaxy(options, galaxyOptions(), "Spiral", [
+            `Arms: ${options.armCount}`,
+            `Arm size: ${SvgRenderer.formatNumber(options.armRadius)}`,
+          ])
         },
       }),
     )
 }
 
-async function renderClusterGalaxy(options: ClusterRenderOptions, galaxyOptions: GalaxyOptions): Promise<void> {
-  await renderGalaxy({
-    outputPath: options.output,
-    generatorName: "Cluster",
-    pointsGenerator: options.pointsGenerator,
-    requestedPoints: options.requestedPoints,
-    radius: options.radius,
-    origin: options.origin,
-    seed: options.seed,
-    renderGrid: galaxyOptions.grid ?? false,
-    details: [`Standard deviation: ${SvgRenderer.formatNumber(options.radius / 4)}`],
-  })
-}
-
-async function renderSpiralGalaxy(options: SpiralRenderOptions, galaxyOptions: GalaxyOptions): Promise<void> {
-  await renderGalaxy({
-    outputPath: options.output,
-    generatorName: "Spiral",
-    pointsGenerator: options.pointsGenerator,
-    requestedPoints: options.requestedPoints,
-    radius: options.radius,
-    origin: options.origin,
-    seed: options.seed,
-    renderGrid: galaxyOptions.grid ?? false,
-    details: [`Arms: ${options.armCount}`, `Arm size: ${SvgRenderer.formatNumber(options.armRadius)}`],
-  })
-}
-
-async function renderGalaxy({
-  outputPath,
-  generatorName,
-  pointsGenerator,
-  requestedPoints,
-  radius,
-  origin,
-  seed,
-  renderGrid,
-  details,
-}: {
-  readonly outputPath: string
-  readonly generatorName: string
-  readonly pointsGenerator: (options: { rng: Rng }) => XY[]
-  readonly requestedPoints: number
-  readonly radius: number
-  readonly origin: XY
-  readonly seed: number
-  readonly renderGrid: boolean
-  readonly details: readonly string[]
-}): Promise<void> {
+async function renderGalaxy(
+  { output: outputPath, pointsGenerator, requestedPoints, radius, origin, seed }: ClusterRenderOptions | SpiralRenderOptions,
+  { grid = false }: GalaxyOptions,
+  generatorName: string,
+  details: readonly string[],
+): Promise<void> {
   const size = radius * 2
   let generatedPointCount = 0
   const rng = Rng.create(mulberry32Prng(seed))
-  const galaxy = galaxyTopologyGenerator({
+  const galaxyTopology = galaxyTopologyGenerator({
     size,
     rng,
     pointsGenerator: () => {
@@ -101,6 +64,7 @@ async function renderGalaxy({
       return points
     },
   })
+  const galaxy = generateGalaxyAttributes({ galaxyTopology, rng })
   const systemPoints = galaxy.systems.map((system) => system.star)
   const planetPoints = galaxy.systems.flatMap((system) => system.planets)
   const planetCountsPerSystem = galaxy.systems.map((system) => system.planets.length)
@@ -120,11 +84,11 @@ async function renderGalaxy({
     ],
     points: systemPoints,
     boundary: { shape: "square", size },
-    grid: renderGrid ? { size } : undefined,
+    grid: grid ? { size } : undefined,
     origin,
   })
 
-  const sampledSystems = rng.draw(galaxy.systems, Math.min(NB_SYSTEM_PREVIEWS, galaxy.systems.length)).drawn
+  const sampledSystems = rng.draw([...galaxy.systems], Math.min(NB_SYSTEM_PREVIEWS, galaxy.systems.length)).drawn
   await SystemSvgRenderer.renderToFile({
     outputPath: addFileNameSuffix(outputPath, "-systems"),
     title: `${generatorName} galaxy system samples`,

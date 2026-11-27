@@ -25,11 +25,11 @@ describe("galaxyTopologyGenerator", () => {
       height: 10,
       systems: [
         {
-          star: { x: 1.25, y: 2.5, name: expect.any(String) },
+          star: { x: 1.25, y: 2.5 },
           planets: expect.any(Array),
         },
         {
-          star: { x: 8.75, y: 9.25, name: expect.any(String) },
+          star: { x: 8.75, y: 9.25 },
           planets: expect.any(Array),
         },
       ],
@@ -54,11 +54,11 @@ describe("galaxyTopologyGenerator", () => {
     // Assert
     expect(galaxy.systems).toStrictEqual<typeof galaxy.systems>([
       {
-        star: { x: 0, y: 0, name: expect.any(String) },
+        star: { x: 0, y: 0 },
         planets: expect.any(Array),
       },
       {
-        star: { x: 9.999, y: 9.999, name: expect.any(String) },
+        star: { x: 9.999, y: 9.999 },
         planets: expect.any(Array),
       },
     ])
@@ -79,11 +79,11 @@ describe("galaxyTopologyGenerator", () => {
     // Assert
     expect(galaxy.systems).toStrictEqual<typeof galaxy.systems>([
       {
-        star: { x: 1.9, y: 2.9, name: expect.any(String) },
+        star: { x: 1.9, y: 2.9 },
         planets: expect.any(Array),
       },
       {
-        star: { x: 2, y: 2, name: expect.any(String) },
+        star: { x: 2, y: 2 },
         planets: expect.any(Array),
       },
     ])

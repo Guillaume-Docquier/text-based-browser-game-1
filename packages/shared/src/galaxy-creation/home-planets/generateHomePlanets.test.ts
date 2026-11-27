@@ -7,10 +7,10 @@ import { createGalaxyStub } from "#shared/domain/world/Galaxy.stub.ts"
 import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import { createStarStub } from "#shared/domain/world/stars/Star.stub.ts"
 import { createStarSystemStub } from "#shared/domain/world/StarSystem.stub.ts"
-import { assignHomePlanets } from "#shared/galaxy-creation/assignHomePlanets.ts"
 import { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
+import { generateHomePlanets } from "#shared/galaxy-creation/home-planets/generateHomePlanets.ts"
 
-describe("assignHomePlanets", () => {
+describe("generateHomePlanets", () => {
   it("should mutate the galaxy", () => {
     // Arrange
     const firstPlayerId = typedParse(PlayerIdSchema, v4())
@@ -24,7 +24,7 @@ describe("assignHomePlanets", () => {
     })
 
     // Act
-    const assignedGalaxy = assignHomePlanets({
+    const assignedGalaxy = generateHomePlanets({
       galaxyCreationSettings: GalaxyCreationSettings,
       galaxy,
       playerIds: [firstPlayerId],
@@ -55,7 +55,7 @@ describe("assignHomePlanets", () => {
     })
 
     // Act
-    const assignedGalaxy = assignHomePlanets({
+    const assignedGalaxy = generateHomePlanets({
       galaxyCreationSettings: GalaxyCreationSettings,
       galaxy,
       playerIds: [firstPlayerId, secondPlayerId, thirstPlayerId],

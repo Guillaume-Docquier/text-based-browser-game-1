@@ -6,8 +6,8 @@ The entry point is deterministic and pure.
 
 ## Generation pipeline
 
-The galaxy generation is a pipeline with multiple passes. The first pass generates the topology, aka the positions of stars and planets. It describes the structure of the galaxy, it doesn't define planet attributes.
+1. The [topology generator](topology/galaxyTopologyGenerator.ts) generates the structure of the galaxy.
+2. The [attributes generator](attributes/generateGalaxyAttributes.ts) generates the playable planet attributes.
+3. The [home planet generator](home-planets/generateHomePlanets.ts) assigns home planets for each player.
 
-A second pass takes the topology and turns it into actual playable stars and planets.
-
-More passes can be added as we add features to the galaxy. The goal is that each pass has strict responsibilities, and they can be easily composed and modified independently.
+All passes use the same seeded random generator. The last step always returns the playable galaxy.
