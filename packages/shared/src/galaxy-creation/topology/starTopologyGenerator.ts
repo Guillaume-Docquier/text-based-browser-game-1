@@ -1,10 +1,6 @@
 import { Range, type Rng, type XY } from "@guillaume-docquier/tools-ts"
 
-export type StarTopology = {
-  x: number
-  y: number
-  name: string
-}
+export type StarTopology = XY
 
 export function starTopologyGenerator(position: XY, rng: Rng): StarTopology {
   return {

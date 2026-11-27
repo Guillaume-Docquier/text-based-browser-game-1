@@ -4,18 +4,8 @@ import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
 import { type PlanetName, PlanetNameSchema } from "#shared/domain/world/planets/PlanetName.ts"
 import { PlanetSize } from "#shared/domain/world/planets/PlanetSize.ts"
 
-export type PlanetTopology = {
-  readonly x: number
-  readonly y: number
-  readonly name: PlanetName
-  readonly biome: PlanetBiome
-  readonly size: PlanetSize
-  readonly fertility: number
-  readonly metal: number
-  readonly fuel: number
-  readonly energy: number
-  readonly maxPopulation: number
-  readonly area: number
+export type PlanetTopology = XY & {
+  readonly orbitDistanceAU: number
 }
 
 const ANGLE_RANGE = Range.float({ min: 0, max: 2 * Math.PI })
@@ -68,7 +58,7 @@ export const SIZE_ATTRIBUTE_RANGES = {
   },
 } as const satisfies Record<PlanetSize, AttributeRanges<"maxPopulation" | "area">>
 
-export function planetTopologyGenerator(starPosition: XY, orbitDistance: number, rng: Rng): PlanetTopology {
+export function planetTopologyGenerator(starPosition: XY, orbitDistanceAU: number, rng: Rng): PlanetTopology {
   const angle = rng.float(ANGLE_RANGE)
   const biome = PLANET_BIOMES[rng.int(BIOME_INDEX_RANGE)]
   const size = PLANET_SIZES[rng.int(SIZE_INDEX_RANGE)]
@@ -79,8 +69,8 @@ export function planetTopologyGenerator(starPosition: XY, orbitDistance: number,
   const sizeRanges = SIZE_ATTRIBUTE_RANGES[size]
 
   return {
-    x: starPosition.x + orbitDistance * Math.cos(angle),
-    y: starPosition.y + orbitDistance * Math.sin(angle),
+    x: starPosition.x + orbitDistanceAU * Math.cos(angle),
+    y: starPosition.y + orbitDistanceAU * Math.sin(angle),
     name: planetNameGenerator(rng),
     biome,
     size,
