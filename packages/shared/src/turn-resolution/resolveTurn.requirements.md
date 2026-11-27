@@ -1,6 +1,6 @@
 # `resolveTurn` requirements
 
-[Requirements format and ID rules](../../../../docs/behavioral-requirements.md)
+Next ID number: 0001
 
 ## Requirements
 

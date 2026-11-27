@@ -1,8 +1,6 @@
 # `createGalaxy` requirements
 
-[Requirements format and ID rules](../../../../docs/behavioral-requirements.md)
-
-The single entry below is a provisional example for review.
+Next ID number: 0002
 
 ## Requirements
 
