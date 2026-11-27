@@ -29,7 +29,7 @@ Code quality and architecture design choices matter more than speed of execution
 
 When editing documentation, use the [documentation map](docs/README.md) to find relevant guidance. Keep instructions concise and link to the rule where it applies. Verify documentation claims against the code.
 
-For documentation-only changes, run only oxfmt in write mode on the changed files and `git diff --check`.
+For documentation-only changes, run `pnpm format:fix` on the changed files and `git diff --check`.
 
 ## Commands
 

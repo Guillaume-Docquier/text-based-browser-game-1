@@ -6,7 +6,7 @@ Use `MODULE-NNNN` for a module-wide requirement, or `MODULE-FACET-NNNN` to group
 
 Put one `Next ID number` directly below the title. All requirements in the module share this counter. Use four digits, starting at `0001`. When adding a row, use the displayed number and increment it in the same edit. Keep the full ID when rewording or moving a row. When deleting a row, retire its number across the module and leave the counter at its current value.
 
-Under `## Requirements`, use a Markdown table with two columns, `ID` and `Requirement`. Give each requirement one row. Keep rows for each facet together. Add a row at the end of its group, or start a new group at the end of the table. Treat module-wide rows as one group. In the `Requirement` cell, state the input conditions and the outcome a caller can observe. Include an edge case or interaction when it changes that outcome. For an empty specification, keep the table header and separator with zero data rows.
+Under `## Requirements`, use a Markdown table with two columns, `ID` and `Requirement`. Give each requirement one row. Append new rows and run `pnpm format:fix` to sort them by the full ID. Module-wide rows come first, followed by facets in alphabetical order and numbers in ascending order within each facet. In the `Requirement` cell, state the input conditions and the outcome a caller can observe. Include an edge case or interaction when it changes that outcome. For an empty specification, keep the table header and separator with zero data rows.
 
 ## Sample document
 
