@@ -23,7 +23,7 @@ Keep recovery simple. For a rare race condition or brief outage, it is acceptabl
 
 ## Submitting Actions
 
-For every player action that changes game state during a turn, including Readiness updates, send the turn number from the Player View the player acted on. Use that number even if Turn State received over SSE reports a newer turn. See [backend action validation](../backend/ARCHITECTURE.md#validating-player-actions).
+Components submit turn actions through hooks in [`src/features/play/actions`](src/features/play/actions/) and pass only action-specific data, such as `{ isReady }`. Each action hook wraps its API mutation and uses `useActionTarget()` to get the game ID and turn number from the Player View the player acted on. Use that turn even if Turn State received over SSE reports a newer one. See [backend action validation](../backend/ARCHITECTURE.md#validating-player-actions).
 
 ## Player Identity
 
