@@ -75,26 +75,26 @@ function formatFile(file: string, mode: "--check" | "--write"): void {
   }
 }
 
+function selectRequirementFiles(paths: string[]): string[] {
+  const includes = paths.filter((path) => !path.startsWith("!"))
+  const excludes = paths.filter((path) => path.startsWith("!")).map((path) => path.slice(1))
+  const files = execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "*.requirements.md"], {
+    encoding: "utf8",
+  })
+  return files
+    .split("\0")
+    .filter((file) => existsSync(file))
+    .filter((file) => includes.length === 0 || includes.some((path) => matchesPath(file, path)))
+    .filter((file) => !excludes.some((path) => matchesPath(file, path)))
+}
+
 function main(args: string[]): void {
   const [mode, ...paths] = args
   if (mode !== "--check" && mode !== "--write") {
     throw new Error("Expected --check or --write")
   }
 
-  const includes = paths.filter((path) => !path.startsWith("!"))
-  const excludes = paths.filter((path) => path.startsWith("!")).map((path) => path.slice(1))
-  const files = execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "*.requirements.md"], {
-    encoding: "utf8",
-  })
-  for (const file of files.split("\0")) {
-    if (
-      file === "" ||
-      !existsSync(file) ||
-      (includes.length > 0 && !includes.some((path) => matchesPath(file, path))) ||
-      excludes.some((path) => matchesPath(file, path))
-    ) {
-      continue
-    }
+  for (const file of selectRequirementFiles(paths)) {
     formatFile(file, mode)
   }
 }
