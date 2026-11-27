@@ -6,6 +6,6 @@ The single entry below is a provisional example for review.
 
 ## Requirements
 
-### GC-001
-
-When the player list is empty, every planet in the returned galaxy is unowned.
+| ID      | Requirement                                                                    |
+| ------- | ------------------------------------------------------------------------------ |
+| GC-0001 | When the player list is empty, every planet in the returned galaxy is unowned. |
