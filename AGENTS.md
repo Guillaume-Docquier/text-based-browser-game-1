@@ -6,6 +6,8 @@ Everything is in TypeScript. Never write JavaScript files if you can do it in Ty
 
 For each directory you work in, read the existing `AGENTS.md` and `ARCHITECTURE.md` files from the repository root down to that directory. When choosing, writing, or running tests, also read the `TESTING.md` files along the same path. Apply guidance from root to leaf. A local exception overrides only the inherited rule it identifies. For changes in multiple directories, follow the path for each one.
 
+Agents discover skills automatically. Do not name, link to, or hint at specific skills in any `AGENTS.md` file.
+
 ## Testing
 
 If the existing test strategies cannot cover a behavior you think needs testing, raise it with the human. Explain what failure the test would catch and why the available approaches cannot exercise it. Wait for agreement on the need and approach before building or extending a test harness or other test infrastructure for that case.
@@ -29,7 +31,7 @@ Code quality and architecture design choices matter more than speed of execution
 
 When editing documentation, use the [documentation map](docs/README.md) to find relevant guidance. Keep instructions concise and link to the rule where it applies. Verify documentation claims against the code.
 
-For documentation-only changes, run only oxfmt in write mode on the changed files and `git diff --check`.
+For documentation-only changes, you don't need to run checks. The precommit hook will run the relevant checks for you.
 
 ## Commands
 

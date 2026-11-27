@@ -8,4 +8,4 @@ Linting unit tests use Vitest to test that our lint configurations apply the way
 - Write fixture code in multiline template literals. Use the same line breaks and indentation you would use in a TypeScript file.
 - Each scenario that tests a rule being turned off should explain why we turn off that rule in the test name.
 
-Run lint tests with `pnpm test:lint`.
+Run lint tests with `pnpm test --project linting`.

@@ -54,8 +54,8 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Test lint rules
-        run: pnpm test:lint
+      - name: Tooling tests
+        run: pnpm test
 
   frontend:
     runs-on: ubuntu-latest
