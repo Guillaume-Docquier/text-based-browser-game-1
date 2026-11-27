@@ -32,8 +32,6 @@ For persistence behavior, prefer PGLite/local DB-backed tests over hand-rolled i
 - When verifying a `Result` in Vitest, compare the whole value, for example `expect(result).toEqual(Result.Success(expectedValue))`. For setup expected to succeed, use the `extractSuccess` test helper. See [ADR-018](docs/architecture/decisions/018-result-handling-in-tests.md).
 - Declare Vitest tests with `it` or `test` imported from `vitest`. Do not use Vitest custom fixtures. See [ADR-035](docs/architecture/decisions/035-do-not-use-vitest-custom-fixtures.md).
 
-Run `pnpm test` at the repository root to run the `linting` and `scripts` Vitest projects. Each project discovers `*.test.ts` files under its directory. Use `pnpm test --project scripts` or `pnpm test --project linting` to run one project. See the [lint rule testing guide](linting/tests/TESTING.md) for lint test conventions.
-
 ## Package test files
 
 Keep package tests beside the code they exercise. Put reusable test-only helpers and suite setup in the package's `src/testing/` directory, and keep tests for a helper beside it. Name helpers for what they provide, such as `mapGeometry.ts` or `createIntegrationTestDb.ts`. A helper used by one test file can stay in that file.

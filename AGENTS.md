@@ -29,7 +29,7 @@ Code quality and architecture design choices matter more than speed of execution
 
 When editing documentation, use the [documentation map](docs/README.md) to find relevant guidance. Keep instructions concise and link to the rule where it applies. Verify documentation claims against the code.
 
-For documentation-only changes, run `pnpm fmt:requirements --write` on any changed `*.requirements.md` files, then run oxfmt in write mode on the changed files and `git diff --check`.
+For documentation-only changes, you don't need to run checks. The precommit hook will run the relevant checks for you.
 
 ## Commands
 

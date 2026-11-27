@@ -54,7 +54,7 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Test linting and scripts
+      - name: Tooling tests
         run: pnpm test
 
   frontend:
