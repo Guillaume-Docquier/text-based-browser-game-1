@@ -1,79 +1,38 @@
-import { Rng, createGeneratorStub } from "@guillaume-docquier/tools-ts"
+import { Distance, UnitOfDistance, Rng, createGeneratorStub } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
-import { PlanetSize } from "#shared/domain/world/planets/PlanetSize.ts"
-import {
-  BIOME_ATTRIBUTE_RANGES,
-  planetTopologyGenerator,
-  SIZE_ATTRIBUTE_RANGES,
-} from "#shared/galaxy-creation/topology/planetTopologyGenerator.ts"
+import { planetTopologyGenerator } from "#shared/galaxy-creation/topology/planetTopologyGenerator.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
 describe("planetTopologyGenerator", () => {
   it("should generate a deterministic planet at the requested orbit distance", () => {
     // Arrange
     const starPosition = { x: 10, y: -20 }
-    const orbitDistance = 8
+    const orbitDistanceAU = 8
+    const radiusLightYears = Distance.in(Distance.create(orbitDistanceAU, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS)
 
     // Act
-    const firstPlanet = planetTopologyGenerator(starPosition, orbitDistance, createSeededRng())
-    const secondPlanet = planetTopologyGenerator(starPosition, orbitDistance, createSeededRng())
+    const firstPlanet = planetTopologyGenerator(starPosition, orbitDistanceAU, createSeededRng())
+    const secondPlanet = planetTopologyGenerator(starPosition, orbitDistanceAU, createSeededRng())
 
     // Assert
     expect(firstPlanet).toStrictEqual(secondPlanet)
-    expect(Math.hypot(firstPlanet.x - starPosition.x, firstPlanet.y - starPosition.y)).toBeCloseTo(orbitDistance, 5)
+    expect(firstPlanet.orbitDistanceAU).toBe(orbitDistanceAU)
+    expect(Math.hypot(firstPlanet.x - starPosition.x, firstPlanet.y - starPosition.y)).toBeCloseTo(radiusLightYears, 12)
   })
 
   it("should place the planet at the angle selected by the rng", () => {
     // Arrange
     const starPosition = { x: 10, y: -20 }
-    const orbitDistance = 8
+    const orbitDistanceAU = 8
+    const radiusLightYears = Distance.in(Distance.create(orbitDistanceAU, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS)
     const quarterTurnRng = Rng.create(createGeneratorStub(0.25))
 
     // Act
-    const planet = planetTopologyGenerator(starPosition, orbitDistance, quarterTurnRng)
+    const planet = planetTopologyGenerator(starPosition, orbitDistanceAU, quarterTurnRng)
 
     // Assert
-    expect(planet.y).toStrictEqual(starPosition.y + orbitDistance)
-    expect(Math.hypot(planet.x - starPosition.x, planet.y - starPosition.y)).toBeCloseTo(orbitDistance, 5)
-  })
-
-  it("should generate every biome with Attributes in its configured ranges", () => {
-    // Arrange
-    const rng = createSeededRng()
-
-    // Act
-    const planets = Array.from({ length: 5_000 }, () => planetTopologyGenerator({ x: 0, y: 0 }, 8, rng))
-
-    // Assert
-    expect(new Set(planets.map((planet) => planet.biome))).toStrictEqual(new Set(Object.values(PlanetBiome)))
-    for (const biome of Object.values(PlanetBiome)) {
-      const biomePlanets = planets.filter((planet) => planet.biome === biome)
-      const limits = BIOME_ATTRIBUTE_RANGES[biome]
-
-      expectToMatchLimits(getObservedRange(biomePlanets.map((planet) => planet.fertility)), limits.fertility)
-      expectToMatchLimits(getObservedRange(biomePlanets.map((planet) => planet.metal)), limits.metal)
-      expectToMatchLimits(getObservedRange(biomePlanets.map((planet) => planet.fuel)), limits.fuel)
-      expectToMatchLimits(getObservedRange(biomePlanets.map((planet) => planet.energy)), limits.energy)
-    }
-  })
-
-  it("should generate every size with Attributes in its configured ranges", () => {
-    // Arrange
-    const rng = createSeededRng()
-
-    // Act
-    const planets = Array.from({ length: 5_000 }, () => planetTopologyGenerator({ x: 0, y: 0 }, 8, rng))
-
-    // Assert
-    expect(new Set(planets.map((planet) => planet.size))).toStrictEqual(new Set(Object.values(PlanetSize)))
-    for (const size of Object.values(PlanetSize)) {
-      const sizePlanets = planets.filter((planet) => planet.size === size)
-      const limits = SIZE_ATTRIBUTE_RANGES[size]
-
-      expectToMatchLimits(getObservedRange(sizePlanets.map((planet) => planet.maxPopulation)), limits.maxPopulation)
-      expectToMatchLimits(getObservedRange(sizePlanets.map((planet) => planet.area)), limits.area)
-    }
+    expect(planet.y).toStrictEqual(starPosition.y + radiusLightYears)
+    expect(Math.hypot(planet.x - starPosition.x, planet.y - starPosition.y)).toBeCloseTo(radiusLightYears, 12)
   })
 
   it("should translate the generated planet with its star", () => {
@@ -97,20 +56,3 @@ describe("planetTopologyGenerator", () => {
     })
   })
 })
-
-type NumericRange = {
-  readonly min: number
-  readonly max: number
-}
-
-function getObservedRange(values: readonly number[]): NumericRange {
-  return {
-    min: Math.min(...values),
-    max: Math.max(...values),
-  }
-}
-
-function expectToMatchLimits(observed: NumericRange, limits: NumericRange): void {
-  expect(observed.min).toStrictEqual(limits.min)
-  expect(observed.max).toStrictEqual(limits.max)
-}

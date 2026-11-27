@@ -130,19 +130,19 @@ describe("games.router", () => {
         playerView.galaxy.systems.flatMap((system) => system.planets).find(({ id }) => id === "cd2c40c4-0233-5b79-9d85-2ad751dff9e9"),
       ).toStrictEqual({
         coordinates: "44:76:35",
-        x: 46.42101792976603,
-        y: 47.21423492967076,
+        x: 46.42170962226795,
+        y: 47.214122556498126,
         id: "cd2c40c4-0233-5b79-9d85-2ad751dff9e9",
         ownerPlayerId: null,
-        name: "planet 685256",
-        biome: PlanetBiome.VOLCANIC,
-        size: PlanetSize.MEDIUM,
-        fertility: 2,
-        metal: 1,
+        name: "planet 387467",
+        biome: PlanetBiome.METALLIC,
+        size: PlanetSize.LARGE,
+        fertility: 1,
+        metal: 4,
         fuel: 2,
         energy: 3,
-        maxPopulation: 15,
-        area: 5,
+        maxPopulation: 30,
+        area: 11,
       })
 
       const allStars = playerView.galaxy.systems.map(({ star }) => star)

@@ -1,4 +1,3 @@
-import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { PlanetCoordinatesSchema } from "#shared/domain/world/planets/PlanetCoordinates.ts"
 import { StarCoordinatesSchema } from "#shared/domain/world/stars/StarCoordinates.ts"
@@ -20,13 +19,11 @@ describe("galaxy coordinates", () => {
 
   it("should round orbital distances in AU and pad the orbit segment", () => {
     // Arrange
-    const distance = Distance.in(Distance.create(4.4, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS)
-    const star = { x: 0, y: 0 }
-    const planet = { x: distance, y: 0 }
+    const orbitDistanceAU = 4.4
 
     // Act
-    const orbit = toOrbitCoordinates({ star, planet })
-    const coordinates = toPlanetCoordinates({ starCoordinates: "31:42", star, planet })
+    const orbit = toOrbitCoordinates(orbitDistanceAU)
+    const coordinates = toPlanetCoordinates({ starCoordinates: "31:42", orbitDistanceAU })
 
     // Assert
     expect(orbit).toBe("04")

@@ -1,9 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import path from "node:path"
 import type { XY } from "@guillaume-docquier/tools-ts"
+import type { Planet } from "#shared/domain/world/planets/Planet.ts"
 import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "#shared/domain/world/planets/PlanetSize.ts"
-import type { PlanetTopology } from "#shared/galaxy-creation/topology/planetTopologyGenerator.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 
 const SVG_WIDTH = 900
@@ -32,7 +32,7 @@ const PANEL_CENTERS = [
 
 type SystemPreview = {
   readonly name: string
-  readonly planets: ReadonlyArray<XY & Pick<PlanetTopology, "biome" | "size">>
+  readonly planets: ReadonlyArray<Pick<Planet, "x" | "y" | "biome" | "size">>
 }
 
 type RenderOptions = {

@@ -1,6 +1,7 @@
 import path from "node:path"
 import { Distance, mulberry32Prng, UnitOfDistance, Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
+import { toGalaxy } from "#shared/galaxy-creation/toGalaxy.ts"
 import { galaxyTopologyGenerator } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.ts"
 import { createClusterCommand, type ClusterRenderOptions } from "./command-cluster.ts"
 import { createSpiralCommand, type SpiralRenderOptions } from "./command-spiral.ts"
@@ -92,7 +93,7 @@ async function renderGalaxy({
   const size = radius * 2
   let generatedPointCount = 0
   const rng = Rng.create(mulberry32Prng(seed))
-  const galaxy = galaxyTopologyGenerator({
+  const galaxyTopology = galaxyTopologyGenerator({
     size,
     rng,
     pointsGenerator: () => {
@@ -101,6 +102,7 @@ async function renderGalaxy({
       return points
     },
   })
+  const galaxy = toGalaxy({ galaxyTopology, rng })
   const systemPoints = galaxy.systems.map((system) => system.star)
   const planetPoints = galaxy.systems.flatMap((system) => system.planets)
   const planetCountsPerSystem = galaxy.systems.map((system) => system.planets.length)
@@ -124,7 +126,7 @@ async function renderGalaxy({
     origin,
   })
 
-  const sampledSystems = rng.draw(galaxy.systems, Math.min(NB_SYSTEM_PREVIEWS, galaxy.systems.length)).drawn
+  const sampledSystems = rng.draw([...galaxy.systems], Math.min(NB_SYSTEM_PREVIEWS, galaxy.systems.length)).drawn
   await SystemSvgRenderer.renderToFile({
     outputPath: addFileNameSuffix(outputPath, "-systems"),
     title: `${generatorName} galaxy system samples`,
