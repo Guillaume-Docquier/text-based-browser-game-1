@@ -19,6 +19,12 @@ const SIZE_INDEX_RANGE = Range.integer({ min: 0, max: PLANET_SIZES.length - 1 })
 type AttributeRanges<TAttribute extends keyof Planet> = Readonly<Record<TAttribute, ReturnType<typeof Range.integer>>>
 
 export const BIOME_ATTRIBUTE_RANGES = {
+  [PlanetBiome.GAS]: {
+    fertility: Range.integer({ min: 0, max: 0 }),
+    metal: Range.integer({ min: 0, max: 0 }),
+    fuel: Range.integer({ min: 2, max: 4 }),
+    energy: Range.integer({ min: 1, max: 3 }),
+  },
   [PlanetBiome.OCEANIC]: {
     fertility: Range.integer({ min: 2, max: 4 }),
     metal: Range.integer({ min: 1, max: 2 }),
@@ -62,17 +68,19 @@ export const SIZE_ATTRIBUTE_RANGES = {
 
 export function generatePlanetAttributes({
   planet,
-  planetNumber,
+  planetKey,
+  body,
   starCoordinates,
   rng,
 }: {
   planet: PlanetTopology
-  planetNumber: number
+  planetKey: string
+  body?: { name: string; size: PlanetSize; biome: PlanetBiome }
   starCoordinates: StarCoordinates
   rng: Rng
 }): Planet {
-  const biome = PLANET_BIOMES[rng.int(BIOME_INDEX_RANGE)]
-  const size = PLANET_SIZES[rng.int(SIZE_INDEX_RANGE)]
+  const biome = body?.biome ?? PLANET_BIOMES[rng.int(BIOME_INDEX_RANGE)]
+  const size = body?.size ?? PLANET_SIZES[rng.int(SIZE_INDEX_RANGE)]
   Assert.isDefined(biome)
   Assert.isDefined(size)
 
@@ -80,7 +88,7 @@ export function generatePlanetAttributes({
   const sizeRanges = SIZE_ATTRIBUTE_RANGES[size]
 
   return {
-    name: typedParse(PlanetNameSchema, generateName("planet", rng)),
+    name: typedParse(PlanetNameSchema, body?.name ?? generateName("planet", rng)),
     biome,
     size,
     fertility: rng.int(biomeRanges.fertility),
@@ -91,7 +99,7 @@ export function generatePlanetAttributes({
     area: rng.int(sizeRanges.area),
     x: planet.x,
     y: planet.y,
-    id: typedParse(PlanetIdSchema, v5(`planet:${planetNumber}`, v5.URL)),
+    id: typedParse(PlanetIdSchema, v5(`planet:${planetKey}`, v5.URL)),
     ownerPlayerId: null,
     coordinates: toPlanetCoordinates({ starCoordinates, orbitDistanceAU: planet.orbitDistanceAU }),
   }

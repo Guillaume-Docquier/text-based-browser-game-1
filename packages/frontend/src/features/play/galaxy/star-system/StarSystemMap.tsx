@@ -4,8 +4,11 @@ import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import { useState } from "react"
 import { flushSync } from "react-dom"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
+import { SUN_ID } from "shared/domain/world/Sol.ts"
+import type { StarId } from "shared/domain/world/stars/StarId.ts"
 import starImage from "@/assets/planets/star-small.png"
-import { PLANET_BIOME_IMAGES } from "@/features/play/galaxy/star-system/planetBiomeImages.ts"
+import sunImage from "@/assets/planets/sun.png"
+import { planetArtwork } from "@/features/play/galaxy/star-system/planetArtwork.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 import { PLAYER_COLOR_HEX, UNCLAIMED_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
@@ -51,11 +54,18 @@ export function StarSystemMap({
   }
 
   const bodies = [
-    <Star key="star" name={system.star.name} onSelect={selectGalaxy} />,
+    <Star
+      key="star"
+      name={system.star.name}
+      artwork={system.star.id === SUN_ID ? sunImage : starImage}
+      coordinates={system.star.coordinates}
+      onSelect={selectGalaxy}
+    />,
     ...planets.map((planet) => (
       <Planet
         key={`planet-${planet.id}`}
         planet={planet}
+        starId={system.star.id}
         players={players}
         ownerName={getPlanetOwnerName(planet, players)}
         onSelect={onSelectPlanet}
@@ -67,7 +77,7 @@ export function StarSystemMap({
   return (
     <svg
       ref={panZoom.viewportRef}
-      aria-label={`${system.star.name} Star System map`}
+      aria-label={`${system.star.id === SUN_ID ? "Sol" : system.star.name} Star System map`}
       aria-busy={panZoom.isCentering}
       role="group"
       viewBox={`${CENTER - viewRadius} ${CENTER - viewRadius} ${viewRadius * 2} ${viewRadius * 2}`}
@@ -124,7 +134,17 @@ function OccupiedOrbit({ radius }: { radius: number }): ReactElement {
   )
 }
 
-function Star({ name, onSelect }: { name: string; onSelect: () => void }): ReactElement {
+function Star({
+  name,
+  artwork,
+  coordinates,
+  onSelect,
+}: {
+  name: string
+  artwork: string
+  coordinates: string
+  onSelect: () => void
+}): ReactElement {
   return (
     <g
       role="button"
@@ -136,8 +156,9 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
         activateWithKeyboard(event, onSelect)
       }}
     >
+      <title>{`${name} · ${coordinates}`}</title>
       <image
-        href={starImage}
+        href={artwork}
         x={CENTER - STAR_RADIUS}
         y={CENTER - STAR_RADIUS}
         width={STAR_RADIUS * 2}
@@ -145,7 +166,7 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
         aria-hidden="true"
         className="pointer-events-none"
       />
-      <StarLabel x={CENTER} y={CENTER} text={name} />
+      <StarLabel x={CENTER} y={CENTER} text={name} isSun={artwork === sunImage} />
       <circle
         cx={CENTER}
         cy={CENTER}
@@ -161,11 +182,13 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
 
 function Planet({
   planet,
+  starId,
   players,
   ownerName,
   onSelect,
 }: {
   planet: PlanetViewModel
+  starId: StarId
   players: readonly Player[]
   ownerName: string | undefined
   onSelect: (planet: Planet) => void
@@ -191,9 +214,9 @@ function Planet({
         })
       }}
     >
-      <title>{`${planet.name}, ${planet.size.toLowerCase()} ${planet.biome.toLowerCase()} planet`}</title>
+      <title>{`${planet.name}, ${planet.size.toLowerCase()} ${planet.biome.toLowerCase()} planet · ${planet.coordinates}`}</title>
       <image
-        href={PLANET_BIOME_IMAGES[planet.biome]}
+        href={planetArtwork(planet, starId)}
         x={planet.x - planet.radius}
         y={planet.y - planet.radius}
         width={planet.radius * 2}
@@ -203,7 +226,7 @@ function Planet({
         data-size={planet.size}
         className="pointer-events-none"
       />
-      <PlanetLabel planet={planet} ownerName={ownerName} ownerColor={ownerColor} />
+      <PlanetLabel planet={planet} isSolar={starId === SUN_ID} ownerName={ownerName} ownerColor={ownerColor} />
       <circle
         cx={planet.x}
         cy={planet.y}
@@ -219,10 +242,12 @@ function Planet({
 
 function PlanetLabel({
   planet,
+  isSolar,
   ownerName,
   ownerColor,
 }: {
   planet: PlanetViewModel
+  isSolar: boolean
   ownerName: string | undefined
   ownerColor: string
 }): ReactElement {
@@ -232,15 +257,15 @@ function PlanetLabel({
       y={planet.y + planet.radius + 12}
       textAnchor="middle"
       dominantBaseline="hanging"
-      fill={ownerName === undefined ? UNCLAIMED_COLOR_HEX : ownerColor}
-      fontSize="16"
-      fontWeight={ownerName === undefined ? "400" : "600"}
+      fill={isSolar ? "#f1f5f9" : ownerName === undefined ? UNCLAIMED_COLOR_HEX : ownerColor}
+      fontSize={isSolar ? 30 : 16}
+      fontWeight={isSolar || ownerName !== undefined ? "600" : "400"}
       paintOrder="stroke"
       stroke="#05080f"
       strokeWidth="4"
       strokeLinejoin="round"
     >
-      {ownerName ?? "Unclaimed"}
+      {isSolar ? planet.name : (ownerName ?? "Unclaimed")}
     </text>
   )
 }
@@ -254,7 +279,7 @@ function activateWithKeyboard(event: KeyboardEvent<SVGGElement>, activate: () =>
   activate()
 }
 
-function StarLabel({ x, y, text }: { x: number; y: number; text: string }): ReactElement {
+function StarLabel({ x, y, text, isSun }: { x: number; y: number; text: string; isSun: boolean }): ReactElement {
   return (
     <text
       x={x}
@@ -262,7 +287,7 @@ function StarLabel({ x, y, text }: { x: number; y: number; text: string }): Reac
       textAnchor="middle"
       dominantBaseline="middle"
       fill="#e5edf6"
-      fontSize="14"
+      fontSize={isSun ? 30 : 14}
       fontWeight="500"
       paintOrder="stroke"
       stroke="#05080f"
@@ -292,9 +317,9 @@ function toPlanetViewModels(system: StarSystem): PlanetViewModel[] {
     }))
     .toSorted((firstPlanet, secondPlanet) => firstPlanet.distance - secondPlanet.distance)
 
-  return planetsByOrbit.map(({ planet, angle, distance }) => {
+  return planetsByOrbit.map(({ planet, angle, distance }, index) => {
     const distanceAu = Distance.convert(Distance.create(distance, UnitOfDistance.LIGHT_YEARS), UnitOfDistance.ASTRONOMICAL_UNITS).value
-    const orbitIndex = Math.round(distanceAu / ORBIT_SPACING_AU) - 1
+    const orbitIndex = system.star.id === SUN_ID ? index : Math.round(distanceAu / ORBIT_SPACING_AU) - 1
     const orbitRadius = INNER_ORBIT_RADIUS + ORBIT_SPACING * orbitIndex
 
     return {

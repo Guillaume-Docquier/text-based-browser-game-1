@@ -51,6 +51,10 @@ export class GalaxyPage extends GamePage {
     return branded(index === "last" ? this.stars.last() : this.stars.nth(index))
   }
 
+  public starNamed(name: string): StarLocator {
+    return branded(this.page.getByRole("button", { name: `View ${name} Star System`, exact: true }))
+  }
+
   public ownStar(index: LocatorIndex): StarLocator {
     return branded(index === "last" ? this.ownStars.last() : this.ownStars.nth(index))
   }

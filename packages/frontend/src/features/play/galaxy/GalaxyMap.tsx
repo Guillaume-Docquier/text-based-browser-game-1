@@ -1,6 +1,7 @@
 import type { Galaxy, StarSystem } from "@api-types"
-import type { KeyboardEvent, ReactElement } from "react"
+import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
+import { SUN_ID } from "shared/domain/world/Sol.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
 const GALAXY_SIZE = 1_000
@@ -32,6 +33,7 @@ export function GalaxyMap({
   resetSignal: number
   onSelectSystem: (system: StarSystem) => void
 }): ReactElement {
+  const systems = galaxy.systems.toSorted((first, second) => Number(second.star.id === SUN_ID) - Number(first.star.id === SUN_ID))
   const panZoom = useMapPanZoom({ resetSignal, viewportCenter: GALAXY_VIEWPORT_CENTER })
 
   function selectSystem(system: StarSystem): void {
@@ -43,6 +45,25 @@ export function GalaxyMap({
         },
       },
     )
+  }
+
+  function selectAtPointer(event: MouseEvent<SVGGElement>, clicked: StarSystem): void {
+    const transform = event.currentTarget.getScreenCTM()
+    if (transform === null || event.detail === 0) {
+      selectSystem(clicked)
+      return
+    }
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(transform.inverse())
+    let nearest = clicked
+    let nearestDistance = 1.5
+    for (const system of systems) {
+      const distance = Math.hypot(system.star.x * LIGHT_YEAR_SIZE - point.x, system.star.y * LIGHT_YEAR_SIZE - point.y)
+      if (distance < nearestDistance) {
+        nearest = system
+        nearestDistance = distance
+      }
+    }
+    selectSystem(nearest)
   }
 
   function selectRegion(point: { x: number; y: number }): void {
@@ -84,8 +105,15 @@ export function GalaxyMap({
         <rect x={-GALAXY_PADDING} y={-GALAXY_PADDING} width={GALAXY_MAP_SIZE} height={GALAXY_MAP_SIZE} fill="#05080f" />
         <GalaxyGrid />
         <GalaxyRegions onSelect={selectRegion} />
-        {galaxy.systems.map((system) => (
-          <GalaxyStar key={system.star.id} system={system} currentPlayerId={currentPlayerId} onSelect={selectSystem} />
+        {systems.map((system) => (
+          <GalaxyStar
+            key={system.star.id}
+            system={system}
+            zoom={panZoom.scale}
+            currentPlayerId={currentPlayerId}
+            onSelect={selectSystem}
+            onPointerSelect={selectAtPointer}
+          />
         ))}
       </g>
     </svg>
@@ -193,12 +221,16 @@ function GalaxyGridLine({
 
 function GalaxyStar({
   system,
+  zoom,
   currentPlayerId,
   onSelect,
+  onPointerSelect,
 }: {
   system: StarSystem
+  zoom: number
   currentPlayerId: PlayerId
   onSelect: (system: StarSystem) => void
+  onPointerSelect: (event: MouseEvent<SVGGElement>, system: StarSystem) => void
 }): ReactElement {
   const x = system.star.x * LIGHT_YEAR_SIZE
   const y = system.star.y * LIGHT_YEAR_SIZE
@@ -212,6 +244,8 @@ function GalaxyStar({
       ? " with opponents' planets"
       : ""
 
+  const isSun = system.star.id === SUN_ID
+  const systemName = isSun ? "Sol" : system.star.name
   function selectSystem(): void {
     onSelect(system)
   }
@@ -220,14 +254,27 @@ function GalaxyStar({
     <g
       role="button"
       tabIndex={0}
-      aria-label={`View ${system.star.name} Star System${ownershipLabel}`}
+      aria-label={`View ${systemName} Star System${ownershipLabel}`}
       className="group/star cursor-pointer outline-none"
-      onClick={selectSystem}
+      onClick={(event) => {
+        onPointerSelect(event, system)
+      }}
       onKeyDown={(event) => {
         activateWithKeyboard(event, selectSystem)
       }}
     >
-      <title>{system.star.name}</title>
+      <title>{isSun ? `Sol · Sun · ${system.star.coordinates}` : system.star.name}</title>
+      {isSun && (
+        <g aria-hidden="true" className="pointer-events-none">
+          <circle cx={x} cy={y} r="3" fill="#fb923c" fillOpacity=".22" stroke="#fdba74" strokeWidth=".35" />
+          <g transform={`translate(${x + 4} ${y - 2}) scale(${1 / zoom})`} className="pointer-events-auto">
+            <rect x="0" y="-24" width="45" height="28" rx="5" fill="#241c17" stroke="#a66837" strokeWidth="1.5" />
+            <text x="22.5" y="-3" textAnchor="middle" fontSize="22" fontWeight="600" fill="#ffdfaf">
+              Sol
+            </text>
+          </g>
+        </g>
+      )}
       {hasOwnPlanets ? (
         <rect
           aria-hidden="true"
@@ -276,10 +323,10 @@ function GalaxyStar({
       <circle
         cx={x}
         cy={y}
-        r="0.5"
-        fill="#fde047"
-        stroke="#fde047"
-        strokeWidth="0.5"
+        r={isSun ? 0.75 : 0.5}
+        fill={isSun ? "#fb923c" : "#fde047"}
+        stroke={isSun ? "#fb923c" : "#fde047"}
+        strokeWidth={isSun ? 0.75 : 0.5}
         className="pointer-events-none origin-center transition-[fill,transform] duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-150 group-hover/star:fill-yellow-100 group-focus/star:scale-150 group-focus/star:fill-yellow-100"
       />
       <circle

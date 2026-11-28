@@ -17,7 +17,7 @@ describe("galaxy coordinates", () => {
     expect(coordinates).toBe("31:42")
   })
 
-  it("should round orbital distances in AU and pad the orbit segment", () => {
+  it("should preserve fractional distances in AU", () => {
     // Arrange
     const orbitDistanceAU = 4.4
 
@@ -26,8 +26,8 @@ describe("galaxy coordinates", () => {
     const coordinates = toPlanetCoordinates({ starCoordinates: "31:42", orbitDistanceAU })
 
     // Assert
-    expect(orbit).toBe("04")
-    expect(coordinates).toBe("31:42:04")
+    expect(orbit).toBe("4.4")
+    expect(coordinates).toBe("31:42:4.4")
   })
 
   it("should preserve acceptance of existing free-form coordinate strings", () => {

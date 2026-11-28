@@ -13,6 +13,7 @@ const PANEL_PLOT_SIZE = 320
 const SCALE = PANEL_PLOT_SIZE / (SYSTEM_RADIUS * 2)
 const STAR_RADIUS = 8
 const PLANET_COLORS = {
+  [PlanetBiome.GAS]: "#a68ad0",
   [PlanetBiome.OCEANIC]: "#3452eb",
   [PlanetBiome.METALLIC]: "#798391",
   [PlanetBiome.FROZEN]: "#ffffff",

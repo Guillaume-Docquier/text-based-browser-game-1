@@ -18,11 +18,11 @@ test("the planets view opens the selected planet in the galaxy view and supports
   })
 
   const galaxyPage = await test.step("Follow a planet's coordinates to its Galaxy profile", async () => {
-    const galaxyPage = await planetsPage.openCoordinate("54:00:45")
+    const galaxyPage = await planetsPage.openCoordinate("53:25:25")
     await expect(alice.page).toHaveURL((url) => GalaxyPage.urlPattern.test(url) && url.searchParams.has("planetId"))
     await expect(galaxyPage.starSystemMap).toBeVisible()
-    await expect(galaxyPage.planetProfileHeading("planet 654173")).toBeVisible()
-    await expect(galaxyPage.planetDetailsPane).toContainText("54:00:45")
+    await expect(galaxyPage.planetProfileHeading("planet 775905")).toBeVisible()
+    await expect(galaxyPage.planetDetailsPane).toContainText("53:25:25")
     return galaxyPage
   })
 

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."planet_biome" ADD VALUE 'GAS';

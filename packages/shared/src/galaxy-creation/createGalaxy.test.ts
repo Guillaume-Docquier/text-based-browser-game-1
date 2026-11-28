@@ -1,10 +1,14 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { Assert, Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { assert, integer, property, uniqueArray, uuid } from "fast-check"
 import { describe, expect, it } from "vitest"
 import { PlayerIdSchema, type PlayerId } from "#shared/domain/players/PlayerId.ts"
+import { SUN_ID } from "#shared/domain/world/Sol.ts"
+import { generateGalaxyAttributes } from "#shared/galaxy-creation/attributes/generateGalaxyAttributes.ts"
 import { createGalaxy } from "#shared/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
+import { galaxyTopologyGenerator } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.ts"
+import { spiralGenerator } from "#shared/galaxy-creation/topology/patterns/spiralGenerator.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
 const galaxySeed = integer()
@@ -130,15 +134,18 @@ describe("createGalaxy", () => {
     )
   })
 
-  it("GC-SYS-0007 When home systems are assigned, each home occupies the nearest still-eligible system to its placement target, sampled at a uniform radius of 10–13 LY from the galaxy center and a uniform offset of −5° to +5° from its evenly spaced bearing.", () => {
+  it("GC-SYS-0007 When home systems are assigned, each home occupies the nearest still-eligible non-Sol system to its placement target, sampled at a uniform radius of 10–13 LY from the Sun and a uniform offset of −5° to +5° from its evenly spaced bearing.", () => {
     assert(
       property(galaxySeed, (seed) => {
         // Arrange
         const playerIds = playersFor(16).toReversed()
         const replay = createSeededRng(seed)
         const baseline = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng: replay })
-        const eligibleSystems = new Set(baseline.systems.filter(({ planets }) => planets.some(({ area }) => area >= 3)))
-        const center = GalaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS / 2
+        const eligibleSystems = new Set(
+          baseline.systems.filter(({ star }) => star.id !== SUN_ID).filter(({ planets }) => planets.some(({ area }) => area >= 3)),
+        )
+        const sun = baseline.systems.find(({ star }) => star.id === SUN_ID)?.star
+        Assert.isDefined(sun)
 
         // Act
         const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds, rng: createSeededRng(seed) })
@@ -148,8 +155,8 @@ describe("createGalaxy", () => {
           const offsetDegrees = -5 + 10 * replay.float()
           const radians = (index * 2 * Math.PI) / playerIds.length + (offsetDegrees * Math.PI) / 180
           const radius = 10 + 3 * replay.float()
-          const x = center + Math.cos(radians) * radius
-          const y = center + Math.sin(radians) * radius
+          const x = sun.x + Math.cos(radians) * radius
+          const y = sun.y + Math.sin(radians) * radius
           const actual = galaxy.systems.find(({ planets }) => planets.some(({ ownerPlayerId }) => ownerPlayerId === playerId))
           Assert.isDefined(actual)
           const matchingSystem = baseline.systems.find(({ star }) => star.id === actual.star.id)
@@ -187,6 +194,107 @@ describe("createGalaxy", () => {
         expect(meanSystemCount).toBeLessThanOrEqual(875)
         expect(meanPlanetCount).toBeGreaterThanOrEqual(2250)
         expect(meanPlanetCount).toBeLessThanOrEqual(3750)
+      }),
+      cases,
+    )
+  })
+
+  it("GC-SYS-0009 When a prototype galaxy is generated, it contains exactly one Sol system, selected with seeded randomness from systems within 5 LY of the galaxy center and replacing the selected system at its original position.", () => {
+    assert(
+      property(galaxySeed, (seed) => {
+        // Arrange
+        const replay = createSeededRng(seed)
+        const size = GalaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS
+        const center = size / 2
+        const topology = galaxyTopologyGenerator({
+          size,
+          rng: replay,
+          pointsGenerator: () =>
+            spiralGenerator({
+              origin: { x: center, y: center },
+              radius: center,
+              nbPoints: GalaxyCreationSettings.GALAXY_SYSTEMS_COUNT,
+              rng: replay,
+            }),
+        })
+        const ordinary = generateGalaxyAttributes({ galaxyTopology: topology, rng: replay })
+        const candidates = ordinary.systems.filter(({ star }) => Math.hypot(star.x - center, star.y - center) <= 5)
+        const expected = candidates[Math.floor(replay.float() * candidates.length)]
+        Assert.isDefined(expected)
+
+        // Act
+        const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng: createSeededRng(seed) })
+
+        // Assert
+        const suns = galaxy.systems.filter(({ star }) => star.name === "Sun")
+        expect(suns).toHaveLength(1)
+        expect(suns[0]?.star).toStrictEqual({ ...expected.star, name: "Sun", id: SUN_ID })
+        expect(galaxy.systems).toHaveLength(ordinary.systems.length)
+        expect(galaxy.systems.map(({ star }) => star.coordinates)).toStrictEqual(ordinary.systems.map(({ star }) => star.coordinates))
+      }),
+      cases,
+    )
+  })
+
+  it("GC-PLNT-0010 In order of increasing distance from the Sun, Sol contains Mercury (small metallic, 0.387 AU), Venus (small volcanic, 0.723 AU), Earth (small oceanic, 1.000 AU), Mars (small volcanic, 1.524 AU), Jupiter (large gas, 5.203 AU), Saturn (large gas, 9.537 AU), Uranus (medium icy, 19.191 AU) and Neptune (medium icy, 30.069 AU) on circular orbits.", () => {
+    assert(
+      property(galaxySeed, (seed) => {
+        // Arrange
+        const rng = createSeededRng(seed)
+
+        // Act
+        const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng })
+
+        // Assert
+        const sol = galaxy.systems.find(({ star }) => star.name === "Sun")
+        Assert.isDefined(sol)
+        const planets = sol.planets.map((planet) => {
+          const distanceLY = Math.hypot(planet.x - sol.star.x, planet.y - sol.star.y)
+          const orbitAU = Distance.in(Distance.create(distanceLY, UnitOfDistance.LIGHT_YEARS), UnitOfDistance.ASTRONOMICAL_UNITS)
+          return [planet.name, planet.size, planet.biome, Number(orbitAU.toFixed(3))]
+        })
+        expect(planets).toStrictEqual([
+          ["Mercury", "SMALL", "METALLIC", 0.387],
+          ["Venus", "SMALL", "VOLCANIC", 0.723],
+          ["Earth", "SMALL", "OCEANIC", 1],
+          ["Mars", "SMALL", "VOLCANIC", 1.524],
+          ["Jupiter", "LARGE", "GAS", 5.203],
+          ["Saturn", "LARGE", "GAS", 9.537],
+          ["Uranus", "MEDIUM", "FROZEN", 19.191],
+          ["Neptune", "MEDIUM", "FROZEN", 30.069],
+        ])
+      }),
+      cases,
+    )
+  })
+
+  it("GC-0011 When a galaxy is generated, every star and planet has a distinct public coordinate that identifies that body throughout the match.", () => {
+    assert(
+      property(galaxySeed, (seed) => {
+        // Arrange
+        const rng = createSeededRng(seed)
+
+        // Act
+        const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: playersFor(1), rng })
+
+        // Assert
+        const bodies = galaxy.systems.flatMap(({ star, planets }) => [star, ...planets])
+        expect(new Set(bodies.map((body) => body.coordinates)).size).toBe(bodies.length)
+        expect(new Set(bodies.map((body) => body.id)).size).toBe(bodies.length)
+        const expectedAddresses = galaxy.systems.flatMap(({ star, planets }) => {
+          const row = Math.floor(star.y)
+          const column = Math.floor(star.x)
+          const starAddress = `${Math.floor(row / 10)}${Math.floor(column / 10)}:${row % 10}${column % 10}`
+          return [
+            starAddress,
+            ...planets.map((planet) => {
+              const distanceLY = Math.hypot(planet.x - star.x, planet.y - star.y)
+              const distanceAU = Distance.in(Distance.create(distanceLY, UnitOfDistance.LIGHT_YEARS), UnitOfDistance.ASTRONOMICAL_UNITS)
+              return `${starAddress}:${Number(distanceAU.toFixed(3)).toString().padStart(2, "0")}`
+            }),
+          ]
+        })
+        expect(bodies.map((body) => body.coordinates)).toStrictEqual(expectedAddresses)
       }),
       cases,
     )

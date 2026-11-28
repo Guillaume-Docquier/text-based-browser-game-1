@@ -45,6 +45,7 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
   centeringDurationMs: number
   isCentering: boolean
   isPanning: boolean
+  scale: number
   transform: string
   centerOn: (point: Point, options?: CenterOnOptions) => void
   onPointerCancel: (event: PointerEvent<SVGSVGElement>) => void
@@ -202,6 +203,7 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
     centeringDurationMs,
     isCentering,
     isPanning,
+    scale: viewportTransform.scale,
     transform: `translate(${viewportTransform.x} ${viewportTransform.y}) scale(${viewportTransform.scale})`,
     centerOn,
     onPointerCancel: onPointerEnd,

@@ -46,7 +46,7 @@ test("the galaxy view can be navigated and the star system view can inspect plan
   const gameDetailsPage = await test.step("Create a game", async () => await CreateGamePage.createGame({ creator: alice }))
   const galaxyPage = await test.step("Start the game", async () => await gameDetailsPage.startGame())
 
-  const selectedStar = galaxyPage.star(1)
+  const selectedStar = galaxyPage.starNamed("star 676733")
 
   await test.step("Open a Star System and inspect its Planet profiles", async () => {
     await galaxyPage.openStarSystem(selectedStar)

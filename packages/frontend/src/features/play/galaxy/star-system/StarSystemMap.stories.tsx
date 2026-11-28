@@ -1,12 +1,16 @@
-import { Distance, noop, UnitOfDistance } from "@guillaume-docquier/tools-ts"
+import { Assert, Distance, noop, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
 import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
+import { SUN_ID } from "shared/domain/world/Sol.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
 import { createStarSystemStub } from "shared/domain/world/StarSystem.stub.ts"
 import { StarSystemSchema } from "shared/domain/world/StarSystem.ts"
+import { createGalaxy } from "shared/galaxy-creation/createGalaxy.ts"
+import { GalaxyCreationSettings } from "shared/galaxy-creation/GalaxyCreationSettings.ts"
+import { createSeededRng } from "shared/testing/createSeededRng.ts"
 import { Button } from "@/components/button.tsx"
 import { StarSystemMap } from "./StarSystemMap.tsx"
 
@@ -67,5 +71,23 @@ export const Interactive: Story = {
         </div>
       </div>
     )
+  },
+}
+
+const generated = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng: createSeededRng(1234) })
+const sol = generated.systems.find(({ star }) => star.id === SUN_ID)
+Assert.isDefined(sol)
+
+export const SolarSystem: Story = { ...Interactive, args: { system: StarSystemSchema.parse(sol) } }
+
+export const GasPlanet: Story = {
+  ...Interactive,
+  args: {
+    system: StarSystemSchema.parse(
+      createStarSystemStub({
+        star: createStarStub({ name: "Rigel" }),
+        planets: [createPlanetStub({ name: "Cirrus", biome: PlanetBiome.GAS, x: orbit * 2 })],
+      }),
+    ),
   },
 }

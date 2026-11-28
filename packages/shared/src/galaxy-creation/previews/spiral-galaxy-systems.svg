@@ -21,8 +21,8 @@
     </g>
     <g aria-label="Planets">
     <circle cx="349.2713" cy="275.4282" r="6.4" fill="#3452eb" data-biome="OCEANIC" data-size="LARGE" />
-    <circle cx="111.7602" cy="234.4977" r="6.4" fill="#f97316" data-biome="VOLCANIC" data-size="LARGE" />
-    <circle cx="254.2704" cy="292.7643" r="6.4" fill="#ffffff" data-biome="FROZEN" data-size="LARGE" />
+    <circle cx="111.7602" cy="234.4977" r="6.4" fill="#a68ad0" data-biome="GAS" data-size="LARGE" />
+    <circle cx="254.2704" cy="292.7643" r="6.4" fill="#f97316" data-biome="VOLCANIC" data-size="LARGE" />
     <circle cx="244.9415" cy="268.3838" r="4" fill="#3452eb" data-biome="OCEANIC" data-size="MEDIUM" />
     <circle cx="148.3012" cy="271.5865" r="2" fill="#3452eb" data-biome="OCEANIC" data-size="SMALL" />
     <circle cx="278.9494" cy="369.8781" r="4" fill="#ffffff" data-biome="FROZEN" data-size="MEDIUM" />
@@ -43,10 +43,10 @@
       <circle cx="660" cy="300" r="8" fill="#ffeb3b" />
     </g>
     <g aria-label="Planets">
-    <circle cx="585.8664" cy="269.9298" r="6.4" fill="#f97316" data-biome="VOLCANIC" data-size="LARGE" />
+    <circle cx="585.8664" cy="269.9298" r="6.4" fill="#a68ad0" data-biome="GAS" data-size="LARGE" />
     <circle cx="700.76" cy="404.3198" r="2" fill="#ffffff" data-biome="FROZEN" data-size="SMALL" />
-    <circle cx="803.7137" cy="290.9235" r="6.4" fill="#ffffff" data-biome="FROZEN" data-size="LARGE" />
-    <circle cx="674.1929" cy="362.4064" r="4" fill="#f97316" data-biome="VOLCANIC" data-size="MEDIUM" />
+    <circle cx="803.7137" cy="290.9235" r="6.4" fill="#f97316" data-biome="VOLCANIC" data-size="LARGE" />
+    <circle cx="674.1929" cy="362.4064" r="4" fill="#a68ad0" data-biome="GAS" data-size="MEDIUM" />
     <circle cx="668.4854" cy="459.7748" r="2" fill="#798391" data-biome="METALLIC" data-size="SMALL" />
     <circle cx="674.5907" cy="293.434" r="4" fill="#f97316" data-biome="VOLCANIC" data-size="MEDIUM" />
     </g>
@@ -66,12 +66,12 @@
       <circle cx="240" cy="700" r="8" fill="#ffeb3b" />
     </g>
     <g aria-label="Planets">
-    <circle cx="189.7026" cy="781.769" r="2" fill="#f97316" data-biome="VOLCANIC" data-size="SMALL" />
+    <circle cx="189.7026" cy="781.769" r="2" fill="#a68ad0" data-biome="GAS" data-size="SMALL" />
     <circle cx="250.6916" cy="669.8389" r="4" fill="#798391" data-biome="METALLIC" data-size="MEDIUM" />
     <circle cx="237.9222" cy="636.0337" r="2" fill="#ffffff" data-biome="FROZEN" data-size="SMALL" />
-    <circle cx="245.4959" cy="572.118" r="6.4" fill="#ffffff" data-biome="FROZEN" data-size="LARGE" />
-    <circle cx="287.9995" cy="700.2294" r="4" fill="#f97316" data-biome="VOLCANIC" data-size="MEDIUM" />
-    <circle cx="264.7545" cy="841.8563" r="4" fill="#798391" data-biome="METALLIC" data-size="MEDIUM" />
+    <circle cx="245.4959" cy="572.118" r="6.4" fill="#f97316" data-biome="VOLCANIC" data-size="LARGE" />
+    <circle cx="287.9995" cy="700.2294" r="4" fill="#a68ad0" data-biome="GAS" data-size="MEDIUM" />
+    <circle cx="264.7545" cy="841.8563" r="4" fill="#ffffff" data-biome="FROZEN" data-size="MEDIUM" />
     </g>
   </g>
   <g aria-label="star 809952">
@@ -89,10 +89,10 @@
       <circle cx="660" cy="700" r="8" fill="#ffeb3b" />
     </g>
     <g aria-label="Planets">
-    <circle cx="644.1762" cy="702.368" r="2" fill="#ffffff" data-biome="FROZEN" data-size="SMALL" />
-    <circle cx="651.4417" cy="540.2291" r="2" fill="#f97316" data-biome="VOLCANIC" data-size="SMALL" />
+    <circle cx="644.1762" cy="702.368" r="2" fill="#f97316" data-biome="VOLCANIC" data-size="SMALL" />
+    <circle cx="651.4417" cy="540.2291" r="2" fill="#a68ad0" data-biome="GAS" data-size="SMALL" />
     <circle cx="620.1861" cy="630.6108" r="2" fill="#3452eb" data-biome="OCEANIC" data-size="SMALL" />
-    <circle cx="551.7913" cy="728.8944" r="4" fill="#798391" data-biome="METALLIC" data-size="MEDIUM" />
+    <circle cx="551.7913" cy="728.8944" r="4" fill="#ffffff" data-biome="FROZEN" data-size="MEDIUM" />
     <circle cx="650.9958" cy="747.1479" r="4" fill="#798391" data-biome="METALLIC" data-size="MEDIUM" />
     <circle cx="634.3891" cy="719.1854" r="2" fill="#3452eb" data-biome="OCEANIC" data-size="SMALL" />
     </g>

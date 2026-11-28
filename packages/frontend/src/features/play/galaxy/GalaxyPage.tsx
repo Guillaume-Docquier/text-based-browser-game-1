@@ -2,6 +2,7 @@ import type { Planet, StarSystem } from "@api-types"
 import { ArrowLeft, LocateFixed } from "lucide-react"
 import { type AnimationEvent, type MouseEvent, type ReactElement, useState } from "react"
 import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
+import { SUN_ID } from "shared/domain/world/Sol.ts"
 import type { StarId } from "shared/domain/world/stars/StarId.ts"
 import { Button } from "@/components/button.tsx"
 import { GalaxyMap } from "@/features/play/galaxy/GalaxyMap.tsx"
@@ -129,7 +130,7 @@ export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | un
 
         <div className="pointer-events-none absolute top-4 left-4 rounded-md border border-border/70 bg-background/85 px-3 py-2 shadow-lg backdrop-blur-sm">
           <h1 className="font-heading text-base font-semibold text-foreground">
-            {selectedSystem === undefined ? "Galaxy" : selectedSystem.star.name}
+            {selectedSystem === undefined ? "Galaxy" : selectedSystem.star.id === SUN_ID ? "Sol" : selectedSystem.star.name}
           </h1>
           <p className="text-xs text-muted-foreground">
             {selectedSystem === undefined ? "" : `Coordinates: ${selectedSystem.star.coordinates}`}
