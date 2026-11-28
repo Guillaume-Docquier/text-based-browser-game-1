@@ -4,7 +4,7 @@
 
 Check each increment after verifying its acceptance criteria. Record decisions, problems and verification evidence in the [run log](RUN-LOG.md).
 
-- [ ] [01/26 · Assign prototype home worlds](issues/01-assign-prototype-home-worlds.md)
+- [x] [01/26 · Assign prototype home worlds](issues/01-assign-prototype-home-worlds.md) — `a0f6e159`, `637336de`. Reviewed and verified at `637336de`. Across 128 galaxies every player had one eligible home in a distinct system. Solo and multiplayer players found and reopened their homes. The run log records scale, sampling and mutation results.
 - [ ] [02/26 · Add Sol to the generated galaxy](issues/02-add-sol-to-the-generated-galaxy.md)
 - [ ] [03/26 · Generate planetary metal deposits](issues/03-generate-planetary-metal-deposits.md)
 - [ ] [03a · Open planets in a full planet view](issues/03a-open-planets-in-a-full-planet-view.md)
@@ -35,4 +35,4 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 
 ## Active work
 
-01 is active. The implementer owns home assignment and mutation testing. The reviewer owns the final diff. The verifier owns fresh-match and player-view checks. Next, implement and verify the rules in the run log.
+02 is active. The implementer owns Sol generation, public coordinates and map art. The reviewer owns the final diff and mutation dispositions. The verifier owns seeded generation and the player walkthrough from galaxy to Sol. Next, verify the six local criteria on the implementation commit.
