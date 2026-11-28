@@ -1,16 +1,20 @@
-import { Assert, Distance, type Rng, UnitOfDistance } from "@guillaume-docquier/tools-ts"
+import { Assert, createGeneratorStub, Distance, Rng, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { assert, integer, property, uniqueArray, uuid } from "fast-check"
 import { describe, expect, it } from "vitest"
 import { PlayerIdSchema, type PlayerId } from "#shared/domain/players/PlayerId.ts"
+import { createGalaxyStub } from "#shared/domain/world/Galaxy.stub.ts"
 import type { Galaxy } from "#shared/domain/world/Galaxy.ts"
+import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import type { Planet } from "#shared/domain/world/planets/Planet.ts"
 import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
 import { SUN_ID } from "#shared/domain/world/Sol.ts"
 import type { Star } from "#shared/domain/world/stars/Star.ts"
+import { createStarSystemStub } from "#shared/domain/world/StarSystem.stub.ts"
 import { generateGalaxyAttributes } from "#shared/galaxy-creation/attributes/generateGalaxyAttributes.ts"
 import { createGalaxy } from "#shared/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
+import { generateMetalDeposits } from "#shared/galaxy-creation/generateMetalDeposits.ts"
 import { generateSolSystem } from "#shared/galaxy-creation/generateSolSystem.ts"
 import { generateHomePlanets } from "#shared/galaxy-creation/home-planets/generateHomePlanets.ts"
 import { galaxyTopologyGenerator } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.ts"
@@ -86,15 +90,16 @@ function checkDepositRolls(seed: number, metallic: boolean): void {
 }
 
 function checkDepositBoundary(biome: PlanetBiome, chance: number): void {
-  const source = createSeededRng(1234)
-  const rng: Rng = { ...source, float: (range) => (range === undefined ? chance : source.float(range)) }
-  const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng })
-  const planets = galaxy.systems
-    .filter(({ star }) => star.id !== SUN_ID)
-    .flatMap((system) => system.planets)
-    .filter((planet) => planet.biome === biome)
-  expect(planets.length).toBeGreaterThan(0)
-  expect(planets.every(hasZeroMetal)).toBe(true)
+  // Arrange
+  const planet = createPlanetStub({ biome })
+  const galaxy = createGalaxyStub({ systems: [createStarSystemStub({ planets: [planet] })] })
+  const rng = Rng.create(createGeneratorStub(chance))
+
+  // Act
+  const result = generateMetalDeposits(galaxy, rng)
+
+  // Assert
+  expect(result.systems[0]?.planets).toStrictEqual([planet])
 }
 
 function hasZeroMetal(planet: Planet): boolean {
