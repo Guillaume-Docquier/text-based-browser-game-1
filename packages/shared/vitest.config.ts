@@ -1,6 +1,6 @@
 import { readdirSync } from "node:fs"
 import { fileURLToPath } from "node:url"
-import { defineConfig } from "vitest/config"
+import { defaultExclude, defineConfig } from "vitest/config"
 
 const moduleDirectories = readdirSync(new URL("./src/", import.meta.url), { withFileTypes: true }).filter((entry) => entry.isDirectory())
 
@@ -8,11 +8,13 @@ export default defineConfig({
   test: {
     coverage: {
       include: ["src/**/*.ts"],
+      exclude: ["**/.stryker-tmp/**", "**/vitest.mutation.config.ts"],
       provider: "v8",
       reporter: ["text", ["lcov", { projectRoot: fileURLToPath(new URL("../..", import.meta.url)) }]],
       reportsDirectory: "./coverage",
     },
     environment: "node",
+    exclude: [...defaultExclude, "**/.stryker-tmp/**"],
     globals: false,
     projects: moduleDirectories.map(({ name }) => ({
       extends: true as const,

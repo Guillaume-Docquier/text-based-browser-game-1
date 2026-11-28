@@ -2,17 +2,13 @@
   "plugins": ["@stryker-mutator/vitest-runner"],
   "testRunner": "vitest",
   "vitest": {
-    "configFile": "../../vitest.mutation.config.ts"
+    "configFile": "vitest.mutation.config.ts"
   },
   "testFiles": ["createGalaxy.test.ts"],
-  "mutate": ["**/*.ts", "!**/*.test.ts", "!**/*.stub.ts", "!scripts/**"],
-  "tempDirName": "../../.stryker-tmp",
+  "mutate": ["**/*.ts", "!**/*.test.ts", "!**/*.stub.ts", "!scripts/**", "!vitest.mutation.config.ts"],
   "concurrency": 4,
   "reporters": ["clear-text", "html", "json"],
-  "htmlReporter": {
-    "fileName": "../../reports/mutation/mutation.html"
-  },
   "jsonReporter": {
-    "fileName": "../../reports/mutation/galaxy.json"
+    "fileName": "reports/mutation/galaxy.json"
   }
 }

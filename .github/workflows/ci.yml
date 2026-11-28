@@ -192,7 +192,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: galaxy-creation-mutation-report
-          path: packages/shared/reports/mutation/
+          path: packages/shared/src/galaxy-creation/reports/mutation/
           if-no-files-found: error
 
   shared:
