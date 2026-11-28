@@ -270,3 +270,68 @@ Verified `6a901725415123635c8350152df574df3a93ad92`. All six criteria passed. Th
 ## 04 · Acceptance
 
 Accepted 6a901725. The verifier confirmed saved building identity through real backend restarts, both database uniqueness constraints, stable positions after reorder and new occupancy, and player access to the center and empty sites. The reviewer cleared this commit. The generator and turn resolver were unchanged, so their mutation suites did not apply.
+
+## 05 · Credit storage and historical migration
+
+The implementation team proposed storing the balance on the existing match-participant row. A lobby participant has no grant until the match starts. Use the runtime starting-credit setting for new grants and pin the historical migration to the 100-credit grant adopted for this version, so later tuning cannot change an old migration’s meaning. The owner’s player view exposes the settled balance. Fractional costs need a numeric representation that preserves short intra-system trips. Verify reservation conservation, affordability and idempotent settlement when the paid orders arrive in 07 and 09.
+
+## 05 · Upgrade regression
+
+Use the existing isolated PostgreSQL test project to replay the maintained backfill on active and waiting games with missing, zero and nonzero stored balances. A second replay must preserve balances already set and leave waiting participants ready for their normal start grant. The verifier independently owns the upgrade from a real pre-credit database and the subsequent reopen. The router’s regular entry points cannot create an already-started legacy participant missing the new field.
+
+## 06 · Assigned behavior
+
+- When a match starts, each home has one operating trade center on the first free surface hex alongside its command center.
+- When a turn resolves, each trade center present at turn start earns 10 credits for its planet’s owner, added once to that player’s global credit balance.
+- When the owner plans orders on turn N, only credits already available on turn N can fund them. Income earned when N resolves is available for orders on N+1.
+- When a player inspects a trade center, its dedicated art and income per turn identify the building, and after resolution its owner can see the increased balance.
+
+The first free home hex is immediately east of the command center. Preserve the saved center and initialize the home trade center once for matches that predate this increment. Keep scheduling and the commit transaction in the backend worker and compute deterministic income in shared turn resolution. A retry must not award the same turn’s income twice. Existing empty-state and RNG rules still apply where no building can earn income. Replace 04’s test-only second building kind with a real trade center. Actual funded-order checks will be repeated on the paid construction entry point in 07.
+
+## 05 · Independent privacy and upgrade review
+
+The single credit balance belongs to the player row for one game. Match start grants the configured amount inside the existing game transaction. The historical backfill updates only null balances in started games, preserving zero, nonzero amounts and unopened lobbies. The API reads the private value using both game and requester IDs. Opponents and game-detail player lists project public fields. The frontend creates a new query client when the authenticated user changes and obtains the displayed balance from that player’s game view.
+
+## 05 · Implementation and verification
+
+Commit `7f059a08` grants 100 credits to every participant in the match-start transaction. New starts read the grant from one shared setting. The balance is stored on the match-participant row, and the reader selects it by both the game and authenticated participant. Opponents retain their public identity and color. The labeled balance is part of the common game header so it is visible on maps, lists and every colony.
+
+Migrations `0008` and `0009` add the field and initialize only missing balances in started matches. The PostgreSQL regression replayed the maintained SQL twice. A missing balance received 100, existing balances of zero, 17.25 and 28.5 retained their values, and a lobby participant first received funds when that match started. Reading two different matches for one account and two accounts in one match verified the storage boundaries.
+
+All four assigned rows have named tests. The complete backend integration suite passed 76 tests. The isolated PostgreSQL regression, all 84 frontend render and interaction tests, three package typechecks, scoped lint and frontend build passed. The first authenticated browser regression timed out looking up the value by the accessible name of its definition role. The browser exposed its explicit Credits label, and the page object now uses that label.
+
+## 05 · Scope of the PostgreSQL regression
+
+The reviewer checked the backend testing guide. Its PostgreSQL project is reserved for synchronization between sessions. The earlier sequential replay alone cannot justify placing a test there. Exercise the real concurrent case in which a pending backfill waits on a participant row and a second session commits a settled balance before releasing it. The backfill must recheck the row and preserve that value, including zero. Use the existing contention helper. The verifier’s separate old-database upgrade covers sequential migration, replay and reopen.
+
+## 05 · Independent player and storage acceptance
+
+Verified `7f059a080acdc5fe709d7bd7fcecdfd10f5c0035`. All three criteria and all four assigned rules passed. The final Chromium run passed seven checks, including three authentication checks, three independent player scenarios and the maintained Credits flow. The maintained test initially missed the visible value. Its corrected label locator passed both the focused and final runs.
+
+- The solo and two-player starts saved 100 credits for each participant. The game header displayed the labeled amount on entry, at home and on other planets. Old active and ended games granted 100 to all four participants. The waiting lobby retained two uninitialized participants until start. Repeating the backfill filled a missing balance once and preserved existing 0, 71.5 and 32 balances through a database reopen.
+- Alice saw her saved 37.5 at both her home and her second colony. Bob saw his own 268.25 when visiting either of Alice’s worlds or his own. Reload, re-entry, fresh sessions and a restarted backend preserved both amounts. On desktop and at 390 pixels, the header displayed the current player’s funds. Each API response contained only the requester’s balance, with opponents limited to ID and color. Switching Alice to her solo match restored its independent 100. The controlled balances, ownership and building were restored after verification.
+- In an isolated process, changing the shared starting value to 137 granted exactly 137 to both participants through the production match-start transaction. Existing matches kept 100, and a repeated start preserved a saved balance of 44. The check left source files and environment settings unchanged.
+
+## 05 · Reusing the existing contention helper
+
+The existing synchronization helper recognizes lowercase commands with quoted PostgreSQL table identifiers. The new, unpublished backfill used uppercase SQL and an unquoted table name. Use the helper’s supported SQL spelling in this experiment’s new migration and resync its packaged copy. Keep its values and predicates unchanged. This lets the test execute the actual maintained backfill without extending the project’s test infrastructure. Repeat the populated upgrade on the final migration bytes.
+
+## 05 · Backfill contention correction
+
+Commit `6d1082a7` exercises the migration while a separate PostgreSQL transaction changes a missing balance to 28.5. The existing contention helper observes the backfill waiting for that specific writer on the participant row. After commit, the backfill updated zero rows, the API returned 28.5 for its owner, and the other account and match preserved zero and 17.25. The maintained and packaged SQL use the same quoted table name and lowercase update keyword as the existing test helper. The permanent database test, scoped lint and backend typecheck passed. The corrected maintained Credits browser test passed and the independent authenticated browser matrix passed seven checks with exit 0.
+
+## 05 · Final diff review
+
+Reviewed `6d1082a7` and matched all four requirement texts to their named tests. The start and private player-view integration tests passed independently. The PostgreSQL regression also passed independently. It observed the backfill waiting on the settlement writer, committed 28.5 credits, and verified that the released backfill updated zero rows. Fresh reads preserved zero, 28.5 and 17.25 in their respective player and game records. The maintained and packaged SQL have identical SHA-256 digests. The contention helper required no changes.
+
+## 06 · Empty turns
+
+TR-0001 currently says an empty turn preserves its state. The first automatic income changes a turn even if the player submits zero orders. Revise TR-0001 to: “When a turn has no eligible automatic effects, trips in progress or submitted orders, resolving it preserves the supplied game state.” Retain TR-0002 for an empty turn. Income alone consumes no randomness. Add this requirement: “When trade-center income is the only effect of a turn, resolution preserves the random generator state.” This keeps empty-state and deterministic replay coverage while making automatic income explicit.
+
+## 05 · Final migration and contention acceptance
+
+Verified `6d1082a70c34041e0d65781facbecf1888389165`. The follow-up changed the spelling of the opening SQL statement in both migration copies and strengthened its PostgreSQL test. The seven Chromium results on `7f059a08` cover identical player-facing and match-start code. On the final bytes a newly populated pre-credit database again granted 100 to four active or ended participants, left the waiting lobby uninitialized and preserved settled balances across backfill replay and reopen. A competing update blocked the backfill until the writer committed 28.5. The backfill then updated zero rows and the player read 28.5. The isolated 137-credit tuning check also passed. All three acceptance criteria remain satisfied.
+
+## 05 · Acceptance
+
+Accepted 6d1082a7. Both roles cleared the final migration and its contention check. The verifier confirmed personal balances across two colonies, games and accounts, tuning to 137 in an isolated process, and preservation of settled balances. The final follow-up changed SQL spelling and the test, with identical runtime UI and start behavior.

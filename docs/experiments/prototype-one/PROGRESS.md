@@ -9,7 +9,7 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 - [x] [03/26 · Generate planetary metal deposits](issues/03-generate-planetary-metal-deposits.md) — `bcbce642`, `14dc5d9f`, `3e3263d1`. Reviewed and verified at `3e3263d1`. Generation across 588,616 planets, two players' list and inspector comparisons, persisted values and a 30,000-planet legacy upgrade passed.
 - [x] [03a · Open planets in a full planet view](issues/03a-open-planets-in-a-full-planet-view.md) — `cfda7067`, `b12f199a`. Reviewed and verified at `b12f199a`. Earth and an ordinary planet had the same durable view from either entry point. Fresh sessions, reload, return to the correct system and desktop and narrow layouts passed.
 - [x] [04/26 · Persist buildings and display them on stable planet hexes](issues/04-persist-buildings-and-display-them-on-stable-planet-hexes.md) — `6a901725`. Reviewer and verifier cleared all six criteria on that commit. Persisted home command centers kept their identities after restart. Hex counts, fixed rings, occupied sites, distinct art, and solo and multiplayer inspection passed.
-- [ ] [05/26 · Give each player a credit balance](issues/05-give-each-player-a-credit-balance.md)
+- [x] [05/26 · Give each player a credit balance](issues/05-give-each-player-a-credit-balance.md) — `7f059a08`, `6d1082a7`. Reviewed and verified at `6d1082a7`. Solo and multiplayer balances started at 100, stayed private across colonies and sessions, and followed an isolated tuning change. Populated upgrade and contention checks passed.
 - [ ] [06/26 · Produce income with trade centers](issues/06-produce-income-with-trade-centers.md)
 - [ ] [07/26 · Construct buildings with a command center](issues/07-construct-buildings-with-a-command-center.md)
 - [ ] [08/26 · Give each player a starting transport](issues/08-give-each-player-a-starting-transport.md)
@@ -35,4 +35,4 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 
 ## Active work
 
-05 is active. The implementer owns match-scoped credit balances, migration, API and display. The reviewer owns the final diff. The verifier owns personal-balance, cross-colony and privacy checks in the running game. Next, verify all three local criteria on the final commit.
+06 is active. The implementer owns trade centers, saved income and turn resolution. The reviewer owns the diff and mutation dispositions. The verifier owns turn timing, private balances, retries and the running player walkthrough. Next, verify the three local criteria on the final commit.
