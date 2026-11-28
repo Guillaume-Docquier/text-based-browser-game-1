@@ -95,6 +95,34 @@ describe("games.router", () => {
     })
   })
   describe("startGame", () => {
+    it("should meet STRT-0001 When a match starts, each owned home planet has exactly one persisted command center on its center hex, and every unowned planet starts with an empty surface.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using server = new ApiServer(await createApiStub({ db }))
+      const alice = await server.createClient({ authenticated: true })
+      const bob = await server.createClient({ authenticated: true })
+      const { createdGameId: gameId } = await alice.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ nbSeats: 2, mapGenerationSeed: 1234 }),
+      })
+      await bob.client.games.join.mutate({ gameId })
+
+      // Act
+      await alice.client.games.startGame.mutate({ gameId })
+      const view = await bob.client.gameplay.getPlayerView.query({ gameId })
+
+      // Assert
+      const homes = view.galaxy.systems.flatMap(({ planets }) => planets).filter((planet) => planet.ownerPlayerId !== null)
+      expect(homes).toHaveLength(2)
+      expect(new Set(view.buildings.map(({ id }) => id)).size).toBe(2)
+      expect(
+        view.buildings
+          .map(({ planetId, type, site }) => ({ planetId, type, site }))
+          .toSorted((a, b) => a.planetId.localeCompare(b.planetId)),
+      ).toStrictEqual(
+        homes.map(({ id }) => ({ planetId: id, type: "COMMAND_CENTER", site: 0 })).toSorted((a, b) => a.planetId.localeCompare(b.planetId)),
+      )
+    })
+
     it("should reject starting a game as an account that has not joined", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()

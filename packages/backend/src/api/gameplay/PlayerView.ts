@@ -1,6 +1,7 @@
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { PlayerColorSchema } from "shared/domain/players/PlayerColor.ts"
 import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
+import { BuildingSchema } from "shared/domain/world/buildings/Building.ts"
 import { GalaxySchema } from "shared/domain/world/Galaxy.ts"
 import { z } from "zod"
 
@@ -16,5 +17,6 @@ export const PlayerViewSchema = z.object({
   player: PlayerViewPlayerSchema,
   opponents: z.record(PlayerIdSchema, PlayerViewPlayerSchema),
   galaxy: GalaxySchema,
+  buildings: z.array(BuildingSchema),
   turn: z.number(),
 })

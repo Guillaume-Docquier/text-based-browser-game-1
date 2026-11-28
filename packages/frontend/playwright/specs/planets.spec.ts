@@ -70,3 +70,31 @@ test("PV-0003 When a player reloads a planet view or returns to its address, the
     await expect(earth.heading).toHaveText("Earth")
   })
 })
+
+test("PV-0005 When a player opens their home planet, they can distinguish the command center’s dedicated hex artwork from empty sites, inspect the surface and read the planet information in the same view.", async ({
+  alice,
+}) => {
+  const planet = await test.step("Open the home planet from its star system", async () => {
+    const details = await CreateGamePage.createGame({ creator: alice })
+    const galaxy = await details.startGame()
+    await galaxy.openStarSystem(galaxy.ownStar(0))
+    return await galaxy.openPlanetProfile(galaxy.ownedPlanet(0))
+  })
+
+  await test.step("Inspect the command center and a different empty site", async () => {
+    await expect(planet.attribute("Owner")).toHaveText(alice.alias)
+    await expect(planet.attribute("Metal production per mine per turn")).toHaveText("0")
+    await expect(planet.site("Center hex, Command center")).toBeVisible()
+    await expect(planet.selectedSite).toHaveText(/Center hex.*Command center/)
+    await planet.selectSite("Hex 2, Empty")
+    await expect(planet.selectedSite).toHaveText(/Hex 2.*Empty/)
+  })
+
+  await test.step("Reopen the same occupied and empty sites after reload", async () => {
+    await planet.reload()
+    await expect(planet.site("Center hex, Command center")).toBeVisible()
+    await planet.selectSite("Hex 2, Empty")
+    await expect(planet.site("Hex 2, Empty")).toHaveAttribute("aria-pressed", "true")
+    await expect(planet.attribute("Owner")).toHaveText(alice.alias)
+  })
+})

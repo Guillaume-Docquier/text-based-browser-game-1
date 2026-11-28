@@ -17,6 +17,18 @@ export class PlanetPage extends GamePage {
     return this.details.getByText(label, { exact: true }).locator("..").getByRole("definition")
   }
 
+  public site(name: string): Locator {
+    return this.details.getByRole("button", { name, exact: true })
+  }
+
+  public get selectedSite(): Locator {
+    return this.details.getByRole("status", { name: "Selected site" })
+  }
+
+  public async selectSite(name: string): Promise<void> {
+    await this.site(name).click()
+  }
+
   public async reload(): Promise<void> {
     await this.page.reload()
   }

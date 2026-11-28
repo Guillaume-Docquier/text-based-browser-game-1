@@ -10,7 +10,7 @@ import { UpdateReadinessError, UpdateReadinessRollbackError } from "#api/gamepla
 import type { Clock } from "#lib/Clock.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { planetsTable, playersTable, starsTable, turnsTable, turnsProcessingTable } from "#lib/db/schema.ts"
+import { buildingsTable, planetsTable, playersTable, starsTable, turnsTable, turnsProcessingTable } from "#lib/db/schema.ts"
 import { GetTurnStateError } from "./getTurnState.error.ts"
 import type { TurnState } from "./TurnState.ts"
 
@@ -70,7 +70,18 @@ export class GameplayRepository extends PostgresRepository {
           const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
           const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
 
+          const buildings = await tx
+            .select({
+              id: buildingsTable.id,
+              type: buildingsTable.type,
+              planetId: buildingsTable.planetId,
+              site: buildingsTable.site,
+            })
+            .from(buildingsTable)
+            .where(eq(buildingsTable.gameId, gameId))
+
           return {
+            buildings,
             player,
             opponents,
             galaxy: toGalaxyModel({ stars, planets }),

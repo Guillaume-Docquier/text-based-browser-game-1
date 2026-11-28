@@ -27,6 +27,7 @@ export function createPlayGameContextStub({ galaxy = { systems: [] } }: { galaxy
       gameId,
       player: { id: player.id, color: player.color },
       opponents: {},
+      buildings: [],
       galaxy,
       turn: 1,
     },

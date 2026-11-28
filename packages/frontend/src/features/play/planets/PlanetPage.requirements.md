@@ -1,6 +1,6 @@
 # `PlanetPage` requirements
 
-Next ID number: 0005
+Next ID number: 0006
 
 ## Prefixes
 
@@ -16,3 +16,4 @@ Next ID number: 0005
 | PV-0002 | When a planet view opens, the player can identify the planet by name and coordinates and inspect its available ownership, biome, size, area, metal production and remaining deposit alongside space for its surface. |
 | PV-0003 | When a player reloads a planet view or returns to its address, the same game and planet reopen.                                                                                                                      |
 | PV-0004 | When a player chooses to return to the system from a planet view, the containing star system opens.                                                                                                                  |
+| PV-0005 | When a player opens their home planet, they can distinguish the command center’s dedicated hex artwork from empty sites, inspect the surface and read the planet information in the same view.                       |

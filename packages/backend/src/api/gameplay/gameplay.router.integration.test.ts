@@ -74,6 +74,31 @@ describe("gameplay.router", () => {
   })
 
   describe("getPlayerView", () => {
+    it("should meet PVR-0002 When a planet surface is read in a fresh session or after server restart, each building retains its identity, type, planet and occupied hex.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using firstServer = new ApiServer(await createApiStub({ db }))
+      const first = await firstServer.createClient({ authenticated: true })
+      using secondServer = new ApiServer(await createApiStub({ db }))
+      const fresh = await secondServer.createClient({ authenticated: true })
+      const { createdGameId: gameId } = await first.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
+      })
+      await fresh.client.games.join.mutate({ gameId })
+      await first.client.games.startGame.mutate({ gameId })
+      const before = await first.client.gameplay.getPlayerView.query({ gameId })
+
+      // Act
+      const after = await fresh.client.gameplay.getPlayerView.query({ gameId })
+
+      // Assert
+      expect(before.buildings).toHaveLength(2)
+      expect(before.buildings[0]).toMatchObject({ id: expect.any(String), type: "COMMAND_CENTER", site: 0, planetId: expect.any(String) })
+      expect(after.buildings.toSorted((a, b) => a.id.localeCompare(b.id))).toStrictEqual(
+        before.buildings.toSorted((a, b) => a.id.localeCompare(b.id)),
+      )
+    })
+
     it("should meet PVR-0001 When a player reads a saved planet, the API returns its stored metal production and remaining deposit and omits the former metal, fertility, fuel, energy and maximum population fields.", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
@@ -148,6 +173,7 @@ describe("gameplay.router", () => {
         gameId: createdGameId,
         player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE },
         opponents: {},
+        buildings: [expect.objectContaining({ type: "COMMAND_CENTER", site: 0 })],
         galaxy: expect.any(Object), // INTENT: Verified by the snapshot test
         turn: 1,
       })

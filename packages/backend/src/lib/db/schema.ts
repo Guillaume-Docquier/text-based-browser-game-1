@@ -1,4 +1,4 @@
-import { ne, sql } from "drizzle-orm"
+import { eq, ne, sql } from "drizzle-orm"
 import {
   bigint,
   boolean,
@@ -13,11 +13,13 @@ import {
   timestamp,
   unique,
   uniqueIndex,
+  uuid,
 } from "drizzle-orm/pg-core"
 import type { Alias } from "shared/domain/accounts/Alias.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import { BuildingType, type BuildingId } from "shared/domain/world/buildings/Building.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
 import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
@@ -34,6 +36,7 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
 
 export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
 export const turnStatusEnum = pgEnum("turn_status", pgEnumify(TurnStatus))
+export const buildingTypeEnum = pgEnum("building_type", pgEnumify(BuildingType))
 export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
 export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
 export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
@@ -182,5 +185,24 @@ export const planetsTable = pgTable(
       foreignColumns: [playersTable.gameId, playersTable.playerId],
       name: "planets_gameId_ownerPlayerId_game_players_fk",
     }),
+  ],
+)
+
+export const buildingsTable = pgTable(
+  "buildings",
+  {
+    gameId: gameIdColumn("game_id").notNull(),
+    id: uuid("id").$type<BuildingId>().defaultRandom().notNull(),
+    type: buildingTypeEnum("type").notNull(),
+    planetId: planetIdColumn("planet_id").notNull(),
+    site: integer("site").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.gameId, table.id] }),
+    foreignKey({ columns: [table.gameId, table.planetId], foreignColumns: [planetsTable.gameId, planetsTable.id] }).onDelete("cascade"),
+    unique("buildings_one_per_site").on(table.gameId, table.planetId, table.site),
+    uniqueIndex("buildings_one_command_center_per_planet")
+      .on(table.gameId, table.planetId)
+      .where(eq(table.type, BuildingType.COMMAND_CENTER).inlineParams()),
   ],
 )

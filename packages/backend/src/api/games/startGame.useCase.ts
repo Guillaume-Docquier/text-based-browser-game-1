@@ -1,6 +1,7 @@
 import { Datetime, type Logger, mulberry32Prng, Result, Rng, Timer, UInt32 } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
+import { BuildingType } from "shared/domain/world/buildings/Building.ts"
 import { createGalaxy } from "shared/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "shared/galaxy-creation/GalaxyCreationSettings.ts"
 import type { Clock } from "#lib/Clock.ts"
@@ -63,6 +64,15 @@ export class StartGameUseCase {
           turnEndsAt,
           rngState: { generatorState: UInt32.random(), spareNormal: null },
           galaxy,
+          buildings: galaxy.systems.flatMap(({ planets }) =>
+            planets
+              .filter((planet) => planet.ownerPlayerId !== null)
+              .map((planet) => ({
+                type: BuildingType.COMMAND_CENTER,
+                planetId: planet.id,
+                site: 0,
+              })),
+          ),
         },
         tx,
       )

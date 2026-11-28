@@ -7,6 +7,7 @@ import { SUN_ID } from "shared/domain/world/Sol.ts"
 import { buttonVariants } from "@/components/button.tsx"
 import { planetArtwork } from "@/features/play/galaxy/star-system/planetArtwork.ts"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
+import { PlanetSurface } from "./PlanetSurface.tsx"
 
 export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
   const { gameDetails, playerView } = usePlayGameContext()
@@ -43,16 +44,7 @@ export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
         </Link>
       </header>
       <div className="grid flex-1 content-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
-        <section
-          aria-label="Planet surface"
-          className="grid min-h-48 place-items-center rounded-xl border border-border/70 bg-[#05080f] p-4 lg:min-h-96"
-        >
-          <img
-            src={planetArtwork(planet, system.star.id)}
-            alt={planet.name}
-            className="aspect-square w-36 object-contain sm:w-52 lg:w-64"
-          />
-        </section>
+        <PlanetSurface key={planet.id} planet={planet} artwork={planetArtwork(planet, system.star.id)} buildings={playerView.buildings} />
         <PlanetFacts planet={planet} ownerName={ownerName} />
       </div>
     </article>
