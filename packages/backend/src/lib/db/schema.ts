@@ -164,11 +164,8 @@ export const planetsTable = pgTable(
     y: doublePrecision("y").notNull(),
     biome: planetBiomeEnum("biome").notNull(),
     size: planetSizeEnum("size").notNull(),
-    fertility: integer("fertility").notNull(),
-    metal: integer("metal").notNull(),
-    fuel: integer("fuel").notNull(),
-    energy: integer("energy").notNull(),
-    maxPopulation: integer("max_population").notNull(),
+    metalProduction: integer("metal_production").notNull(),
+    remainingMetalDeposit: integer("remaining_metal_deposit").notNull(),
     area: integer("area").notNull(),
   },
   (table) => [

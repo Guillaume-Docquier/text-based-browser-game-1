@@ -74,6 +74,40 @@ describe("gameplay.router", () => {
   })
 
   describe("getPlayerView", () => {
+    it("should meet PVR-0001 When a player reads a saved planet, the API returns its stored metal production and remaining deposit and omits the former metal, fertility, fuel, energy and maximum population fields.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using apiServer = new ApiServer(await createApiStub({ db }))
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId: gameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
+      })
+      await player.client.games.startGame.mutate({ gameId })
+
+      // Act
+      const view = await player.client.gameplay.getPlayerView.query({ gameId })
+      const reopened = await player.client.gameplay.getPlayerView.query({ gameId })
+
+      // Assert
+      const sample = view.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "63:50:40")
+      expect(sample).toStrictEqual({
+        area: 4,
+        biome: "METALLIC",
+        coordinates: "63:50:40",
+        id: "37c2b7b7-e1b1-584c-9043-aaab03ac3808",
+        metalProduction: 4,
+        remainingMetalDeposit: 19,
+        name: "planet 272683",
+        ownerPlayerId: null,
+        size: "MEDIUM",
+        x: 30.754045402421188,
+        y: 65.12758196335155,
+      })
+      expect(reopened.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "63:50:40")).toStrictEqual(
+        sample,
+      )
+    })
+
     it("should report a missing Turn for a member of an unstarted game", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()

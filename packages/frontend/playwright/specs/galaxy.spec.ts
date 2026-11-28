@@ -46,21 +46,23 @@ test("the galaxy view can be navigated and the star system view can inspect plan
   const gameDetailsPage = await test.step("Create a game", async () => await CreateGamePage.createGame({ creator: alice }))
   const galaxyPage = await test.step("Start the game", async () => await gameDetailsPage.startGame())
 
-  const selectedStar = galaxyPage.starNamed("star 676733")
+  const selectedStar = galaxyPage.starNamed("star 35076")
 
   await test.step("Open a Star System and inspect its Planet profiles", async () => {
     await galaxyPage.openStarSystem(selectedStar)
     await expect(galaxyPage.starSystemMap).toBeVisible()
 
-    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 405771"))
-    await expect(galaxyPage.planetProfileHeading("planet 405771")).toBeVisible()
+    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 415673"))
+    await expect(galaxyPage.planetProfileHeading("planet 415673")).toBeVisible()
     await expect(galaxyPage.planetDetailsPane).toContainText("Planet attributes")
-    await expect(galaxyPage.planetDetailsPane).toContainText("Fertility")
-    await expect(galaxyPage.planetDetailsPane).toContainText("Max population")
+    await expect(galaxyPage.planetAttribute("Metal production per mine per turn")).toHaveText("0")
+    await expect(galaxyPage.planetAttribute("Remaining metal deposit")).toHaveText("0")
     await expect(galaxyPage.planetDetailsPane).toContainText("Coordinates")
 
-    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 120528"))
-    await expect(galaxyPage.planetProfileHeading("planet 120528")).toBeVisible()
+    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 272683"))
+    await expect(galaxyPage.planetProfileHeading("planet 272683")).toBeVisible()
+    await expect(galaxyPage.planetAttribute("Metal production per mine per turn")).toHaveText("4")
+    await expect(galaxyPage.planetAttribute("Remaining metal deposit")).toHaveText("19")
 
     await galaxyPage.clickOnTheMap()
     await expect(galaxyPage.planetDetailsPane).not.toBeVisible()

@@ -14,10 +14,8 @@ export function PlanetDetailsPane({
 }): ReactElement {
   const biomeColor = PLANET_BIOME_COLORS[planet.biome]
   const attributes = [
-    { label: "Fertility", value: planet.fertility },
-    { label: "Metal", value: planet.metal },
-    { label: "Fuel", value: planet.fuel },
-    { label: "Energy", value: planet.energy },
+    { label: "Metal production per mine per turn", value: planet.metalProduction },
+    { label: "Remaining metal deposit", value: planet.remainingMetalDeposit },
   ]
 
   function finishClosing(event: AnimationEvent<HTMLElement>): void {
@@ -84,7 +82,6 @@ export function PlanetDetailsPane({
             Capacity
           </h3>
           <dl className="mt-3 divide-y divide-border/50 rounded-lg border border-border/50 bg-muted/20 px-3">
-            <PlanetFact label="Max population" value={planet.maxPopulation.toLocaleString()} />
             <PlanetFact label="Area" value={`${planet.area.toLocaleString()} slots`} />
           </dl>
         </section>

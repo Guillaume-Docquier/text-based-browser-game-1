@@ -1,12 +1,18 @@
-import { Assert, Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
+import { Assert, Distance, type Rng, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { assert, integer, property, uniqueArray, uuid } from "fast-check"
 import { describe, expect, it } from "vitest"
 import { PlayerIdSchema, type PlayerId } from "#shared/domain/players/PlayerId.ts"
+import type { Galaxy } from "#shared/domain/world/Galaxy.ts"
+import type { Planet } from "#shared/domain/world/planets/Planet.ts"
+import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
 import { SUN_ID } from "#shared/domain/world/Sol.ts"
+import type { Star } from "#shared/domain/world/stars/Star.ts"
 import { generateGalaxyAttributes } from "#shared/galaxy-creation/attributes/generateGalaxyAttributes.ts"
 import { createGalaxy } from "#shared/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
+import { generateSolSystem } from "#shared/galaxy-creation/generateSolSystem.ts"
+import { generateHomePlanets } from "#shared/galaxy-creation/home-planets/generateHomePlanets.ts"
 import { galaxyTopologyGenerator } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.ts"
 import { spiralGenerator } from "#shared/galaxy-creation/topology/patterns/spiralGenerator.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
@@ -18,6 +24,82 @@ function playersFor(count: number): PlayerId[] {
   return Array.from({ length: count }, (_, i) => typedParse(PlayerIdSchema, `00000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`))
 }
 const cases = { seed: 762, numRuns: 8 }
+
+function replayOrdinaryGalaxy(replay: Rng): Galaxy {
+  const size = GalaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS
+  const center = size / 2
+  const topology = galaxyTopologyGenerator({
+    size,
+    rng: replay,
+    pointsGenerator: () =>
+      spiralGenerator({
+        origin: { x: center, y: center },
+        radius: center,
+        nbPoints: GalaxyCreationSettings.GALAXY_SYSTEMS_COUNT,
+        rng: replay,
+      }),
+  })
+  return generateGalaxyAttributes({ galaxyTopology: topology, rng: replay })
+}
+
+function replayBeforeHomeAssignment(rng: Rng): { galaxy: Galaxy; sun: Star } {
+  const ordinary = replayOrdinaryGalaxy(rng)
+  const sol = generateSolSystem(ordinary.systems, GalaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS / 2, rng)
+  const systems = ordinary.systems.map((system) => (system.star.coordinates === sol.star.coordinates ? sol : system))
+  return { galaxy: { systems }, sun: sol.star }
+}
+
+function checkDepositRolls(seed: number, metallic: boolean): void {
+  // Arrange
+  const playerIds = playersFor(16)
+  const replay = createSeededRng(seed)
+  const { galaxy, sun } = replayBeforeHomeAssignment(replay)
+  const settled = generateHomePlanets({ galaxy, sun, galaxyCreationSettings: GalaxyCreationSettings, playerIds, rng: replay })
+
+  // Act
+  const result = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds, rng: createSeededRng(seed) })
+
+  // Assert
+  const expected = new Map<string, readonly number[]>()
+  for (const system of settled.systems) {
+    if (system.star.id === SUN_ID || system.planets.some((p) => p.ownerPlayerId !== null)) {
+      continue
+    }
+    for (const planet of system.planets) {
+      if (planet.biome === PlanetBiome.GAS) {
+        continue
+      }
+      const isMetallic = planet.biome === PlanetBiome.METALLIC
+      const present = replay.float() < (isMetallic ? 0.75 : 0.25)
+      const amount = present ? (isMetallic ? 10 : 5) + Math.floor(replay.float() * 11) : 0
+      const rate = present ? (isMetallic ? 2 : 1) + Math.floor(replay.float() * 3) : 0
+      if (isMetallic === metallic) {
+        expected.set(planet.id, [amount, rate])
+      }
+    }
+  }
+  const checked = result.systems.flatMap((system) => system.planets).filter((planet) => expected.has(planet.id))
+  expect(checked.length).toBeGreaterThan(0)
+  expect(checked.map((planet) => [planet.remainingMetalDeposit, planet.metalProduction])).toStrictEqual(
+    checked.map((planet) => expected.get(planet.id)),
+  )
+}
+
+function checkDepositBoundary(biome: PlanetBiome, chance: number): void {
+  const source = createSeededRng(1234)
+  const rng: Rng = { ...source, float: (range) => (range === undefined ? chance : source.float(range)) }
+  const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng })
+  const planets = galaxy.systems
+    .filter(({ star }) => star.id !== SUN_ID)
+    .flatMap((system) => system.planets)
+    .filter((planet) => planet.biome === biome)
+  expect(planets.length).toBeGreaterThan(0)
+  expect(planets.every(hasZeroMetal)).toBe(true)
+}
+
+function hasZeroMetal(planet: Planet): boolean {
+  return planet.metalProduction === 0 && planet.remainingMetalDeposit === 0
+}
 
 describe("createGalaxy", () => {
   it("GC-0001 When the player list is empty, every planet in the returned galaxy is unowned.", () => {
@@ -140,12 +222,10 @@ describe("createGalaxy", () => {
         // Arrange
         const playerIds = playersFor(16).toReversed()
         const replay = createSeededRng(seed)
-        const baseline = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng: replay })
+        const { galaxy: baseline, sun } = replayBeforeHomeAssignment(replay)
         const eligibleSystems = new Set(
           baseline.systems.filter(({ star }) => star.id !== SUN_ID).filter(({ planets }) => planets.some(({ area }) => area >= 3)),
         )
-        const sun = baseline.systems.find(({ star }) => star.id === SUN_ID)?.star
-        Assert.isDefined(sun)
 
         // Act
         const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds, rng: createSeededRng(seed) })
@@ -204,20 +284,8 @@ describe("createGalaxy", () => {
       property(galaxySeed, (seed) => {
         // Arrange
         const replay = createSeededRng(seed)
-        const size = GalaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS
-        const center = size / 2
-        const topology = galaxyTopologyGenerator({
-          size,
-          rng: replay,
-          pointsGenerator: () =>
-            spiralGenerator({
-              origin: { x: center, y: center },
-              radius: center,
-              nbPoints: GalaxyCreationSettings.GALAXY_SYSTEMS_COUNT,
-              rng: replay,
-            }),
-        })
-        const ordinary = generateGalaxyAttributes({ galaxyTopology: topology, rng: replay })
+        const center = GalaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS / 2
+        const ordinary = replayOrdinaryGalaxy(replay)
         const candidates = ordinary.systems.filter(({ star }) => Math.hypot(star.x - center, star.y - center) <= 5)
         const expected = candidates[Math.floor(replay.float() * candidates.length)]
         Assert.isDefined(expected)
@@ -298,5 +366,90 @@ describe("createGalaxy", () => {
       }),
       cases,
     )
+  })
+})
+
+describe("createGalaxy metal deposits", () => {
+  it("GC-PLNT-0012 When a galaxy is generated, each planet retains its biome, size and area and has separate integer values for metal production and remaining metal deposit.", () => {
+    assert(
+      property(galaxySeed, (seed) => {
+        // Arrange
+        const rng = createSeededRng(seed)
+        const before = replayBeforeHomeAssignment(createSeededRng(seed)).galaxy
+
+        // Act
+        const result = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: playersFor(2), rng })
+
+        // Assert
+        const planets = result.systems.flatMap((s) => s.planets)
+        const attributes = (planet: Planet): readonly [Planet["id"], Planet["biome"], Planet["size"], number] => [
+          planet.id,
+          planet.biome,
+          planet.size,
+          planet.area,
+        ]
+        expect(planets.map(attributes)).toStrictEqual(before.systems.flatMap((s) => s.planets.map(attributes)))
+        expect(planets.every((p) => Number.isInteger(p.metalProduction))).toBe(true)
+        expect(planets.every((p) => Number.isInteger(p.remainingMetalDeposit))).toBe(true)
+      }),
+      cases,
+    )
+  })
+
+  it("GC-PLNT-0013 When a planet is in Sol or any player’s starting home system, its metal production and remaining metal deposit both start at zero.", () => {
+    assert(
+      property(galaxySeed, playerCount, (seed, count) => {
+        // Arrange
+        const playerIds = playersFor(count)
+        // Act
+        const result = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds, rng: createSeededRng(seed) })
+        // Assert
+        const homes = result.systems.filter((system) => system.planets.some((planet) => planet.ownerPlayerId !== null))
+        expect(homes).toHaveLength(count)
+        const sol = result.systems.find(({ star }) => star.id === SUN_ID)
+        Assert.isDefined(sol)
+        expect([sol, ...homes].every((system) => system.planets.every(hasZeroMetal))).toBe(true)
+      }),
+      { ...cases, examples: [[1234, 16]] },
+    )
+  })
+
+  it("GC-PLNT-0014 When a planet outside those systems is gas, its metal production and remaining metal deposit both start at zero.", () => {
+    assert(
+      property(galaxySeed, (seed) => {
+        // Arrange
+        const rng = createSeededRng(seed)
+        // Act
+        const result = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng })
+        // Assert
+        const gas = result.systems
+          .filter(({ star }) => star.id !== SUN_ID)
+          .flatMap((s) => s.planets)
+          .filter((p) => p.biome === PlanetBiome.GAS)
+        expect(gas.length).toBeGreaterThan(0)
+        expect(gas.every(hasZeroMetal)).toBe(true)
+      }),
+      cases,
+    )
+  })
+
+  it("GC-PLNT-0015 When a metallic planet outside those systems is generated, it has a 75% chance of a deposit. On a successful roll its remaining deposit is a uniform integer from 10 to 20 and its production is an independently sampled uniform integer from 2 to 4. Otherwise both values are zero.", () => {
+    assert(
+      property(galaxySeed, (seed) => {
+        checkDepositRolls(seed, true)
+      }),
+      cases,
+    )
+    checkDepositBoundary(PlanetBiome.METALLIC, 0.75)
+  })
+
+  it("GC-PLNT-0016 When a planet of any other non-gas biome outside those systems is generated, it has a 25% chance of a deposit. On a successful roll its remaining deposit is a uniform integer from 5 to 15 and its production is an independently sampled uniform integer from 1 to 3. Otherwise both values are zero.", () => {
+    assert(
+      property(galaxySeed, (seed) => {
+        checkDepositRolls(seed, false)
+      }),
+      cases,
+    )
+    checkDepositBoundary(PlanetBiome.OCEANIC, 0.25)
   })
 })

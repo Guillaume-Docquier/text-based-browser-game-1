@@ -16,47 +16,35 @@ async function renderPlanets(): Promise<void> {
       name: "Atlas",
       ownerPlayerId: bob.id,
       coordinates: "1:2:1",
-      fertility: 3,
-      metal: 2,
-      fuel: 1,
-      energy: 4,
-      maxPopulation: 28,
+      metalProduction: 2,
+      remainingMetalDeposit: 1,
       area: 3,
     }),
     createPlanetStub({
       name: "Eris",
       ownerPlayerId: alice.id,
       coordinates: "1:10:3",
-      fertility: 1,
-      metal: 3,
-      fuel: 4,
-      energy: 2,
-      maxPopulation: 10,
+      metalProduction: 3,
+      remainingMetalDeposit: 4,
       area: 2,
     }),
     createPlanetStub({
       name: "Luna",
       ownerPlayerId: bob.id,
       coordinates: "1:3:2",
-      fertility: 4,
-      metal: 1,
-      fuel: 3,
-      energy: 3,
-      maxPopulation: 2,
+      metalProduction: 1,
+      remainingMetalDeposit: 3,
       area: 10,
     }),
     createPlanetStub({
       name: "Terra",
       ownerPlayerId: alice.id,
       coordinates: "1:1:4",
-      fertility: 2,
-      metal: 4,
-      fuel: 2,
-      energy: 1,
-      maxPopulation: 40,
+      metalProduction: 4,
+      remainingMetalDeposit: 2,
       area: 4,
     }),
-    createPlanetStub({ name: "Unclaimed" }),
+    createPlanetStub({ name: "Prospect", coordinates: "2:3:5", metalProduction: 4, remainingMetalDeposit: 14 }),
   ]
   const context = createPlayGameContextStub({ galaxy: { systems: [{ star: createStarStub(), planets }] } })
   context.gameDetails.players = [alice, bob]
@@ -69,7 +57,7 @@ async function renderPlanets(): Promise<void> {
 
 async function expectPlanets(names: readonly string[]): Promise<void> {
   const rows = page
-    .getByRole("table", { name: "Owned planets" })
+    .getByRole("table", { name: "Planets" })
     .getByRole("row")
     .filter({ has: page.getByRole("link") })
   await expect.poll(() => rows.all().map((row) => row.getByRole("cell").first().element().textContent)).toEqual(names)
@@ -107,11 +95,8 @@ describe("PlanetsPage", () => {
     const orders = [
       { column: "Planet", ascending: ["Atlas", "Eris", "Luna", "Terra"] },
       { column: "Coordinates", ascending: ["Terra", "Atlas", "Luna", "Eris"] },
-      { column: "Fertility", ascending: ["Eris", "Terra", "Atlas", "Luna"] },
-      { column: "Metal", ascending: ["Luna", "Atlas", "Eris", "Terra"] },
-      { column: "Fuel", ascending: ["Atlas", "Terra", "Luna", "Eris"] },
-      { column: "Energy", ascending: ["Terra", "Eris", "Luna", "Atlas"] },
-      { column: "Max population", ascending: ["Luna", "Eris", "Atlas", "Terra"] },
+      { column: "Metal production per mine per turn", ascending: ["Luna", "Atlas", "Eris", "Terra"] },
+      { column: "Remaining metal deposit", ascending: ["Atlas", "Terra", "Luna", "Eris"] },
       { column: "Area", ascending: ["Eris", "Atlas", "Terra", "Luna"] },
       { column: "Owner", ascending: ["Eris", "Terra", "Atlas", "Luna"] },
     ]
@@ -127,5 +112,44 @@ describe("PlanetsPage", () => {
         await expectPlanets(ascending.toReversed())
       })
     }
+  })
+
+  it("should meet PLST-0001 When a player opens the planet list or inspects a planet, they can distinguish metal production per mine per turn from the remaining deposit. The removed attributes have no columns, sort choices or inspector entries.", async () => {
+    await renderPlanets()
+    await page.mark("Read the production and remaining deposit alongside capacity", async () => {
+      const headers = page.getByRole("table", { name: "Planets" }).getByRole("columnheader")
+      expect(headers.all().map((header) => header.element().textContent)).toStrictEqual([
+        "Planet",
+        "Owner",
+        "Coordinates",
+        "Metal production per mine per turn",
+        "Remaining metal deposit",
+        "Area",
+      ])
+      const atlas = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "Atlas", exact: true }) })
+      expect(
+        atlas
+          .getByRole("cell")
+          .all()
+          .map((cell) => cell.element().textContent),
+      ).toStrictEqual(["Atlas", "Bob", "1:2:1", "2", "1", "3"])
+    })
+  })
+
+  it("should meet PLST-0002 When the player opens Planets, the default list contains the planets owned by any player. Choosing All planets lets them compare the available metal production and remaining deposit of owned and unowned planets in the same list.", async () => {
+    await renderPlanets()
+    await page.mark("Expand the list from owned planets to candidate colonies", async () => {
+      await expectPlanets(["Eris", "Terra", "Atlas", "Luna"])
+      await page.getByRole("combobox", { name: "Owner" }).click()
+      await page.getByRole("option", { name: "All planets" }).click()
+      await expectPlanets(["Eris", "Terra", "Atlas", "Luna", "Prospect"])
+      const prospect = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "Prospect", exact: true }) })
+      expect(
+        prospect
+          .getByRole("cell")
+          .all()
+          .map((cell) => cell.element().textContent),
+      ).toStrictEqual(["Prospect", "Unclaimed", "2:3:5", "4", "14", "1"])
+    })
   })
 })

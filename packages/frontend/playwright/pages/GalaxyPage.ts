@@ -91,6 +91,10 @@ export class GalaxyPage extends GamePage {
     await this.starSystemStar.click()
   }
 
+  public planetAttribute(label: string): Locator {
+    return this.planetDetailsPane.getByText(label, { exact: true }).locator("..").getByRole("definition")
+  }
+
   public planetProfileHeading(name: string): Locator {
     return this.planetDetailsPane.getByRole("heading", { name, exact: true })
   }

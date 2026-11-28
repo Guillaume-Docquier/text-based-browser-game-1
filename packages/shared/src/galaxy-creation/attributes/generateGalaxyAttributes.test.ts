@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest"
 import { PlanetBiome } from "#shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "#shared/domain/world/planets/PlanetSize.ts"
 import { generateGalaxyAttributes } from "#shared/galaxy-creation/attributes/generateGalaxyAttributes.ts"
-import { BIOME_ATTRIBUTE_RANGES, SIZE_ATTRIBUTE_RANGES } from "#shared/galaxy-creation/attributes/generatePlanetAttributes.ts"
+import { PLANET_AREA_RANGES } from "#shared/galaxy-creation/attributes/generatePlanetAttributes.ts"
 import { createGalaxyTopologyStub } from "#shared/galaxy-creation/topology/galaxyTopologyGenerator.stub.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
 describe("generateGalaxyAttributes", () => {
-  it("should generate every biome with attributes in its configured ranges", () => {
+  it("should generate every biome", () => {
     // Arrange
     const galaxyTopology = createGalaxyTopologyStub()
     const rng = createSeededRng()
@@ -18,15 +18,6 @@ describe("generateGalaxyAttributes", () => {
 
     // Assert
     expect(new Set(planets.map((planet) => planet.biome))).toStrictEqual(new Set(Object.values(PlanetBiome)))
-    for (const biome of Object.values(PlanetBiome)) {
-      const biomePlanets = planets.filter((planet) => planet.biome === biome)
-      const limits = BIOME_ATTRIBUTE_RANGES[biome]
-
-      expectToMatchLimits(getObservedRange(biomePlanets.map((planet) => planet.fertility)), limits.fertility)
-      expectToMatchLimits(getObservedRange(biomePlanets.map((planet) => planet.metal)), limits.metal)
-      expectToMatchLimits(getObservedRange(biomePlanets.map((planet) => planet.fuel)), limits.fuel)
-      expectToMatchLimits(getObservedRange(biomePlanets.map((planet) => planet.energy)), limits.energy)
-    }
   })
 
   it("should generate every size with attributes in its configured ranges", () => {
@@ -42,10 +33,9 @@ describe("generateGalaxyAttributes", () => {
     expect(new Set(planets.map((planet) => planet.size))).toStrictEqual(new Set(Object.values(PlanetSize)))
     for (const size of Object.values(PlanetSize)) {
       const sizePlanets = planets.filter((planet) => planet.size === size)
-      const limits = SIZE_ATTRIBUTE_RANGES[size]
+      const limits = PLANET_AREA_RANGES[size]
 
-      expectToMatchLimits(getObservedRange(sizePlanets.map((planet) => planet.maxPopulation)), limits.maxPopulation)
-      expectToMatchLimits(getObservedRange(sizePlanets.map((planet) => planet.area)), limits.area)
+      expectToMatchLimits(getObservedRange(sizePlanets.map((planet) => planet.area)), limits)
     }
   })
 })

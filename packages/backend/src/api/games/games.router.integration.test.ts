@@ -127,22 +127,19 @@ describe("games.router", () => {
       expect(playerView.galaxy.systems.length).toBeGreaterThan(500)
       expect(playerView.galaxy.systems.flatMap(({ planets }) => planets).length).toBeGreaterThan(1500)
       expect(
-        playerView.galaxy.systems.flatMap((system) => system.planets).find(({ id }) => id === "cd2c40c4-0233-5b79-9d85-2ad751dff9e9"),
+        playerView.galaxy.systems.flatMap((system) => system.planets).find(({ id }) => id === "37c2b7b7-e1b1-584c-9043-aaab03ac3808"),
       ).toStrictEqual({
-        coordinates: "44:76:35",
-        x: 46.42170962226795,
-        y: 47.214122556498126,
-        id: "cd2c40c4-0233-5b79-9d85-2ad751dff9e9",
+        coordinates: "63:50:40",
+        x: 30.754045402421188,
+        y: 65.12758196335155,
+        id: "37c2b7b7-e1b1-584c-9043-aaab03ac3808",
         ownerPlayerId: null,
-        name: "planet 387467",
-        biome: PlanetBiome.FROZEN,
-        size: PlanetSize.LARGE,
-        fertility: 1,
-        metal: 3,
-        fuel: 4,
-        energy: 2,
-        maxPopulation: 30,
-        area: 11,
+        name: "planet 272683",
+        biome: PlanetBiome.METALLIC,
+        size: PlanetSize.MEDIUM,
+        metalProduction: 4,
+        remainingMetalDeposit: 19,
+        area: 4,
       })
 
       const allStars = playerView.galaxy.systems.map(({ star }) => star)
