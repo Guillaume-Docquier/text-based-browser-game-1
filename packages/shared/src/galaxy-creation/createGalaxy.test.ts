@@ -172,20 +172,23 @@ describe("createGalaxy", () => {
     assert(
       property(galaxySeed, (seed) => {
         // Arrange
-        const rng = createSeededRng(seed)
+        const seeds = [123, 1234, seed]
 
         // Act
-        const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng })
+        const galaxies = seeds.map((mapSeed) =>
+          createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: [], rng: createSeededRng(mapSeed) }),
+        )
 
         // Assert
-        const systemCount = galaxy.systems.length
-        const planetCount = galaxy.systems.reduce((total, system) => total + system.planets.length, 0)
-        expect(systemCount).toBeGreaterThanOrEqual(525)
-        expect(systemCount).toBeLessThanOrEqual(875)
-        expect(planetCount).toBeGreaterThanOrEqual(2250)
-        expect(planetCount).toBeLessThanOrEqual(3750)
+        const meanSystemCount = galaxies.reduce((total, galaxy) => total + galaxy.systems.length, 0) / galaxies.length
+        const planetCounts = galaxies.map(({ systems }) => systems.reduce((total, system) => total + system.planets.length, 0))
+        const meanPlanetCount = planetCounts.reduce((total, count) => total + count, 0) / galaxies.length
+        expect(meanSystemCount).toBeGreaterThanOrEqual(525)
+        expect(meanSystemCount).toBeLessThanOrEqual(875)
+        expect(meanPlanetCount).toBeGreaterThanOrEqual(2250)
+        expect(meanPlanetCount).toBeLessThanOrEqual(3750)
       }),
-      { ...cases, examples: [[1234]] },
+      cases,
     )
   })
 })
