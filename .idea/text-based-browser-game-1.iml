@@ -8,6 +8,9 @@
       <excludeFolder url="file://$MODULE_DIR$/show-me.html" />
       <excludeFolder url="file://$MODULE_DIR$/packages/game-rules/coverage" />
       <excludeFolder url="file://$MODULE_DIR$/packages/frontend/playwright/.clerk" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/shared/src/galaxy-creation/.stryker/sandboxes" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/shared/src/galaxy-creation/.stryker/reports" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/shared/coverage" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

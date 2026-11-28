@@ -2,7 +2,7 @@
   "plugins": ["@stryker-mutator/vitest-runner"],
   "testRunner": "vitest",
   "vitest": {
-    "configFile": ".stryker/vitest.mutation.config.ts"
+    "configFile": ".stryker/vitest.stryker.config.ts"
   },
   "testFiles": ["createGalaxy.test.ts"],
   "mutate": ["**/*.ts", "!**/*.test.ts", "!**/*.stub.ts", "!scripts/**"],

@@ -1,4 +1,4 @@
 *
 !.gitignore
 !stryker.config.json
-!vitest.mutation.config.ts
+!vitest.stryker.config.ts
