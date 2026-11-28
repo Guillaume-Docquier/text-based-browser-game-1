@@ -32,3 +32,7 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 - [ ] [24/26 · Award refining contribution points](issues/24-award-refining-contribution-points.md)
 - [ ] [25/26 · End the match on completion or timeout](issues/25-end-the-match-on-completion-or-timeout.md)
 - [ ] [26/26 · Rank players at match end](issues/26-rank-players-at-match-end.md)
+
+## Active work
+
+01 is active. The implementer owns home assignment and mutation testing. The reviewer owns the final diff. The verifier owns fresh-match and player-view checks. Next, implement and verify the rules in the run log.
