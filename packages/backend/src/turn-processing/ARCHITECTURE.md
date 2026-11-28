@@ -13,7 +13,7 @@ The turn processing pipeline doesn't know much about how turns are resolved. It 
 1. Through `TurnsRepository`, the worker claims a turnsProcessing row by locking the row, moves the Turns row to `PROCESSING`, and loads the game state and random-generator state.
 1. The worker then unlocks the turnsProcessing row after setting the processing startDate, which prevents other workers from processing it.
 1. The worker calls `resolveTurn` with the game state and the restored random generator. Empty turns make no changes to either.
-1. In one transaction, the worker marks the Turn `COMPLETED`, resets Readiness, and creates the next Turn and its queue row. It carries the random-generator state forward.
+1. In one transaction, the worker marks the Turn `COMPLETED`, applies the returned credit deltas, resets Readiness, and creates the next Turn and its queue row. It carries the random-generator state forward.
 
 The diagram shows the successful resolution path. Failure-mode policy reconciliation remains tracked in [#433](https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/433).
 
@@ -28,8 +28,8 @@ sequenceDiagram
           alt Turn found
             P1->>P3: game state and random-generator state
             P3->>P2: resolve Turn
-            P2->>P3: no game state changes
-            P3->>P1: complete Turn, reset Readiness, and queue next Turn with RNG state
+            P2->>P3: per-player credit income
+            P3->>P1: complete Turn, settle credits, reset Readiness, and queue next Turn with RNG state
           end
         end
 ```

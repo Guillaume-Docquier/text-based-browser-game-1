@@ -92,15 +92,25 @@ export class TurnProcessor {
     return "processed"
   }
 
-  private processTurn({ gameId, turn, closedAt, turnInterval, rngState, players, planets }: TurnToProcessModel): ProcessedTurnModel {
+  private processTurn({
+    gameId,
+    turn,
+    closedAt,
+    turnInterval,
+    rngState,
+    players,
+    planets,
+    buildings,
+  }: TurnToProcessModel): ProcessedTurnModel {
     const rng = Rng.fromState(rngState, mulberry32Prng)
-    resolveTurn({ gameId, turn, players, planets }, rng)
+    const resolution = resolveTurn({ gameId, turn, players, planets, buildings }, rng)
 
     const processedAt = this.clock.now()
     return {
       gameId,
       turn,
       processedAt,
+      ...resolution,
       rngState: rng.getState(),
       nextTurn: turn + 1,
       nextTurnScheduledFor: getNextTurnScheduledFor({ turnClosedAt: closedAt, processedAt, turnInterval }),

@@ -125,6 +125,7 @@ describe("TurnProcessor", () => {
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>({
         ...initialPlayerView,
+        player: { ...initialPlayerView.player, creditBalance: 110 },
         turn: 2,
       })
       expect(await readTurnState(player.client, createdGameId)).toMatchObject({
@@ -218,7 +219,7 @@ describe("TurnProcessor", () => {
       })
     })
 
-    it("should be able to process the same turn over time", async () => {
+    it("should meet PVR-0004 When the owner plans orders on turn N, only credits already available on turn N can fund them. Income earned when N resolves is available for orders on N+1.", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
@@ -232,19 +233,24 @@ describe("TurnProcessor", () => {
       await player.client.games.startGame.mutate({ gameId })
 
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+      const opening = await player.client.gameplay.getPlayerView.query({ gameId })
 
       // Act
       clock.increment({ time: turnInterval })
       await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
+      const next = await player.client.gameplay.getPlayerView.query({ gameId })
 
       clock.increment({ time: turnInterval })
       await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
+      expect(opening).toMatchObject({ turn: 1, player: { creditBalance: 100 } })
+      expect(next).toMatchObject({ turn: 2, player: { creditBalance: 110 } })
       expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
         turn: 3,
+        player: { creditBalance: 120 },
       })
     })
 
@@ -318,10 +324,12 @@ describe("TurnProcessor", () => {
       expect(failedProcessingResult).toBe("failed")
       expect(playerViewAfterFailedSave).toMatchObject({
         turn: 1,
+        player: { creditBalance: 100 },
       })
       expect(retriedProcessingResult).toBe("processed")
       expect(playerViewAfterRetry).toMatchObject({
         turn: 2,
+        player: { creditBalance: 110 },
       })
     })
   })

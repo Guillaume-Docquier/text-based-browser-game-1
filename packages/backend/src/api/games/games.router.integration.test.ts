@@ -118,6 +118,35 @@ describe("games.router", () => {
       expect([soloView.player.creditBalance, aliceView.player.creditBalance, bobView.player.creditBalance]).toStrictEqual([100, 100, 100])
     })
 
+    it("should meet STRT-0003 When a match starts, each home has one operating trade center on the first free surface hex alongside its command center.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using server = new ApiServer(await createApiStub({ db }))
+      const alice = await server.createClient({ authenticated: true })
+      const bob = await server.createClient({ authenticated: true })
+      const { createdGameId: gameId } = await alice.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ nbSeats: 2 }),
+      })
+      await bob.client.games.join.mutate({ gameId })
+
+      // Act
+      await alice.client.games.startGame.mutate({ gameId })
+      const view = await alice.client.gameplay.getPlayerView.query({ gameId })
+
+      // Assert
+      const homes = view.galaxy.systems.flatMap(({ planets }) => planets).filter(({ ownerPlayerId }) => ownerPlayerId !== null)
+      expect(homes).toHaveLength(2)
+      expect(view.buildings).toHaveLength(4)
+      for (const home of homes) {
+        expect(view.buildings.filter(({ planetId }) => planetId === home.id)).toStrictEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ type: "COMMAND_CENTER", site: 0 }),
+            expect.objectContaining({ type: "TRADE_CENTER", site: 1 }),
+          ]),
+        )
+      }
+    })
+
     it("should meet STRT-0001 When a match starts, each owned home planet has exactly one persisted command center on its center hex, and every unowned planet starts with an empty surface.", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
@@ -136,11 +165,11 @@ describe("games.router", () => {
       // Assert
       const homes = view.galaxy.systems.flatMap(({ planets }) => planets).filter((planet) => planet.ownerPlayerId !== null)
       expect(homes).toHaveLength(2)
-      expect(new Set(view.buildings.map(({ id }) => id)).size).toBe(2)
+      expect(view.buildings.every((building) => homes.some((home) => home.id === building.planetId))).toBe(true)
+      const centers = view.buildings.filter((building) => building.type === "COMMAND_CENTER")
+      expect(new Set(centers.map(({ id }) => id)).size).toBe(2)
       expect(
-        view.buildings
-          .map(({ planetId, type, site }) => ({ planetId, type, site }))
-          .toSorted((a, b) => a.planetId.localeCompare(b.planetId)),
+        centers.map(({ planetId, type, site }) => ({ planetId, type, site })).toSorted((a, b) => a.planetId.localeCompare(b.planetId)),
       ).toStrictEqual(
         homes.map(({ id }) => ({ planetId: id, type: "COMMAND_CENTER", site: 0 })).toSorted((a, b) => a.planetId.localeCompare(b.planetId)),
       )

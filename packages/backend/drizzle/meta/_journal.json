@@ -71,6 +71,20 @@
       "when": 1795844675940,
       "tag": "0009_backfill-starting-credits",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795845271800,
+      "tag": "0010_trade_centers",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795845290654,
+      "tag": "0011_backfill-home-trade-centers",
+      "breakpoints": true
     }
   ]
 }

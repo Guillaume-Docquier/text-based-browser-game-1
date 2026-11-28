@@ -67,13 +67,14 @@ export class StartGameUseCase {
           rngState: { generatorState: UInt32.random(), spareNormal: null },
           galaxy,
           buildings: galaxy.systems.flatMap(({ planets }) =>
-            planets
-              .filter((planet) => planet.ownerPlayerId !== null)
-              .map((planet) => ({
-                type: BuildingType.COMMAND_CENTER,
-                planetId: planet.id,
-                site: 0,
-              })),
+            planets.flatMap((planet) =>
+              planet.ownerPlayerId === null
+                ? []
+                : [
+                    { type: BuildingType.COMMAND_CENTER, planetId: planet.id, site: 0 },
+                    { type: BuildingType.TRADE_CENTER, planetId: planet.id, site: 1 },
+                  ],
+            ),
           ),
         },
         tx,

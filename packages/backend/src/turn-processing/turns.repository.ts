@@ -1,11 +1,12 @@
 import { Assert, branded, type Branded, type Logger, Result, type RngState, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import { and, asc, eq, isNull, lte } from "drizzle-orm"
+import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { GameId } from "shared/domain/games/GameId.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import type { TurnResolution } from "shared/turn-resolution/resolveTurn.ts"
 import type { TurnState } from "shared/turn-resolution/TurnState.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamesTable, planetsTable, playersTable, turnsProcessingTable, turnsTable } from "#lib/db/schema.ts"
+import { buildingsTable, gamesTable, planetsTable, playersTable, turnsProcessingTable, turnsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
 export type TurnForProcessing = Branded<
@@ -27,7 +28,7 @@ export type TurnToProcessModel = TurnState & {
   readonly rngState: RngState<number>
 }
 
-export type ProcessedTurnModel = {
+export type ProcessedTurnModel = TurnResolution & {
   gameId: GameId
   turn: number
   processedAt: Date
@@ -131,8 +132,15 @@ export class TurnsRepository extends PostgresRepository {
       .where(eq(planetsTable.gameId, startTurnProcessingModel.turn.gameId))
       .orderBy(asc(planetsTable.id))
 
+    const buildings = await tx
+      .select({ type: buildingsTable.type, planetId: buildingsTable.planetId })
+      .from(buildingsTable)
+      .where(eq(buildingsTable.gameId, startTurnProcessingModel.turn.gameId))
+      .orderBy(asc(buildingsTable.id))
+
     return {
       ...startTurnProcessingModel.turn,
+      buildings,
       closedAt: turn.closedAt,
       turnInterval: Time.create(games[0].turnIntervalSeconds, UnitOfTime.SECONDS),
       rngState: {
@@ -210,6 +218,13 @@ export class TurnsRepository extends PostgresRepository {
           )
           .returning()
         Assert.isTrue(updatedProcessingRows.length === 1)
+
+        for (const [playerId, income] of processedTurnModel.creditIncome) {
+          await tx
+            .update(playersTable)
+            .set({ creditBalance: sql`${playersTable.creditBalance} + ${income}` })
+            .where(and(eq(playersTable.gameId, processedTurnModel.gameId), eq(playersTable.playerId, playerId)))
+        }
 
         await tx.update(playersTable).set({ isReady: false }).where(eq(playersTable.gameId, processedTurnModel.gameId))
 

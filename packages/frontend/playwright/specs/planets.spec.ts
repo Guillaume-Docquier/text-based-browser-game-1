@@ -71,6 +71,31 @@ test("PV-0003 When a player reloads a planet view or returns to its address, the
   })
 })
 
+test("SURF-0002 When a player inspects a trade center, its dedicated art and income per turn identify the building, and after resolution its owner can see the increased balance.", async ({
+  alice,
+}) => {
+  const planet = await test.step("Inspect the home trade center", async () => {
+    const details = await CreateGamePage.createGame({ creator: alice })
+    const galaxy = await details.startGame()
+    await galaxy.openStarSystem(galaxy.ownStar(0))
+    const home = await galaxy.openPlanetProfile(galaxy.ownedPlanet(0))
+    await home.selectSite("Hex 2, Trade center")
+    await expect(home.selectedSite).toHaveText(/Trade center.*10 credits per turn/)
+    await expect(home.siteArtwork("Hex 2, Trade center")).toHaveAttribute("href", /trade-center/)
+    await expect(home.siteArtwork("Center hex, Command center")).toHaveAttribute("href", /command-center/)
+    await expect(home.credits).toHaveText("100")
+    return home
+  })
+  await test.step("Lock in the turn and read the settled balance", async () => {
+    await planet.toggleLockIn()
+    await expect(planet.credits).toHaveText("110", { timeout: 30_000 })
+    await planet.reload()
+    await expect(planet.credits).toHaveText("110")
+    await planet.selectSite("Hex 2, Trade center")
+    await expect(planet.selectedSite).toHaveText(/Trade center.*10 credits per turn/)
+  })
+})
+
 test("PV-0005 When a player opens their home planet, they can distinguish the command center’s dedicated hex artwork from empty sites, inspect the surface and read the planet information in the same view.", async ({
   alice,
 }) => {
@@ -86,15 +111,15 @@ test("PV-0005 When a player opens their home planet, they can distinguish the co
     await expect(planet.attribute("Metal production per mine per turn")).toHaveText("0")
     await expect(planet.site("Center hex, Command center")).toBeVisible()
     await expect(planet.selectedSite).toHaveText(/Center hex.*Command center/)
-    await planet.selectSite("Hex 2, Empty")
-    await expect(planet.selectedSite).toHaveText(/Hex 2.*Empty/)
+    await planet.selectSite("Hex 3, Empty")
+    await expect(planet.selectedSite).toHaveText(/Hex 3.*Empty/)
   })
 
   await test.step("Reopen the same occupied and empty sites after reload", async () => {
     await planet.reload()
     await expect(planet.site("Center hex, Command center")).toBeVisible()
-    await planet.selectSite("Hex 2, Empty")
-    await expect(planet.site("Hex 2, Empty")).toHaveAttribute("aria-pressed", "true")
+    await planet.selectSite("Hex 3, Empty")
+    await expect(planet.site("Hex 3, Empty")).toHaveAttribute("aria-pressed", "true")
     await expect(planet.attribute("Owner")).toHaveText(alice.alias)
   })
 })

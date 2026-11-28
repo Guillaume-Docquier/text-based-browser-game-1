@@ -21,6 +21,10 @@ export class PlanetPage extends GamePage {
     return this.details.getByRole("button", { name, exact: true })
   }
 
+  public siteArtwork(name: string): Locator {
+    return this.site(name).locator("image")
+  }
+
   public get selectedSite(): Locator {
     return this.details.getByRole("status", { name: "Selected site" })
   }

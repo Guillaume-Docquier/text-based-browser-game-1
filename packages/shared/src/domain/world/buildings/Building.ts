@@ -3,7 +3,8 @@ import { z } from "zod"
 import { PlanetIdSchema } from "#shared/domain/world/planets/PlanetId.ts"
 
 export type BuildingId = Branded<"BuildingId", string>
-export const BuildingType = { COMMAND_CENTER: "COMMAND_CENTER" } as const
+export const TRADE_CENTER_INCOME = 10
+export const BuildingType = { COMMAND_CENTER: "COMMAND_CENTER", TRADE_CENTER: "TRADE_CENTER" } as const
 export type BuildingType = (typeof BuildingType)[keyof typeof BuildingType]
 
 export const BuildingSchema = z.object({

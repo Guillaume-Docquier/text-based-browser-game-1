@@ -19,7 +19,6 @@ describe("building placement constraints", () => {
     const planet = view.galaxy.systems.flatMap(({ planets }) => planets).find((candidate) => candidate.coordinates === "63:50:40")
     Assert.isDefined(planet)
     const pool = postgres.db.$client
-    await pool.query("ALTER TYPE building_type ADD VALUE 'TEST_BUILDING'")
     const writer = await pool.connect()
     const insert = 'insert into "buildings" (game_id, planet_id, type, site) values ($1, $2, $3, $4)'
 
@@ -33,7 +32,7 @@ describe("building placement constraints", () => {
     } = await writer.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")
     Assert.isDefined(session)
     for (const race of [
-      { firstType: "TEST_BUILDING", firstSite: 1, secondSite: 1, constraint: "buildings_one_per_site" },
+      { firstType: "TRADE_CENTER", firstSite: 1, secondSite: 1, constraint: "buildings_one_per_site" },
       { firstType: "COMMAND_CENTER", firstSite: 0, secondSite: 2, constraint: "buildings_one_command_center_per_planet" },
     ]) {
       // Act

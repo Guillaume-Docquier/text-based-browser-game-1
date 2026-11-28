@@ -92,8 +92,12 @@ describe("gameplay.router", () => {
       const after = await fresh.client.gameplay.getPlayerView.query({ gameId })
 
       // Assert
-      expect(before.buildings).toHaveLength(2)
-      expect(before.buildings[0]).toMatchObject({ id: expect.any(String), type: "COMMAND_CENTER", site: 0, planetId: expect.any(String) })
+      expect(before.buildings).toHaveLength(4)
+      expect(before.buildings).toStrictEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: expect.any(String), type: "COMMAND_CENTER", site: 0, planetId: expect.any(String) }),
+        ]),
+      )
       expect(after.buildings.toSorted((a, b) => a.id.localeCompare(b.id))).toStrictEqual(
         before.buildings.toSorted((a, b) => a.id.localeCompare(b.id)),
       )
@@ -173,7 +177,10 @@ describe("gameplay.router", () => {
         gameId: createdGameId,
         player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, creditBalance: 100 },
         opponents: {},
-        buildings: [expect.objectContaining({ type: "COMMAND_CENTER", site: 0 })],
+        buildings: expect.arrayContaining([
+          expect.objectContaining({ type: "COMMAND_CENTER", site: 0 }),
+          expect.objectContaining({ type: "TRADE_CENTER", site: 1 }),
+        ]),
         galaxy: expect.any(Object), // INTENT: Verified by the snapshot test
         turn: 1,
       })

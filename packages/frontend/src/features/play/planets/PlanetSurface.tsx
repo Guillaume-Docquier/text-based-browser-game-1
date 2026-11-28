@@ -1,11 +1,13 @@
 import type { Planet, PlayerView } from "@api-types"
 import { type ReactElement, useState } from "react"
-import { BuildingType } from "shared/domain/world/buildings/Building.ts"
+import { BuildingType, TRADE_CENTER_INCOME } from "shared/domain/world/buildings/Building.ts"
 import { planetSurface } from "shared/domain/world/planets/planetSurface.ts"
 import commandCenterArt from "@/assets/buildings/command-center.png"
+import tradeCenterArt from "@/assets/buildings/trade-center.png"
 
 const BUILDING_APPEARANCE = {
   [BuildingType.COMMAND_CENTER]: { name: "Command center", art: commandCenterArt },
+  [BuildingType.TRADE_CENTER]: { name: "Trade center", art: tradeCenterArt },
 } satisfies Record<BuildingType, { name: string; art: string }>
 
 const RADIUS = 40
@@ -101,6 +103,9 @@ export function PlanetSurface({
           ·
         </span>
         {selectedType === undefined ? "Empty" : BUILDING_APPEARANCE[selectedType].name}
+        {selectedType === BuildingType.TRADE_CENTER && (
+          <span className="ml-3 text-muted-foreground">{TRADE_CENTER_INCOME} credits per turn</span>
+        )}
       </p>
     </section>
   )
