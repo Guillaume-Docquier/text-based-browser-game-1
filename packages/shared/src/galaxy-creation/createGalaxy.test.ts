@@ -10,7 +10,7 @@ const galaxySeed = integer()
 const cases = { seed: 762, numRuns: 8 }
 
 describe("createGalaxy", () => {
-  it("should leave every planet unowned when the player list is empty (GC-0001)", () => {
+  it("GC-0001 When the player list is empty, every planet in the returned galaxy is unowned.", () => {
     assert(
       property(galaxySeed, (seed) => {
         // Arrange
@@ -26,7 +26,7 @@ describe("createGalaxy", () => {
     )
   })
 
-  it("should place each system in a distinct grid cell (GC-SYS-0002)", () => {
+  it("GC-SYS-0002 Each system in the returned galaxy occupies a distinct one-light-year grid cell.", () => {
     assert(
       property(galaxySeed, (seed) => {
         // Arrange
@@ -43,7 +43,7 @@ describe("createGalaxy", () => {
     )
   })
 
-  it("should assign exactly one planet to each player and leave the rest unowned (GC-PLNT-0003)", () => {
+  it("GC-PLNT-0003 When there are enough planets for the supplied players, each player owns exactly one planet and all remaining planets are unowned.", () => {
     const players = uniqueArray(uuid({ version: 4 }), { minLength: 1, maxLength: 8 })
     assert(
       property(galaxySeed, players, (seed, ids) => {
@@ -64,7 +64,7 @@ describe("createGalaxy", () => {
     )
   })
 
-  it("should keep systems within the galaxy bounds on both axes (GC-SYS-0004)", () => {
+  it("GC-SYS-0004 Each system has x and y coordinates greater than or equal to zero and less than the configured galaxy diameter.", () => {
     assert(
       property(galaxySeed, (seed) => {
         // Arrange
