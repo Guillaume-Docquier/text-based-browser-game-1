@@ -1,4 +1,6 @@
-import { defineConfig, mergeConfig } from "vitest/config"
-import sharedConfig from "./vitest.config.ts"
+import { defineConfig } from "vitest/config"
 
-export default mergeConfig(sharedConfig, defineConfig({ test: { reporters: ["default"] } }))
+export default defineConfig({
+  resolve: { alias: { "#shared/galaxy-creation": process.cwd() } },
+  test: { name: "galaxy-creation", reporters: ["default"] },
+})

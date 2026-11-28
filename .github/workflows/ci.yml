@@ -185,7 +185,7 @@ jobs:
         uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3.2.0
 
       - name: Run Galaxy creation mutation tests
-        run: pnpm --filter shared exec stryker run stryker.galaxy.json
+        run: pnpm --filter shared mutation:galaxy-creation
 
       - name: Upload Galaxy creation mutation report
         if: ${{ !cancelled() }}
