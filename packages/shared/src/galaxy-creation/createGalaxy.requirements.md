@@ -2,6 +2,12 @@
 
 Next ID number: 0002
 
+## Prefixes
+
+| ID  | Stands for                    |
+| --- | ----------------------------- |
+| GC  | Galaxy Creation, this module. |
+
 ## Requirements
 
 | ID      | Requirement                                                                    |

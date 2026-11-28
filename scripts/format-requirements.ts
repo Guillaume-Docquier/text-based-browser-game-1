@@ -2,36 +2,38 @@ import { execFileSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { Result } from "@guillaume-docquier/tools-ts"
 
-function findFirstRequirementRow(lines: string[]): number | undefined {
-  const heading = lines.findIndex((line) => line.trimEnd() === "## Requirements")
-  if (heading === -1) {
-    return undefined
+function sortSection(lines: string[], section: "Requirements" | "Prefixes"): Result<void, SyntaxError> {
+  const heading = lines.findIndex((line) => line.trimEnd() === `## ${section}`)
+  if (heading === -1 && section === "Prefixes") {
+    return Result.Success(undefined)
   }
+
+  const column = section === "Requirements" ? "Requirement" : "Stands for"
+  const tableHeader = new RegExp(`^\\s*\\|?\\s*ID\\s*\\|\\s*${column}\\s*\\|?\\s*$`)
   let header = heading + 1
   while (lines[header]?.trim() === "") {
     header++
   }
-  if (
-    !/^\s*\|?\s*ID\s*\|\s*Requirement\s*\|?\s*$/.test(lines[header]) ||
-    !/^\s*\|?\s*:?-+:?\s*\|\s*:?-+:?\s*\|?\s*$/.test(lines[header + 1])
-  ) {
-    return undefined
+  if (heading === -1 || !tableHeader.test(lines[header]) || !/^\s*\|?\s*:?-+:?\s*\|\s*:?-+:?\s*\|?\s*$/.test(lines[header + 1])) {
+    return Result.Failure(new SyntaxError(`Missing the ID and ${column} table under ## ${section}.`))
   }
 
-  return header + 2
+  sortRowsById(lines, header + 2)
+  return Result.Success(undefined)
 }
 
 export function formatRequirementsFile(source: string): Result<string, SyntaxError> {
   const lines = source.split("\n")
-  const firstRow = findFirstRequirementRow(lines)
-  if (firstRow === undefined) {
-    return Result.Failure(new SyntaxError("Missing the ID and Requirement table under ## Requirements."))
+  for (const section of ["Requirements", "Prefixes"] as const) {
+    const result = sortSection(lines, section)
+    if (Result.isFailure(result)) {
+      return result
+    }
   }
-  sortRequirements(lines, firstRow)
   return Result.Success(lines.join("\n"))
 }
 
-function sortRequirements(lines: string[], firstRow: number): void {
+function sortRowsById(lines: string[], firstRow: number): void {
   const rows = []
   for (const line of lines.slice(firstRow)) {
     const cell = /^\s*\|?\s*([^|\s][^|]*)\|/.exec(line)

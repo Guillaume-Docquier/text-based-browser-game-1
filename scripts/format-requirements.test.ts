@@ -3,10 +3,18 @@ import { describe, expect, it } from "vitest"
 import { formatRequirementsFile } from "./format-requirements.ts"
 
 describe("formatRequirementsFile", () => {
-  it("should sort complete rows by their full IDs", () => {
+  it("should sort the prefixes and requirements tables by their respective IDs", () => {
     const input = `# Galaxy Creation requirements
 
 Next ID number: 0021
+
+## Prefixes
+
+| ID | Stands for |
+| --- | --- |
+| ST | Star. |
+| GC | Galaxy Creation. |
+| PL | Planet. |
 
 ## Requirements
 
@@ -20,6 +28,14 @@ Next ID number: 0021
     const expected = `# Galaxy Creation requirements
 
 Next ID number: 0021
+
+## Prefixes
+
+| ID | Stands for |
+| --- | --- |
+| GC | Galaxy Creation. |
+| PL | Planet. |
+| ST | Star. |
 
 ## Requirements
 
@@ -69,6 +85,23 @@ Next ID number: 0021
 
     expect(formatRequirementsFile(input)).toStrictEqual(
       Result.Failure(new SyntaxError("Missing the ID and Requirement table under ## Requirements.")),
+    )
+  })
+
+  it("should report a malformed table under the prefixes heading", () => {
+    const input = `## Prefixes
+
+| ID | Notes |
+| --- | --- |
+
+## Requirements
+
+| ID | Requirement |
+| --- | --- |
+`
+
+    expect(formatRequirementsFile(input)).toStrictEqual(
+      Result.Failure(new SyntaxError("Missing the ID and Stands for table under ## Prefixes.")),
     )
   })
 })

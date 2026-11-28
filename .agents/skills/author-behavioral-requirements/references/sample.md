@@ -2,6 +2,14 @@
 
 Next ID number: 0005
 
+## Prefixes
+
+| ID   | Stands for                    |
+| ---- | ----------------------------- |
+| GC   | Galaxy Creation, this module. |
+| PLNT | Planet related requirements.  |
+| STAR | Star related requirements.    |
+
 ## Requirements
 
 | ID           | Requirement                                                                    |
