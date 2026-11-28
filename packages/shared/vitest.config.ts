@@ -8,13 +8,13 @@ export default defineConfig({
   test: {
     coverage: {
       include: ["src/**/*.ts"],
-      exclude: ["**/.stryker-tmp/**", "**/vitest.mutation.config.ts"],
+      exclude: ["**/.stryker/**"],
       provider: "v8",
       reporter: ["text", ["lcov", { projectRoot: fileURLToPath(new URL("../..", import.meta.url)) }]],
       reportsDirectory: "./coverage",
     },
     environment: "node",
-    exclude: [...defaultExclude, "**/.stryker-tmp/**"],
+    exclude: [...defaultExclude, "**/.stryker/**"],
     globals: false,
     projects: moduleDirectories.map(({ name }) => ({
       extends: true as const,
