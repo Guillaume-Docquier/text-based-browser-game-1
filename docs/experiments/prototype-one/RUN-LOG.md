@@ -65,3 +65,55 @@ The first mutation run missed a target whose nearest system has no eligible plan
 
 Six public survivors affect home assignment. A [focused mutation run](../../../packages/shared/src/galaxy-creation/.stryker/reports/home-eligibility.json) ran the public properties and the existing home-assignment tests together. It killed 39 of 42 home mutants, including changes to the capacity precondition and handling of preowned planets. Two surviving mutations remove assertions whose inputs are guaranteed by the capacity and eligibility checks. The third changes which of two equally near stars wins, and either satisfies the placement rule. The other 47 public survivors affect the existing names, IDs, attributes and coordinate formats (23), or topology and unused topology-generator arguments (24). Their detailed behavior remains covered to varying degrees by existing focused tests and snapshots. The increment retains their baseline output.
 The reviewer cleared 637336de. The verifier repeated generation checks on that commit and covered the identical application code in Chromium. All four local acceptance criteria passed. Increment 01 is accepted.
+
+## 03 · Planet deposits
+
+Keep the existing biome, size and area ranges since the local description supplies new ranges only for metal. Use independent uniform integer rolls for positive production and deposit, then persist those values. Identify home systems from the completed home assignment. Every planet in all of those systems and in Sol starts at zero, regardless of its biome. All gas planets start at zero as well. For other unprotected planets, the chance depends only on biome. This keeps both attributes useful when choosing a colony and avoids a distance bonus. Follow the existing backend migration workflow. A player reopening a generated galaxy must see its saved values.
+
+## 02 · Ice biome terminology
+
+Use the existing Frozen biome for the local description’s “icy” Uranus and Neptune. It preserves the game’s terminology and both planets can carry their own art. On the system map, retain the Sun’s existing navigation action while exposing its name and public address. The verifier will check these details in the running UI.
+
+## 02 · Independent acceptance
+
+Across 56 seeds, each candidate Sol matched an independent replay of the random index into the original central systems. Its star kept the original position. The 56 matches used 41 public Sun addresses. The greatest observed distance from the galaxy center was 4.903 LY. All 205,309 body positions, addresses and IDs were distinct within their galaxies, and the largest error in the eight circular orbit radii was below 0.000001 AU. Solo and 16-player generation assigned 952 homes outside Sol. Every assignment matched the nearest eligible system to its reconstructed target around the Sun. Using the galaxy center would have changed 920 assignments.
+
+At 1280 × 720, Alice and Bob each used the map to find Sol, select all eight planets, read their sizes, biomes and public addresses, and return through the Sun. Both reopened Earth at 54:18:01 after reload. Jupiter and Saturn displayed Gas. Outside Sol, planet 501396 at 44:88:40 displayed Gas and used its own violet-and-cyan gas artwork. Inspection confirmed nine distinct Solar System images and an orange Sun core of radius 0.75 against 0.5 for ordinary stars, with a translucent halo of radius 3. Two early probe failures came from measuring the halo as the core and reading opacity instead of fill-opacity. Separate measurements confirmed the rendered values.
+
+Initial screenshots showed small, dim names. The implementation enlarged the persistent Sol label and solar body labels. Both users could then read the names at default zoom and click each inner planet without zooming. An existing Galaxy navigation test selected a star by ordinal position. After Sol generation, that selected a different star 0.031 LY from the Sun. The verifier identified the system that actually contains the two original test planets for the fixture correction.
+
+The final generator matrix and all seven Chromium checks passed on commit 4741395d. The browser suite covered both player accounts and the existing Galaxy and Planets flows. Using a named ordinary star to measure the radius ratio kept the probe valid after Sol moved to the start of the render order. The named fixture system also restored the existing inspector regression. The run exited 0. Forced reloads logged turn-state subscription disconnects while both users could reopen Earth with its original identity and address.
+
+## 02 · Independent review evidence
+
+Across seeds 0 through 127, the public galaxy generator produced one neutral Sun per match in 61 different public grid cells. The Sun lay 0.661–4.974 LY from the galaxy center. All 471,800 star and planet addresses were unique within their own matches. The largest difference between a measured Solar System orbital radius and its specified radius was 0.000000000313 AU. The candidate migration adds the GAS enum value and preserves existing stored biome values and coordinate strings.
+
+## 02 · Reload scenario
+
+At default zoom the verifier could open Sol and select Mercury, Venus and Earth. Reloading Earth’s inline inspector returned to Galaxy, since the system-map selection is local state. Verify 02 persistence by reopening Sol and comparing body identities and coordinates. Increment 03a explicitly owns reopening the selected planet directly on reload from either entry point. This finding supplies its regression scenario.
+
+## 02 · Final diff review
+
+Seed 48 placed Sol and an ordinary star 0.197 LY apart. The first, enlarged Sol hit target covered the ordinary star. The corrected map chooses the nearest star center under the pointer, retains a separate clickable Sol label, and has a browser regression for both overlapping centers. Review of commit `4741395d` confirmed all seven assigned texts and exact matching test names, all ten distinct images, and compatible storage for existing galaxies. All 43 galaxy tests passed independently. The focused mutation report leaves four equivalent or permitted changes: three redundant invariant checks and the choice between equidistant eligible home systems.
+
+## 03 · Assigned behavior
+
+- GC-PLNT-0012. When a galaxy is generated, each planet retains its biome, size and area and has separate integer values for metal production and remaining metal deposit.
+- GC-PLNT-0013. When a planet is in Sol or any player’s starting home system, its metal production and remaining metal deposit both start at zero.
+- GC-PLNT-0014. When a planet outside those systems is gas, its metal production and remaining metal deposit both start at zero.
+- GC-PLNT-0015. When a metallic planet outside those systems is generated, it has a 75% chance of a deposit. On a successful roll its remaining deposit is a uniform integer from 10 to 20 and its production is an independently sampled uniform integer from 2 to 4. Otherwise both values are zero.
+- GC-PLNT-0016. When a planet of any other non-gas biome outside those systems is generated, it has a 25% chance of a deposit. On a successful roll its remaining deposit is a uniform integer from 5 to 15 and its production is an independently sampled uniform integer from 1 to 3. Otherwise both values are zero.
+- Planet read API. When a player reads a saved planet, the API returns its stored metal production and remaining deposit and omits the former metal, fertility, fuel, energy and maximum population fields.
+- Planet list and inspector. When a player opens the planet list or inspects a planet, they can distinguish metal production per mine per turn from the remaining deposit. The removed attributes have no columns, sort choices or inspector entries.
+
+## 02 · Implementation and mutation evidence
+
+Commit `4741395d` adds Sol, Sun-centered homes, a Gas biome and ten transparent sprites. The PostgreSQL migration adds the Gas enum value. Seed 1234 keeps all 621 public star positions and replaces the five planets at 54:18 with eight. The API snapshot comparison found no changes to the other 620 stars. Other planets retained their names, IDs, sizes, areas, positions and addresses. The fifth biome changes biome rolls and their dependent attributes. Home selection moved one owner's ID between two planets.
+
+The first snapshot update stopped at an obsolete metallic-planet fixture. Comparing its persisted values confirmed the new Frozen roll. After correcting the sample, all 36 API integration tests passed both with and without snapshot update. The final shared suite passed 43 tests and the frontend passed 77 render and interaction tests. Both package typechecks and scoped lint passed. An earlier frontend typecheck included a temporary browser probe with incompatible DOM types. The verifier removed it after acceptance.
+
+The [committed public mutation report](../../../packages/shared/src/galaxy-creation/.stryker/reports/02-sol.html) lists 195 mutants. It recorded 146 kills, six timeouts, 43 survivors and zero uncovered mutants or errors. All coordinate formatters and the public entry point had zero survivors. Eleven survivors affect Sol or home assignment. The [focused boundary run](../../../packages/shared/src/galaxy-creation/.stryker/reports/sol-boundaries.json) included exactly-at-five LY, no-candidate, fully occupied, preowned and neutral-Sol fixtures. Of 67 mutants it killed 60 and timed out three. Its four survivors remove three assertions whose inputs are guaranteed earlier, or select the other system in an exact distance tie. The other 32 public survivors affect ordinary name or ID generation, attribute selection and topology details outside the seven assigned rules. The integration snapshot and focused generators also exercise those paths. Both mutation commands exited 0.
+
+## 02 · Acceptance
+
+Accepted 4741395d. Independent verification passed all six local criteria and the assigned map, address and artwork requirements on the reviewed commit. The team fixed labels and overlapping hit targets before the final seven Chromium checks passed. The final mutation run had zero uncovered mutants. The implementation report documents the survivor dispositions.
