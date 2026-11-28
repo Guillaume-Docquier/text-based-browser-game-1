@@ -217,3 +217,56 @@ Independent review and browser acceptance cleared `b12f199a`. The verifier check
 ## 03a · Acceptance
 
 Accepted b12f199a. Both entry points opened the same saved game and planet, the full view exposed every required attribute, and the return control restored the correct system from fresh sessions. The reviewer cleared the final revision, including the test-only follow-up.
+
+## 05 · Assigned behavior
+
+- When a match starts, each participating player receives the configured starting balance of 100 credits, including the only player in a solo match.
+- When a player enters or reloads the game, they can see their own saved global credit balance. Visiting another planet or colony shows the same balance for that player.
+
+Create a balance per match participant and preserve it across sessions. Initialize existing participants missing a balance once, using the same starting grant. Keep the balance private to the owning participant in the player view. The epic makes scores and swarm progress public. It gives credits to the individual to spend, and future reservations could reveal a player’s plans if exposed to an opponent.
+
+## 09 · Distance, trip preview and cost
+
+Use the two bodies’ physical coordinates in LY to measure the straight-line trip. The displayed address identifies the body and its physical position supplies the distance. The settled and reserved cost is one credit per actual LY, including fractional LY within a system. Round for display only and give small nonzero distances and prices enough precision to distinguish them from zero. Both order entry points show the same destination, distance, departure speed, turn count and total cost. A destination must differ from the current body. Use the departure load for the whole trip and clamp the last segment to the actual distance remaining, so short trips arrive on the resolving turn and hauling later records only real distance.
+
+## 04 · Independent database constraint tests
+
+A second command center can violate both the occupied-site constraint and the one-command-center constraint. The existing isolated PostgreSQL test project can distinguish them. Exercise them independently in its disposable database, using a transaction or isolated test schema for the second building kind. Keep production building types limited to command centers during 04. Use the repository’s current database test infrastructure and verify the actual rejected constraint. Replace any temporary test-only kind with the trade center fixture once 06 supplies that production type.
+
+## 04 · Independent surface and persistence review
+
+Across every area from 1 to 218, all 23,871 usable sites had distinct axial positions within their surface. Each larger surface preserved the complete prefix of the next smaller surface. Every ring began in the east and followed adjacent sites clockwise under the SVG transform. The production view looks up buildings by planet and site, and the dedicated command center image is visually distinct from the numbered empty hexes. The schema scopes identity, parent references and both uniqueness rules to the game. The match-start transaction inserts centers after their planets, and the read transaction returns saved identities.
+
+## 05 · Balance visibility and upgrade
+
+- When a participant reads their player view, it returns that participant’s settled credit balance for the current game and keeps other participants’ credit balances private.
+- When an existing match gains credit balances, each participant missing a balance receives the starting grant once. Reopening the match or restarting the backend preserves the stored amount.
+
+## 04 · Final diff review
+
+At `6a901725`, the reviewer matched all six requirement texts with their named tests and independently reran the ring property, match-start API test and fresh-session API read test. The PostgreSQL race tests distinguish the per-site uniqueness constraint from the per-planet command-center index. Their additional enum value exists only in a disposable test database. The shipped building enum contains the command center alone. Galaxy generation and turn resolution were unchanged in this increment. Final review found no open issues.
+
+## 04 · Implementation and verification
+
+Commit `6a901725` persists buildings with game-scoped UUID identity, type, planet and zero-based site. The match-start transaction writes one command center per home after saving the planets. The repeatable-read player view loads the saved rows in the same game. Migrations `0006` and `0007` create the table and initialize missing centers on owned planets in already-started games. The full planet page shows the selected site and its occupant alongside the planet facts, with dedicated command-center art and numbered empty sites. The stable ring traversal fills the east site first and proceeds clockwise.
+
+The six assigned requirements each have a named regression. The shared domain project passed three tests, the two relevant backend router suites passed 52, and the frontend passed all 84 render and interaction tests. The PostgreSQL concurrency test passed both conflicting writes, checking SQLSTATE 23505 and the actual rejected constraint in each. The verifier’s browser run including the tracked home inspection and Galaxy cases passed nine checks. Shared, backend and frontend typechecks, scoped lint and the production frontend build passed. An intermediate frontend typecheck included the verifier’s temporary spec while it was being written. The complete package passed once the verifier removed the probe.
+
+The [local Storybook review](http://127.0.0.1:62392/?path=/review/) shows the occupied, empty and full-page surfaces. The placement change is in match-start persistence and the saved view, with the galaxy generator and turn-resolution code unchanged. The former seed-1234 galaxy snapshot also passed without an update.
+
+The final commit also passed the complete shared package suite (53 tests) and all backend integration suites (75 tests).
+
+## 04 · Independent player and storage acceptance
+
+Verified `6a901725415123635c8350152df574df3a93ad92`. All six criteria passed. The final Chromium run passed 13 checks, including authentication, the tracked Galaxy and Planets specs, and five independent player scenarios.
+
+- Starting a solo and a two-player match created exactly one saved center per home. Fresh sessions and restarted backend processes returned the same three UUIDs, types, planet IDs and center sites as PostgreSQL. A populated pre-building database with two started games, 18 planets and a waiting lobby received four centers. Reapplying the migration and backfill, then reopening the database, preserved all four records.
+- Both owners saw their center at site 0. All unowned worlds started without buildings. In the isolated database, the occupied-site and one-command-center rules rejected separate inserts under their respective constraint names. The same numbered site in another game remained independent.
+- Chromium matched the displayed site count and east-first clockwise screen positions for every generated area from 2 through 11. A controlled area-one planet had only its usable center. An independent axial-coordinate calculation matched every surface from area 1 through 169, including eight complete rings or center-only layouts.
+- Reloading and reopening preserved site offsets. Reversing building records preserved the component’s arrangement. Adding one saved building to Earth’s third hex changed only that occupant. The neighboring sites and Earth in the other match were unchanged. The two controlled database edits were restored after verification.
+- The three home centers used the same identifiable building image. Empty sites used numbered outlines. The placed fixture used the same image off center.
+- Both participants identified their own and the other home, selected the center with a pointer, and inspected an empty site with the keyboard. The selected-site text, planet facts and surface were visible together at desktop width. At 390 pixels the same controls worked and the facts were reachable below the surface.
+
+## 04 · Acceptance
+
+Accepted 6a901725. The verifier confirmed saved building identity through real backend restarts, both database uniqueness constraints, stable positions after reorder and new occupancy, and player access to the center and empty sites. The reviewer cleared this commit. The generator and turn resolver were unchanged, so their mutation suites did not apply.

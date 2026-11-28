@@ -8,7 +8,7 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 - [x] [02/26 · Add Sol to the generated galaxy](issues/02-add-sol-to-the-generated-galaxy.md) — `4741395d`. Reviewer cleared and verifier passed all six criteria at that commit. Seeded replacement, orbit checks, Sun-centered homes and public addresses passed across 56 seeds. Two players could locate and inspect all nine named bodies in Chromium.
 - [x] [03/26 · Generate planetary metal deposits](issues/03-generate-planetary-metal-deposits.md) — `bcbce642`, `14dc5d9f`, `3e3263d1`. Reviewed and verified at `3e3263d1`. Generation across 588,616 planets, two players' list and inspector comparisons, persisted values and a 30,000-planet legacy upgrade passed.
 - [x] [03a · Open planets in a full planet view](issues/03a-open-planets-in-a-full-planet-view.md) — `cfda7067`, `b12f199a`. Reviewed and verified at `b12f199a`. Earth and an ordinary planet had the same durable view from either entry point. Fresh sessions, reload, return to the correct system and desktop and narrow layouts passed.
-- [ ] [04/26 · Persist buildings and display them on stable planet hexes](issues/04-persist-buildings-and-display-them-on-stable-planet-hexes.md)
+- [x] [04/26 · Persist buildings and display them on stable planet hexes](issues/04-persist-buildings-and-display-them-on-stable-planet-hexes.md) — `6a901725`. Reviewer and verifier cleared all six criteria on that commit. Persisted home command centers kept their identities after restart. Hex counts, fixed rings, occupied sites, distinct art, and solo and multiplayer inspection passed.
 - [ ] [05/26 · Give each player a credit balance](issues/05-give-each-player-a-credit-balance.md)
 - [ ] [06/26 · Produce income with trade centers](issues/06-produce-income-with-trade-centers.md)
 - [ ] [07/26 · Construct buildings with a command center](issues/07-construct-buildings-with-a-command-center.md)
@@ -35,4 +35,4 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 
 ## Active work
 
-04 is active. The implementer owns persisted buildings, start-of-match placement and the planet surface. The reviewer owns the diff. The verifier owns database restart, constraints, stable layout and the player walkthrough. Next, verify all six local criteria on the final commit.
+05 is active. The implementer owns match-scoped credit balances, migration, API and display. The reviewer owns the final diff. The verifier owns personal-balance, cross-colony and privacy checks in the running game. Next, verify all three local criteria on the final commit.
