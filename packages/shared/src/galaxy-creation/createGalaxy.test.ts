@@ -256,7 +256,7 @@ describe("createGalaxy", () => {
           )
         }
       }),
-      { ...cases, examples: [[5], [49]] },
+      { ...cases, examples: [[42], [43]] },
     )
   })
 
