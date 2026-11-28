@@ -1,6 +1,4 @@
-import { mulberry32Prng, Rng } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
-import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { PlayerIdSchema } from "#shared/domain/players/PlayerId.ts"
 import { createGalaxyStub } from "#shared/domain/world/Galaxy.stub.ts"
@@ -9,62 +7,55 @@ import { createStarStub } from "#shared/domain/world/stars/Star.stub.ts"
 import { createStarSystemStub } from "#shared/domain/world/StarSystem.stub.ts"
 import { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSettings.ts"
 import { generateHomePlanets } from "#shared/galaxy-creation/home-planets/generateHomePlanets.ts"
+import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 
 describe("generateHomePlanets", () => {
-  it("should mutate the galaxy", () => {
+  it("should assign the area-three planet when the nearest system has only small or owned planets", () => {
     // Arrange
-    const firstPlayerId = typedParse(PlayerIdSchema, v4())
+    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const ownerPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000002")
     const galaxy = createGalaxyStub({
       systems: [
         createStarSystemStub({
-          star: createStarStub(),
-          planets: [createPlanetStub()],
+          star: createStarStub({ x: 62, y: 50 }),
+          planets: [createPlanetStub({ area: 2 }), createPlanetStub({ area: 4, ownerPlayerId })],
+        }),
+        createStarSystemStub({
+          star: createStarStub({ x: 70, y: 50 }),
+          planets: [createPlanetStub({ area: 2 }), createPlanetStub({ area: 3 })],
         }),
       ],
     })
 
     // Act
-    const assignedGalaxy = generateHomePlanets({
+    const assigned = generateHomePlanets({
       galaxyCreationSettings: GalaxyCreationSettings,
       galaxy,
-      playerIds: [firstPlayerId],
-      rng: Rng.create(mulberry32Prng(1234)),
+      playerIds: [playerId],
+      rng: createSeededRng(),
     })
 
     // Assert
-    expect(assignedGalaxy).toBe(galaxy)
+    expect(assigned).toBe(galaxy)
+    expect(assigned.systems.map(({ planets }) => planets.map((planet) => planet.ownerPlayerId))).toStrictEqual([
+      [null, ownerPlayerId],
+      [null, playerId],
+    ])
   })
 
-  it("should deterministically assign unclaimed planets", () => {
+  it("should fail before assigning any planet when two players have only one eligible system", () => {
     // Arrange
-    const firstPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
-    const secondPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000002")
-    const thirstPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000003")
-
+    const playerIds = ["00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002"].map((id) =>
+      typedParse(PlayerIdSchema, id),
+    )
     const galaxy = createGalaxyStub({
-      systems: [
-        createStarSystemStub({
-          star: createStarStub({ x: 50, y: 50 }),
-          planets: [createPlanetStub(), createPlanetStub()],
-        }),
-        createStarSystemStub({
-          star: createStarStub({ x: 0, y: 0 }),
-          planets: [createPlanetStub()],
-        }),
-      ],
+      systems: [createStarSystemStub({ planets: [createPlanetStub({ area: 3 }), createPlanetStub({ area: 5 })] })],
     })
 
-    // Act
-    const assignedGalaxy = generateHomePlanets({
-      galaxyCreationSettings: GalaxyCreationSettings,
-      galaxy,
-      playerIds: [firstPlayerId, secondPlayerId, thirstPlayerId],
-      rng: Rng.create(mulberry32Prng(1234)),
-    })
-
-    // Assert
-    expect(assignedGalaxy.systems[0]?.planets[0]?.ownerPlayerId).toBe(secondPlayerId)
-    expect(assignedGalaxy.systems[0]?.planets[1]?.ownerPlayerId).toBe(thirstPlayerId)
-    expect(assignedGalaxy.systems[1]?.planets[0]?.ownerPlayerId).toBe(firstPlayerId)
+    // Act & Assert
+    expect(() =>
+      generateHomePlanets({ galaxyCreationSettings: GalaxyCreationSettings, galaxy, playerIds, rng: createSeededRng() }),
+    ).toThrow("Expected condition to be true.")
+    expect(galaxy.systems[0]?.planets.map(({ ownerPlayerId }) => ownerPlayerId)).toStrictEqual([null, null])
   })
 })
