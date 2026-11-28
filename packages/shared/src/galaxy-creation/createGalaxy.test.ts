@@ -26,7 +26,7 @@ describe("createGalaxy", () => {
     )
   })
 
-  it("should place each system in a distinct grid cell (GC-SY-0002)", () => {
+  it("should place each system in a distinct grid cell (GC-SYS-0002)", () => {
     assert(
       property(galaxySeed, (seed) => {
         // Arrange
@@ -43,7 +43,7 @@ describe("createGalaxy", () => {
     )
   })
 
-  it("should assign exactly one planet to each player and leave the rest unowned (GC-PL-0003)", () => {
+  it("should assign exactly one planet to each player and leave the rest unowned (GC-PLNT-0003)", () => {
     const players = uniqueArray(uuid({ version: 4 }), { minLength: 1, maxLength: 8 })
     assert(
       property(galaxySeed, players, (seed, ids) => {
@@ -64,7 +64,7 @@ describe("createGalaxy", () => {
     )
   })
 
-  it("should keep systems within the galaxy bounds on both axes (GC-SY-0004)", () => {
+  it("should keep systems within the galaxy bounds on both axes (GC-SYS-0004)", () => {
     assert(
       property(galaxySeed, (seed) => {
         // Arrange
