@@ -3,9 +3,10 @@
   "testRunner": "vitest",
   "testFiles": ["src/galaxy-creation/createGalaxy.test.ts"],
   "mutate": [
-    "src/galaxy-creation/createGalaxy.ts",
-    "src/galaxy-creation/topology/galaxyTopologyGenerator.ts",
-    "src/galaxy-creation/home-planets/generateHomePlanets.ts"
+    "src/galaxy-creation/**/*.ts",
+    "!src/galaxy-creation/**/*.test.ts",
+    "!src/galaxy-creation/**/*.stub.ts",
+    "!src/galaxy-creation/scripts/**"
   ],
   "ignorePatterns": ["tsconfig*.json"],
   "concurrency": 4,
