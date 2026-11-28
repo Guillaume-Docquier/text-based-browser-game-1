@@ -27,7 +27,7 @@ const context = createPlayGameContextStub({
     systems: [
       StarSystemSchema.parse(
         createStarSystemStub({
-          star: createStarStub({ id: "00000000-0000-4000-8000-000000000003", name: "Sol", x: 30, y: 40 }),
+          star: createStarStub({ id: "00000000-0000-4000-8000-000000000003", name: "Rigel", x: 30, y: 40 }),
           planets: [
             createPlanetStub({
               id: "00000000-0000-4000-8000-000000000004",
@@ -97,7 +97,7 @@ function SelectedPlanet(): ReactElement {
 export const PlanetProfile: Story = {
   ...Interactive,
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(await canvas.findByRole("button", { name: "View Sol Star System" }))
+    await userEvent.click(await canvas.findByRole("button", { name: "View Rigel Star System" }))
     await userEvent.click(await canvas.findByRole("button", { name: "View Terra details" }))
     await canvas.findByRole("article", { name: "Terra" })
   },

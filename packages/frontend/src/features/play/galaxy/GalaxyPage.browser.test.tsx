@@ -23,7 +23,7 @@ describe("Galaxy page camera", () => {
     await Interactive.run()
     await page.getByRole("button", { name: "Outside map" }).click()
     const map = page.getByRole("group", { name: "Galaxy map" })
-    const star = page.getByRole("button", { name: "View Sol Star System" })
+    const star = page.getByRole("button", { name: "View Rigel Star System" })
     const starWidth = (): number => starHitArea(star.element()).getBoundingClientRect().width
     const initialWidth = starWidth()
     let zoomedWidth = 0
@@ -33,13 +33,13 @@ describe("Galaxy page camera", () => {
       await expect.poll(starWidth).toBeGreaterThan(initialWidth)
       zoomedWidth = starWidth()
       await star.click()
-      await expect.element(page.getByRole("group", { name: "Sol Star System map" })).toBeVisible()
+      await expect.element(page.getByRole("group", { name: "Rigel Star System map" })).toBeVisible()
     })
 
     await page.mark("Return and wait for the system exit to complete", async () => {
-      await page.getByRole("button", { name: "Return to Galaxy from Sol" }).click()
+      await page.getByRole("button", { name: "Return to Galaxy from Rigel" }).click()
       await expect.element(page.getByRole("heading", { name: "Galaxy", exact: true })).toBeVisible()
-      await expect.element(page.getByRole("group", { name: "Sol Star System map" })).not.toBeInTheDocument()
+      await expect.element(page.getByRole("group", { name: "Rigel Star System map" })).not.toBeInTheDocument()
       expect(starWidth()).toBeCloseTo(zoomedWidth)
       expect(distanceFromMapCenter(map.element(), starHitArea(star.element()))).toBeLessThan(1)
     })
