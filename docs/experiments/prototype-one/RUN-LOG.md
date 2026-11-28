@@ -176,3 +176,44 @@ Eleven public-suite survivors concern Sol or starting-home selection. The [focus
 ## 03 · Acceptance
 
 Accepted 3e3263d1. The reviewer cleared the final changes and the verifier repeated generation checks at that revision. The final corrections affected only tests. All six local criteria, existing-match migration and the default and All planets views passed. The implementation report records mutation outcomes and survivor dispositions. A typographic apostrophe in the checklist update caused a PowerShell parse error before any write. Correct quoting allowed the update to complete.
+
+## 14 and 17 · Contested claims and pickups
+
+Use the match’s persisted seeded randomness for a fair draw among the valid claimants for each planet or requesters for each item. Choose from a stable ordering independent of submission time. A canceled or otherwise ineligible request is absent from that draw. A single request wins without a contest. Preserve every uncontested item when resolving a partially contested load. This follows the existing deterministic resolution rule and allows a verifier to replay a contest without giving an earlier order priority.
+
+## 04 · Assigned behavior
+
+- When a match starts, each owned home planet has exactly one persisted command center on its center hex, and every unowned planet starts with an empty surface.
+- When a planet surface is read in a fresh session or after server restart, each building retains its identity, type, planet and occupied hex.
+- When a planet surface is displayed, its area gives its exact number of usable hexes, including the center. The other hexes fill concentric rings nearest first, beginning each ring in the east and continuing clockwise, including partial rings.
+- When the player reloads or reopens a surface, when building records arrive in a different order, or when a building occupies an empty hex, all existing hexes retain their positions relative to the center.
+- When buildings are stored on a planet, each hex holds at most one building and the planet holds at most one command center.
+- When a player opens their home planet, they can distinguish the command center’s dedicated hex artwork from empty sites, inspect the surface and read the planet information in the same view.
+
+The backend starts with the saved home ownership, creates the command centers in the match-start transaction and reads those saved buildings for the planet view. For already-started matches at this stage, the saved owned planets are their homes. Initialize a missing starting command center exactly once and preserve existing identities on further reads or restarts. Check the new API view beside the existing metal requirement. The verifier can use a controlled persisted fixture for building insertion and read order before the construction action arrives in 07.
+
+## 03a · Independent acceptance
+
+At 1280 × 720, selecting Earth on the Sol map and selecting planet 195575 on its ordinary system map each opened a dedicated game-scoped planet address in the main play area. Selecting their coordinates in All planets reopened the corresponding identical address. Earth showed Unclaimed, Oceanic, Small, area 4, production 0 and deposit 0 at 44:76:01. Planet 195575 showed Unclaimed, Metallic, Medium, area 6, production 4 and deposit 10 at 75:97:10. The old details sidebar and system map were absent. A 634 × 384 surface region sat beside the labeled facts. Alice and Bob also opened the same owned home from the default list and saw the same owner alias. Browser Back returned to the list.
+
+Reloading directly after the map selection restored each planet. Separate fresh authenticated browser contexts at 390 × 844 opened the saved addresses and returned to the named containing systems. At phone width the artwork and facts stacked, all values were reachable by vertical scrolling, and the return control worked. Selecting the Sun still returned to Galaxy. An initial probe read the labels together with their values. Reading the definition elements independently corrected the probe and all four setup and player checks passed.
+
+## 03a · Independent review
+
+Both entry points now address the same game-scoped planet route. The full view reads its planet and containing system from the active player view, uses the existing Sol and biome art, displays all seven facts, and gives missing planet IDs a Galaxy exit. The old galaxy query address redirects to the canonical route. The reviewer matched all four requirement IDs and texts with their named tests and independently ran the frontend typecheck. The interactive story originally labeled an ordinary star with generic planet art as Sol. Commit `b12f199a` corrected that fixture to use Rigel. Final diff review found no open issues.
+
+## 03a · Final browser evidence
+
+The independent player flow and the maintained Galaxy and Planets flows passed all eight Chromium checks on implementation commit cfda7067, exit 0. The old planet query-string link redirected to the canonical address and showed the same owner. Final commit b12f199a changed only a Storybook fixture and its camera test. On that revision a separate browser probe opened a valid but absent planet ID, saw Planet unavailable, and used Return to Galaxy to reach the same game. All four setup and fallback checks passed, exit 0. Forced reloads logged turn-state subscription disconnects while the planets and their facts restored successfully.
+
+## 03a · Implementation and verification
+
+Commit `cfda7067` replaced the side panel with a full planet page reached from either the map or the list. Both link to the same game and planet identifiers. The containing system is also addressable, so the return link works directly after a fresh visit. Existing galaxy bookmarks with a planet query redirect to the canonical page. The full view reuses each planet’s map artwork and presents the owner, public coordinates, biome, size, area and separate metal values beside space for the surface.
+
+The four PV requirements have matching automated cases. Seven tracked Chromium checks passed with exit 0, including the original Earth reload scenario, the same planet address via both entry points, browser Back to the list and returning to the correct system after viewing two different planets. The frontend production build, typecheck, lint and all 81 frontend render and interaction tests passed. A cold initial Storybook run reoptimized the router dependency and interrupted unrelated tests. Prebundling that dependency fixed the cold run. Review caught a fictional Sol fixture in the interactive story. Commit `b12f199a` uses the ordinary system name Rigel and its ordinary artwork; the 81 tests passed again. The [local Storybook review](http://127.0.0.1:60033/?path=/review/) includes the map and full planet profile.
+
+Independent review and browser acceptance cleared `b12f199a`. The verifier checked authenticated desktop, narrow and fresh-context visits, Earth, a productive unowned planet, both players’ owner labels, legacy bookmarks and an unknown-planet exit.
+
+## 03a · Acceptance
+
+Accepted b12f199a. Both entry points opened the same saved game and planet, the full view exposed every required attribute, and the return control restored the correct system from fresh sessions. The reviewer cleared the final revision, including the test-only follow-up.
