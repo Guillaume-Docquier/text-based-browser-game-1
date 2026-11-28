@@ -6,7 +6,7 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 
 - [x] [01/26 · Assign prototype home worlds](issues/01-assign-prototype-home-worlds.md) — `a0f6e159`, `637336de`. Reviewed and verified at `637336de`. Across 128 galaxies every player had one eligible home in a distinct system. Solo and multiplayer players found and reopened their homes. The run log records scale, sampling and mutation results.
 - [x] [02/26 · Add Sol to the generated galaxy](issues/02-add-sol-to-the-generated-galaxy.md) — `4741395d`. Reviewer cleared and verifier passed all six criteria at that commit. Seeded replacement, orbit checks, Sun-centered homes and public addresses passed across 56 seeds. Two players could locate and inspect all nine named bodies in Chromium.
-- [ ] [03/26 · Generate planetary metal deposits](issues/03-generate-planetary-metal-deposits.md)
+- [x] [03/26 · Generate planetary metal deposits](issues/03-generate-planetary-metal-deposits.md) — `bcbce642`, `14dc5d9f`, `3e3263d1`. Reviewed and verified at `3e3263d1`. Generation across 588,616 planets, two players' list and inspector comparisons, persisted values and a 30,000-planet legacy upgrade passed.
 - [ ] [03a · Open planets in a full planet view](issues/03a-open-planets-in-a-full-planet-view.md)
 - [ ] [04/26 · Persist buildings and display them on stable planet hexes](issues/04-persist-buildings-and-display-them-on-stable-planet-hexes.md)
 - [ ] [05/26 · Give each player a credit balance](issues/05-give-each-player-a-credit-balance.md)
@@ -35,4 +35,4 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 
 ## Active work
 
-03 is active. The implementer owns deposit generation, storage and views. The reviewer owns the diff and mutation dispositions. The verifier owns generation checks, persisted data and the planet-list and inspector walkthrough. Next, verify the six criteria at the committed revision.
+03a is active. The implementer owns selection, routing and the full planet view. The reviewer owns the diff. The verifier owns the browser walkthrough from both entry points, reload and return to the containing system. Next, check all three local criteria on the final commit.

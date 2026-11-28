@@ -117,3 +117,62 @@ The [committed public mutation report](../../../packages/shared/src/galaxy-creat
 ## 02 · Acceptance
 
 Accepted 4741395d. Independent verification passed all six local criteria and the assigned map, address and artwork requirements on the reviewed commit. The team fixed labels and overlapping hit targets before the final seven Chromium checks passed. The final mutation run had zero uncovered mutants. The implementation report documents the survivor dispositions.
+
+## 03 · Comparing planets in existing games and lists
+
+The current Planets list only contains owned planets. At startup, all its rows would therefore show zero production and deposit. Keep the current owned-planets default and give the player an All planets choice in the existing list, using the current navigation, sorting and pagination patterns. Add this list requirement: “When the player opens Planets, their owned planets are shown first. Choosing All planets lets them compare the available metal production and remaining deposit of owned and unowned planets in the same list.” This makes the local comparison task possible and will also respect player-specific visibility in 10.
+
+Preserve saved games while removing the five legacy columns. During migration, use the saved starting ownership and Sol where present to protect those systems, and use the same biome probabilities and ranges for existing unprotected planets. A match created before Sol existed keeps its existing geography. Compute migrated metal values once and preserve them on later reads.
+
+## 04 · Surface order and placement
+
+Use the center as the first usable site. Start each new hex ring at its easternmost site and traverse clockwise in the player’s view. Add a partial outer ring in the same order. The planet’s area gives the total count including the center. This makes partial surfaces reproducible and keeps future build selections stable across reloads. Store a building’s occupied site with the building and enforce one building per site, plus a single command center per planet. The full planet view should give each selectable site a distinguishable accessible name and show the selected site and building together.
+
+## 03 · Independent generator and migration review
+
+Across seeds 0 through 63 and player counts 1 through 16, 3,229 planets in Sol or home systems and 38,855 other gas planets all had zero production and deposit. Of the eligible metallic planets, 29,378 of 39,164 had a deposit. The other eligible biomes had 29,151 deposits among 116,158 planets. All 33 possible deposit/production pairs occurred in each range. The generator had no distance input to the rolls. The migration selects protected systems by both match and star, draws presence once per planet and stores two separately sampled integers on success. The packaged backfill and its maintained SQL source matched byte for byte.
+
+## 03 · Independent acceptance
+
+In 192 games covering solo and 16-player starts across 96 seeds, the verifier checked 588,616 planets. All 8,137 planets in home systems, 1,536 Sol planets and 114,962 other gas planets had zero production and deposit. Among eligible planets, 74.83% of metallic planets and 24.89–24.95% of each other non-gas biome had deposits. Replaying the underlying random sequence reproduced each planet’s chance roll and separate uniform production and deposit draws across all distances. Every allowed production/deposit pair occurred in each eligible biome, including the endpoints.
+
+The verifier upgraded a disposable PGlite database from the three previous migrations. It held 30,000 planets in two games with overlapping star IDs and different home systems. All retained attributes and owners were preserved, the obsolete physical columns disappeared, and both new columns were non-null integers. All 18,000 protected planets and 2,400 additional gas worlds stayed at zero. The 12,000 outside-home rows included every allowed production/deposit combination. Running the migrator again and reopening the database preserved all values.
+
+Two players inspected both their own and their opponent’s home and a neighboring unclaimed planet in each system, plus Mercury in Sol. All showed zero production and deposit. In All planets they compared a metallic planet at 75:97:10 (4 per mine per turn, 10 remaining) with an oceanic planet at 55:14:15 (1 per turn, 15 remaining). With one mine and no further changes, the first would empty on turn three of production and the second on turn fifteen. Both inspectors agreed with the list before and after reload. A separate PostgreSQL read matched the two players’ complete 3,158-planet API values and confirmed removal of the old columns.
+
+The implementation commit bcbce642 passed the 192-game generation matrix and the populated legacy migration again. The final revision 14dc5d9f changed only the cutoff test. A fresh 192-game run on that revision passed, and the tested browser code and migrations were identical. All seven Chromium checks passed in 42.8 seconds with exit 0. For each account the default list showed exactly the two owned planets, sorted by owner; All planets showed 3,158. Sorting remaining deposit ascending and descending placed 0 and 20 first, respectively. The two saved API responses and four reloads matched all 3,158 rows from PostgreSQL. The temporary test and migration database were removed.
+
+## 03 · Default list membership
+
+The verifier found that the existing default lists every player’s owned planets in the current sort order. Preserve that behavior. Revise PLST-0002 to: “When the player opens Planets, the default list contains the planets owned by any player. Choosing All planets lets them compare the available metal production and remaining deposit of owned and unowned planets in the same list.” The default controls membership. Existing sorting determines the order. Increment 10 must derive known ownership and values from the reader’s permitted observations.
+
+## 07 · Order cutoff and reservations
+
+Use the existing turn’s authoritative open/closed boundary. The deadline or the last ready player closes planning for everyone. While planning remains open, readiness is reversible and an owner can cancel their submitted order. A ready player’s cancellation must not require any other player’s response. Once planning closes, worker queue time grants no extra opportunity to submit or cancel. Validate turn number, time and open state under the project’s turn lock. The chosen reservation model keeps the settled balance intact during planning and shows the full cost reserved for the owner. Resolution charges once; cancellation releases the full reservation immediately.
+
+## 03a · Assigned behavior
+
+- When a player selects a planet on the system map or through the planet list, the same full planet view opens in the main play area for that game and planet.
+- When a planet view opens, the player can identify the planet by name and coordinates and inspect its available ownership, biome, size, area, metal production and remaining deposit alongside space for its surface.
+- When a player reloads a planet view or returns to its address, the same game and planet reopen.
+- When a player chooses to return to the system from a planet view, the containing star system opens.
+
+Use the existing game and planet identifiers in a durable route. Preserve current list scope, stable artwork and public address semantics. The player needs an explicit way back to the containing system after a direct visit. The next increment supplies the hex surface, so the current layout needs room for it without invented surface data.
+
+## 03 · Final diff review
+
+The final review covered both migration paths, source and stored planet fields, list filtering and numeric sorting, inspector values, and all eight requirement texts and their named tests. The 48 galaxy tests passed independently at `3e3263d1`. The cutoff fixtures now use the existing generator stub. Seeds 42 and 43 retain the home-placement edge cases after the change in draw order. The [public mutation report](../../../packages/shared/src/galaxy-creation/.stryker/reports/03-deposits.json) counted 179 killed, 49 surviving and two timed-out mutants, with none uncovered. Applying each of the six surviving static deposit configurations separately caused the tests to fail in a fresh process. The [focused home and Sol report](../../../packages/shared/src/galaxy-creation/.stryker/reports/03-home-boundaries.json) left three redundant assertions and a permitted equidistant choice. Review cleared the final commit.
+
+## 03 · Implementation and mutation evidence
+
+Commit `bcbce642` replaced the five legacy planet attributes in generation, storage, reads, sorting and inspection. Deposit generation follows home assignment so the whole starting system of every player is protected. Existing saves receive a one-time migration using their stored home systems and biomes. The default list retains planets owned by any player. Choosing All planets adds unowned candidates. The eight behavior texts have matching automated tests. On seed 1234 the saved match retained 621 star positions and contained 3,158 planets, including 975 with productive deposits.
+
+Commit `14dc5d9f` replaced the inline chance stub with the existing generator fixture for exact 25% and 75% boundary cases. After the generated sequence changed, commit `3e3263d1` refreshed two home-assignment examples. The examples again exercise a nearest system whose planets are too small and a nearest system already assigned to a different player. The final galaxy suite passed 48 tests. Frontend tests passed 79 cases and the two backend integration suites passed 50. Shared, backend and frontend typechecks passed. The stored data, migration and browser comparisons are recorded under independent acceptance.
+
+On `3e3263d1`, `pnpm --filter shared mutation:galaxy-creation` exited 0 after 99 seconds. Its [local report](../../../packages/shared/src/galaxy-creation/.stryker/reports/03-deposits.html) counted 230 mutants, with 179 killed, two timeouts, 49 survivors and zero uncovered mutants or errors. Six survivors replace the static deposit configuration or integer ranges with empty objects. In an isolated source copy the original distribution tests passed. Applying each replacement individually in a fresh process failed those tests in all six cases. The [substitution results](../../../packages/shared/src/galaxy-creation/.stryker/reports/03-static-mutants.json) record the replaced objects and exit codes.
+
+Eleven public-suite survivors concern Sol or starting-home selection. The [focused run](../../../packages/shared/src/galaxy-creation/.stryker/reports/03-home-boundaries.json) added the corresponding generator fixtures and killed 63 of 67 mutants, with zero timeouts, errors or uncovered mutants. Three surviving changes remove assertions guaranteed by earlier checks and the fourth selects the other eligible system at exactly equal distance. The remaining 32 public-suite survivors concern ordinary topology, naming, identifiers and attribute selection. The seed-1234 saved-map snapshot and existing generator fixtures also exercise these paths.
+
+## 03 · Acceptance
+
+Accepted 3e3263d1. The reviewer cleared the final changes and the verifier repeated generation checks at that revision. The final corrections affected only tests. All six local criteria, existing-match migration and the default and All planets views passed. The implementation report records mutation outcomes and survivor dispositions. A typographic apostrophe in the checklist update caused a PowerShell parse error before any write. Correct quoting allowed the update to complete.
