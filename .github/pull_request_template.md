@@ -1,6 +1,6 @@
 ## Issue
 
-<!-- Bullet list of github links with the appropriate keyword (fixes, part of), such as: -->
+<!-- Bullet list of github links with the appropriate keyword ("fixes" or "part of", lowercased), such as: -->
 <!-- - fixes https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/000 -->
 <!-- - part of https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/000 -->
 <!-- The bullet point makes github show the issue title instead of just the number -->
