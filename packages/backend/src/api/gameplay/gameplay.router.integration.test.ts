@@ -1,4 +1,4 @@
-import { branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
@@ -11,6 +11,8 @@ import type { NotificationHandlers, NotificationListener } from "#lib/db/Postgre
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
 import { readTurnState, subscribeToTurnState } from "#testing/readTurnState.ts"
+import { flyTo } from "#testing/scoutPlanet.ts"
+import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import { GetTurnStateError, GetTurnStateErrorResponses } from "./getTurnState.error.ts"
 
@@ -74,6 +76,102 @@ describe("gameplay.router", () => {
   })
 
   describe("getPlayerView", () => {
+    it("should meet PVR-0002 When an observed planet surface is read in a fresh session or after server restart, each current or last-observed building retains its saved identity, type, planet and occupied hex.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using firstServer = new ApiServer(await createApiStub({ db }))
+      const first = await firstServer.createClient({ authenticated: true })
+      using secondServer = new ApiServer(await createApiStub({ db }))
+      const fresh = await secondServer.createClient({ authenticated: true })
+      const { createdGameId: gameId } = await first.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
+      })
+      await fresh.client.games.join.mutate({ gameId })
+      await first.client.games.startGame.mutate({ gameId })
+      const before = await first.client.gameplay.getPlayerView.query({ gameId })
+
+      const home = before.galaxy.systems.flatMap((s) => s.planets).find((p) => p.ownerPlayerId === before.player.id)
+      Assert.isDefined(home)
+      const { turnProcessor } = await createTurnProcessorStub({ db })
+      // Act
+      await flyTo({ gameId, owner: fresh, players: [first, fresh], worker: turnProcessor, destination: { kind: "planet", id: home.id } })
+      const after = await fresh.client.gameplay.getPlayerView.query({ gameId })
+
+      // Assert
+      expect(before.buildings.filter((b) => b.planetId === home.id)).toHaveLength(2)
+      expect(before.buildings).toStrictEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: expect.any(String), type: "COMMAND_CENTER", site: 0, planetId: expect.any(String) }),
+        ]),
+      )
+      expect(after.buildings.filter((b) => b.planetId === home.id)).toStrictEqual(before.buildings.filter((b) => b.planetId === home.id))
+    })
+
+    it("should meet PVR-0006 When a ship’s base capabilities are read, its persisted ship type selects the shared in-memory template. A transport has thrust 64, empty mass 4 and four cargo slots.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using server = new ApiServer(await createApiStub({ db }))
+      const owner = await server.createClient({ authenticated: true })
+      const { createdGameId: gameId } = await owner.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
+      })
+      await owner.client.games.startGame.mutate({ gameId })
+
+      // Act
+      const initial = await owner.client.gameplay.getPlayerView.query({ gameId })
+      const reopened = await owner.client.gameplay.getPlayerView.query({ gameId })
+
+      // Assert
+      expect(initial.ships).toStrictEqual([expect.objectContaining({ type: "TRANSPORT", thrust: 64, emptyMass: 4, cargoSize: 4 })])
+      expect(reopened.ships).toStrictEqual(initial.ships)
+    })
+
+    it("should meet PVR-0001 When a player reads an observed planet, its visible metal production and remaining deposit come from the current or last observed state. The API omits the former metal, fertility, fuel, energy and maximum population fields.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using apiServer = new ApiServer(await createApiStub({ db }))
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId: gameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
+      })
+      await player.client.games.startGame.mutate({ gameId })
+
+      // Act
+      const { turnProcessor } = await createTurnProcessorStub({ db })
+      await flyTo({
+        gameId,
+        owner: player,
+        players: [player],
+        worker: turnProcessor,
+        destination: { kind: "planet", id: "37c2b7b7-e1b1-584c-9043-aaab03ac3808" },
+      })
+      const view = await player.client.gameplay.getPlayerView.query({ gameId })
+      const reopened = await player.client.gameplay.getPlayerView.query({ gameId })
+
+      // Assert
+      const sample = view.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "63:50:40")
+      Assert.isDefined(sample)
+      expect(sample).toMatchObject({ observation: "current", metalProduction: 4, remainingMetalDeposit: 19 })
+      expect(Object.keys(sample).toSorted()).toStrictEqual(
+        [
+          "id",
+          "name",
+          "coordinates",
+          "x",
+          "y",
+          "observation",
+          "observedTurn",
+          "ownerPlayerId",
+          "size",
+          "area",
+          "biome",
+          "metalProduction",
+          "remainingMetalDeposit",
+        ].toSorted(),
+      )
+      expect(reopened.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.id === sample.id)).toStrictEqual(sample)
+    })
+
     it("should report a missing Turn for a member of an unstarted game", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
@@ -112,8 +210,15 @@ describe("gameplay.router", () => {
       // Assert
       expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
-        player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE },
+        availableCredits: "100",
+        player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, creditBalance: 100, creditBalanceExact: "100" },
         opponents: {},
+        ships: [expect.objectContaining({ type: "TRANSPORT", ownerPlayerId: getPlayerViewResult.player.id })],
+        constructionOrders: [],
+        buildings: expect.arrayContaining([
+          expect.objectContaining({ type: "COMMAND_CENTER", site: 0 }),
+          expect.objectContaining({ type: "TRADE_CENTER", site: 1 }),
+        ]),
         galaxy: expect.any(Object), // INTENT: Verified by the snapshot test
         turn: 1,
       })
@@ -128,7 +233,7 @@ describe("gameplay.router", () => {
       })
     })
 
-    it("should expose the current player and every opponent with their colors", async () => {
+    it("should meet PVR-0003 When a participant reads their player view, it returns that participant’s settled credit balance for the current game and keeps other participants’ credit balances private.", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
@@ -148,7 +253,12 @@ describe("gameplay.router", () => {
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(playerView.player).toStrictEqual({ id: creator.account.id, color: PlayerColor.TURQUOISE })
+      expect(playerView.player).toStrictEqual({
+        id: creator.account.id,
+        color: PlayerColor.TURQUOISE,
+        creditBalance: 100,
+        creditBalanceExact: "100",
+      })
       expect(playerView.opponents).toStrictEqual({
         [firstOpponent.account.id]: { id: firstOpponent.account.id, color: PlayerColor.PINK },
         [secondOpponent.account.id]: { id: secondOpponent.account.id, color: PlayerColor.YELLOW },

@@ -15,11 +15,8 @@ export type Planet = {
   readonly y: number
   readonly biome: PlanetBiome
   readonly size: PlanetSize
-  readonly fertility: number
-  readonly metal: number
-  readonly fuel: number
-  readonly energy: number
-  readonly maxPopulation: number
+  readonly metalProduction: number
+  readonly remainingMetalDeposit: number
   readonly area: number
 }
 
@@ -32,10 +29,7 @@ export const PlanetSchema = z.object({
   y: z.number(),
   biome: PlanetBiomeSchema,
   size: PlanetSizeSchema,
-  fertility: z.number(),
-  metal: z.number(),
-  fuel: z.number(),
-  energy: z.number(),
-  maxPopulation: z.number(),
+  metalProduction: z.number(),
+  remainingMetalDeposit: z.number(),
   area: z.number(),
 }) satisfies z.ZodType<Planet>

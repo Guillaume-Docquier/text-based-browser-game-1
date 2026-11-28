@@ -1,6 +1,7 @@
 import type { Galaxy } from "@api-types"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
+import { STARTING_CREDITS } from "shared/domain/games/startingCredits.ts"
 import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import type { PlayGameData } from "./PlayContext.tsx"
@@ -25,8 +26,12 @@ export function createPlayGameContextStub({ galaxy = { systems: [] } }: { galaxy
     },
     playerView: {
       gameId,
-      player: { id: player.id, color: player.color },
+      player: { id: player.id, color: player.color, creditBalance: STARTING_CREDITS, creditBalanceExact: String(STARTING_CREDITS) },
       opponents: {},
+      availableCredits: String(STARTING_CREDITS),
+      ships: [],
+      constructionOrders: [],
+      buildings: [],
       galaxy,
       turn: 1,
     },

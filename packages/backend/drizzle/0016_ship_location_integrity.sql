@@ -1,0 +1,1 @@
+ALTER TABLE "ships" ADD CONSTRAINT "ships_exactly_one_location" CHECK (num_nonnulls("ships"."planet_id","ships"."star_id","ships"."trip") = 1);

@@ -19,19 +19,19 @@ test("the galaxy view distinguishes systems with claimed planets and system view
     return await bobGameDetailsPage.openGame()
   })
 
-  await test.step("Distinguish each player's own and opponent-owned systems", async () => {
+  await test.step("Show only charted ownership on each player's map", async () => {
     await expect(aliceGalaxyPage.ownStars).toHaveCount(1)
-    await expect(aliceGalaxyPage.opponentStars).toHaveCount(1)
+    await expect(aliceGalaxyPage.opponentStars).toHaveCount(0)
     await expect(aliceGalaxyPage.sharedStars).toHaveCount(0)
 
     await expect(bobGalaxyPage.ownStars).toHaveCount(1)
-    await expect(bobGalaxyPage.opponentStars).toHaveCount(1)
+    await expect(bobGalaxyPage.opponentStars).toHaveCount(0)
     await expect(bobGalaxyPage.sharedStars).toHaveCount(0)
 
     await aliceGalaxyPage.openStarSystem(aliceGalaxyPage.ownStar(0))
     await expect(aliceGalaxyPage.systemHeading).toBeVisible()
     const aliceSystemName = await aliceGalaxyPage.systemHeading.innerText()
-    await expect(bobGalaxyPage.opponentSystem(aliceSystemName)).toBeVisible()
+    await expect(bobGalaxyPage.starNamed(aliceSystemName)).toBeVisible()
   })
 
   await test.step("Label Planets with their owner or Unclaimed", async () => {
@@ -42,28 +42,29 @@ test("the galaxy view distinguishes systems with claimed planets and system view
   })
 })
 
-test("the galaxy view can be navigated and the star system view can inspect planets", async ({ alice }) => {
+test("PV-0004 When a player chooses to return to the system from a planet view, the containing star system opens.", async ({ alice }) => {
   const gameDetailsPage = await test.step("Create a game", async () => await CreateGamePage.createGame({ creator: alice }))
   const galaxyPage = await test.step("Start the game", async () => await gameDetailsPage.startGame())
 
-  const selectedStar = galaxyPage.star(1)
+  const selectedStar = galaxyPage.starNamed("star 35076")
 
   await test.step("Open a Star System and inspect its Planet profiles", async () => {
     await galaxyPage.openStarSystem(selectedStar)
     await expect(galaxyPage.starSystemMap).toBeVisible()
 
-    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 405771"))
-    await expect(galaxyPage.planetProfileHeading("planet 405771")).toBeVisible()
-    await expect(galaxyPage.planetDetailsPane).toContainText("Planet attributes")
-    await expect(galaxyPage.planetDetailsPane).toContainText("Fertility")
-    await expect(galaxyPage.planetDetailsPane).toContainText("Max population")
-    await expect(galaxyPage.planetDetailsPane).toContainText("Coordinates")
+    const firstPlanet = await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 415673"))
+    await expect(firstPlanet.heading).toHaveText("planet 415673")
+    await expect(firstPlanet.attribute("Metal production per mine per turn")).toHaveText("Unknown")
+    await expect(firstPlanet.attribute("Remaining metal deposit")).toHaveText("Unknown")
+    await firstPlanet.returnToSystem()
+    await expect(galaxyPage.systemHeading).toHaveText("star 35076")
 
-    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 120528"))
-    await expect(galaxyPage.planetProfileHeading("planet 120528")).toBeVisible()
-
-    await galaxyPage.clickOnTheMap()
-    await expect(galaxyPage.planetDetailsPane).not.toBeVisible()
+    const secondPlanet = await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 272683"))
+    await expect(secondPlanet.heading).toHaveText("planet 272683")
+    await expect(secondPlanet.attribute("Metal production per mine per turn")).toHaveText("Unknown")
+    await expect(secondPlanet.attribute("Remaining metal deposit")).toHaveText("Unknown")
+    await secondPlanet.returnToSystem()
+    await expect(galaxyPage.systemHeading).toHaveText("star 35076")
   })
 
   await test.step("Return to the Galaxy and reopen the Star System", async () => {

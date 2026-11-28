@@ -14,12 +14,14 @@
   },
   "scripts": {
     "mutation:galaxy-creation": "cd src/galaxy-creation && stryker run .stryker/stryker.config.json",
+    "mutation:turn-resolution": "cd src/turn-resolution && stryker run .stryker/stryker.config.json",
     "test": "vitest run",
     "test:coverage": "pnpm test --coverage",
     "typecheck": "tsc -b"
   },
   "dependencies": {
     "@guillaume-docquier/tools-ts": "catalog:",
+    "decimal.js": "^10.6.0",
     "transformation-matrix": "^3.1.0",
     "uuid": "catalog:",
     "zod": "catalog:"

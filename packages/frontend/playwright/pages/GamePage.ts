@@ -10,6 +10,7 @@ export abstract class GamePage extends BasePage {
   private readonly planetsLink: Locator
   private readonly playersLink: Locator
 
+  public readonly credits: Locator
   public readonly gameNameHeading: Locator
   private readonly turnButton: Locator
 
@@ -17,6 +18,7 @@ export abstract class GamePage extends BasePage {
     super(page)
 
     this.gameTopBar = page.getByRole("banner")
+    this.credits = this.gameTopBar.getByLabel("Credits", { exact: true })
     this.gameNameHeading = this.gameTopBar.getByRole("heading", { level: 1 })
     this.turnButton = this.gameTopBar.getByRole("button", { name: /^(Lock in|Cancel lock in)$/ })
     const gameNavigation = page.getByRole("navigation", { name: "Game navigation" })

@@ -13,5 +13,10 @@ export default defineConfig({
       plugins: ["vitest"],
       rules: { "vitest/valid-title": ["error", { mustMatch: { it: "^GC-(?:[A-Z]{2,4}-)?[0-9]{4} .+" } }] },
     },
+    {
+      files: ["src/turn-resolution/resolveTurn.test.ts"],
+      plugins: ["vitest"],
+      rules: { "vitest/valid-title": ["error", { mustMatch: { it: "^TR-(?:[A-Z]{2,4}-)?[0-9]{4} .+" } }] },
+    },
   ],
 } satisfies OxlintConfig)

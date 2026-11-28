@@ -2,10 +2,12 @@ import { Assert } from "@guillaume-docquier/tools-ts"
 import { composeStories } from "@storybook/react-vite"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { page, userEvent } from "vitest/browser"
+import gasArt from "@/assets/planets/gas.png"
+import unknownArt from "@/assets/planets/unobserved.svg"
 import { distanceFromMapCenter, starHitArea } from "@/testing/mapGeometry.ts"
 import * as stories from "./StarSystemMap.stories.tsx"
 
-const { Interactive } = composeStories(stories)
+const { Interactive, SolarSystem, GasPlanet } = composeStories(stories)
 
 async function renderMap(): Promise<void> {
   await page.viewport(900, 800)
@@ -101,3 +103,38 @@ function pauseTransformTransition(map: Element): { readonly animation: CSSTransi
     },
   }
 }
+
+describe("Solar and gas planet artwork", () => {
+  it("should meet SMAP-0001 When a player opens Sol, they can identify the Sun and all eight planets by their real names, distinct artwork and public coordinates.", async () => {
+    await SolarSystem.run()
+    await page.mark("Inspect the Sun and all eight planets", async () => {
+      const map = page.getByRole("group", { name: "Sol Star System map" })
+      const art = new Set<string | null | undefined>()
+      const sun = map.getByRole("button", { name: "Return to Galaxy from Sun" }).element()
+      expect(sun.querySelector("title")?.textContent).toMatch(/Sun · \d\d:\d\d/)
+      art.add(sun.querySelector("image")?.getAttribute("href"))
+      for (const name of ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"]) {
+        const planet = map.getByRole("button", { name: `View ${name} details` }).element()
+        expect(planet.querySelector("text")?.textContent).toBe(name)
+        expect(planet.querySelector("title")?.textContent).toMatch(/\d\d:\d\d:[\d.]+/)
+        art.add(planet.querySelector("image")?.getAttribute("href"))
+      }
+      expect(art.has(null)).toBe(false)
+      expect(art.has(undefined)).toBe(false)
+      expect(art.size).toBe(9)
+    })
+  })
+
+  it("should meet PART-0001 When a planet outside Sol is currently or previously observed as gas, it uses dedicated gas-biome artwork. An unobserved ordinary planet uses neutral artwork.", async () => {
+    await GasPlanet.run()
+    await page.mark("Inspect an ordinary gas planet", async () => {
+      const planet = page.getByRole("button", { name: "View Cirrus details" })
+      expect(planet.element().querySelector("image")?.getAttribute("href")).toBe(gasArt)
+      const remembered = page.getByRole("button", { name: /View Nimbus details, Last observed/ })
+      expect(remembered.element().querySelector("image")?.getAttribute("href")).toBe(gasArt)
+      const unknown = page.getByRole("button", { name: "View Veil details" })
+      expect(unknown.element().querySelector("image")?.getAttribute("href")).toBe(unknownArt)
+      expect(unknown.element().querySelector("image")?.hasAttribute("data-biome")).toBe(false)
+    })
+  })
+})

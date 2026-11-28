@@ -7,6 +7,7 @@ export const PlanetBiome = {
   METALLIC: "METALLIC",
   FROZEN: "FROZEN",
   VOLCANIC: "VOLCANIC",
+  GAS: "GAS",
 } as const
 
 export const PlanetBiomeSchema = z.enum(PlanetBiome) satisfies z.ZodType<PlanetBiome>

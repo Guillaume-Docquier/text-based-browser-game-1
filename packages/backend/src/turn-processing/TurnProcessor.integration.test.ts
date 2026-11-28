@@ -1,7 +1,8 @@
-import { Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { afterEach, describe, expect, vi, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
+import type { PlayerView } from "#api/gameplay/PlayerView.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
@@ -9,6 +10,9 @@ import { readTurnState } from "#testing/readTurnState.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import { type ProcessedTurnModel, TurnsRepository } from "#turn-processing/turns.repository.ts"
 
+function refreshOnSecondTurn(planet: PlayerView["galaxy"]["systems"][number]["planets"][number]): typeof planet {
+  return planet.observation === "current" ? { ...planet, observedTurn: 2 } : planet
+}
 describe("TurnProcessor", () => {
   describe("processTurnsForever", () => {
     afterEach(() => {
@@ -125,6 +129,14 @@ describe("TurnProcessor", () => {
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>({
         ...initialPlayerView,
+        galaxy: {
+          systems: initialPlayerView.galaxy.systems.map((system) => ({
+            ...system,
+            planets: system.planets.map(refreshOnSecondTurn),
+          })),
+        },
+        availableCredits: "110",
+        player: { ...initialPlayerView.player, creditBalance: 110, creditBalanceExact: "110" },
         turn: 2,
       })
       expect(await readTurnState(player.client, createdGameId)).toMatchObject({
@@ -218,7 +230,7 @@ describe("TurnProcessor", () => {
       })
     })
 
-    it("should be able to process the same turn over time", async () => {
+    it("should meet PVR-0004 When the owner plans orders on turn N, only credits already available on turn N can fund them. Income earned when N resolves is available for orders on N+1.", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
@@ -232,19 +244,24 @@ describe("TurnProcessor", () => {
       await player.client.games.startGame.mutate({ gameId })
 
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+      const opening = await player.client.gameplay.getPlayerView.query({ gameId })
 
       // Act
       clock.increment({ time: turnInterval })
       await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
+      const next = await player.client.gameplay.getPlayerView.query({ gameId })
 
       clock.increment({ time: turnInterval })
       await turnsRepository.moveDueTurnsToAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
+      expect(opening).toMatchObject({ turn: 1, player: { creditBalance: 100 } })
+      expect(next).toMatchObject({ turn: 2, player: { creditBalance: 110 } })
       expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
         turn: 3,
+        player: { creditBalance: 120 },
       })
     })
 
@@ -286,7 +303,7 @@ describe("TurnProcessor", () => {
       })
     })
 
-    it("should not do anything in case of failure", async () => {
+    it("should settle a pending build once when a failed turn is retried", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
@@ -299,6 +316,17 @@ describe("TurnProcessor", () => {
       })
       await player.client.games.startGame.mutate({ gameId: createdGameId })
 
+      const initial = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const home = initial.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.ownerPlayerId === initial.player.id)
+      Assert.isDefined(home)
+      await player.client.gameplay.construction.mutate({
+        gameId: createdGameId,
+        turn: 1,
+        action: "submit",
+        planetId: home.id,
+        type: "TRADE_CENTER",
+        site: 2,
+      })
       const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId: createdGameId })
       const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
       const turnToProcess = { gameId: createdGameId, turn: 1 }
@@ -318,10 +346,18 @@ describe("TurnProcessor", () => {
       expect(failedProcessingResult).toBe("failed")
       expect(playerViewAfterFailedSave).toMatchObject({
         turn: 1,
+        player: { creditBalance: 100 },
       })
+      expect(playerViewAfterFailedSave.buildings).toStrictEqual(initial.buildings)
+      expect(playerViewAfterFailedSave.constructionOrders).toHaveLength(1)
       expect(retriedProcessingResult).toBe("processed")
+      expect(
+        playerViewAfterRetry.buildings.filter((building) => building.planetId === home.id).filter((building) => building.site === 2),
+      ).toHaveLength(1)
       expect(playerViewAfterRetry).toMatchObject({
         turn: 2,
+        constructionOrders: [],
+        player: { creditBalance: 80 },
       })
     })
   })

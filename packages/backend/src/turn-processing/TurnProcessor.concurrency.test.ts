@@ -105,8 +105,13 @@ describe("TurnProcessor concurrency", () => {
     })
     expect(await concurrency.waitForCompletion(secondProcessor.processNextDueTurn())).toBe("idle")
 
+    const processing = await player.client.gameplay.getPlayerView.query({ gameId })
+    expect(processing).toMatchObject({ turn: 1, player: { creditBalance: 100 } })
+
     await saveBlock.release()
     expect(await firstOutcome).toStrictEqual(Result.Success("processed"))
+    const settled = await player.client.gameplay.getPlayerView.query({ gameId })
+    expect(settled).toMatchObject({ turn: 2, player: { creditBalance: 110 } })
     expect(await readTurnState(player.client, gameId)).toMatchObject({
       turn: 2,
       turnStatus: TurnStatus.COLLECTING_ACTIONS,

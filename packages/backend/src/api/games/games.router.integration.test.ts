@@ -1,12 +1,10 @@
-import { Datetime, Time, UnitOfTime, branded, UInt32 } from "@guillaume-docquier/tools-ts"
+import { Assert, Datetime, Time, UnitOfTime, branded, UInt32 } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { MAX_NB_SEATS } from "shared/domain/games/GameConfiguration.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import type { Player } from "shared/domain/players/Player.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
-import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
-import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { CreateGameError, CreateGameErrorResponses } from "#api/games/createGame.error.ts"
@@ -95,6 +93,118 @@ describe("games.router", () => {
     })
   })
   describe("startGame", () => {
+    it("should meet STRT-0002 When a match starts, each participating player receives the configured starting balance of 100 credits, including the only player in a solo match.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using server = new ApiServer(await createApiStub({ db }))
+      const alice = await server.createClient({ authenticated: true })
+      const bob = await server.createClient({ authenticated: true })
+      const { createdGameId: solo } = await alice.client.games.create.mutate({ configuration: createGameConfigurationStub({ nbSeats: 2 }) })
+      const { createdGameId: multiplayer } = await alice.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ nbSeats: 2 }),
+      })
+      await bob.client.games.join.mutate({ gameId: multiplayer })
+
+      // Act
+      await alice.client.games.startGame.mutate({ gameId: solo })
+      await alice.client.games.startGame.mutate({ gameId: multiplayer })
+      const soloView = await alice.client.gameplay.getPlayerView.query({ gameId: solo })
+      const aliceView = await alice.client.gameplay.getPlayerView.query({ gameId: multiplayer })
+      const bobView = await bob.client.gameplay.getPlayerView.query({ gameId: multiplayer })
+
+      // Assert
+      expect([soloView.player.creditBalance, aliceView.player.creditBalance, bobView.player.creditBalance]).toStrictEqual([100, 100, 100])
+    })
+
+    it("should meet STRT-0004 When a match starts, each participant owns exactly one transport stationed at their home planet with no cargo and no order.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using server = new ApiServer(await createApiStub({ db }))
+      const creator = await server.createClient({ authenticated: true })
+      const configuration = createGameConfigurationStub({ nbSeats: MAX_NB_SEATS, mapGenerationSeed: 1234 })
+      const { createdGameId: solo } = await creator.client.games.create.mutate({ configuration })
+      const { createdGameId: full } = await creator.client.games.create.mutate({ configuration })
+      const participants = [creator]
+      for (let index = 1; index < MAX_NB_SEATS; index++) {
+        const participant = await server.createClient({ authenticated: true })
+        await participant.client.games.join.mutate({ gameId: full })
+        participants.push(participant)
+      }
+
+      // Act
+      await creator.client.games.startGame.mutate({ gameId: solo })
+      await creator.client.games.startGame.mutate({ gameId: full })
+
+      // Assert
+      for (const [gameId, group] of [
+        [solo, [creator]],
+        [full, participants],
+      ] as const) {
+        const ids = new Set<string>()
+        for (const participant of group) {
+          const view = await participant.client.gameplay.getPlayerView.query({ gameId })
+          const homes = view.galaxy.systems.flatMap((s) => s.planets).filter((p) => p.ownerPlayerId === view.player.id)
+          expect(homes).toHaveLength(1)
+          const own = view.ships.filter((ship) => ship.ownerPlayerId === view.player.id)
+          expect(own).toStrictEqual([expect.objectContaining({ type: "TRANSPORT", planetId: homes[0]?.id, cargo: [], order: null })])
+          const [ship] = own
+          Assert.isDefined(ship)
+          ids.add(ship.id)
+        }
+        expect(ids.size).toBe(group.length)
+      }
+    })
+
+    it("should meet STRT-0003 When a match starts, each home has one operating trade center on the first free surface hex alongside its command center.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using server = new ApiServer(await createApiStub({ db }))
+      const alice = await server.createClient({ authenticated: true })
+      const bob = await server.createClient({ authenticated: true })
+      const { createdGameId: gameId } = await alice.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ nbSeats: 2 }),
+      })
+      await bob.client.games.join.mutate({ gameId })
+
+      // Act
+      await alice.client.games.startGame.mutate({ gameId })
+      const views = await Promise.all([alice, bob].map(async (p) => await p.client.gameplay.getPlayerView.query({ gameId })))
+      // Assert
+      for (const view of views) {
+        const home = view.galaxy.systems.flatMap((s) => s.planets).find((p) => p.ownerPlayerId === view.player.id)
+        expect(view.buildings.filter((b) => b.planetId === home?.id)).toStrictEqual([
+          expect.objectContaining({ type: "COMMAND_CENTER", site: 0 }),
+          expect.objectContaining({ type: "TRADE_CENTER", site: 1 }),
+        ])
+      }
+    })
+
+    it("should meet STRT-0001 When a match starts, each owned home planet has exactly one persisted command center on its center hex, and every unowned planet starts with an empty surface.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using server = new ApiServer(await createApiStub({ db }))
+      const alice = await server.createClient({ authenticated: true })
+      const bob = await server.createClient({ authenticated: true })
+      const { createdGameId: gameId } = await alice.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ nbSeats: 2, mapGenerationSeed: 1234 }),
+      })
+      await bob.client.games.join.mutate({ gameId })
+
+      // Act
+      await alice.client.games.startGame.mutate({ gameId })
+      const views = await Promise.all([alice, bob].map(async (p) => await p.client.gameplay.getPlayerView.query({ gameId })))
+      // Assert
+      for (const view of views) {
+        const planets = view.galaxy.systems.flatMap((s) => s.planets)
+        const homes = planets.filter((p) => p.ownerPlayerId !== null)
+        expect(view.buildings.every((b) => homes.some((home) => home.id === b.planetId))).toBe(true)
+        const home = homes.find((p) => p.ownerPlayerId === view.player.id)
+        expect(view.buildings.filter((b) => b.planetId === home?.id).filter((b) => b.type === "COMMAND_CENTER")).toStrictEqual([
+          expect.objectContaining({ site: 0 }),
+        ])
+      }
+    })
+
     it("should reject starting a game as an account that has not joined", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
@@ -127,22 +237,21 @@ describe("games.router", () => {
       expect(playerView.galaxy.systems.length).toBeGreaterThan(500)
       expect(playerView.galaxy.systems.flatMap(({ planets }) => planets).length).toBeGreaterThan(1500)
       expect(
-        playerView.galaxy.systems.flatMap((system) => system.planets).find(({ id }) => id === "cd2c40c4-0233-5b79-9d85-2ad751dff9e9"),
+        playerView.galaxy.systems.flatMap((system) => system.planets).find(({ id }) => id === "37c2b7b7-e1b1-584c-9043-aaab03ac3808"),
       ).toStrictEqual({
-        coordinates: "44:76:35",
-        x: 46.42170962226795,
-        y: 47.214122556498126,
-        id: "cd2c40c4-0233-5b79-9d85-2ad751dff9e9",
+        coordinates: "63:50:40",
+        x: 30.754045402421188,
+        y: 65.12758196335155,
+        id: "37c2b7b7-e1b1-584c-9043-aaab03ac3808",
         ownerPlayerId: null,
-        name: "planet 387467",
-        biome: PlanetBiome.METALLIC,
-        size: PlanetSize.LARGE,
-        fertility: 1,
-        metal: 4,
-        fuel: 2,
-        energy: 3,
-        maxPopulation: 30,
-        area: 11,
+        name: "planet 272683",
+        observation: "unknown",
+        observedTurn: null,
+        biome: null,
+        size: null,
+        metalProduction: null,
+        remainingMetalDeposit: null,
+        area: null,
       })
 
       const allStars = playerView.galaxy.systems.map(({ star }) => star)
@@ -200,18 +309,13 @@ describe("games.router", () => {
 
       // Act
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
-      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Assert
-      const homePlanetsOwnerIds = playerView.galaxy.systems
-        .flatMap(({ planets }) => planets)
-        .filter(({ ownerPlayerId }) => ownerPlayerId !== null)
-        .map(({ ownerPlayerId }) => ownerPlayerId)
-
-      expect(homePlanetsOwnerIds).toHaveLength(3)
-      expect(homePlanetsOwnerIds).toStrictEqual(
-        expect.arrayContaining([creator.account.id, firstOpponent.account.id, secondOpponent.account.id]),
+      const views = await Promise.all(
+        [creator, firstOpponent, secondOpponent].map(async (p) => await p.client.gameplay.getPlayerView.query({ gameId: createdGameId })),
       )
+      // Assert
+      const homes = views.flatMap((view) => view.galaxy.systems.flatMap((s) => s.planets).filter((p) => p.ownerPlayerId === view.player.id))
+      expect(new Set(homes.map((p) => p.id)).size).toBe(3)
+      expect(homes.map((p) => p.ownerPlayerId)).toStrictEqual([creator.account.id, firstOpponent.account.id, secondOpponent.account.id])
     })
 
     it("should reject starting a game as a non-creator", async () => {

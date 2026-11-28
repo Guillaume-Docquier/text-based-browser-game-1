@@ -10,40 +10,42 @@ import { ScrollArea, ScrollBar } from "@/components/scroll-area.tsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
+import { observationLabel } from "../observationLabel.ts"
 
-type OwnedPlanet = Planet & { readonly ownerPlayerId: PlayerId }
-type PlanetRow = { readonly planet: OwnedPlanet; readonly owner: Player; readonly ownerLabel: string }
-type SortColumn = "planet" | "owner" | "coordinates" | "fertility" | "metal" | "fuel" | "energy" | "maxPopulation" | "area"
+type PlanetRow = { readonly planet: Planet; readonly owner: Player | undefined; readonly ownerLabel: string }
+type SortColumn = "planet" | "owner" | "coordinates" | "metalProduction" | "remainingMetalDeposit" | "area"
 type SortDirection = "ascending" | "descending"
 type PlanetSort = { readonly column: SortColumn; readonly direction: SortDirection }
 type PlanetRowComparator = (first: PlanetRow, second: PlanetRow) => number
 
 const ALL_PLAYERS = "all"
+const ALL_PLANETS = "all-planets"
+type OwnerFilter = PlayerId | typeof ALL_PLAYERS | typeof ALL_PLANETS
 const TEXT_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" })
 const SORT_COMPARATORS = {
   planet: (first, second) => TEXT_COLLATOR.compare(first.planet.name, second.planet.name),
   owner: (first, second) => TEXT_COLLATOR.compare(first.ownerLabel, second.ownerLabel),
   coordinates: (first, second) => TEXT_COLLATOR.compare(first.planet.coordinates, second.planet.coordinates),
-  fertility: (first, second) => first.planet.fertility - second.planet.fertility,
-  metal: (first, second) => first.planet.metal - second.planet.metal,
-  fuel: (first, second) => first.planet.fuel - second.planet.fuel,
-  energy: (first, second) => first.planet.energy - second.planet.energy,
-  maxPopulation: (first, second) => first.planet.maxPopulation - second.planet.maxPopulation,
-  area: (first, second) => first.planet.area - second.planet.area,
+  metalProduction: (first, second) => (first.planet.metalProduction ?? -1) - (second.planet.metalProduction ?? -1),
+  remainingMetalDeposit: (first, second) => (first.planet.remainingMetalDeposit ?? -1) - (second.planet.remainingMetalDeposit ?? -1),
+  area: (first, second) => (first.planet.area ?? -1) - (second.planet.area ?? -1),
   id: (first, second) => TEXT_COLLATOR.compare(first.planet.id, second.planet.id),
 } as const satisfies Record<SortColumn | "id", PlanetRowComparator>
 
 export function PlanetsPage(): ReactElement {
   const { gameDetails, playerView } = usePlayGameContext()
   const [search, setSearch] = useState("")
-  const [ownerFilter, setOwnerFilter] = useState<PlayerId | typeof ALL_PLAYERS>(ALL_PLAYERS)
+  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>(ALL_PLAYERS)
   const [sort, setSort] = useState<PlanetSort>({ column: "owner", direction: "ascending" })
   const rows = createPlanetRows(
     playerView.galaxy.systems.flatMap(({ planets }) => planets),
     gameDetails.players,
   )
   const normalizedSearch = search.trim().toLocaleLowerCase()
-  const ownerFilteredRows = rows.filter(({ owner }) => ownerFilter === ALL_PLAYERS || owner.id === ownerFilter)
+  const ownerFilteredRows = rows.filter(
+    ({ planet }) =>
+      ownerFilter === ALL_PLANETS || (ownerFilter === ALL_PLAYERS ? planet.ownerPlayerId !== null : planet.ownerPlayerId === ownerFilter),
+  )
   const searchFilteredRows = filterPlanetRows(ownerFilteredRows, normalizedSearch)
   const sortedRows = sortPlanetRows(searchFilteredRows, sort)
 
@@ -55,8 +57,8 @@ export function PlanetsPage(): ReactElement {
   }
 
   function changeOwnerFilter(value: string): void {
-    if (value === ALL_PLAYERS) {
-      setOwnerFilter(ALL_PLAYERS)
+    if (value === ALL_PLAYERS || value === ALL_PLANETS) {
+      setOwnerFilter(value)
       return
     }
 
@@ -96,13 +98,14 @@ function PlanetsFilters({
   onOwnerFilterChange,
 }: {
   search: string
-  ownerFilter: PlayerId | typeof ALL_PLAYERS
+  ownerFilter: OwnerFilter
   owners: readonly Player[]
   onSearchChange: (value: string) => void
   onOwnerFilterChange: (value: string) => void
 }): ReactElement {
   const ownerItems = [
     { value: ALL_PLAYERS, label: "All players" },
+    { value: ALL_PLANETS, label: "All planets" },
     ...owners.map((owner) => ({ value: owner.id, label: owner.alias ?? `Player ${owner.id}` })),
   ]
 
@@ -123,7 +126,7 @@ function PlanetsFilters({
 
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-muted-foreground">Owner</span>
-        <Select<PlayerId | typeof ALL_PLAYERS>
+        <Select<OwnerFilter>
           value={ownerFilter}
           items={ownerItems}
           onValueChange={(value) => {
@@ -166,7 +169,7 @@ function PlanetsTable({
       className="min-h-0 min-w-0 flex-1 rounded-xl border border-border/70 bg-card/30"
       scrollbarStyle={{ top: "2.75rem", height: "auto" }}
     >
-      <table aria-label="Owned planets" className="w-full min-w-[76rem] border-collapse text-sm">
+      <table aria-label="Planets" className="w-full min-w-[56rem] border-collapse text-sm">
         <PlanetTableHeader sort={sort} onSort={onSort} />
         <PlanetTableBody gameId={gameId} rows={rows} emptyMessage={emptyMessage} />
       </table>
@@ -182,12 +185,12 @@ function PlanetTableHeader({ sort, onSort }: { sort: PlanetSort; onSort: (column
         <SortHeader label="Planet" column="planet" sort={sort} onSort={onSort} />
         <SortHeader label="Owner" column="owner" sort={sort} onSort={onSort} />
         <SortHeader label="Coordinates" column="coordinates" sort={sort} onSort={onSort} />
-        <SortHeader label="Fertility" column="fertility" sort={sort} onSort={onSort} align="right" />
-        <SortHeader label="Metal" column="metal" sort={sort} onSort={onSort} align="right" />
-        <SortHeader label="Fuel" column="fuel" sort={sort} onSort={onSort} align="right" />
-        <SortHeader label="Energy" column="energy" sort={sort} onSort={onSort} align="right" />
-        <SortHeader label="Max population" column="maxPopulation" sort={sort} onSort={onSort} align="right" />
+        <SortHeader label="Metal production per mine per turn" column="metalProduction" sort={sort} onSort={onSort} align="right" />
+        <SortHeader label="Remaining metal deposit" column="remainingMetalDeposit" sort={sort} onSort={onSort} align="right" />
         <SortHeader label="Area" column="area" sort={sort} onSort={onSort} align="right" />
+        <th scope="col" className="px-4 py-3 text-left font-medium">
+          Observation
+        </th>
       </tr>
     </thead>
   )
@@ -206,7 +209,7 @@ function PlanetTableBody({
     return (
       <tbody>
         <tr>
-          <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground">
+          <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
             {emptyMessage}
           </td>
         </tr>
@@ -234,27 +237,24 @@ function PlanetTableRow({ gameId, row }: { gameId: GameId; row: PlanetRow }): Re
           <span
             aria-hidden="true"
             className="size-3 shrink-0 rounded-full border border-foreground/20"
-            style={{ backgroundColor: PLAYER_COLOR_HEX[owner.color] }}
+            style={{ backgroundColor: owner === undefined ? "transparent" : PLAYER_COLOR_HEX[owner.color] }}
           />
           {ownerLabel}
         </span>
       </td>
       <td className="whitespace-nowrap px-4 py-3">
         <Link
-          to="/games/$gameId/play/galaxy"
-          params={{ gameId }}
-          search={{ planetId: planet.id }}
+          to="/games/$gameId/play/planet/$planetId"
+          params={{ gameId, planetId: planet.id }}
           className="font-medium text-sky-400 underline decoration-sky-400/60 underline-offset-4 hover:text-sky-300"
         >
           {planet.coordinates}
         </Link>
       </td>
-      <NumericCell value={planet.fertility} />
-      <NumericCell value={planet.metal} />
-      <NumericCell value={planet.fuel} />
-      <NumericCell value={planet.energy} />
-      <NumericCell value={planet.maxPopulation.toLocaleString()} />
-      <NumericCell value={planet.area.toLocaleString()} />
+      <NumericCell value={planet.metalProduction ?? "Unknown"} />
+      <NumericCell value={planet.remainingMetalDeposit ?? "Unknown"} />
+      <NumericCell value={planet.area?.toLocaleString() ?? "Unknown"} />
+      <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{observationLabel(planet)}</td>
     </tr>
   )
 }
@@ -302,7 +302,10 @@ function NumericCell({ value }: { value: number | string }): ReactElement {
 function createPlanetRows(planets: readonly Planet[], players: readonly Player[]): PlanetRow[] {
   const ownersById = new Map(players.map((player) => [player.id, player]))
 
-  return planets.filter(isOwnedPlanet).map((planet) => {
+  return planets.map((planet) => {
+    if (planet.ownerPlayerId === null) {
+      return { planet, owner: undefined, ownerLabel: planet.observation === "unknown" ? "Unknown" : "Unclaimed" }
+    }
     const owner = ownersById.get(planet.ownerPlayerId)
     Assert.isDefined(owner)
 
@@ -322,10 +325,6 @@ function filterPlanetRows(rows: readonly PlanetRow[], normalizedSearch: string):
   return rows.filter(({ planet }) => {
     return planet.name.toLocaleLowerCase().includes(normalizedSearch) || planet.coordinates.toLocaleLowerCase().includes(normalizedSearch)
   })
-}
-
-function isOwnedPlanet(planet: Planet): planet is OwnedPlanet {
-  return planet.ownerPlayerId !== null
 }
 
 function sortPlanetRows(rows: readonly PlanetRow[], sort: PlanetSort): PlanetRow[] {

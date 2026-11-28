@@ -1,0 +1,1 @@
+ALTER TABLE "players" ALTER COLUMN "credit_balance" SET DATA TYPE numeric USING "credit_balance"::text::numeric;

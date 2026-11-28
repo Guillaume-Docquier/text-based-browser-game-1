@@ -5,84 +5,86 @@
     <text x="24" y="32" font-size="20">Cluster galaxy system samples</text>
     <text x="24" y="60" font-size="16">4 random systems | Units: AU | Radius: 50 AU</text>
   </g>
-  <g aria-label="star 44545">
-    <text x="80" y="128" font-family="monospace" font-size="16" fill="#ffffff">star 44545 | 4 planets</text>
+  <g aria-label="star 65311">
+    <text x="80" y="128" font-family="monospace" font-size="16" fill="#ffffff">star 65311 | 4 planets</text>
     <g aria-label="Planet orbits" fill="none" stroke="#4f4f4f" stroke-width="0.5" opacity="0.35">
+      <circle cx="240" cy="300" r="128" />
+      <circle cx="240" cy="300" r="144" />
       <circle cx="240" cy="300" r="48" />
-      <circle cx="240" cy="300" r="64" />
-      <circle cx="240" cy="300" r="112" />
-      <circle cx="240" cy="300" r="80" />
+      <circle cx="240" cy="300" r="96" />
     </g>
     <circle cx="240" cy="300" r="160" fill="none" stroke="#00ff66" stroke-width="2" />
     <g aria-label="Star">
       <circle cx="240" cy="300" r="8" fill="#ffeb3b" />
     </g>
     <g aria-label="Planets">
-    <circle cx="287.8818" cy="296.6334" r="4" fill="#f97316" data-biome="VOLCANIC" data-size="MEDIUM" />
-    <circle cx="176.2522" cy="305.6765" r="6.4" fill="#ffffff" data-biome="FROZEN" data-size="LARGE" />
-    <circle cx="248.7185" cy="188.3399" r="4" fill="#ffffff" data-biome="FROZEN" data-size="MEDIUM" />
-    <circle cx="313.3747" cy="331.8772" r="6.4" fill="#3452eb" data-biome="OCEANIC" data-size="LARGE" />
+    <circle cx="243.8485" cy="172.0579" r="6.4" fill="#a68ad0" data-biome="GAS" data-size="LARGE" />
+    <circle cx="293.3894" cy="166.263" r="4" fill="#ffffff" data-biome="FROZEN" data-size="MEDIUM" />
+    <circle cx="287.9836" cy="298.7435" r="2" fill="#ffffff" data-biome="FROZEN" data-size="SMALL" />
+    <circle cx="294.8031" cy="221.1799" r="2" fill="#f97316" data-biome="VOLCANIC" data-size="SMALL" />
     </g>
   </g>
-  <g aria-label="star 807084">
-    <text x="500" y="128" font-family="monospace" font-size="16" fill="#ffffff">star 807084 | 4 planets</text>
+  <g aria-label="star 192015">
+    <text x="500" y="128" font-family="monospace" font-size="16" fill="#ffffff">star 192015 | 7 planets</text>
     <g aria-label="Planet orbits" fill="none" stroke="#4f4f4f" stroke-width="0.5" opacity="0.35">
+      <circle cx="660" cy="300" r="48" />
+      <circle cx="660" cy="300" r="160" />
+      <circle cx="660" cy="300" r="144" />
+      <circle cx="660" cy="300" r="16" />
       <circle cx="660" cy="300" r="64" />
       <circle cx="660" cy="300" r="32" />
       <circle cx="660" cy="300" r="112" />
-      <circle cx="660" cy="300" r="160" />
     </g>
     <circle cx="660" cy="300" r="160" fill="none" stroke="#00ff66" stroke-width="2" />
     <g aria-label="Star">
       <circle cx="660" cy="300" r="8" fill="#ffeb3b" />
     </g>
     <g aria-label="Planets">
-    <circle cx="708.4944" cy="341.7648" r="6.4" fill="#798391" data-biome="METALLIC" data-size="LARGE" />
-    <circle cx="652.0755" cy="331.0033" r="6.4" fill="#798391" data-biome="METALLIC" data-size="LARGE" />
-    <circle cx="561.5672" cy="246.568" r="2" fill="#f97316" data-biome="VOLCANIC" data-size="SMALL" />
-    <circle cx="506.2555" cy="344.3015" r="6.4" fill="#798391" data-biome="METALLIC" data-size="LARGE" />
+    <circle cx="659.8319" cy="252.0003" r="4" fill="#f97316" data-biome="VOLCANIC" data-size="MEDIUM" />
+    <circle cx="708.3726" cy="147.4874" r="6.4" fill="#ffffff" data-biome="FROZEN" data-size="LARGE" />
+    <circle cx="803.7524" cy="308.4405" r="4" fill="#a68ad0" data-biome="GAS" data-size="MEDIUM" />
+    <circle cx="646.9295" cy="309.2283" r="4" fill="#3452eb" data-biome="OCEANIC" data-size="MEDIUM" />
+    <circle cx="607.6373" cy="336.7988" r="6.4" fill="#f97316" data-biome="VOLCANIC" data-size="LARGE" />
+    <circle cx="646.6919" cy="270.8985" r="6.4" fill="#a68ad0" data-biome="GAS" data-size="LARGE" />
+    <circle cx="575.5445" cy="373.5614" r="2" fill="#a68ad0" data-biome="GAS" data-size="SMALL" />
     </g>
   </g>
-  <g aria-label="star 7698">
-    <text x="80" y="528" font-family="monospace" font-size="16" fill="#ffffff">star 7698 | 6 planets</text>
+  <g aria-label="star 549882">
+    <text x="80" y="528" font-family="monospace" font-size="16" fill="#ffffff">star 549882 | 4 planets</text>
     <g aria-label="Planet orbits" fill="none" stroke="#4f4f4f" stroke-width="0.5" opacity="0.35">
-      <circle cx="240" cy="700" r="16" />
-      <circle cx="240" cy="700" r="160" />
-      <circle cx="240" cy="700" r="80" />
-      <circle cx="240" cy="700" r="112" />
-      <circle cx="240" cy="700" r="48" />
       <circle cx="240" cy="700" r="32" />
+      <circle cx="240" cy="700" r="160" />
+      <circle cx="240" cy="700" r="64" />
+      <circle cx="240" cy="700" r="80" />
     </g>
     <circle cx="240" cy="700" r="160" fill="none" stroke="#00ff66" stroke-width="2" />
     <g aria-label="Star">
       <circle cx="240" cy="700" r="8" fill="#ffeb3b" />
     </g>
     <g aria-label="Planets">
-    <circle cx="224.1762" cy="702.368" r="6.4" fill="#f97316" data-biome="VOLCANIC" data-size="LARGE" />
-    <circle cx="231.4417" cy="540.2291" r="2" fill="#798391" data-biome="METALLIC" data-size="SMALL" />
-    <circle cx="200.1861" cy="630.6108" r="4" fill="#ffffff" data-biome="FROZEN" data-size="MEDIUM" />
-    <circle cx="131.7913" cy="728.8944" r="4" fill="#3452eb" data-biome="OCEANIC" data-size="MEDIUM" />
-    <circle cx="230.9958" cy="747.1479" r="6.4" fill="#ffffff" data-biome="FROZEN" data-size="LARGE" />
-    <circle cx="214.3891" cy="719.1854" r="4" fill="#ffffff" data-biome="FROZEN" data-size="MEDIUM" />
+    <circle cx="259.9018" cy="725.0583" r="2" fill="#a68ad0" data-biome="GAS" data-size="SMALL" />
+    <circle cx="85.9541" cy="743.2419" r="6.4" fill="#f97316" data-biome="VOLCANIC" data-size="LARGE" />
+    <circle cx="227.4786" cy="762.7632" r="6.4" fill="#f97316" data-biome="VOLCANIC" data-size="LARGE" />
+    <circle cx="187.837" cy="639.3451" r="2" fill="#f97316" data-biome="VOLCANIC" data-size="SMALL" />
     </g>
   </g>
-  <g aria-label="star 716548">
-    <text x="500" y="528" font-family="monospace" font-size="16" fill="#ffffff">star 716548 | 4 planets</text>
+  <g aria-label="star 854146">
+    <text x="500" y="528" font-family="monospace" font-size="16" fill="#ffffff">star 854146 | 4 planets</text>
     <g aria-label="Planet orbits" fill="none" stroke="#4f4f4f" stroke-width="0.5" opacity="0.35">
-      <circle cx="660" cy="700" r="16" />
       <circle cx="660" cy="700" r="96" />
       <circle cx="660" cy="700" r="64" />
-      <circle cx="660" cy="700" r="80" />
+      <circle cx="660" cy="700" r="16" />
+      <circle cx="660" cy="700" r="128" />
     </g>
     <circle cx="660" cy="700" r="160" fill="none" stroke="#00ff66" stroke-width="2" />
     <g aria-label="Star">
       <circle cx="660" cy="700" r="8" fill="#ffeb3b" />
     </g>
     <g aria-label="Planets">
-    <circle cx="674.2919" cy="707.1932" r="6.4" fill="#ffffff" data-biome="FROZEN" data-size="LARGE" />
-    <circle cx="745.417" cy="743.817" r="2" fill="#ffffff" data-biome="FROZEN" data-size="SMALL" />
-    <circle cx="599.1358" cy="680.2124" r="4" fill="#f97316" data-biome="VOLCANIC" data-size="MEDIUM" />
-    <circle cx="594.9421" cy="746.5561" r="2" fill="#ffffff" data-biome="FROZEN" data-size="SMALL" />
+    <circle cx="638.0773" cy="793.4633" r="6.4" fill="#798391" data-biome="METALLIC" data-size="LARGE" />
+    <circle cx="600.5047" cy="723.5862" r="2" fill="#3452eb" data-biome="OCEANIC" data-size="SMALL" />
+    <circle cx="645.2622" cy="706.2287" r="6.4" fill="#ffffff" data-biome="FROZEN" data-size="LARGE" />
+    <circle cx="609.923" cy="817.7977" r="4" fill="#3452eb" data-biome="OCEANIC" data-size="MEDIUM" />
     </g>
   </g>
 </svg>

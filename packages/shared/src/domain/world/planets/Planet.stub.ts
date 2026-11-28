@@ -20,11 +20,8 @@ export function createPlanetStub({
     y: 0,
     biome: PlanetBiome.OCEANIC,
     size: PlanetSize.SMALL,
-    fertility: 1,
-    metal: 1,
-    fuel: 1,
-    energy: 1,
-    maxPopulation: 1,
+    metalProduction: 0,
+    remainingMetalDeposit: 0,
     area: 1,
     ...overrides,
   })

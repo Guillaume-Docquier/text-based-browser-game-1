@@ -18,14 +18,27 @@ import type { Player } from "shared/domain/players/Player.ts"
 import type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import type { Building } from "shared/domain/world/buildings/Building.ts"
 import type { Galaxy } from "shared/domain/world/Galaxy.ts"
+import type { Ship } from "shared/domain/world/ships/Ship.ts"
 import type { GameCreationConfirmation } from "#api/games/GameCreationConfirmation.ts"
 import type { GameDetails } from "#api/games/GameDetails.ts"
 import { GetGameByIdError } from "#api/games/getGameById.error.ts"
 import { GetGameListingsError } from "#api/games/getGameListings.error.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
+import { PlanetObservationsRepository } from "#lib/db/planetObservations.repository.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { accountsTable, gamesTable, playersTable, turnsTable, turnsProcessingTable, starsTable, planetsTable } from "#lib/db/schema.ts"
+import {
+  accountsTable,
+  gamesTable,
+  playersTable,
+  turnsTable,
+  turnsProcessingTable,
+  starsTable,
+  planetsTable,
+  buildingsTable,
+  shipsTable,
+} from "#lib/db/schema.ts"
 import { CreateGameError } from "./createGame.error.ts"
 import { JoinGameError, JoinGameRollbackError } from "./joinGame.error.ts"
 import { LeaveGameError, LeaveGameRollbackError } from "./leaveGame.error.ts"
@@ -105,11 +118,14 @@ export type GameForStart = Branded<
 >
 
 export type StartGameModel = {
+  readonly startingCredits: number
   readonly context: GameForStart
   readonly status: GameStatus
   readonly startedAt: Date
   readonly turnEndsAt: Date
   readonly rngState: RngState<number>
+  readonly ships: readonly Ship[]
+  readonly buildings: ReadonlyArray<Omit<Building, "id">>
   readonly galaxy: Galaxy
 }
 
@@ -231,12 +247,21 @@ export class GamesRepository extends PostgresRepository {
       .returning({ id: gamesTable.id })
     Assert.isTrue(updatedGames.length === 1)
 
+    await tx
+      .update(playersTable)
+      .set({ creditBalance: startGameModel.startingCredits })
+      .where(eq(playersTable.gameId, startGameModel.context.gameId))
     await tx.insert(turnsTable).values(gameTurn)
     await tx.insert(turnsProcessingTable).values(turnProcessing)
     await tx.insert(starsTable).values(stars)
     for (let index = 0; index < planets.length; index += PLANET_INSERT_BATCH_SIZE) {
       await tx.insert(planetsTable).values(planets.slice(index, index + PLANET_INSERT_BATCH_SIZE))
     }
+    await tx.insert(shipsTable).values(startGameModel.ships.map((ship) => ({ ...ship, gameId: startGameModel.context.gameId })))
+    await tx
+      .insert(buildingsTable)
+      .values(startGameModel.buildings.map((building) => ({ ...building, gameId: startGameModel.context.gameId })))
+    await new PlanetObservationsRepository(tx).saveCurrentObservations(gameTurn.gameId, gameTurn.turn)
   }
 
   public async getGameListings(

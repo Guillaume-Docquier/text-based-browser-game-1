@@ -1,11 +1,14 @@
-import { ne, sql } from "drizzle-orm"
+import { eq, ne, sql } from "drizzle-orm"
 import {
   bigint,
   boolean,
+  check,
   doublePrecision,
   foreignKey,
   index,
   integer,
+  jsonb,
+  numeric,
   pgEnum,
   pgTable,
   primaryKey,
@@ -13,13 +16,19 @@ import {
   timestamp,
   unique,
   uniqueIndex,
+  uuid,
 } from "drizzle-orm/pg-core"
 import type { Alias } from "shared/domain/accounts/Alias.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import { BuildingType, type Building, type BuildingId } from "shared/domain/world/buildings/Building.ts"
+import type { ConstructionOrder, ConstructionOrderId } from "shared/domain/world/buildings/ConstructionOrder.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
+import { ShipType, type ShipId } from "shared/domain/world/ships/Ship.ts"
+import type { Trip, TravelRoute } from "shared/domain/world/ships/travel.ts"
+import type { PlanetFacts } from "shared/domain/world/vision.ts"
 import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
 import { gameIdColumn } from "#lib/db/games/GameId.ts"
 import { planetIdColumn } from "#lib/db/planets/PlanetId.ts"
@@ -34,6 +43,8 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
 
 export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
 export const turnStatusEnum = pgEnum("turn_status", pgEnumify(TurnStatus))
+export const shipTypeEnum = pgEnum("ship_type", pgEnumify(ShipType))
+export const buildingTypeEnum = pgEnum("building_type", pgEnumify(BuildingType))
 export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
 export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
 export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
@@ -76,6 +87,7 @@ export const playersTable = pgTable(
       .notNull()
       .references(() => accountsTable.id, { onDelete: "cascade" }),
     color: playerColorEnum("color").notNull(),
+    creditBalance: numeric("credit_balance", { mode: "number" }),
     isReady: boolean("is_ready").notNull().default(false),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
   },
@@ -164,11 +176,8 @@ export const planetsTable = pgTable(
     y: doublePrecision("y").notNull(),
     biome: planetBiomeEnum("biome").notNull(),
     size: planetSizeEnum("size").notNull(),
-    fertility: integer("fertility").notNull(),
-    metal: integer("metal").notNull(),
-    fuel: integer("fuel").notNull(),
-    energy: integer("energy").notNull(),
-    maxPopulation: integer("max_population").notNull(),
+    metalProduction: integer("metal_production").notNull(),
+    remainingMetalDeposit: integer("remaining_metal_deposit").notNull(),
     area: integer("area").notNull(),
   },
   (table) => [
@@ -185,5 +194,108 @@ export const planetsTable = pgTable(
       foreignColumns: [playersTable.gameId, playersTable.playerId],
       name: "planets_gameId_ownerPlayerId_game_players_fk",
     }),
+  ],
+)
+
+export const buildingsTable = pgTable(
+  "buildings",
+  {
+    gameId: gameIdColumn("game_id").notNull(),
+    id: uuid("id").$type<BuildingId>().defaultRandom().notNull(),
+    type: buildingTypeEnum("type").notNull(),
+    planetId: planetIdColumn("planet_id").notNull(),
+    site: integer("site").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.gameId, table.id] }),
+    foreignKey({ columns: [table.gameId, table.planetId], foreignColumns: [planetsTable.gameId, planetsTable.id] }).onDelete("cascade"),
+    unique("buildings_one_per_site").on(table.gameId, table.planetId, table.site),
+    uniqueIndex("buildings_one_command_center_per_planet")
+      .on(table.gameId, table.planetId)
+      .where(eq(table.type, BuildingType.COMMAND_CENTER).inlineParams()),
+  ],
+)
+
+export const shipsTable = pgTable(
+  "ships",
+  {
+    gameId: gameIdColumn("game_id").notNull(),
+    id: text("id").$type<ShipId>().notNull(),
+    type: shipTypeEnum("type").notNull(),
+    ownerPlayerId: playerIdColumn("owner_player_id").notNull(),
+    planetId: planetIdColumn("planet_id"),
+    starId: starIdColumn("star_id"),
+    trip: jsonb("trip").$type<Trip>(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.gameId, table.id] }),
+    check("ships_exactly_one_location", sql`num_nonnulls(${table.planetId},${table.starId},${table.trip}) = 1`),
+    foreignKey({ columns: [table.gameId, table.starId], foreignColumns: [starsTable.gameId, starsTable.id] }).onDelete("cascade"),
+    foreignKey({ columns: [table.gameId, table.ownerPlayerId], foreignColumns: [playersTable.gameId, playersTable.playerId] }).onDelete(
+      "cascade",
+    ),
+    foreignKey({ columns: [table.gameId, table.planetId], foreignColumns: [planetsTable.gameId, planetsTable.id] }).onDelete("cascade"),
+  ],
+)
+
+export const moveOrdersTable = pgTable(
+  "move_orders",
+  {
+    gameId: gameIdColumn("game_id").notNull(),
+    turn: integer("turn").notNull(),
+    id: uuid("id").defaultRandom().notNull(),
+    shipId: text("ship_id").$type<ShipId>().notNull(),
+    playerId: playerIdColumn("player_id").notNull(),
+    route: jsonb("route").$type<TravelRoute>().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.gameId, table.id] }),
+    unique("one_move_per_ship_per_turn").on(table.gameId, table.turn, table.shipId),
+    foreignKey({ columns: [table.gameId, table.shipId], foreignColumns: [shipsTable.gameId, shipsTable.id] }).onDelete("cascade"),
+    foreignKey({ columns: [table.gameId, table.turn], foreignColumns: [turnsTable.gameId, turnsTable.turn] }).onDelete("cascade"),
+    foreignKey({ columns: [table.gameId, table.playerId], foreignColumns: [playersTable.gameId, playersTable.playerId] }).onDelete(
+      "cascade",
+    ),
+  ],
+)
+
+export const planetObservationsTable = pgTable(
+  "planet_observations",
+  {
+    gameId: gameIdColumn("game_id").notNull(),
+    playerId: playerIdColumn("player_id").notNull(),
+    planetId: planetIdColumn("planet_id").notNull(),
+    observedTurn: integer("observed_turn").notNull(),
+    facts: jsonb("facts").$type<PlanetFacts>().notNull(),
+    buildings: jsonb("buildings").$type<Building[]>().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.gameId, table.playerId, table.planetId] }),
+    foreignKey({ columns: [table.gameId, table.playerId], foreignColumns: [playersTable.gameId, playersTable.playerId] }).onDelete(
+      "cascade",
+    ),
+    foreignKey({ columns: [table.gameId, table.planetId], foreignColumns: [planetsTable.gameId, planetsTable.id] }).onDelete("cascade"),
+  ],
+)
+export const constructionOrdersTable = pgTable(
+  "construction_orders",
+  {
+    gameId: gameIdColumn("game_id").notNull(),
+    turn: integer("turn").notNull(),
+    id: uuid("id").$type<ConstructionOrderId>().defaultRandom().notNull(),
+    planetId: planetIdColumn("planet_id").notNull(),
+    playerId: playerIdColumn("player_id").notNull(),
+    type: buildingTypeEnum("type").$type<ConstructionOrder["type"]>().notNull(),
+    site: integer("site").notNull(),
+    cost: doublePrecision("cost").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.gameId, table.id] }),
+    unique("construction_orders_one_per_command_center").on(table.gameId, table.turn, table.planetId),
+    foreignKey({ columns: [table.gameId, table.turn], foreignColumns: [turnsTable.gameId, turnsTable.turn] }).onDelete("cascade"),
+    foreignKey({ columns: [table.gameId, table.planetId], foreignColumns: [planetsTable.gameId, planetsTable.id] }).onDelete("cascade"),
+    foreignKey({ columns: [table.gameId, table.playerId], foreignColumns: [playersTable.gameId, playersTable.playerId] }).onDelete(
+      "cascade",
+    ),
   ],
 )

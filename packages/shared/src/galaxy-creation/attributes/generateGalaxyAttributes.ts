@@ -9,7 +9,7 @@ export function generateGalaxyAttributes({ galaxyTopology, rng }: { galaxyTopolo
   const systems = galaxyTopology.systems.map((system, starIndex) => {
     const star = generateStarAttributes(system.star, starIndex + 1, rng)
     const planets = system.planets.map((planet) =>
-      generatePlanetAttributes({ planet, planetNumber: nextPlanetNumber++, starCoordinates: star.coordinates, rng }),
+      generatePlanetAttributes({ planet, planetKey: String(nextPlanetNumber++), starCoordinates: star.coordinates, rng }),
     )
     return { star, planets }
   })

@@ -1,11 +1,25 @@
 import { Assert, branded, type Branded, type Logger, Result, type RngState, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import { and, asc, eq, isNull, lte } from "drizzle-orm"
+import { and, asc, eq, isNotNull, isNull, lte, sql } from "drizzle-orm"
 import type { GameId } from "shared/domain/games/GameId.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
+import type { StarId } from "shared/domain/world/stars/StarId.ts"
+import type { TurnResolution } from "shared/turn-resolution/resolveTurn.ts"
 import type { TurnState } from "shared/turn-resolution/TurnState.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
+import { PlanetObservationsRepository } from "#lib/db/planetObservations.repository.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamesTable, planetsTable, playersTable, turnsProcessingTable, turnsTable } from "#lib/db/schema.ts"
+import {
+  shipsTable,
+  moveOrdersTable,
+  buildingsTable,
+  constructionOrdersTable,
+  gamesTable,
+  planetsTable,
+  playersTable,
+  turnsProcessingTable,
+  turnsTable,
+} from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
 export type TurnForProcessing = Branded<
@@ -27,7 +41,7 @@ export type TurnToProcessModel = TurnState & {
   readonly rngState: RngState<number>
 }
 
-export type ProcessedTurnModel = {
+export type ProcessedTurnModel = TurnResolution & {
   gameId: GameId
   turn: number
   processedAt: Date
@@ -131,8 +145,53 @@ export class TurnsRepository extends PostgresRepository {
       .where(eq(planetsTable.gameId, startTurnProcessingModel.turn.gameId))
       .orderBy(asc(planetsTable.id))
 
+    const buildings = await tx
+      .select({ type: buildingsTable.type, planetId: buildingsTable.planetId })
+      .from(buildingsTable)
+      .where(eq(buildingsTable.gameId, startTurnProcessingModel.turn.gameId))
+      .orderBy(asc(buildingsTable.id))
+
+    const constructionOrders = await tx
+      .select({
+        planetId: constructionOrdersTable.planetId,
+        playerId: constructionOrdersTable.playerId,
+        type: constructionOrdersTable.type,
+        site: constructionOrdersTable.site,
+        cost: constructionOrdersTable.cost,
+      })
+      .from(constructionOrdersTable)
+      .where(
+        and(
+          eq(constructionOrdersTable.gameId, startTurnProcessingModel.turn.gameId),
+          eq(constructionOrdersTable.turn, startTurnProcessingModel.turn.turn),
+        ),
+      )
+      .orderBy(asc(constructionOrdersTable.id))
+
+    const moves = await tx
+      .select()
+      .from(moveOrdersTable)
+      .where(
+        and(eq(moveOrdersTable.gameId, startTurnProcessingModel.turn.gameId), eq(moveOrdersTable.turn, startTurnProcessingModel.turn.turn)),
+      )
+      .orderBy(moveOrdersTable.shipId)
+    const underway = await tx
+      .select({ shipId: shipsTable.id, playerId: shipsTable.ownerPlayerId, trip: shipsTable.trip })
+      .from(shipsTable)
+      .where(and(eq(shipsTable.gameId, startTurnProcessingModel.turn.gameId), isNotNull(shipsTable.trip)))
+      .orderBy(shipsTable.id)
+    const shipMoves = [
+      ...moves.map((move) => ({ playerId: move.playerId, shipId: move.shipId, route: move.route, completedTurns: 0 })),
+      ...underway.map(({ shipId, playerId, trip }) => {
+        Assert.isTrue(trip !== null)
+        return { shipId, playerId, ...trip }
+      }),
+    ]
     return {
       ...startTurnProcessingModel.turn,
+      shipMoves,
+      constructionOrders,
+      buildings,
       closedAt: turn.closedAt,
       turnInterval: Time.create(games[0].turnIntervalSeconds, UnitOfTime.SECONDS),
       rngState: {
@@ -211,6 +270,39 @@ export class TurnsRepository extends PostgresRepository {
           .returning()
         Assert.isTrue(updatedProcessingRows.length === 1)
 
+        for (const { shipId, station, trip } of processedTurnModel.shipUpdates) {
+          await tx
+            .update(shipsTable)
+            .set({
+              planetId: station?.kind === "planet" ? branded<PlanetId>(station.id) : null,
+              starId: station?.kind === "star" ? branded<StarId>(station.id) : null,
+              trip,
+            })
+            .where(and(eq(shipsTable.gameId, processedTurnModel.gameId), eq(shipsTable.id, shipId)))
+        }
+        if (processedTurnModel.shipUpdates.length > 0) {
+          await tx
+            .delete(moveOrdersTable)
+            .where(and(eq(moveOrdersTable.gameId, processedTurnModel.gameId), eq(moveOrdersTable.turn, processedTurnModel.turn)))
+        }
+        if (processedTurnModel.buildingsToPlace.length > 0) {
+          await tx
+            .insert(buildingsTable)
+            .values(processedTurnModel.buildingsToPlace.map((building) => ({ ...building, gameId: processedTurnModel.gameId })))
+          await tx
+            .delete(constructionOrdersTable)
+            .where(
+              and(eq(constructionOrdersTable.gameId, processedTurnModel.gameId), eq(constructionOrdersTable.turn, processedTurnModel.turn)),
+            )
+        }
+        for (const [playerId, creditChange] of processedTurnModel.creditChanges) {
+          await tx
+            .update(playersTable)
+            .set({ creditBalance: sql`${playersTable.creditBalance} + ${creditChange}::numeric` })
+            .where(and(eq(playersTable.gameId, processedTurnModel.gameId), eq(playersTable.playerId, playerId)))
+        }
+
+        await new PlanetObservationsRepository(tx).saveCurrentObservations(processedTurnModel.gameId, processedTurnModel.nextTurn)
         await tx.update(playersTable).set({ isReady: false }).where(eq(playersTable.gameId, processedTurnModel.gameId))
 
         const insertedTurns = await tx
