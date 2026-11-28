@@ -401,3 +401,63 @@ Verified `af7cc5fd42e84c076ae35dcd8788cc92e6627a18`. All three acceptance criter
 ## 06 · Acceptance
 
 Accepted af7cc5fd. Independent verification covered every local criterion, including turn-start timing, additional centers, fresh startup, real populated PostgreSQL upgrade and owner-visible income. The actual purchase using prior-turn income will be checked at its first available entry point in 07.
+
+## 07 · Resolved buildings and private plans
+
+The existing player view returns the resolved buildings visible at this stage of the prototype. Reuse that same projection for buildings completed by construction. While the turn is open, only the owner can see their proposed building, selected hex and reservation, even on a planet whose resolved surface another participant can inspect. Increment 10 applies current/remembered/unknown vision to the resolved-building projection. Its verification must repeat the 07 observer case in and out of scan range.
+
+## 07 · Concurrent affordability
+
+Two command centers on separate owned planets can each request a 30-credit build. With 50 credits at turn start, one request must succeed and one must be rejected after the shared turn-row lock orders them. A same-owner request cannot consume another 30 from the already reserved funds. The existing PostgreSQL concurrency project can create the two-colony fixture and observe the blocked transaction. The verifier separately exercises income becoming spendable at the next turn through the real order API.
+
+## 09 · Assigned behavior
+
+- When a ship is stationed at a body at turn start, its owner can plan a direct move to any different star or planet, in the same or another system, from either the ship’s Move control and destination coordinates or the destination’s Move here control and ship list.
+- When a trip is previewed, the owner can distinguish the ship’s current location from its planned destination and see the same travel distance, departure speed, travel time and full credit cost from either entry point.
+- When a ship departs, its speed in LY per turn is the shared scale times the square root of thrust divided by total departure mass. Total departure mass is empty ship mass plus the mass of every cargo item aboard.
+- When a trip is planned, its duration in turns is the ceiling of direct distance in LY divided by departure speed in LY per turn, and its price is one credit per actual LY. Preview and resolution use the same distance and departure load.
+- When a player submits a move, reserve its full price from available turn-start credits and reserve only that ship’s action. Other ships can receive independent orders.
+- When the owner cancels a pending move during open planning, remove its route preview and release the full price and the ship’s action immediately. The ship stays at its origin and can be ordered again in that turn.
+- When a turn resolves a submitted move, charge the full price once and travel the first segment during that turn. Each subsequent turn travels up to the departure speed on the same direct route and stops at the destination on the final segment.
+- When a ship is underway, its owner can inspect its current position, destination and progress. Its trip cannot be changed or recalled. A ship arriving at the end of N can first act at its destination on N+1 and stays there until ordered.
+
+A 1 LY trip at 1 LY per turn arrives during the departure turn. A 4 LY trip at 2 LY per turn takes two turns, while 4.1 LY takes three. Use string IDs for stations and ships and show a distinguishable ship label when several share the same type or station. Test template and loaded-mass arithmetic against the pre-agreed values now; exercise the real scout and loading controls when 12a and 17 introduce them.
+
+## 10 · Public identity and hidden planet facts
+
+Keep body names, public addresses and physical locations available for navigation. For an unobserved ordinary planet, maps and lists use a neutral marker and show its protected facts as unknown. Derive owned-list membership, sorting, marker styling and all inspectable fields only from current or remembered information available to the viewer. Last-observed values must be identifiable as observations. A named Solar System body’s fixed identifying art can follow its public identity, but private fields such as current ownership, buildings and deposit must use the same observation rules as elsewhere. The Sun’s public exception applies to the Sun, its stationed ships and their visible cargo, and its stockpile. It does not give blanket live coverage of Sol’s planets. Private plans remain visible only to the submitting player even at the Sun.
+
+## 07 · Independent planning and cutoff review
+
+Reviewed the API, worker, private view and planet controls. Submit and cancel take the same turn-row lock as readiness. Each operation now checks the deadline after the lock is granted, so waiting past expiry cannot extend the planning window. Repository writes require the branded open-turn context. The verifier observed all four orderings of submit or cancel against last-player readiness in PostgreSQL, plus submit and cancel waiting past the deadline.
+
+Pending orders are scoped to game, turn and requester. The shared readiness stream carries only turn status and readiness, and plan changes do not trigger its public notification. Each order stores its own quoted price. The worker calculates income from the original buildings, constructs the saved orders and commits the charge, new buildings, removal of pending orders and next turn in one transaction.
+
+The frontend and API now share ownership and site-eligibility checks. The owner’s protected player view is explicitly refetched after mutation. The planet surface keeps its selected hex when the turn advances, while the construction form resets for the new turn.
+
+## 07 · Final diff review
+
+Reviewed `da6072d5` against all seven assigned rows and their exact named tests. Independent runs passed four construction router tests, three real PostgreSQL construction tests, eleven worker integration tests and five turn-resolution properties. The PostgreSQL tests demonstrated both submissions competing for one budget and two requests queued across the deadline. The original test matcher was unavailable in that project. The corrected tests check the actual API error and final state.
+
+The retry test starts with a submitted build. After a failed save it retains the private order and original balance. A retry completes one building and charges once. The property test uses valid site ranges, existing command centers, varying saved prices and player identities. It replays the turn and checks that new trade centers earn only from the following turn. Stryker killed all 20 turn-resolution mutants with no survivors or uncovered mutants.
+
+## 07 · Implementation and mutation evidence
+
+Commit `da6072d59530c76861cedbd5b22ec0ed0c112544` adds one private construction reservation per command center. The owner selects a trade center and an empty numbered hex, sees the quoted 30 credits and remaining funds, and can cancel or replan while the turn is open. A dashed, translucent tile marks the saved plan. On completion, that same selected site displays the solid building and its income. Submitting and canceling leave readiness unchanged. Opponents’ player views, common turn state and resolved surfaces receive no pending order or reservation.
+
+Submission, cancellation and readiness share a turn-row lock. The server checks the deadline after acquiring it. The stored price survives reload and determines both the reserved cost and the final charge. PostgreSQL tests held a submit or cancel past the deadline and serialized two real 30-credit orders against 50 credits on different colonies. Exactly one succeeded. After cancellation and a resolved 10-credit income, the next turn’s 60 funded both orders. Canceling one left the other reservation intact. Guarded settlement writes each building, nets its stored cost against income from the input snapshot, clears the orders and advances the turn together. A failed save and retry produced one building and one charge.
+
+The shared suite passed 56 tests, backend integration 81, PostgreSQL concurrency 19, and frontend component and Storybook suites 85. All three package typechecks, type-aware lint and the frontend build passed. The independent browser run also passed the tracked construction scenario, including 100 settled credits at preview, 80 after purchase and 100 after the new trade center’s first income. The official committed turn-resolution run killed all 20 mutants, with zero survivors, uncovered mutants, timeouts or errors. [07 mutation report](../../../packages/shared/src/turn-resolution/.stryker/reports/07-construction.json).
+
+## 07 · Independent player, reservation and cutoff acceptance
+
+Verified `da6072d59530c76861cedbd5b22ec0ed0c112544`. All four local acceptance criteria and all seven assigned requirements passed. Fresh-session Chromium checks passed 9/9 and 5/5, including the maintained construction flow.
+
+- On her own planet Alice opened command-center construction, chose a trade center and previewed the exact empty hex at 30 credits. The submitted site showed a dashed, subdued sprite and the text “Planned trade center.” Her header stayed at 100 while the panel showed 70 available. The plan survived reload and a backend restart. Bob saw the resolved empty hex, and his full player-view response remained identical before and after her submission.
+- While Bob was unready, Alice marked herself ready, canceled the plan and still remained ready. Her available funds returned to 100. She could unready, reuse the command center and choose a different hex. After settlement both accounts saw the building on the permanent selected hex. The canceled hex remained empty. Alice’s balance was 80 after construction and 100 after the following turn, when both trade centers earned income.
+- Three commands on separate colonies reserved 90 of 100. A fourth was rejected without altering the submitted plans. Occupied and invalid sites, opponent commands or cancellations and constructing a command center were rejected. A concurrent second colony could not reserve already committed funds. The 20-credit player could first submit the 30-credit build after opening income settled on the next turn. Their other colony then showed zero available. A failed settlement rolled back both construction and payment. The retried worker created one building, charged once and preserved its ID.
+- On PostgreSQL, both submit and cancel succeeded when they held the turn lock before final readiness. Both were rejected when final readiness held it first. A submission and a cancellation separately queued before the deadline and resumed at expiry. Both were rejected, even before the worker ran, and final buildings and balances matched the accepted plans.
+
+## 07 · Acceptance
+
+Accepted da6072d5. The verifier confirmed all four criteria including the real 06-to-07 affordability boundary: 20 credits could not pay for construction before income, and 30 could on the next turn. A 100-credit player saw 70 available after reserving the build; balances were 80 then 100 after settlement and next-turn income. Rechecks covered both orders of concurrent closure, cancellation and retries.

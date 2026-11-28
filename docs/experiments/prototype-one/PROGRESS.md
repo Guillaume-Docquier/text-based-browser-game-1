@@ -11,7 +11,7 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 - [x] [04/26 · Persist buildings and display them on stable planet hexes](issues/04-persist-buildings-and-display-them-on-stable-planet-hexes.md) — `6a901725`. Reviewer and verifier cleared all six criteria on that commit. Persisted home command centers kept their identities after restart. Hex counts, fixed rings, occupied sites, distinct art, and solo and multiplayer inspection passed.
 - [x] [05/26 · Give each player a credit balance](issues/05-give-each-player-a-credit-balance.md) — `7f059a08`, `6d1082a7`. Reviewed and verified at `6d1082a7`. Solo and multiplayer balances started at 100, stayed private across colonies and sessions, and followed an isolated tuning change. Populated upgrade and contention checks passed.
 - [x] [06/26 · Produce income with trade centers](issues/06-produce-income-with-trade-centers.md) — `af7cc5fd`. Reviewed and verified on that commit. Real readiness and deadline turns paid once per eligible center. Restart, retry, multiple owners and centers, tunability, PostgreSQL upgrade and 16/16 mutation kills passed. Paid construction checks the income boundary in 07.
-- [ ] [07/26 · Construct buildings with a command center](issues/07-construct-buildings-with-a-command-center.md)
+- [x] [07/26 · Construct buildings with a command center](issues/07-construct-buildings-with-a-command-center.md) — `da6072d5`. Both independent roles cleared that commit. Private preview, cancel and replan, settled and reserved balances, actual next-turn affordability, readiness races, observer privacy, persistence and exactly-once settlement passed. All 20 turn-resolution mutants were killed.
 - [ ] [08/26 · Give each player a starting transport](issues/08-give-each-player-a-starting-transport.md)
 - [ ] [09/26 · Move a ship between bodies](issues/09-move-a-ship-between-bodies.md)
 - [ ] [10/26 · Apply fog of war at current positions](issues/10-apply-fog-of-war-at-current-positions.md)
@@ -35,4 +35,4 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 
 ## Active work
 
-07 is active. The implementer owns paid construction, private reservations, cancellation and resolution. The reviewer owns the diff, concurrency and mutation dispositions. The verifier owns independent owner/observer UI, API and worker trials. Next, exercise all four local criteria, including the funded-order follow-up from 06.
+08 is active. The implementer owns starting transports, shared templates, persistence and selection. The reviewer owns the final diff. The verifier owns multiplayer and solo start, saved ship identity, template-derived values and the player walkthrough. Next, verify the four local criteria on the final commit.
