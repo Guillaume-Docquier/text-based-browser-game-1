@@ -1,6 +1,7 @@
 import { Datetime, type Logger, mulberry32Prng, Result, Rng, Timer, UInt32 } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
+import { STARTING_CREDITS } from "shared/domain/games/startingCredits.ts"
 import { BuildingType } from "shared/domain/world/buildings/Building.ts"
 import { createGalaxy } from "shared/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "shared/galaxy-creation/GalaxyCreationSettings.ts"
@@ -60,6 +61,7 @@ export class StartGameUseCase {
         {
           context: gameForStart,
           status: GameStatus.IN_PROGRESS,
+          startingCredits: STARTING_CREDITS,
           startedAt,
           turnEndsAt,
           rngState: { generatorState: UInt32.random(), spareNormal: null },

@@ -67,6 +67,13 @@ export class GameplayRepository extends PostgresRepository {
           Assert.isDefined(player)
           const opponents = Object.fromEntries(players.filter(({ id }) => id !== playerId).map((opponent) => [opponent.id, opponent]))
 
+          const [balance] = await tx
+            .select({ credits: playersTable.creditBalance })
+            .from(playersTable)
+            .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, playerId)))
+          Assert.isDefined(balance)
+          Assert.isTrue(balance.credits !== null)
+
           const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
           const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
 
@@ -82,7 +89,7 @@ export class GameplayRepository extends PostgresRepository {
 
           return {
             buildings,
-            player,
+            player: { ...player, creditBalance: balance.credits },
             opponents,
             galaxy: toGalaxyModel({ stars, planets }),
             gameId,

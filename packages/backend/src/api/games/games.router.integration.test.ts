@@ -95,6 +95,29 @@ describe("games.router", () => {
     })
   })
   describe("startGame", () => {
+    it("should meet STRT-0002 When a match starts, each participating player receives the configured starting balance of 100 credits, including the only player in a solo match.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using server = new ApiServer(await createApiStub({ db }))
+      const alice = await server.createClient({ authenticated: true })
+      const bob = await server.createClient({ authenticated: true })
+      const { createdGameId: solo } = await alice.client.games.create.mutate({ configuration: createGameConfigurationStub({ nbSeats: 2 }) })
+      const { createdGameId: multiplayer } = await alice.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ nbSeats: 2 }),
+      })
+      await bob.client.games.join.mutate({ gameId: multiplayer })
+
+      // Act
+      await alice.client.games.startGame.mutate({ gameId: solo })
+      await alice.client.games.startGame.mutate({ gameId: multiplayer })
+      const soloView = await alice.client.gameplay.getPlayerView.query({ gameId: solo })
+      const aliceView = await alice.client.gameplay.getPlayerView.query({ gameId: multiplayer })
+      const bobView = await bob.client.gameplay.getPlayerView.query({ gameId: multiplayer })
+
+      // Assert
+      expect([soloView.player.creditBalance, aliceView.player.creditBalance, bobView.player.creditBalance]).toStrictEqual([100, 100, 100])
+    })
+
     it("should meet STRT-0001 When a match starts, each owned home planet has exactly one persisted command center on its center hex, and every unowned planet starts with an empty surface.", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()

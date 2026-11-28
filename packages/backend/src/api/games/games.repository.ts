@@ -115,6 +115,7 @@ export type GameForStart = Branded<
 >
 
 export type StartGameModel = {
+  readonly startingCredits: number
   readonly context: GameForStart
   readonly status: GameStatus
   readonly startedAt: Date
@@ -242,6 +243,10 @@ export class GamesRepository extends PostgresRepository {
       .returning({ id: gamesTable.id })
     Assert.isTrue(updatedGames.length === 1)
 
+    await tx
+      .update(playersTable)
+      .set({ creditBalance: startGameModel.startingCredits })
+      .where(eq(playersTable.gameId, startGameModel.context.gameId))
     await tx.insert(turnsTable).values(gameTurn)
     await tx.insert(turnsProcessingTable).values(turnProcessing)
     await tx.insert(starsTable).values(stars)

@@ -1,0 +1,1 @@
+ALTER TABLE "players" ADD COLUMN "credit_balance" double precision;

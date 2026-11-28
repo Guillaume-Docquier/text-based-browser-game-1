@@ -79,6 +79,7 @@ export const playersTable = pgTable(
       .notNull()
       .references(() => accountsTable.id, { onDelete: "cascade" }),
     color: playerColorEnum("color").notNull(),
+    creditBalance: doublePrecision("credit_balance"),
     isReady: boolean("is_ready").notNull().default(false),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
   },

@@ -10,10 +10,10 @@ import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
 export function GameTopBar(): ReactElement {
-  const { gameDetails, turnState } = usePlayGameContext()
+  const { gameDetails, turnState, playerView } = usePlayGameContext()
   return (
     <header className="shrink-0 border-b border-border/70 bg-background/80 px-4 sm:px-6">
-      <div className="grid min-w-0 grid-cols-1 items-center gap-x-4 sm:h-[calc(6rem-1px)] sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 sm:h-[calc(6rem-1px)] sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
         <div className="min-w-0 space-y-1 py-3 sm:py-0">
           <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Game #{gameDetails.id}</div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -23,9 +23,17 @@ export function GameTopBar(): ReactElement {
             <TurnStatusBadge status={turnState.turnStatus} />
           </div>
         </div>
-        <div className="min-w-0 justify-self-center self-stretch">
+        <div className="col-span-2 row-start-2 min-w-0 justify-self-center self-stretch sm:col-span-1 sm:col-start-2 sm:row-start-1">
           <TurnControl />
         </div>
+        <dl className="col-start-2 row-start-1 justify-self-end text-right sm:col-start-3">
+          <dt id="game-credits" className="text-xs font-medium text-muted-foreground">
+            Credits
+          </dt>
+          <dd aria-labelledby="game-credits" className="font-heading text-xl font-semibold tabular-nums">
+            {playerView.player.creditBalance.toLocaleString()}
+          </dd>
+        </dl>
       </div>
     </header>
   )

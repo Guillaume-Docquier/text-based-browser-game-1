@@ -57,6 +57,20 @@
       "when": 1795844013685,
       "tag": "0007_backfill-command-centers",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795844671762,
+      "tag": "0008_player_credit_balance",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795844675940,
+      "tag": "0009_backfill-starting-credits",
+      "breakpoints": true
     }
   ]
 }

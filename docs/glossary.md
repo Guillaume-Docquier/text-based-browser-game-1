@@ -31,3 +31,4 @@ These are terms and their meaning in the context of this app.
 | Surface hex             | One usable building site on a planet. The planet’s area determines the number of sites, including the center.                                                                                      |
 | Building                | A persistent structure of a specific type occupying one surface hex on a planet.                                                                                                                   |
 | Command center          | The unique headquarters on a home planet’s center hex at match start.                                                                                                                              |
+| Credits                 | A participant’s private currency balance in one match, available across all their colonies.                                                                                                        |

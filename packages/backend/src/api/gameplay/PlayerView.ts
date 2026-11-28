@@ -14,7 +14,7 @@ export const PlayerViewPlayerSchema = z.object({
 export type PlayerView = z.infer<typeof PlayerViewSchema>
 export const PlayerViewSchema = z.object({
   gameId: GameIdSchema,
-  player: PlayerViewPlayerSchema,
+  player: PlayerViewPlayerSchema.extend({ creditBalance: z.number().nonnegative() }),
   opponents: z.record(PlayerIdSchema, PlayerViewPlayerSchema),
   galaxy: GalaxySchema,
   buildings: z.array(BuildingSchema),

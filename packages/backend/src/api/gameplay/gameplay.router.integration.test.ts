@@ -171,7 +171,7 @@ describe("gameplay.router", () => {
       // Assert
       expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
-        player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE },
+        player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, creditBalance: 100 },
         opponents: {},
         buildings: [expect.objectContaining({ type: "COMMAND_CENTER", site: 0 })],
         galaxy: expect.any(Object), // INTENT: Verified by the snapshot test
@@ -188,7 +188,7 @@ describe("gameplay.router", () => {
       })
     })
 
-    it("should expose the current player and every opponent with their colors", async () => {
+    it("should meet PVR-0003 When a participant reads their player view, it returns that participant’s settled credit balance for the current game and keeps other participants’ credit balances private.", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
@@ -208,7 +208,7 @@ describe("gameplay.router", () => {
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(playerView.player).toStrictEqual({ id: creator.account.id, color: PlayerColor.TURQUOISE })
+      expect(playerView.player).toStrictEqual({ id: creator.account.id, color: PlayerColor.TURQUOISE, creditBalance: 100 })
       expect(playerView.opponents).toStrictEqual({
         [firstOpponent.account.id]: { id: firstOpponent.account.id, color: PlayerColor.PINK },
         [secondOpponent.account.id]: { id: secondOpponent.account.id, color: PlayerColor.YELLOW },
