@@ -13,6 +13,6 @@
     "fileName": ".stryker/reports/mutation.html"
   },
   "jsonReporter": {
-    "fileName": ".stryker/reports/galaxy.json"
+    "fileName": ".stryker/reports/mutation.json"
   }
 }
