@@ -1,4 +1,4 @@
-import { branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
@@ -11,6 +11,8 @@ import type { NotificationHandlers, NotificationListener } from "#lib/db/Postgre
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
 import { readTurnState, subscribeToTurnState } from "#testing/readTurnState.ts"
+import { flyTo } from "#testing/scoutPlanet.ts"
+import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import { GetTurnStateError, GetTurnStateErrorResponses } from "./getTurnState.error.ts"
 
@@ -74,7 +76,7 @@ describe("gameplay.router", () => {
   })
 
   describe("getPlayerView", () => {
-    it("should meet PVR-0002 When a planet surface is read in a fresh session or after server restart, each building retains its identity, type, planet and occupied hex.", async () => {
+    it("should meet PVR-0002 When an observed planet surface is read in a fresh session or after server restart, each current or last-observed building retains its saved identity, type, planet and occupied hex.", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       using firstServer = new ApiServer(await createApiStub({ db }))
@@ -88,19 +90,21 @@ describe("gameplay.router", () => {
       await first.client.games.startGame.mutate({ gameId })
       const before = await first.client.gameplay.getPlayerView.query({ gameId })
 
+      const home = before.galaxy.systems.flatMap((s) => s.planets).find((p) => p.ownerPlayerId === before.player.id)
+      Assert.isDefined(home)
+      const { turnProcessor } = await createTurnProcessorStub({ db })
       // Act
+      await flyTo({ gameId, owner: fresh, players: [first, fresh], worker: turnProcessor, destination: { kind: "planet", id: home.id } })
       const after = await fresh.client.gameplay.getPlayerView.query({ gameId })
 
       // Assert
-      expect(before.buildings).toHaveLength(4)
+      expect(before.buildings.filter((b) => b.planetId === home.id)).toHaveLength(2)
       expect(before.buildings).toStrictEqual(
         expect.arrayContaining([
           expect.objectContaining({ id: expect.any(String), type: "COMMAND_CENTER", site: 0, planetId: expect.any(String) }),
         ]),
       )
-      expect(after.buildings.toSorted((a, b) => a.id.localeCompare(b.id))).toStrictEqual(
-        before.buildings.toSorted((a, b) => a.id.localeCompare(b.id)),
-      )
+      expect(after.buildings.filter((b) => b.planetId === home.id)).toStrictEqual(before.buildings.filter((b) => b.planetId === home.id))
     })
 
     it("should meet PVR-0006 When a ship’s base capabilities are read, its persisted ship type selects the shared in-memory template. A transport has thrust 64, empty mass 4 and four cargo slots.", async () => {
@@ -122,7 +126,7 @@ describe("gameplay.router", () => {
       expect(reopened.ships).toStrictEqual(initial.ships)
     })
 
-    it("should meet PVR-0001 When a player reads a saved planet, the API returns its stored metal production and remaining deposit and omits the former metal, fertility, fuel, energy and maximum population fields.", async () => {
+    it("should meet PVR-0001 When a player reads an observed planet, its visible metal production and remaining deposit come from the current or last observed state. The API omits the former metal, fertility, fuel, energy and maximum population fields.", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       using apiServer = new ApiServer(await createApiStub({ db }))
@@ -133,27 +137,39 @@ describe("gameplay.router", () => {
       await player.client.games.startGame.mutate({ gameId })
 
       // Act
+      const { turnProcessor } = await createTurnProcessorStub({ db })
+      await flyTo({
+        gameId,
+        owner: player,
+        players: [player],
+        worker: turnProcessor,
+        destination: { kind: "planet", id: "37c2b7b7-e1b1-584c-9043-aaab03ac3808" },
+      })
       const view = await player.client.gameplay.getPlayerView.query({ gameId })
       const reopened = await player.client.gameplay.getPlayerView.query({ gameId })
 
       // Assert
       const sample = view.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "63:50:40")
-      expect(sample).toStrictEqual({
-        area: 4,
-        biome: "METALLIC",
-        coordinates: "63:50:40",
-        id: "37c2b7b7-e1b1-584c-9043-aaab03ac3808",
-        metalProduction: 4,
-        remainingMetalDeposit: 19,
-        name: "planet 272683",
-        ownerPlayerId: null,
-        size: "MEDIUM",
-        x: 30.754045402421188,
-        y: 65.12758196335155,
-      })
-      expect(reopened.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "63:50:40")).toStrictEqual(
-        sample,
+      Assert.isDefined(sample)
+      expect(sample).toMatchObject({ observation: "current", metalProduction: 4, remainingMetalDeposit: 19 })
+      expect(Object.keys(sample).toSorted()).toStrictEqual(
+        [
+          "id",
+          "name",
+          "coordinates",
+          "x",
+          "y",
+          "observation",
+          "observedTurn",
+          "ownerPlayerId",
+          "size",
+          "area",
+          "biome",
+          "metalProduction",
+          "remainingMetalDeposit",
+        ].toSorted(),
       )
+      expect(reopened.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.id === sample.id)).toStrictEqual(sample)
     })
 
     it("should report a missing Turn for a member of an unstarted game", async () => {

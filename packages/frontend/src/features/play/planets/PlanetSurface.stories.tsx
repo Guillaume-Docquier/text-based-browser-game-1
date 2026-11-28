@@ -4,11 +4,11 @@ import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
 import { createBuildingStub } from "shared/domain/world/buildings/Building.stub.ts"
 import { BuildingType } from "shared/domain/world/buildings/Building.ts"
 import { ConstructionOrderIdSchema, TRADE_CENTER_COST, type ConstructionOrder } from "shared/domain/world/buildings/ConstructionOrder.ts"
-import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import oceanicArt from "@/assets/planets/oceanic-small.png"
+import { observedPlanetStub } from "../observation.stub.ts"
 import { PlanetSurface } from "./PlanetSurface.tsx"
 
-const planet = createPlanetStub({ id: "home", name: "Atlas", area: 9 })
+const planet = observedPlanetStub({ id: "home", name: "Atlas", area: 9 })
 const meta = {
   title: "Application/Planet Surface",
   component: PlanetSurface,

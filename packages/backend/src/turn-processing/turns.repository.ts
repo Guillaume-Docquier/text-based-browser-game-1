@@ -7,6 +7,7 @@ import type { StarId } from "shared/domain/world/stars/StarId.ts"
 import type { TurnResolution } from "shared/turn-resolution/resolveTurn.ts"
 import type { TurnState } from "shared/turn-resolution/TurnState.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
+import { PlanetObservationsRepository } from "#lib/db/planetObservations.repository.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
   shipsTable,
@@ -301,6 +302,7 @@ export class TurnsRepository extends PostgresRepository {
             .where(and(eq(playersTable.gameId, processedTurnModel.gameId), eq(playersTable.playerId, playerId)))
         }
 
+        await new PlanetObservationsRepository(tx).saveCurrentObservations(processedTurnModel.gameId, processedTurnModel.nextTurn)
         await tx.update(playersTable).set({ isReady: false }).where(eq(playersTable.gameId, processedTurnModel.gameId))
 
         const insertedTurns = await tx

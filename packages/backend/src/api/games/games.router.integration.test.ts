@@ -1,12 +1,10 @@
-import { Datetime, Time, UnitOfTime, branded, UInt32 } from "@guillaume-docquier/tools-ts"
+import { Assert, Datetime, Time, UnitOfTime, branded, UInt32 } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { MAX_NB_SEATS } from "shared/domain/games/GameConfiguration.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import type { Player } from "shared/domain/players/Player.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
-import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
-import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { CreateGameError, CreateGameErrorResponses } from "#api/games/createGame.error.ts"
@@ -126,9 +124,11 @@ describe("games.router", () => {
       const configuration = createGameConfigurationStub({ nbSeats: MAX_NB_SEATS, mapGenerationSeed: 1234 })
       const { createdGameId: solo } = await creator.client.games.create.mutate({ configuration })
       const { createdGameId: full } = await creator.client.games.create.mutate({ configuration })
+      const participants = [creator]
       for (let index = 1; index < MAX_NB_SEATS; index++) {
         const participant = await server.createClient({ authenticated: true })
         await participant.client.games.join.mutate({ gameId: full })
+        participants.push(participant)
       }
 
       // Act
@@ -136,20 +136,22 @@ describe("games.router", () => {
       await creator.client.games.startGame.mutate({ gameId: full })
 
       // Assert
-      for (const [gameId, players] of [
-        [solo, 1],
-        [full, MAX_NB_SEATS],
+      for (const [gameId, group] of [
+        [solo, [creator]],
+        [full, participants],
       ] as const) {
-        const view = await creator.client.gameplay.getPlayerView.query({ gameId })
-        const homes = view.galaxy.systems.flatMap((system) => system.planets).filter((planet) => planet.ownerPlayerId !== null)
-        expect(view.ships).toHaveLength(players)
-        expect(new Set(view.ships.map((ship) => ship.id)).size).toBe(players)
-        expect(homes).toHaveLength(players)
-        for (const home of homes) {
-          expect(view.ships.filter((ship) => ship.ownerPlayerId === home.ownerPlayerId)).toStrictEqual([
-            expect.objectContaining({ type: "TRANSPORT", planetId: home.id, cargo: [], order: null }),
-          ])
+        const ids = new Set<string>()
+        for (const participant of group) {
+          const view = await participant.client.gameplay.getPlayerView.query({ gameId })
+          const homes = view.galaxy.systems.flatMap((s) => s.planets).filter((p) => p.ownerPlayerId === view.player.id)
+          expect(homes).toHaveLength(1)
+          const own = view.ships.filter((ship) => ship.ownerPlayerId === view.player.id)
+          expect(own).toStrictEqual([expect.objectContaining({ type: "TRANSPORT", planetId: homes[0]?.id, cargo: [], order: null })])
+          const [ship] = own
+          Assert.isDefined(ship)
+          ids.add(ship.id)
         }
+        expect(ids.size).toBe(group.length)
       }
     })
 
@@ -166,19 +168,14 @@ describe("games.router", () => {
 
       // Act
       await alice.client.games.startGame.mutate({ gameId })
-      const view = await alice.client.gameplay.getPlayerView.query({ gameId })
-
+      const views = await Promise.all([alice, bob].map(async (p) => await p.client.gameplay.getPlayerView.query({ gameId })))
       // Assert
-      const homes = view.galaxy.systems.flatMap(({ planets }) => planets).filter(({ ownerPlayerId }) => ownerPlayerId !== null)
-      expect(homes).toHaveLength(2)
-      expect(view.buildings).toHaveLength(4)
-      for (const home of homes) {
-        expect(view.buildings.filter(({ planetId }) => planetId === home.id)).toStrictEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ type: "COMMAND_CENTER", site: 0 }),
-            expect.objectContaining({ type: "TRADE_CENTER", site: 1 }),
-          ]),
-        )
+      for (const view of views) {
+        const home = view.galaxy.systems.flatMap((s) => s.planets).find((p) => p.ownerPlayerId === view.player.id)
+        expect(view.buildings.filter((b) => b.planetId === home?.id)).toStrictEqual([
+          expect.objectContaining({ type: "COMMAND_CENTER", site: 0 }),
+          expect.objectContaining({ type: "TRADE_CENTER", site: 1 }),
+        ])
       }
     })
 
@@ -195,19 +192,17 @@ describe("games.router", () => {
 
       // Act
       await alice.client.games.startGame.mutate({ gameId })
-      const view = await bob.client.gameplay.getPlayerView.query({ gameId })
-
+      const views = await Promise.all([alice, bob].map(async (p) => await p.client.gameplay.getPlayerView.query({ gameId })))
       // Assert
-      const homes = view.galaxy.systems.flatMap(({ planets }) => planets).filter((planet) => planet.ownerPlayerId !== null)
-      expect(homes).toHaveLength(2)
-      expect(view.buildings.every((building) => homes.some((home) => home.id === building.planetId))).toBe(true)
-      const centers = view.buildings.filter((building) => building.type === "COMMAND_CENTER")
-      expect(new Set(centers.map(({ id }) => id)).size).toBe(2)
-      expect(
-        centers.map(({ planetId, type, site }) => ({ planetId, type, site })).toSorted((a, b) => a.planetId.localeCompare(b.planetId)),
-      ).toStrictEqual(
-        homes.map(({ id }) => ({ planetId: id, type: "COMMAND_CENTER", site: 0 })).toSorted((a, b) => a.planetId.localeCompare(b.planetId)),
-      )
+      for (const view of views) {
+        const planets = view.galaxy.systems.flatMap((s) => s.planets)
+        const homes = planets.filter((p) => p.ownerPlayerId !== null)
+        expect(view.buildings.every((b) => homes.some((home) => home.id === b.planetId))).toBe(true)
+        const home = homes.find((p) => p.ownerPlayerId === view.player.id)
+        expect(view.buildings.filter((b) => b.planetId === home?.id).filter((b) => b.type === "COMMAND_CENTER")).toStrictEqual([
+          expect.objectContaining({ site: 0 }),
+        ])
+      }
     })
 
     it("should reject starting a game as an account that has not joined", async () => {
@@ -250,11 +245,13 @@ describe("games.router", () => {
         id: "37c2b7b7-e1b1-584c-9043-aaab03ac3808",
         ownerPlayerId: null,
         name: "planet 272683",
-        biome: PlanetBiome.METALLIC,
-        size: PlanetSize.MEDIUM,
-        metalProduction: 4,
-        remainingMetalDeposit: 19,
-        area: 4,
+        observation: "unknown",
+        observedTurn: null,
+        biome: null,
+        size: null,
+        metalProduction: null,
+        remainingMetalDeposit: null,
+        area: null,
       })
 
       const allStars = playerView.galaxy.systems.map(({ star }) => star)
@@ -312,18 +309,13 @@ describe("games.router", () => {
 
       // Act
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
-      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Assert
-      const homePlanetsOwnerIds = playerView.galaxy.systems
-        .flatMap(({ planets }) => planets)
-        .filter(({ ownerPlayerId }) => ownerPlayerId !== null)
-        .map(({ ownerPlayerId }) => ownerPlayerId)
-
-      expect(homePlanetsOwnerIds).toHaveLength(3)
-      expect(homePlanetsOwnerIds).toStrictEqual(
-        expect.arrayContaining([creator.account.id, firstOpponent.account.id, secondOpponent.account.id]),
+      const views = await Promise.all(
+        [creator, firstOpponent, secondOpponent].map(async (p) => await p.client.gameplay.getPlayerView.query({ gameId: createdGameId })),
       )
+      // Assert
+      const homes = views.flatMap((view) => view.galaxy.systems.flatMap((s) => s.planets).filter((p) => p.ownerPlayerId === view.player.id))
+      expect(new Set(homes.map((p) => p.id)).size).toBe(3)
+      expect(homes.map((p) => p.ownerPlayerId)).toStrictEqual([creator.account.id, firstOpponent.account.id, secondOpponent.account.id])
     })
 
     it("should reject starting a game as a non-creator", async () => {

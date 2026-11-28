@@ -23,7 +23,7 @@ export function ShipsPage({
   const { playerView } = usePlayGameContext()
   const mine = playerView.ships.filter((ship) => ship.ownerPlayerId === playerView.player.id)
   const selectedId = initialShipId ?? mine[0]?.id ?? ""
-  const sightings = playerView.ships.filter((ship) => ship.ownerPlayerId !== playerView.player.id && ship.position !== null)
+  const sightings = playerView.ships.filter((ship) => ship.ownerPlayerId !== playerView.player.id)
   const selected = mine.find((ship) => ship.id === selectedId)
   const bodies = useMemo(
     () =>
@@ -70,7 +70,7 @@ export function ShipsPage({
               {sightings.map((ship) => (
                 <li key={ship.id} className="flex flex-wrap justify-between gap-3 py-2">
                   <span>Transport {ship.id}</span>
-                  <span>{ship.position !== null && `x ${travelNumber(ship.position.x)}, y ${travelNumber(ship.position.y)} LY`}</span>
+                  <span>{sightingLocation(ship, bodies)}</span>
                 </li>
               ))}
             </ul>
@@ -79,6 +79,13 @@ export function ShipsPage({
       </div>
     </section>
   )
+}
+function sightingLocation(ship: VisibleShip, bodies: readonly TravelBody[]): string {
+  if (ship.position !== null) {
+    return `x ${travelNumber(ship.position.x)}, y ${travelNumber(ship.position.y)} LY`
+  }
+  const station = bodies.find((body) => (body.kind === "planet" ? body.id === ship.planetId : body.id === ship.starId))
+  return station === undefined ? "" : bodyLabel(station)
 }
 function ShipMovement({
   ship,

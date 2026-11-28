@@ -6,6 +6,7 @@ import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
 import { readTurnState } from "#testing/readTurnState.ts"
+import { flyTo } from "#testing/scoutPlanet.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import { MoveShipErrorResponses } from "./moveShip.error.ts"
 
@@ -61,11 +62,22 @@ describe("ship movement", () => {
     await using db = await createIntegrationTestDb()
     const clock = new ControlledClock()
     using server = new ApiServer(await createApiStub({ db, clock }))
-    const { alice, bob, gameId, submit, ship } = await startMatch(server)
-    await alice.client.gameplay.moveShip.mutate(submit)
-    await alice.client.gameplay.updateReadiness.mutate({ gameId, turn: 1, isReady: true })
-    await bob.client.gameplay.updateReadiness.mutate({ gameId, turn: 1, isReady: true })
+    const { alice, bob, gameId, submit, ship, home } = await startMatch(server)
     const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+    const turn = await flyTo({
+      gameId,
+      owner: bob,
+      players: [alice, bob],
+      worker: turnProcessor,
+      destination: { kind: "planet", id: home.id },
+    })
+    const bobView = await bob.client.gameplay.getPlayerView.query({ gameId })
+    const guest = bobView.ships.find((s) => s.ownerPlayerId === bobView.player.id)
+    Assert.isDefined(guest)
+    await alice.client.gameplay.moveShip.mutate({ ...submit, turn })
+    await bob.client.gameplay.moveShip.mutate({ ...submit, turn, shipId: guest.id })
+    await alice.client.gameplay.updateReadiness.mutate({ gameId, turn, isReady: true })
+    await bob.client.gameplay.updateReadiness.mutate({ gameId, turn, isReady: true })
     // Act
     expect(await turnProcessor.processNextDueTurn()).toBe("processed")
     const owner = (await alice.client.gameplay.getPlayerView.query({ gameId })).ships.find((s) => s.id === ship.id)
@@ -77,7 +89,7 @@ describe("ship movement", () => {
     })
     expect(sighting).toStrictEqual({ ...ship, planetId: null, starId: null, trip: null, order: null, position: owner?.position })
     expect(await turnProcessor.processNextDueTurn()).toBe("idle")
-    await expect(alice.client.gameplay.moveShip.mutate({ ...submit, turn: 2 })).rejects.toMatchErrorResponse(
+    await expect(alice.client.gameplay.moveShip.mutate({ ...submit, turn: turn + 1 })).rejects.toMatchErrorResponse(
       MoveShipErrorResponses.SHIP_UNAVAILABLE,
     )
   })

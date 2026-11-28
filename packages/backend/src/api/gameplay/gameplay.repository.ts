@@ -9,18 +9,21 @@ import type { ConstructionOrder } from "shared/domain/world/buildings/Constructi
 import type { Planet } from "shared/domain/world/planets/Planet.ts"
 import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import { SHIP_TEMPLATES, type ShipId } from "shared/domain/world/ships/Ship.ts"
-import { tripPosition, type BodyRef, type TravelBody, type TravelRoute } from "shared/domain/world/ships/travel.ts"
+import type { BodyRef, TravelBody, TravelRoute } from "shared/domain/world/ships/travel.ts"
 import type { Star } from "shared/domain/world/stars/Star.ts"
 import type { StarId } from "shared/domain/world/stars/StarId.ts"
+import { canSeeShip, inCurrentVision, scanSources } from "shared/domain/world/vision.ts"
 import { GetPlayerViewError, GetPlayerViewRollbackError } from "#api/gameplay/getPlayerView.error.ts"
 import type { PlayerView } from "#api/gameplay/PlayerView.ts"
 import { UpdateReadinessError, UpdateReadinessRollbackError } from "#api/gameplay/updateReadiness.error.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
+import { planetFacts, PlanetObservationsRepository } from "#lib/db/planetObservations.repository.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
   buildingsTable,
   constructionOrdersTable,
+  planetObservationsTable,
   planetsTable,
   playersTable,
   moveOrdersTable,
@@ -94,49 +97,58 @@ export class GameplayRepository extends PostgresRepository {
           Assert.isDefined(balance)
           Assert.isTrue(balance.credits !== null)
 
-          const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
-          const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
-
-          const buildings = await tx
-            .select({
-              id: buildingsTable.id,
-              type: buildingsTable.type,
-              planetId: buildingsTable.planetId,
-              site: buildingsTable.site,
-            })
-            .from(buildingsTable)
-            .where(eq(buildingsTable.gameId, gameId))
-
-          const ships = await tx
-            .select({
-              id: shipsTable.id,
-              type: shipsTable.type,
-              ownerPlayerId: shipsTable.ownerPlayerId,
-              planetId: shipsTable.planetId,
-              starId: shipsTable.starId,
-              trip: shipsTable.trip,
-            })
-            .from(shipsTable)
-            .where(eq(shipsTable.gameId, gameId))
-            .orderBy(shipsTable.id)
+          const { stars, planets, ships, buildingsByPlanet } = await new PlanetObservationsRepository(tx).readWorld(gameId)
+          const sources = scanSources(playerId, planets, ships)
+          const memory = await tx
+            .select()
+            .from(planetObservationsTable)
+            .where(and(eq(planetObservationsTable.gameId, gameId), eq(planetObservationsTable.playerId, playerId)))
+          const remembered = new Map(memory.map((row) => [row.planetId, row]))
+          const buildings: Building[] = []
+          const visiblePlanets = planets.map((planet): PlayerView["galaxy"]["systems"][number]["planets"][number] & { starId: StarId } => {
+            const { id, starId, x, y, name, coordinates } = planet
+            const identity = { id, starId, x, y, name, coordinates }
+            if (inCurrentVision(planet, sources)) {
+              buildings.push(...(buildingsByPlanet.get(id) ?? []))
+              return { ...identity, ...planetFacts(planet), observation: "current", observedTurn: turn.turn }
+            }
+            const prior = remembered.get(id)
+            if (prior !== undefined) {
+              buildings.push(...prior.buildings)
+              return { ...identity, ...prior.facts, observation: "remembered", observedTurn: prior.observedTurn }
+            }
+            return {
+              ...identity,
+              observation: "unknown",
+              observedTurn: null,
+              ownerPlayerId: null,
+              biome: null,
+              size: null,
+              area: null,
+              metalProduction: null,
+              remainingMetalDeposit: null,
+            }
+          })
           const constructionOrders = await this.getConstructionOrders({ gameId, turn: turn.turn, playerId }, tx)
           const moves = await this.getMoveOrders({ gameId, turn: turn.turn, playerId }, tx)
           const byShip = new Map(moves.map((move) => [move.shipId, { id: move.id, route: move.route }]))
           return {
             availableCredits: availableCredits(balance.exact, [...constructionOrders, ...moves.map((move) => move.route)]),
-            ships: ships.map((ship): PlayerView["ships"][number] => ({
-              ...ship,
-              ...SHIP_TEMPLATES[ship.type],
-              trip: ship.ownerPlayerId === playerId ? ship.trip : null,
-              position: ship.trip === null ? null : tripPosition(ship.trip),
-              cargo: [],
-              order: byShip.get(ship.id) ?? null,
-            })),
+            ships: ships
+              .filter((ship) => canSeeShip(ship, sources))
+              .map((ship): PlayerView["ships"][number] => ({
+                ...ship,
+                ...SHIP_TEMPLATES[ship.type],
+                trip: ship.ownerPlayerId === playerId ? ship.trip : null,
+                position: ship.trip === null ? null : ship.position,
+                cargo: [],
+                order: byShip.get(ship.id) ?? null,
+              })),
             constructionOrders,
             buildings,
             player: { ...player, creditBalance: balance.credits, creditBalanceExact: balance.exact },
             opponents,
-            galaxy: toGalaxyModel({ stars, planets }),
+            galaxy: toGalaxyModel({ stars, planets: visiblePlanets }),
             gameId,
             turn: turn.turn,
           }
@@ -415,7 +427,7 @@ function toGalaxyModel({
   planets,
 }: {
   stars: ReadonlyArray<typeof starsTable.$inferSelect>
-  planets: ReadonlyArray<typeof planetsTable.$inferSelect>
+  planets: ReadonlyArray<PlayerView["galaxy"]["systems"][number]["planets"][number] & { starId: StarId }>
 }): PlayerView["galaxy"] {
   const planetsByStarId = Map.groupBy(planets, (planet) => planet.starId)
   const systems = stars.map((star) => ({

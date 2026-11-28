@@ -1,13 +1,13 @@
 import type { PlayerView } from "@api-types"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
-import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { SHIP_TEMPLATES, ShipIdSchema, ShipType } from "shared/domain/world/ships/Ship.ts"
-import { ShipsAtPlanet } from "./ShipsAtPlanet.tsx"
+import { observedPlanetStub } from "../observation.stub.ts"
+import { StationedShips } from "./StationedShips.tsx"
 
 const owner = createPlayerStub()
 const guest = createPlayerStub({ id: "00000000-0000-4000-8000-000000000002", alias: "Bob" })
-const planet = createPlanetStub({ id: "haven", name: "Haven", coordinates: "44:19:10", ownerPlayerId: owner.id })
+const planet = observedPlanetStub({ id: "haven", name: "Haven", coordinates: "44:19:10", ownerPlayerId: owner.id })
 const transport: PlayerView["ships"][number] = {
   id: ShipIdSchema.parse("T-01"),
   ...SHIP_TEMPLATES[ShipType.TRANSPORT],
@@ -22,9 +22,9 @@ const transport: PlayerView["ships"][number] = {
 const visitor: PlayerView["ships"][number] = { ...transport, id: ShipIdSchema.parse("T-010"), ownerPlayerId: guest.id }
 const meta = {
   title: "Application/Stationed Ships",
-  component: ShipsAtPlanet,
-  args: { planet, players: [owner, guest], ships: [transport, visitor] },
-} satisfies Meta<typeof ShipsAtPlanet>
+  component: StationedShips,
+  args: { body: { kind: "planet", ...planet }, players: [owner, guest], ships: [transport, visitor] },
+} satisfies Meta<typeof StationedShips>
 export default meta
 type Story = StoryObj<typeof meta>
 export const Interactive: Story = {

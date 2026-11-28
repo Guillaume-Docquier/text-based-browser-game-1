@@ -7,6 +7,7 @@ import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
 import { readTurnState } from "#testing/readTurnState.ts"
+import { flyTo } from "#testing/scoutPlanet.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import { ConstructionErrorResponses } from "./construction.error.ts"
 
@@ -16,7 +17,17 @@ describe("construction planning", () => {
     await using db = await createIntegrationTestDb()
     using server = new ApiServer(await createApiStub({ db }))
     const { alice, bob, gameId, command } = await startMatch(server)
+    const { turnProcessor } = await createTurnProcessorStub({ db })
+    const turn = await flyTo({
+      gameId,
+      owner: bob,
+      players: [alice, bob],
+      worker: turnProcessor,
+      destination: { kind: "planet", id: command.planetId },
+    })
+    command.turn = turn
     const before = await bob.client.gameplay.getPlayerView.query({ gameId })
+    const ownBefore = await alice.client.gameplay.getPlayerView.query({ gameId })
 
     // Act
     await alice.client.gameplay.construction.mutate(command)
@@ -26,11 +37,12 @@ describe("construction planning", () => {
 
     // Assert
     expect(order).toStrictEqual({ id: expect.any(String), planetId: command.planetId, site: 2, type: "TRADE_CENTER", cost: 30 })
-    expect(mine.player.creditBalance).toBe(100)
-    expect(mine.buildings).toStrictEqual(before.buildings)
+    expect(mine.player.creditBalance).toBe(ownBefore.player.creditBalance)
+    expect(mine.buildings).toStrictEqual(ownBefore.buildings)
+    expect(before.buildings.filter((b) => b.planetId === command.planetId)).toHaveLength(2)
     expect(await bob.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(before)
     await expect(
-      bob.client.gameplay.construction.mutate({ gameId, turn: 1, action: "cancel", orderId: order.id }),
+      bob.client.gameplay.construction.mutate({ gameId, turn, action: "cancel", orderId: order.id }),
     ).rejects.toMatchErrorResponse(ConstructionErrorResponses.ORDER_NOT_FOUND)
   })
 

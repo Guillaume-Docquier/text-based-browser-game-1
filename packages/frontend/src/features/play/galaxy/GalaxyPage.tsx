@@ -8,6 +8,7 @@ import { Button } from "@/components/button.tsx"
 import { GalaxyMap } from "@/features/play/galaxy/GalaxyMap.tsx"
 import { StarSystemMap } from "@/features/play/galaxy/star-system/StarSystemMap.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
+import { StationedShips } from "../ships/StationedShips.tsx"
 
 export function GalaxyPage({ starId }: { starId: StarId | undefined }): ReactElement {
   const { gameDetails, playerView } = usePlayGameContext()
@@ -122,6 +123,17 @@ export function GalaxyPage({ starId }: { starId: StarId | undefined }): ReactEle
           </Button>
         </div>
 
+        {selectedSystem !== undefined && (
+          <div className="absolute bottom-12 right-4 max-h-[48%] max-w-[min(20rem,90%)] overflow-y-auto">
+            <StationedShips
+              key={selectedSystem.star.id}
+              body={{ kind: "star", ...selectedSystem.star }}
+              ships={playerView.ships}
+              players={gameDetails.players}
+              moveFor={{ gameId: gameDetails.id, playerId: playerView.player.id }}
+            />
+          </div>
+        )}
         <div className="pointer-events-none absolute bottom-4 left-4 rounded-md border border-border/70 bg-background/85 px-2.5 py-1.5 text-xs text-muted-foreground backdrop-blur-sm">
           {selectedSystem === undefined
             ? "Drag to pan · Scroll or pinch to zoom · Select a region to center or a star to inspect"

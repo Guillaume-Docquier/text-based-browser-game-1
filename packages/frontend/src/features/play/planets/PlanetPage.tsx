@@ -10,8 +10,9 @@ import { buttonVariants } from "@/components/button.tsx"
 import { planetArtwork } from "@/features/play/galaxy/star-system/planetArtwork.ts"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 import { useConstruction } from "@/lib/api/useConstruction.ts"
+import { observationLabel } from "../observationLabel.ts"
+import { StationedShips } from "../ships/StationedShips.tsx"
 import { PlanetSurface } from "./PlanetSurface.tsx"
-import { ShipsAtPlanet } from "./ShipsAtPlanet.tsx"
 
 export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
   const { gameDetails, playerView } = usePlayGameContext()
@@ -29,10 +30,15 @@ export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
 
   const { system, planet } = target
   const owner = gameDetails.players.find(({ id }) => id === planet.ownerPlayerId)
-  const ownerName = planet.ownerPlayerId === null ? "Unclaimed" : (owner?.alias ?? `Player ${planet.ownerPlayerId}`)
+  const ownerName =
+    planet.observation === "unknown"
+      ? "Unknown"
+      : planet.ownerPlayerId === null
+        ? "Unclaimed"
+        : (owner?.alias ?? `Player ${planet.ownerPlayerId}`)
   const systemName = system.star.id === SUN_ID ? "Sol" : system.star.name
 
-  const canBuild = hasOwnedCommandCenter(planet, playerView.player.id, playerView.buildings)
+  const canBuild = planet.observation === "current" && hasOwnedCommandCenter(planet, playerView.player.id, playerView.buildings)
   const artwork = planetArtwork(planet, system.star.id)
   return (
     <article aria-labelledby="planet-name" className="flex min-w-0 flex-1 flex-col gap-5 overflow-y-auto p-4 sm:p-6">
@@ -60,16 +66,24 @@ export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
         </div>
       </header>
       <div className="grid flex-1 content-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
-        {canBuild ? (
+        {planet.observation === "unknown" ? (
+          <section aria-label="Planet surface" className="rounded-xl border border-border/70 bg-card p-5">
+            <div className="flex items-center gap-3">
+              <img src={artwork} alt={planet.name} className="size-10" />
+              <h2 className="font-heading text-lg font-semibold">Planet surface</h2>
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground">Surface and buildings unknown</p>
+          </section>
+        ) : canBuild ? (
           <ColonySurface key={planet.id} planet={planet} artwork={artwork} />
         ) : (
           <PlanetSurface key={planet.id} planet={planet} artwork={artwork} buildings={playerView.buildings} />
         )}
 
         <div className="flex flex-col gap-4">
-          <ShipsAtPlanet
+          <StationedShips
             key={planet.id}
-            planet={planet}
+            body={{ kind: "planet", ...planet }}
             ships={playerView.ships}
             players={gameDetails.players}
             moveFor={{ gameId: gameDetails.id, playerId: playerView.player.id }}
@@ -81,7 +95,7 @@ export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
   )
 }
 
-function ColonySurface({ planet, artwork }: { planet: Planet; artwork: string }): ReactElement {
+function ColonySurface({ planet, artwork }: { planet: Exclude<Planet, { observation: "unknown" }>; artwork: string }): ReactElement {
   const { playerView, canTakeAction } = usePlayGameContext()
   const construction = useConstruction(playerView.gameId)
   const target = { gameId: playerView.gameId, turn: playerView.turn }
@@ -112,12 +126,13 @@ function ColonySurface({ planet, artwork }: { planet: Planet; artwork: string })
 function PlanetFacts({ planet, ownerName }: { planet: Planet; ownerName: string }): ReactElement {
   const facts = [
     ["Coordinates", planet.coordinates],
+    ["Observation", observationLabel(planet)],
     ["Owner", ownerName],
     ["Biome", formatCategory(planet.biome)],
     ["Size", formatCategory(planet.size)],
-    ["Area", `${planet.area.toLocaleString()} slots`],
-    ["Metal production per mine per turn", planet.metalProduction],
-    ["Remaining metal deposit", planet.remainingMetalDeposit],
+    ["Area", planet.area === null ? "Unknown" : `${planet.area.toLocaleString()} slots`],
+    ["Metal production per mine per turn", planet.metalProduction ?? "Unknown"],
+    ["Remaining metal deposit", planet.remainingMetalDeposit ?? "Unknown"],
   ] as const
 
   return (
@@ -137,7 +152,10 @@ function PlanetFacts({ planet, ownerName }: { planet: Planet; ownerName: string 
   )
 }
 
-function formatCategory(category: string): string {
+function formatCategory(category: string | null): string {
+  if (category === null) {
+    return "Unknown"
+  }
   return category.charAt(0) + category.slice(1).toLowerCase()
 }
 

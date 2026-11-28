@@ -2,6 +2,7 @@ import { Assert, Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { afterEach, describe, expect, vi, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
+import type { PlayerView } from "#api/gameplay/PlayerView.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#testing/ApiServer.ts"
 import { createIntegrationTestDb } from "#testing/createIntegrationTestDb.ts"
@@ -9,6 +10,9 @@ import { readTurnState } from "#testing/readTurnState.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import { type ProcessedTurnModel, TurnsRepository } from "#turn-processing/turns.repository.ts"
 
+function refreshOnSecondTurn(planet: PlayerView["galaxy"]["systems"][number]["planets"][number]): typeof planet {
+  return planet.observation === "current" ? { ...planet, observedTurn: 2 } : planet
+}
 describe("TurnProcessor", () => {
   describe("processTurnsForever", () => {
     afterEach(() => {
@@ -125,6 +129,12 @@ describe("TurnProcessor", () => {
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>({
         ...initialPlayerView,
+        galaxy: {
+          systems: initialPlayerView.galaxy.systems.map((system) => ({
+            ...system,
+            planets: system.planets.map(refreshOnSecondTurn),
+          })),
+        },
         availableCredits: "110",
         player: { ...initialPlayerView.player, creditBalance: 110, creditBalanceExact: "110" },
         turn: 2,

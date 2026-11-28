@@ -22,10 +22,13 @@ describe("starting transport migration", () => {
     const initial = await alice.client.gameplay.getPlayerView.query({ gameId })
     const otherFleet = (await alice.client.gameplay.getPlayerView.query({ gameId: other })).ships
     const aliceShip = initial.ships.find((ship) => ship.ownerPlayerId === initial.player.id)
-    const bobShip = initial.ships.find((ship) => ship.ownerPlayerId !== initial.player.id)
+    const bobInitial = await bob.client.gameplay.getPlayerView.query({ gameId })
+    const bobShip = bobInitial.ships.find((ship) => ship.ownerPlayerId === bobInitial.player.id)
     Assert.isDefined(aliceShip)
     Assert.isDefined(bobShip)
-    const destination = initial.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.ownerPlayerId === null)
+    const destination = bobInitial.galaxy.systems
+      .flatMap((system) => system.planets)
+      .find((planet) => planet.ownerPlayerId === bobInitial.player.id)
     Assert.isDefined(destination)
     const sql = await readFile(new URL("../../../migrations/0005_backfill-starting-transports.sql", import.meta.url), "utf8")
     const pool = postgres.db.$client

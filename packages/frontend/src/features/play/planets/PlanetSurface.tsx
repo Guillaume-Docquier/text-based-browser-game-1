@@ -5,6 +5,7 @@ import { constructionProblem } from "shared/domain/world/buildings/ConstructionO
 import { planetSurface } from "shared/domain/world/planets/planetSurface.ts"
 import commandCenterArt from "@/assets/buildings/command-center.png"
 import tradeCenterArt from "@/assets/buildings/trade-center.png"
+import { observationLabel } from "../observationLabel.ts"
 import { ConstructionPanel, type ConstructionPlanning } from "./ConstructionPanel.tsx"
 
 const BUILDING_APPEARANCE = {
@@ -22,7 +23,7 @@ export function PlanetSurface({
   buildings,
   planning,
 }: {
-  planet: Planet
+  planet: Exclude<Planet, { observation: "unknown" }>
   artwork: string
   buildings: PlayerView["buildings"]
   planning?: ConstructionPlanning | undefined
@@ -46,6 +47,7 @@ export function PlanetSurface({
       <header className="flex items-center gap-3 border-b border-border/60 px-4 py-2">
         <img alt={planet.name} src={artwork} className="size-10 object-contain" />
         <h2 className="font-heading text-lg font-semibold">Planet surface</h2>
+        {planet.observation === "remembered" && <p className="text-sm text-muted-foreground">{observationLabel(planet)}</p>}
       </header>
       <svg
         role="group"

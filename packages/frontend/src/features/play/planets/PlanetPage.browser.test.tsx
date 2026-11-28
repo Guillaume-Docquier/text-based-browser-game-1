@@ -1,10 +1,10 @@
 import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
-import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
 import { describe, expect, it } from "vitest"
 import { page } from "vitest/browser"
 import { renderApplicationPage } from "@/testing/renderApplicationPage.tsx"
+import { observedPlanetStub } from "../observation.stub.ts"
 import { createPlayGameContextStub } from "../PlayContext.stub.ts"
 import { PlayGameContextProvider } from "../PlayContext.tsx"
 import { PlanetPage } from "./PlanetPage.tsx"
@@ -12,7 +12,7 @@ import { PlanetPage } from "./PlanetPage.tsx"
 describe("PlanetPage", () => {
   it("should meet PV-0002 When a planet view opens, the player can identify the planet by name and coordinates and inspect its available ownership, biome, size, area, metal production and remaining deposit alongside space for its surface.", async () => {
     const player = createPlayerStub()
-    const planet = createPlanetStub({
+    const planet = observedPlanetStub({
       name: "Atlas",
       coordinates: "45:16:05",
       ownerPlayerId: player.id,
@@ -38,13 +38,22 @@ describe("PlanetPage", () => {
           .getByRole("term")
           .all()
           .map((term) => term.element().textContent),
-      ).toStrictEqual(["Coordinates", "Owner", "Biome", "Size", "Area", "Metal production per mine per turn", "Remaining metal deposit"])
+      ).toStrictEqual([
+        "Coordinates",
+        "Observation",
+        "Owner",
+        "Biome",
+        "Size",
+        "Area",
+        "Metal production per mine per turn",
+        "Remaining metal deposit",
+      ])
       expect(
         attributes
           .getByRole("definition")
           .all()
           .map((value) => value.element().textContent),
-      ).toStrictEqual(["45:16:05", "Alice", "Metallic", "Small", "5 slots", "2", "14"])
+      ).toStrictEqual(["45:16:05", "Current vision", "Alice", "Metallic", "Small", "5 slots", "2", "14"])
     })
   })
 })

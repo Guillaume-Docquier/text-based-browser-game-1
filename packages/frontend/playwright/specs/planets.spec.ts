@@ -21,6 +21,7 @@ test("PV-0001 When a player selects a planet on the system map or through the pl
   })
 
   const planet = await test.step("Follow the coordinate to the full planet view", async () => {
+    await planetsPage.showAllPlanets()
     const selected = await planetsPage.openCoordinate("43:75:15")
     await expect(alice.page).toHaveURL(PlanetPage.urlPattern)
     await expect(selected.heading).toHaveText("planet 965452")
@@ -36,6 +37,7 @@ test("PV-0001 When a player selects a planet on the system map or through the pl
   })
 
   await test.step("Select the same planet on its system map", async () => {
+    await planetsPage.showAllPlanets()
     const selected = await planetsPage.openCoordinate("43:75:15")
     const system = await selected.returnToSystem()
     const fromMap = await system.openPlanetProfile(system.planet("planet 965452"))

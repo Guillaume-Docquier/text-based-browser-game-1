@@ -127,6 +127,20 @@
       "when": 1795847469030,
       "tag": "0017_exact_credit_balances",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795848433745,
+      "tag": "0018_planet_observations",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795848467417,
+      "tag": "0019_backfill-planet-observations",
+      "breakpoints": true
     }
   ]
 }

@@ -1,33 +1,35 @@
-import type { GameDetails, Planet, PlayerView } from "@api-types"
+import type { GameDetails, PlayerView } from "@api-types"
 import { Link } from "@tanstack/react-router"
 import { Rocket } from "lucide-react"
 import { useState, type ReactElement } from "react"
 import { ShipType, type ShipId } from "shared/domain/world/ships/Ship.ts"
+import type { TravelBody } from "shared/domain/world/ships/travel.ts"
 import { Button, buttonVariants } from "@/components/button.tsx"
 
 const TYPE_NAMES = { [ShipType.TRANSPORT]: "Transport" } satisfies Record<ShipType, string>
 
-export function ShipsAtPlanet({
-  planet,
+export function StationedShips({
+  body,
   ships,
   players,
   moveFor,
 }: {
-  planet: Planet
+  body: Pick<TravelBody, "kind" | "id" | "name" | "coordinates">
   ships: PlayerView["ships"]
   moveFor?: { gameId: GameDetails["id"]; playerId: PlayerView["player"]["id"] }
   players: GameDetails["players"]
 }): ReactElement | null {
   const [selectedId, setSelectedId] = useState<ShipId>()
-  const stationed = ships.filter((ship) => ship.planetId === planet.id)
+  const label = `Ships at this ${body.kind}`
+  const stationed = ships.filter((ship) => (body.kind === "star" ? ship.starId : ship.planetId) === body.id)
   if (stationed.length === 0) {
     return null
   }
   const selected = stationed.find((ship) => ship.id === selectedId)
   const owner = players.find((player) => player.id === selected?.ownerPlayerId)
   return (
-    <section aria-label="Ships at this planet" className="rounded-xl border border-border/70 bg-card px-5 py-4">
-      <h2 className="font-heading text-lg font-semibold">Ships at this planet</h2>
+    <section aria-label={label} className="rounded-xl border border-border/70 bg-card px-5 py-4">
+      <h2 className="font-heading text-lg font-semibold">{label}</h2>
       <div className="mt-3 flex flex-wrap gap-2">
         {stationed.map((ship) => (
           <Button
@@ -52,7 +54,7 @@ export function ShipsAtPlanet({
           <dl className="mt-1 divide-y divide-border/50">
             {[
               ["Owner", owner?.alias ?? selected.ownerPlayerId],
-              ["Location", `${planet.name} · ${planet.coordinates}`],
+              ["Location", `${body.name} · ${body.coordinates}`],
               ["Type", TYPE_NAMES[selected.type]],
               ["Thrust", selected.thrust],
               ["Empty mass", selected.emptyMass],

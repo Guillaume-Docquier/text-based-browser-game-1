@@ -7,16 +7,16 @@ import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { SUN_ID } from "shared/domain/world/Sol.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
 import { createStarSystemStub } from "shared/domain/world/StarSystem.stub.ts"
-import { StarSystemSchema } from "shared/domain/world/StarSystem.ts"
 import { createGalaxy } from "shared/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "shared/galaxy-creation/GalaxyCreationSettings.ts"
 import { createSeededRng } from "shared/testing/createSeededRng.ts"
 import { Button } from "@/components/button.tsx"
+import { unknownPlanetStub, observedSystemStub, observedPlanetStub } from "../../observation.stub.ts"
 import { StarSystemMap } from "./StarSystemMap.tsx"
 
 const player = createPlayerStub()
 const orbit = Distance.in(Distance.create(5, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS)
-const system = StarSystemSchema.parse(
+const system = observedSystemStub(
   createStarSystemStub({
     star: createStarStub({ id: "00000000-0000-4000-8000-000000000001", name: "Sol" }),
     planets: [
@@ -78,16 +78,22 @@ const generated = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings,
 const sol = generated.systems.find(({ star }) => star.id === SUN_ID)
 Assert.isDefined(sol)
 
-export const SolarSystem: Story = { ...Interactive, args: { system: StarSystemSchema.parse(sol) } }
+export const SolarSystem: Story = { ...Interactive, args: { system: observedSystemStub(sol) } }
 
 export const GasPlanet: Story = {
   ...Interactive,
   args: {
-    system: StarSystemSchema.parse(
-      createStarSystemStub({
-        star: createStarStub({ name: "Rigel" }),
-        planets: [createPlanetStub({ name: "Cirrus", biome: PlanetBiome.GAS, x: orbit * 2 })],
-      }),
-    ),
+    system: {
+      star: createStarStub({ name: "Rigel" }),
+      planets: [
+        observedPlanetStub({ name: "Cirrus", biome: PlanetBiome.GAS, x: orbit, y: 0 }),
+        {
+          ...observedPlanetStub({ name: "Nimbus", biome: PlanetBiome.GAS, x: orbit * 2, y: 0 }),
+          observation: "remembered",
+          observedTurn: 3,
+        },
+        unknownPlanetStub(observedPlanetStub({ name: "Veil", x: orbit * 3, y: 0 })),
+      ],
+    },
   },
 }

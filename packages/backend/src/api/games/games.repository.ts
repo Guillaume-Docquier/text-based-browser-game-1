@@ -26,6 +26,7 @@ import type { GameDetails } from "#api/games/GameDetails.ts"
 import { GetGameByIdError } from "#api/games/getGameById.error.ts"
 import { GetGameListingsError } from "#api/games/getGameListings.error.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
+import { PlanetObservationsRepository } from "#lib/db/planetObservations.repository.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
   accountsTable,
@@ -260,6 +261,7 @@ export class GamesRepository extends PostgresRepository {
     await tx
       .insert(buildingsTable)
       .values(startGameModel.buildings.map((building) => ({ ...building, gameId: startGameModel.context.gameId })))
+    await new PlanetObservationsRepository(tx).saveCurrentObservations(gameTurn.gameId, gameTurn.turn)
   }
 
   public async getGameListings(

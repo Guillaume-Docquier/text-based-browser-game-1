@@ -22,12 +22,13 @@ import type { Alias } from "shared/domain/accounts/Alias.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
-import { BuildingType, type BuildingId } from "shared/domain/world/buildings/Building.ts"
+import { BuildingType, type Building, type BuildingId } from "shared/domain/world/buildings/Building.ts"
 import type { ConstructionOrder, ConstructionOrderId } from "shared/domain/world/buildings/ConstructionOrder.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
 import { ShipType, type ShipId } from "shared/domain/world/ships/Ship.ts"
 import type { Trip, TravelRoute } from "shared/domain/world/ships/travel.ts"
+import type { PlanetFacts } from "shared/domain/world/vision.ts"
 import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
 import { gameIdColumn } from "#lib/db/games/GameId.ts"
 import { planetIdColumn } from "#lib/db/planets/PlanetId.ts"
@@ -258,6 +259,24 @@ export const moveOrdersTable = pgTable(
   ],
 )
 
+export const planetObservationsTable = pgTable(
+  "planet_observations",
+  {
+    gameId: gameIdColumn("game_id").notNull(),
+    playerId: playerIdColumn("player_id").notNull(),
+    planetId: planetIdColumn("planet_id").notNull(),
+    observedTurn: integer("observed_turn").notNull(),
+    facts: jsonb("facts").$type<PlanetFacts>().notNull(),
+    buildings: jsonb("buildings").$type<Building[]>().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.gameId, table.playerId, table.planetId] }),
+    foreignKey({ columns: [table.gameId, table.playerId], foreignColumns: [playersTable.gameId, playersTable.playerId] }).onDelete(
+      "cascade",
+    ),
+    foreignKey({ columns: [table.gameId, table.planetId], foreignColumns: [planetsTable.gameId, planetsTable.id] }).onDelete("cascade"),
+  ],
+)
 export const constructionOrdersTable = pgTable(
   "construction_orders",
   {

@@ -10,6 +10,7 @@ import { ScrollArea, ScrollBar } from "@/components/scroll-area.tsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
+import { observationLabel } from "../observationLabel.ts"
 
 type PlanetRow = { readonly planet: Planet; readonly owner: Player | undefined; readonly ownerLabel: string }
 type SortColumn = "planet" | "owner" | "coordinates" | "metalProduction" | "remainingMetalDeposit" | "area"
@@ -25,9 +26,9 @@ const SORT_COMPARATORS = {
   planet: (first, second) => TEXT_COLLATOR.compare(first.planet.name, second.planet.name),
   owner: (first, second) => TEXT_COLLATOR.compare(first.ownerLabel, second.ownerLabel),
   coordinates: (first, second) => TEXT_COLLATOR.compare(first.planet.coordinates, second.planet.coordinates),
-  metalProduction: (first, second) => first.planet.metalProduction - second.planet.metalProduction,
-  remainingMetalDeposit: (first, second) => first.planet.remainingMetalDeposit - second.planet.remainingMetalDeposit,
-  area: (first, second) => first.planet.area - second.planet.area,
+  metalProduction: (first, second) => (first.planet.metalProduction ?? -1) - (second.planet.metalProduction ?? -1),
+  remainingMetalDeposit: (first, second) => (first.planet.remainingMetalDeposit ?? -1) - (second.planet.remainingMetalDeposit ?? -1),
+  area: (first, second) => (first.planet.area ?? -1) - (second.planet.area ?? -1),
   id: (first, second) => TEXT_COLLATOR.compare(first.planet.id, second.planet.id),
 } as const satisfies Record<SortColumn | "id", PlanetRowComparator>
 
@@ -187,6 +188,9 @@ function PlanetTableHeader({ sort, onSort }: { sort: PlanetSort; onSort: (column
         <SortHeader label="Metal production per mine per turn" column="metalProduction" sort={sort} onSort={onSort} align="right" />
         <SortHeader label="Remaining metal deposit" column="remainingMetalDeposit" sort={sort} onSort={onSort} align="right" />
         <SortHeader label="Area" column="area" sort={sort} onSort={onSort} align="right" />
+        <th scope="col" className="px-4 py-3 text-left font-medium">
+          Observation
+        </th>
       </tr>
     </thead>
   )
@@ -205,7 +209,7 @@ function PlanetTableBody({
     return (
       <tbody>
         <tr>
-          <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+          <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
             {emptyMessage}
           </td>
         </tr>
@@ -247,9 +251,10 @@ function PlanetTableRow({ gameId, row }: { gameId: GameId; row: PlanetRow }): Re
           {planet.coordinates}
         </Link>
       </td>
-      <NumericCell value={planet.metalProduction} />
-      <NumericCell value={planet.remainingMetalDeposit} />
-      <NumericCell value={planet.area.toLocaleString()} />
+      <NumericCell value={planet.metalProduction ?? "Unknown"} />
+      <NumericCell value={planet.remainingMetalDeposit ?? "Unknown"} />
+      <NumericCell value={planet.area?.toLocaleString() ?? "Unknown"} />
+      <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{observationLabel(planet)}</td>
     </tr>
   )
 }
@@ -299,7 +304,7 @@ function createPlanetRows(planets: readonly Planet[], players: readonly Player[]
 
   return planets.map((planet) => {
     if (planet.ownerPlayerId === null) {
-      return { planet, owner: undefined, ownerLabel: "Unclaimed" }
+      return { planet, owner: undefined, ownerLabel: planet.observation === "unknown" ? "Unknown" : "Unclaimed" }
     }
     const owner = ownersById.get(planet.ownerPlayerId)
     Assert.isDefined(owner)

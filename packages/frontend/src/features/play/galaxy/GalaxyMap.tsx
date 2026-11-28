@@ -236,6 +236,7 @@ function GalaxyStar({
   const y = system.star.y * LIGHT_YEAR_SIZE
   const hasOwnPlanets = system.planets.some(({ ownerPlayerId }) => ownerPlayerId === currentPlayerId)
   const hasOpponentPlanets = system.planets.some(({ ownerPlayerId }) => ownerPlayerId !== null && ownerPlayerId !== currentPlayerId)
+  const rememberedOwner = system.planets.some((planet) => planet.observation === "remembered" && planet.ownerPlayerId !== null)
   const ownershipLabel = hasOwnPlanets
     ? hasOpponentPlanets
       ? " with your and opponents' planets"
@@ -254,7 +255,7 @@ function GalaxyStar({
     <g
       role="button"
       tabIndex={0}
-      aria-label={`View ${systemName} Star System${ownershipLabel}`}
+      aria-label={`View ${systemName} Star System${rememberedOwner ? " (last observed ownership)" : ""}${ownershipLabel}`}
       className="group/star cursor-pointer outline-none"
       onClick={(event) => {
         onPointerSelect(event, system)
@@ -263,7 +264,10 @@ function GalaxyStar({
         activateWithKeyboard(event, selectSystem)
       }}
     >
-      <title>{isSun ? `Sol · Sun · ${system.star.coordinates}` : system.star.name}</title>
+      <title>
+        {isSun ? `Sol · Sun · ${system.star.coordinates}` : system.star.name}
+        {rememberedOwner ? " · Last observed ownership" : ""}
+      </title>
       {isSun && (
         <g aria-hidden="true" className="pointer-events-none">
           <circle cx={x} cy={y} r="3" fill="#fb923c" fillOpacity=".22" stroke="#fdba74" strokeWidth=".35" />
@@ -294,6 +298,7 @@ function GalaxyStar({
         <rect
           aria-hidden="true"
           data-ownership-marker="opponent"
+          strokeDasharray={rememberedOwner ? "2 2" : undefined}
           x={x - 2.5}
           y={y - 2.5}
           width="5"

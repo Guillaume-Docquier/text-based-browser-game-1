@@ -1,9 +1,9 @@
 import { createPlayerStub } from "shared/domain/players/Player.stub.ts"
-import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
 import { describe, expect, it } from "vitest"
 import { page } from "vitest/browser"
 import { renderApplicationPage } from "@/testing/renderApplicationPage.tsx"
+import { observedPlanetStub, unknownPlanetStub } from "../observation.stub.ts"
 import { createPlayGameContextStub } from "../PlayContext.stub.ts"
 import { PlayGameContextProvider } from "../PlayContext.tsx"
 import { PlanetsPage } from "./PlanetsPage.tsx"
@@ -12,7 +12,7 @@ async function renderPlanets(): Promise<void> {
   const alice = createPlayerStub()
   const bob = createPlayerStub({ id: "00000000-0000-4000-8000-000000000002", alias: "Bob" })
   const planets = [
-    createPlanetStub({
+    observedPlanetStub({
       name: "Atlas",
       ownerPlayerId: bob.id,
       coordinates: "1:2:1",
@@ -20,7 +20,7 @@ async function renderPlanets(): Promise<void> {
       remainingMetalDeposit: 1,
       area: 3,
     }),
-    createPlanetStub({
+    observedPlanetStub({
       name: "Eris",
       ownerPlayerId: alice.id,
       coordinates: "1:10:3",
@@ -28,15 +28,19 @@ async function renderPlanets(): Promise<void> {
       remainingMetalDeposit: 4,
       area: 2,
     }),
-    createPlanetStub({
-      name: "Luna",
-      ownerPlayerId: bob.id,
-      coordinates: "1:3:2",
-      metalProduction: 1,
-      remainingMetalDeposit: 3,
-      area: 10,
-    }),
-    createPlanetStub({
+    {
+      ...observedPlanetStub({
+        name: "Luna",
+        ownerPlayerId: bob.id,
+        coordinates: "1:3:2",
+        metalProduction: 1,
+        remainingMetalDeposit: 3,
+        area: 10,
+      }),
+      observation: "remembered" as const,
+      observedTurn: 3,
+    },
+    observedPlanetStub({
       name: "Terra",
       ownerPlayerId: alice.id,
       coordinates: "1:1:4",
@@ -44,7 +48,8 @@ async function renderPlanets(): Promise<void> {
       remainingMetalDeposit: 2,
       area: 4,
     }),
-    createPlanetStub({ name: "Prospect", coordinates: "2:3:5", metalProduction: 4, remainingMetalDeposit: 14 }),
+    unknownPlanetStub(observedPlanetStub({ name: "Eclipse", coordinates: "6:0:5" })),
+    observedPlanetStub({ name: "Prospect", coordinates: "2:3:5", metalProduction: 4, remainingMetalDeposit: 14 }),
   ]
   const context = createPlayGameContextStub({ galaxy: { systems: [{ star: createStarStub(), planets }] } })
   context.gameDetails.players = [alice, bob]
@@ -125,6 +130,7 @@ describe("PlanetsPage", () => {
         "Metal production per mine per turn",
         "Remaining metal deposit",
         "Area",
+        "Observation",
       ])
       const atlas = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "Atlas", exact: true }) })
       expect(
@@ -132,24 +138,35 @@ describe("PlanetsPage", () => {
           .getByRole("cell")
           .all()
           .map((cell) => cell.element().textContent),
-      ).toStrictEqual(["Atlas", "Bob", "1:2:1", "2", "1", "3"])
+      ).toStrictEqual(["Atlas", "Bob", "1:2:1", "2", "1", "3", "Current vision"])
     })
   })
 
-  it("should meet PLST-0002 When the player opens Planets, the default list contains the planets owned by any player. Choosing All planets lets them compare the available metal production and remaining deposit of owned and unowned planets in the same list.", async () => {
+  it("should meet PLST-0002 When the player opens Planets, the default list contains planets whose current or last-observed owner is known to that player. Choosing All planets includes every public planet and shows only the metal production and remaining deposit available to that player.", async () => {
     await renderPlanets()
     await page.mark("Expand the list from owned planets to candidate colonies", async () => {
       await expectPlanets(["Eris", "Terra", "Atlas", "Luna"])
       await page.getByRole("combobox", { name: "Owner" }).click()
       await page.getByRole("option", { name: "All planets" }).click()
-      await expectPlanets(["Eris", "Terra", "Atlas", "Luna", "Prospect"])
+      await expectPlanets(["Eris", "Terra", "Atlas", "Luna", "Prospect", "Eclipse"])
+      const luna = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "Luna", exact: true }) })
+      await expect.element(luna.getByRole("cell", { name: "Last observed · Turn 3", exact: true })).toBeVisible()
+      const unknown = page.getByRole("row").filter({ has: page.getByRole("link", { name: "6:0:5" }) })
+      expect(
+        unknown
+          .getByRole("cell")
+          .all()
+          .map((c) => c.element().textContent),
+      ).toStrictEqual(["Eclipse", "Unknown", "6:0:5", "Unknown", "Unknown", "Unknown", "Unknown"])
+      await page.getByRole("columnheader", { name: "Metal production per mine per turn" }).getByRole("button").click()
+      await expectPlanets(["Eclipse", "Luna", "Atlas", "Eris", "Prospect", "Terra"])
       const prospect = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "Prospect", exact: true }) })
       expect(
         prospect
           .getByRole("cell")
           .all()
           .map((cell) => cell.element().textContent),
-      ).toStrictEqual(["Prospect", "Unclaimed", "2:3:5", "4", "14", "1"])
+      ).toStrictEqual(["Prospect", "Unclaimed", "2:3:5", "4", "14", "1", "Current vision"])
     })
   })
 })

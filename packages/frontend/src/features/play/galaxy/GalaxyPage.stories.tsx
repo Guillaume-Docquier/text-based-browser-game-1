@@ -15,8 +15,8 @@ import { PlanetIdSchema } from "shared/domain/world/planets/PlanetId.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
 import { StarIdSchema } from "shared/domain/world/stars/StarId.ts"
 import { createStarSystemStub } from "shared/domain/world/StarSystem.stub.ts"
-import { StarSystemSchema } from "shared/domain/world/StarSystem.ts"
 import { z } from "zod"
+import { observedSystemStub } from "../observation.stub.ts"
 import { PlanetPage } from "../planets/PlanetPage.tsx"
 import { createPlayGameContextStub } from "../PlayContext.stub.ts"
 import { PlayGameContextProvider } from "../PlayContext.tsx"
@@ -25,7 +25,7 @@ import { GalaxyPage } from "./GalaxyPage.tsx"
 const context = createPlayGameContextStub({
   galaxy: {
     systems: [
-      StarSystemSchema.parse(
+      observedSystemStub(
         createStarSystemStub({
           star: createStarStub({ id: "00000000-0000-4000-8000-000000000003", name: "Rigel", x: 30, y: 40 }),
           planets: [

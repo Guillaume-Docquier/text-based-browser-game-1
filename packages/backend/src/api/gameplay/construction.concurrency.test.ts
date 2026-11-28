@@ -59,7 +59,7 @@ describe("construction reservations", () => {
     const view = await alice.client.gameplay.getPlayerView.query({ gameId })
     const planets = view.galaxy.systems.flatMap((system) => system.planets)
     const home = planets.find((planet) => planet.ownerPlayerId === view.player.id)
-    const colony = planets.filter((planet) => planet.area >= 3).find((planet) => planet.ownerPlayerId === null)
+    const colony = planets.filter((planet) => Number(planet.area) >= 3).find((planet) => planet.ownerPlayerId === null)
     Assert.isDefined(home)
     Assert.isDefined(colony)
     await db

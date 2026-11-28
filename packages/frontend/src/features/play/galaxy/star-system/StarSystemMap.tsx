@@ -11,6 +11,7 @@ import sunImage from "@/assets/planets/sun.png"
 import { planetArtwork } from "@/features/play/galaxy/star-system/planetArtwork.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 import { PLAYER_COLOR_HEX, UNCLAIMED_COLOR_HEX } from "@/lib/playerColorHex.ts"
+import { observationLabel } from "../../observationLabel.ts"
 
 const CENTER = 500
 const VIEWPORT_CENTER = { x: CENTER, y: CENTER }
@@ -205,7 +206,7 @@ function Planet({
     <g
       role="button"
       tabIndex={0}
-      aria-label={`View ${planet.name} details${ownerName === undefined ? "" : `, owned by ${ownerName}`}`}
+      aria-label={`View ${planet.name} details${planet.observation === "remembered" ? `, ${observationLabel(planet)}` : ""}${ownerName === undefined ? "" : `, owned by ${ownerName}`}`}
       className="group/planet cursor-pointer outline-none"
       onClick={selectPlanet}
       onKeyDown={(event) => {
@@ -214,7 +215,7 @@ function Planet({
         })
       }}
     >
-      <title>{`${planet.name}, ${planet.size.toLowerCase()} ${planet.biome.toLowerCase()} planet · ${planet.coordinates}`}</title>
+      <title>{`${planet.name}, ${planet.size?.toLowerCase() ?? "Unknown size"} ${planet.biome?.toLowerCase() ?? "unknown biome"} planet · ${planet.coordinates} · ${observationLabel(planet)}`}</title>
       <image
         href={planetArtwork(planet, starId)}
         x={planet.x - planet.radius}
@@ -222,8 +223,8 @@ function Planet({
         width={planet.radius * 2}
         height={planet.radius * 2}
         aria-hidden="true"
-        data-biome={planet.biome}
-        data-size={planet.size}
+        data-biome={planet.biome ?? undefined}
+        data-size={planet.size ?? undefined}
         className="pointer-events-none"
       />
       <PlanetLabel planet={planet} isSolar={starId === SUN_ID} ownerName={ownerName} ownerColor={ownerColor} />
@@ -265,7 +266,8 @@ function PlanetLabel({
       strokeWidth="4"
       strokeLinejoin="round"
     >
-      {isSolar ? planet.name : (ownerName ?? "Unclaimed")}
+      {planet.observation === "remembered" && "Last observed · "}
+      {isSolar ? planet.name : (ownerName ?? (planet.observation === "unknown" ? "Unknown" : "Unclaimed"))}
     </text>
   )
 }
@@ -324,7 +326,7 @@ function toPlanetViewModels(system: StarSystem): PlanetViewModel[] {
 
     return {
       ...planet,
-      radius: PLANET_RADII[planet.size],
+      radius: planet.size === null ? 30 : PLANET_RADII[planet.size],
       orbitRadius,
       x: CENTER + Math.cos(angle) * orbitRadius,
       y: CENTER + Math.sin(angle) * orbitRadius,
