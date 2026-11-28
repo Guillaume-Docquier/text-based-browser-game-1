@@ -335,3 +335,69 @@ Verified `6d1082a70c34041e0d65781facbecf1888389165`. The follow-up changed the s
 ## 05 · Acceptance
 
 Accepted 6d1082a7. Both roles cleared the final migration and its contention check. The verifier confirmed personal balances across two colonies, games and accounts, tuning to 137 in an isolated process, and preservation of settled balances. The final follow-up changed SQL spelling and the test, with identical runtime UI and start behavior.
+
+## 07 · Assigned behavior
+
+- When a planning turn is open, the owner of a planet at turn start can use its existing command center to select a constructible building and an empty surface hex. A command center cannot be selected for construction.
+- When a player submits a valid construction order, only that player sees the building type, exact destination hex and credit cost as a plan, distinguishable from resolved buildings.
+- When construction is planned, reserve the command center, the selected hex and the full price against the owner’s available turn-start balance. Other pending orders cannot commit those resources again.
+- When a paid order would exceed a player’s available turn-start credits after other reservations, reject it without altering their existing plans.
+- When a player cancels their construction order before resolution starts, clear only its preview and release its hex, command center and full price for immediate reuse that turn.
+- When the turn resolves, construct each still-submitted building once at its chosen hex and charge its owner once. It first provides its capability on the next turn.
+- When a player marks or unmarks readiness, follow the existing turn-closing rules. A canceled order has no effect, and an order cannot be changed once resolution has begun.
+
+A trade center costs 30 credits. Each owner may have a pending build at each eligible command center. The owner can inspect available credits and the selected site before submitting. Submitting or canceling an order while planning is open leaves the owner’s readiness as selected. Readiness is its own reversible action. Serialize submit and cancel with turn closure using the existing turn-row lock. Check the race from both sides of closure and verify that another player’s view never includes the pending building, reserved balance, or chosen site. Keep private preview, validation and resolution rules shared where they express the same behavior.
+
+## 06 · Eligibility comes from the turn-start snapshot
+
+The reviewer asked whether each building needs a persisted construction-turn field. Income uses the saved buildings eligible at turn start. A trade center constructed during N is an output of resolving N and first appears in the input for N+1. Use the same input snapshot for income and later construction resolution, and commit their effects together. The experiment has no rule that exposes building age, so the income increment does not require construction-turn metadata. Validate this at the pure resolver now and at the construction entry point in 07.
+
+## 12 · Existing homes with a fully occupied surface
+
+A home with area three can use its last free hex to build a second trade center in 07, before the starting shipyard exists. An upgrade that overwrites that building would break permanent placement. For matches predating shipyards, add the starting yard on the first free site. If a home lacks a yard and has no free site, extend that legacy home’s area by exactly one, append the next stable outer site and place the yard there. Apply this once, preserve every occupied site and include this rare migration accommodation in the human-review summary. New matches use their generated area and start with the three buildings on separate normal sites. The integrated verifier should include a saved full three-hex home when shipyards arrive.
+
+## 06 · Existing PostgreSQL enum during upgrade
+
+The implementer and reviewer identified a migration ordering risk. The startup migrator can apply the new building-enum value and its backfill in one transaction, while PostgreSQL disallows using a value newly added to an existing enum before commit. Reproduce the populated 05→06 upgrade via the real startup migrator. If confirmed, use a transaction-safe local replacement of the building enum with its complete set of values and restore the affected indexes and constraints before the backfill. Preserve building IDs and public state, retain the existing startup migrator, and retest both fresh installation and the populated upgrade. Apply the same check when later building kinds arrive.
+
+## 06 · Independent migration and worker review
+
+The startup migrator runs outstanding files in one PostgreSQL transaction. The verifier reproduced error 55P04 in a populated 05 database when the first draft added a new enum value and used it before commit. The corrected transition creates a complete replacement enum, casts the saved building kinds and restores the command-center index in the same transaction. A fresh real PostgreSQL run passed both independent uniqueness races with actual trade and command centers. The maintained and packaged initialization SQL are byte-identical.
+
+The worker reads buildings and planet ownership for the game it claimed. Shared resolution computes one income delta per owner from that snapshot, leaving the random generator alone. The worker applies game-and-owner-scoped credit increments after acquiring the turn completion guard, in the transaction that advances the turn. New homes receive two buildings on distinct sites. The trade center has a green glass dome and a low copper market hall. The command center has a blue tower and antenna.
+
+## 08 · Assigned behavior
+
+- When a match starts, each participant owns exactly one transport stationed at their home planet with no cargo and no order.
+- When a ship’s base capabilities are read, its persisted ship type selects the shared in-memory template. A transport has thrust 64, empty mass 4 and four cargo slots.
+- When a player selects a starting transport, the inspector identifies its owner and current home planet and shows its type, thrust, empty mass, four slots and empty cargo state.
+- When a match predating ships is upgraded, create the missing starting transport once for each participant with a saved home. Later reads and restarts retain the same ship identity, owner and location.
+
+Use a match-scoped string identity per ship. Save the type and instance state, including its owner and current location. The shared ship type template supplies the base statistics to both backend and player view. At this point the transport can be selected; movement arrives in 09.
+
+## 06 · Final diff review
+
+Reviewed `af7cc5fd`. All four assigned rows, revised TR-0001 and new TR-0004 have matching behavioral test names. The four shared properties passed on the final revision. They cover multiple centers and colonies under different owners, ignored unowned centers and command centers, reversed input order, replay and random-state preservation. The final mutation report killed all 16 mutants with no uncovered code reported.
+
+Independent runs passed the match-start regression, all 11 worker integration tests and all three worker PostgreSQL concurrency tests. During a blocked settlement the player read 100 on turn 1. After commit the player read 110 on turn 2. The integration tests also covered a failed attempt, retry and two successive turns. The separate verifier confirmed a populated PostgreSQL upgrade with both migrations applied in one invocation, stable command-center IDs and four added trade centers. The startup migration finding is resolved. Paid-order enforcement will be checked at its first working entry point in 07.
+
+## 06 · Implementation and mutation evidence
+
+Commit `af7cc5fd42e84c076ae35dcd8788cc92e6627a18` starts each home with a trade center on site 1. The surface inspector identifies its dedicated copper and teal sprite and displays the shared rate of 10 credits per turn. The worker computes per-owner income from the buildings and owners in its input snapshot. Its guarded completion transaction adds those deltas, resets readiness and opens the next turn. A blocked save leaves turn 1 at 100 until commit, then turn 2 shows 110. A failed save and retry also settle only once.
+
+The migration preserves building IDs, surface sites and both placement constraints. A populated upgrade exposed PostgreSQL 55P04 when an enum member was added and used in the same migration transaction. The historical transition now replaces the enum before the packaged backfill. Both fresh startup and the populated upgrade passed on PostgreSQL.
+
+All tests passed in the shared suite (55), backend integration suite (77), PostgreSQL concurrency suite (16) and frontend component suite (84). All three package typechecks, scoped type-aware lint and the frontend build passed. The committed turn-resolution mutation run killed all 16 mutants with zero survivors, uncovered mutants, timeouts or errors. [06 mutation report](../../../packages/shared/src/turn-resolution/.stryker/reports/06-trade-centers.json). The private player-view test covers settled funds across turns N, N+1 and N+2. Increment 07 will exercise actual paid-order acceptance and rejection with that settled balance.
+
+## 06 · Independent player, worker and migration acceptance
+
+Verified `af7cc5fd42e84c076ae35dcd8788cc92e6627a18`. All three acceptance criteria and all four assigned rules passed through the available planning and settlement views. The real paid-order scenario follows with construction in 07.
+
+- In fresh solo and two-player matches every home had one command center at site 0 and one trade center directly east at site 1. Each player could select the copper-and-green trade-center sprite, distinguish it from the command center and read “10 credits per turn.” The game header showed 100 in planning, still showed 100 while waiting for the other player, then updated to 110 when both were ready. Reloading and restarting the backend preserved the building IDs and balances. Resolving the next turn produced 120. The committed Chromium runs passed 9/9 and 5/5 checks, including authentication and the maintained planet scenarios.
+- Through the deadline worker, a second colony acquired after the input snapshot first earned on the next turn. The players received 110/110 and then 130/120. An isolated rate of 23 produced 123/123 and then 169/146. A failed settlement transaction left both balances at 100. Retrying produced one successor and 110 each. Replaying the completed save and polling the worker again awarded nothing further.
+- Across 256 input combinations for 1–16 players, the 64 empty-effect cases preserved the supplied state, and all cases preserved both random-generator fields. Reordering buildings and planets gave the same per-owner income. A worker game without trade centers kept both balances at 100 for two turns.
+- The first combined legacy upgrade failed with PostgreSQL error `55P04` because it used a newly added enum value within the same transaction. The corrected migration passed both clean bootstrap and a populated 05 upgrade through the production node-postgres migrator on PostgreSQL 18.4. Four prior command-center IDs survived, four trade centers were added at site 1, balances were preserved and the backfill was idempotent. Database checks confirmed both uniqueness constraints and allowed multiple trade centers on distinct sites.
+
+## 06 · Acceptance
+
+Accepted af7cc5fd. Independent verification covered every local criterion, including turn-start timing, additional centers, fresh startup, real populated PostgreSQL upgrade and owner-visible income. The actual purchase using prior-turn income will be checked at its first available entry point in 07.

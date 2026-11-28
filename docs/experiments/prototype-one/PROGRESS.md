@@ -10,7 +10,7 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 - [x] [03a · Open planets in a full planet view](issues/03a-open-planets-in-a-full-planet-view.md) — `cfda7067`, `b12f199a`. Reviewed and verified at `b12f199a`. Earth and an ordinary planet had the same durable view from either entry point. Fresh sessions, reload, return to the correct system and desktop and narrow layouts passed.
 - [x] [04/26 · Persist buildings and display them on stable planet hexes](issues/04-persist-buildings-and-display-them-on-stable-planet-hexes.md) — `6a901725`. Reviewer and verifier cleared all six criteria on that commit. Persisted home command centers kept their identities after restart. Hex counts, fixed rings, occupied sites, distinct art, and solo and multiplayer inspection passed.
 - [x] [05/26 · Give each player a credit balance](issues/05-give-each-player-a-credit-balance.md) — `7f059a08`, `6d1082a7`. Reviewed and verified at `6d1082a7`. Solo and multiplayer balances started at 100, stayed private across colonies and sessions, and followed an isolated tuning change. Populated upgrade and contention checks passed.
-- [ ] [06/26 · Produce income with trade centers](issues/06-produce-income-with-trade-centers.md)
+- [x] [06/26 · Produce income with trade centers](issues/06-produce-income-with-trade-centers.md) — `af7cc5fd`. Reviewed and verified on that commit. Real readiness and deadline turns paid once per eligible center. Restart, retry, multiple owners and centers, tunability, PostgreSQL upgrade and 16/16 mutation kills passed. Paid construction checks the income boundary in 07.
 - [ ] [07/26 · Construct buildings with a command center](issues/07-construct-buildings-with-a-command-center.md)
 - [ ] [08/26 · Give each player a starting transport](issues/08-give-each-player-a-starting-transport.md)
 - [ ] [09/26 · Move a ship between bodies](issues/09-move-a-ship-between-bodies.md)
@@ -35,4 +35,4 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 
 ## Active work
 
-06 is active. The implementer owns trade centers, saved income and turn resolution. The reviewer owns the diff and mutation dispositions. The verifier owns turn timing, private balances, retries and the running player walkthrough. Next, verify the three local criteria on the final commit.
+07 is active. The implementer owns paid construction, private reservations, cancellation and resolution. The reviewer owns the diff, concurrency and mutation dispositions. The verifier owns independent owner/observer UI, API and worker trials. Next, exercise all four local criteria, including the funded-order follow-up from 06.
