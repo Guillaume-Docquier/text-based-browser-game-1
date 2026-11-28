@@ -461,3 +461,58 @@ Verified `da6072d59530c76861cedbd5b22ec0ed0c112544`. All four local acceptance c
 ## 07 · Acceptance
 
 Accepted da6072d5. The verifier confirmed all four criteria including the real 06-to-07 affordability boundary: 20 credits could not pay for construction before income, and 30 could on the next turn. A 100-credit player saw 70 available after reserving the build; balances were 80 then 100 after settlement and next-turn income. Rechecks covered both orders of concurrent closure, cancellation and retries.
+
+## 08 · Ship identity and visibility
+
+Use permanent match-scoped string IDs for individual ships. A short type label and stable identifier, such as Transport T-01, distinguish same-type ships at the same location. Preserve that identifier across reloads, trips, and later cargo transfers. At this increment return resolved stationed ships through the same current-world projection as resolved buildings. Increment 10 will restrict foreign ships and their contents to current vision; it must also check that previously visible ships leave no memory. Pending actions remain private from their introduction.
+
+## 10 · Assigned behavior
+
+- When a participant views a match, every star and planet remains identifiable by its public name, coordinates and location, regardless of scan coverage.
+- When a body or ship is at most 3 LY from an owned planet or at most 1.5 LY from the current position of an owned ship, it is in that player’s current vision. Use the union of all the player’s sources, and keep every ship’s scan radius independent of its type and cargo.
+- When a planet is in current vision, the player sees its resolved ownership, biome, size, area, metal production, remaining deposit and buildings. Store those observations for that player.
+- When a planet leaves current vision, show that player’s last recorded planet facts and buildings as previously observed. Before any observation those facts are unknown. When current coverage returns, refresh them to the resolved state.
+- When a foreign ship is outside current vision, omit that ship and its cargo from the player’s current data and all player-facing views. Previously seeing it creates no remembered ship or cargo record.
+- When the Sun or a ship stationed at the Sun is viewed, its current resolved state is public. The Sun’s stockpile becomes public when stockpiles are introduced.
+- When a player opens a map, list, planet, ship or inspector, its visible information, list membership and sort values follow the same player-specific observation rules as the data returned by the API. An opponent’s private orders remain hidden.
+
+Store memory per game and observing participant. On match start, observe the initial state in range. On each resolved turn, refresh the final state currently in vision. Keep the last saved observation when coverage drops. A player can distinguish current facts, remembered facts and facts they have never observed. Later 11 adds the traveled-segment observation, while 15–20 extend these visibility rules to actual items, piles and histories.
+
+## 08 · Home identity on upgrade
+
+All supported pre-ship matches have one owned planet per participant and no claim action. That planet is the source of the starting station. Synthetic multi-colony fixtures can contain several owned planets and lack a stored original-home marker. For those fixtures only, choose a stable owned planet by ID when no starting ship exists. Never replace a saved starting ship or move it back home on a migration replay. Treat historic home identification for imported multi-colony data as a limitation of those fixtures.
+
+## 09 · Finding a ship between bodies
+
+The 08 selection entry point is the ship’s station. That station ceases to contain the ship after a multi-turn departure. Give the owner an accessible way to find the same ship throughout its trip, including after reloading or visiting another body. A player must be able to identify the current position separately from a planned destination or an underway destination, see remaining travel, and tell when the ship is stationed again. Use the existing short ship identifier and body names and addresses in both movement controls.
+
+## 08 · Independent storage and grant review
+
+The ship row stores the game, permanent text ID, ship type, owner and stationed planet. Its primary key and both foreign keys include the game. The backend reads the shared transport template for thrust, empty mass and capacity. Starting a match also inserts the ships in the existing match-start transaction. Empty cargo and the absence of an order are explicit in the player view.
+
+The maintained and packaged backfill SQL matched byte for byte. The named solo and 16-player startup test and the template-read test passed independently. The real PostgreSQL regression observed the backfill waiting for a competing insert, retained that ship at its new station, filled the other participant’s missing ship and inserted zero ships on replay. It also preserved the fleet in another match.
+
+## 08 · Final diff review
+
+Reviewed `427fc80f` and matched all four assigned rules to named tests. The inspector displays the complete ship identifier, the owning player, the selected ship’s planet name and coordinates, and its transport statistics. The interactive story selects each of two transports sharing a station using complete labels that have a common prefix. The change is confined to match setup, ship storage and reads, and inspection. Galaxy generation and turn resolution have no changes requiring a new mutation run.
+
+## 08 · Implementation and validation
+
+Commit `427fc80f8805c91137f2ca2c7c7d9623175433b7` gives each participant one transport inside the existing match-start transaction. The ship table stores the game, string identifier, type, owner and current planet. The player-view read looks up thrust 64, empty mass 4 and cargo size 4 in the shared type template. The current cargo and order are empty. The inspector uses the complete ship identifier and shows the selected owner and station even when several transports share a planet.
+
+The additive migration and backfill preserve saved instances. A PostgreSQL contention test held an uncommitted ship at a different station while the backfill waited, then confirmed that it kept that ship and granted the missing participant’s transport once. Replay inserted zero rows, and a second match with the same player retained its fleet.
+
+All 83 backend integration, 20 PostgreSQL concurrency, 86 frontend component and story, and 56 shared tests passed, along with the package typechecks, scoped lint and frontend build. The named solo and sixteen-participant start, shared-template read, and contested migration tests passed again on the committed revision. This increment changes neither the galaxy generator nor turn resolution.
+
+## 08 · Independent player, template and upgrade acceptance
+
+Verified `427fc80f8805c91137f2ca2c7c7d9623175433b7`. All four acceptance criteria passed. Both Chromium runs passed 6/6, including the maintained ship inspector check.
+
+- Across fresh matches of sizes 1 through 16, all 136 participants had exactly one transport at their own home. Each started with empty cargo and no order.
+- The shared transport template supplied thrust 64, empty mass 4 and four cargo slots. The PostgreSQL instance held the match, ship ID, owner, station and type. An isolated template change to 91/7/6 appeared on old and new ships through the API. All sixteen previously inspected database rows retained the same contents and row versions.
+- Alice and Bob each selected both ships from their home planet pages. The inspectors distinguished Transport T-01 at planet 716593 (45:78:15) from T-02 at planet 965452 (43:75:15) and showed the correct owner, type, thrust, empty mass, capacity and empty cargo. Both players could switch between the ship IDs when a fixture put both on one planet. Unowned Earth had no ship control. The inspector was usable at 390px width. After reload and a backend restart, reselecting each ID restored its original details.
+- PostgreSQL 18.4 upgraded a populated pre-ship database for active and ended matches. Waiting lobbies and a participant without a home received no ship. A synthetic two-colony owner received one ship at the first planet ID. Repeated startup and backfill preserved IDs, existing balances, buildings and an already moved ship. A partially populated match recovered its missing transport, and a fresh database booted successfully.
+
+## 08 · Acceptance
+
+Accepted 427fc80f. All four local criteria passed on the reviewed commit. Only the ship type was saved among the template properties. The verifier confirmed stable IDs, location, separate game ownership, current template values and distinguishable co-located ships through restart.
