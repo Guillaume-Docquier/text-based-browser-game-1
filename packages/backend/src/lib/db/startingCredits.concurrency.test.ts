@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises"
+import { Assert } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { describe, expect, it } from "vitest"
+import { playersTable } from "#lib/db/schema.ts"
 import { ConcurrencyTestApiServer } from "#testing/ConcurrencyTestApiServer.ts"
 import { createConcurrencyTestDb } from "#testing/createConcurrencyTestDb.ts"
 
@@ -28,8 +30,23 @@ describe("participant credit migration", () => {
     // Act
     await pool.query(backfill)
     const granted = await bob.client.gameplay.getPlayerView.query({ gameId: first })
-    await pool.query(setBalance, [28.5, first, bob.account.id])
-    await pool.query(backfill)
+    await pool.query(setBalance, [null, first, bob.account.id])
+    const writer = await pool.connect()
+    using _connection = {
+      [Symbol.dispose](): void {
+        writer.release(true)
+      },
+    }
+    const {
+      rows: [writerSession],
+    } = await writer.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")
+    Assert.isDefined(writerSession)
+    await writer.query("BEGIN")
+    await writer.query(setBalance, [28.5, first, bob.account.id])
+    const replay = pool.query(backfill)
+    await postgres.concurrency.waitForBlockedQuery({ blockedBy: writerSession.pid, command: "update", table: playersTable, lock: "row" })
+    await writer.query("COMMIT")
+    const replayed = await replay
     const aliceFirst = await alice.client.gameplay.getPlayerView.query({ gameId: first })
     const bobFirst = await bob.client.gameplay.getPlayerView.query({ gameId: first })
     const aliceSecond = await alice.client.gameplay.getPlayerView.query({ gameId: second })
@@ -39,6 +56,7 @@ describe("participant credit migration", () => {
 
     // Assert
     expect(granted.player.creditBalance).toBe(100)
+    expect(replayed.rowCount).toBe(0)
     expect([aliceFirst.player.creditBalance, bobFirst.player.creditBalance, aliceSecond.player.creditBalance]).toStrictEqual([
       0, 28.5, 17.25,
     ])
