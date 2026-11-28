@@ -198,6 +198,9 @@ jobs:
       - name: Galaxy creation mutation tests
         run: pnpm --filter shared mutation:galaxy-creation
 
+      - name: Turn resolution mutation tests
+        run: pnpm --filter shared mutation:turn-resolution
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -221,5 +224,14 @@ jobs:
         with:
           name: galaxy-creation-mutation-report
           path: packages/shared/src/galaxy-creation/.stryker/reports/
+          include-hidden-files: true
+          if-no-files-found: error
+
+      - name: Upload Turn resolution mutation report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: turn-resolution-mutation-report
+          path: packages/shared/src/turn-resolution/.stryker/reports/
           include-hidden-files: true
           if-no-files-found: error

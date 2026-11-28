@@ -14,6 +14,7 @@
   },
   "scripts": {
     "mutation:galaxy-creation": "cd src/galaxy-creation && stryker run .stryker/stryker.config.json",
+    "mutation:turn-resolution": "cd src/turn-resolution && stryker run .stryker/stryker.config.json",
     "test": "vitest run",
     "test:coverage": "pnpm test --coverage",
     "typecheck": "tsc -b"
