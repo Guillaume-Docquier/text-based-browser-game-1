@@ -103,6 +103,25 @@ describe("gameplay.router", () => {
       )
     })
 
+    it("should meet PVR-0006 When a ship’s base capabilities are read, its persisted ship type selects the shared in-memory template. A transport has thrust 64, empty mass 4 and four cargo slots.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using server = new ApiServer(await createApiStub({ db }))
+      const owner = await server.createClient({ authenticated: true })
+      const { createdGameId: gameId } = await owner.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
+      })
+      await owner.client.games.startGame.mutate({ gameId })
+
+      // Act
+      const initial = await owner.client.gameplay.getPlayerView.query({ gameId })
+      const reopened = await owner.client.gameplay.getPlayerView.query({ gameId })
+
+      // Assert
+      expect(initial.ships).toStrictEqual([expect.objectContaining({ type: "TRANSPORT", thrust: 64, emptyMass: 4, cargoSize: 4 })])
+      expect(reopened.ships).toStrictEqual(initial.ships)
+    })
+
     it("should meet PVR-0001 When a player reads a saved planet, the API returns its stored metal production and remaining deposit and omits the former metal, fertility, fuel, energy and maximum population fields.", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
@@ -177,6 +196,7 @@ describe("gameplay.router", () => {
         gameId: createdGameId,
         player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, creditBalance: 100 },
         opponents: {},
+        ships: [expect.objectContaining({ type: "TRANSPORT", ownerPlayerId: getPlayerViewResult.player.id })],
         constructionOrders: [],
         buildings: expect.arrayContaining([
           expect.objectContaining({ type: "COMMAND_CENTER", site: 0 }),

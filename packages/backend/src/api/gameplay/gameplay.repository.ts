@@ -7,6 +7,7 @@ import type { Building } from "shared/domain/world/buildings/Building.ts"
 import type { ConstructionOrder } from "shared/domain/world/buildings/ConstructionOrder.ts"
 import type { Planet } from "shared/domain/world/planets/Planet.ts"
 import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
+import { SHIP_TEMPLATES } from "shared/domain/world/ships/Ship.ts"
 import type { Star } from "shared/domain/world/stars/Star.ts"
 import { GetPlayerViewError, GetPlayerViewRollbackError } from "#api/gameplay/getPlayerView.error.ts"
 import type { PlayerView } from "#api/gameplay/PlayerView.ts"
@@ -19,6 +20,7 @@ import {
   constructionOrdersTable,
   planetsTable,
   playersTable,
+  shipsTable,
   starsTable,
   turnsTable,
   turnsProcessingTable,
@@ -101,8 +103,14 @@ export class GameplayRepository extends PostgresRepository {
             .from(buildingsTable)
             .where(eq(buildingsTable.gameId, gameId))
 
+          const ships = await tx
+            .select({ id: shipsTable.id, type: shipsTable.type, ownerPlayerId: shipsTable.ownerPlayerId, planetId: shipsTable.planetId })
+            .from(shipsTable)
+            .where(eq(shipsTable.gameId, gameId))
+            .orderBy(shipsTable.id)
           const constructionOrders = await this.getConstructionOrders({ gameId, turn: turn.turn, playerId }, tx)
           return {
+            ships: ships.map((ship): PlayerView["ships"][number] => ({ ...ship, ...SHIP_TEMPLATES[ship.type], cargo: [], order: null })),
             constructionOrders,
             buildings,
             player: { ...player, creditBalance: balance.credits },

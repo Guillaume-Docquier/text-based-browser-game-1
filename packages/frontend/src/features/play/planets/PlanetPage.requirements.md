@@ -1,6 +1,6 @@
 # `PlanetPage` requirements
 
-Next ID number: 0006
+Next ID number: 0007
 
 ## Prefixes
 
@@ -17,3 +17,4 @@ Next ID number: 0006
 | PV-0003 | When a player reloads a planet view or returns to its address, the same game and planet reopen.                                                                                                                      |
 | PV-0004 | When a player chooses to return to the system from a planet view, the containing star system opens.                                                                                                                  |
 | PV-0005 | When a player opens their home planet, they can distinguish the command center’s dedicated hex artwork from empty sites, inspect the surface and read the planet information in the same view.                       |
+| PV-0006 | When a player selects a starting transport, the inspector identifies its owner and current home planet and shows its type, thrust, empty mass, four slots and empty cargo state.                                     |

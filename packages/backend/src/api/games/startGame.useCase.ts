@@ -1,8 +1,9 @@
-import { Datetime, type Logger, mulberry32Prng, Result, Rng, Timer, UInt32 } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Datetime, type Logger, mulberry32Prng, Result, Rng, Timer, UInt32 } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { STARTING_CREDITS } from "shared/domain/games/startingCredits.ts"
 import { BuildingType } from "shared/domain/world/buildings/Building.ts"
+import { ShipType, type ShipId } from "shared/domain/world/ships/Ship.ts"
 import { createGalaxy } from "shared/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "shared/galaxy-creation/GalaxyCreationSettings.ts"
 import type { Clock } from "#lib/Clock.ts"
@@ -57,6 +58,16 @@ export class StartGameUseCase {
       const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: gameForStart.playerIds, rng })
       this.logger.debug("Generated galaxy", { elapsedTime: Timer.since(startTime) })
 
+      const homes = new Map(
+        galaxy.systems.flatMap(({ planets }) =>
+          planets.filter((planet) => planet.ownerPlayerId !== null).map((planet) => [planet.ownerPlayerId, planet.id] as const),
+        ),
+      )
+      const ships = gameForStart.playerIds.toSorted().map((ownerPlayerId, index) => {
+        const planetId = homes.get(ownerPlayerId)
+        Assert.isDefined(planetId)
+        return { id: branded<ShipId>(`T-${String(index + 1).padStart(2, "0")}`), ownerPlayerId, planetId, type: ShipType.TRANSPORT }
+      })
       await this.gamesRepository.startGame(
         {
           context: gameForStart,
@@ -66,16 +77,11 @@ export class StartGameUseCase {
           turnEndsAt,
           rngState: { generatorState: UInt32.random(), spareNormal: null },
           galaxy,
-          buildings: galaxy.systems.flatMap(({ planets }) =>
-            planets.flatMap((planet) =>
-              planet.ownerPlayerId === null
-                ? []
-                : [
-                    { type: BuildingType.COMMAND_CENTER, planetId: planet.id, site: 0 },
-                    { type: BuildingType.TRADE_CENTER, planetId: planet.id, site: 1 },
-                  ],
-            ),
-          ),
+          ships,
+          buildings: [...homes.values()].flatMap((planetId) => [
+            { type: BuildingType.COMMAND_CENTER, planetId, site: 0 },
+            { type: BuildingType.TRADE_CENTER, planetId, site: 1 },
+          ]),
         },
         tx,
       )

@@ -25,6 +25,18 @@ export class PlanetPage extends GamePage {
     return this.site(name).locator("image")
   }
 
+  public get ships(): Locator {
+    return this.details.getByRole("region", { name: "Ships at this planet" })
+  }
+
+  public shipDetail(label: string): Locator {
+    return this.details
+      .getByRole("region", { name: "Ship details" })
+      .getByText(label, { exact: true })
+      .locator("..")
+      .getByRole("definition")
+  }
+
   public get construction(): Locator {
     return this.details.getByRole("region", { name: "Command center construction" })
   }

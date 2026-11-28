@@ -11,6 +11,7 @@ import { planetArtwork } from "@/features/play/galaxy/star-system/planetArtwork.
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 import { useConstruction } from "@/lib/api/useConstruction.ts"
 import { PlanetSurface } from "./PlanetSurface.tsx"
+import { ShipsAtPlanet } from "./ShipsAtPlanet.tsx"
 
 export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
   const { gameDetails, playerView } = usePlayGameContext()
@@ -55,7 +56,10 @@ export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
           <PlanetSurface key={planet.id} planet={planet} artwork={artwork} buildings={playerView.buildings} />
         )}
 
-        <PlanetFacts planet={planet} ownerName={ownerName} />
+        <div className="flex flex-col gap-4">
+          <ShipsAtPlanet key={planet.id} planet={planet} ships={playerView.ships} players={gameDetails.players} />
+          <PlanetFacts planet={planet} ownerName={ownerName} />
+        </div>
       </div>
     </article>
   )
@@ -101,7 +105,7 @@ function PlanetFacts({ planet, ownerName }: { planet: Planet; ownerName: string 
   ] as const
 
   return (
-    <section aria-labelledby="planet-attributes" className="self-start rounded-xl border border-border/70 bg-card px-5 py-4">
+    <section aria-labelledby="planet-attributes" className="w-full rounded-xl border border-border/70 bg-card px-5 py-4">
       <h2 id="planet-attributes" className="font-heading text-lg font-semibold">
         Planet attributes
       </h2>

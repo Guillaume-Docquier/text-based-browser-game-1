@@ -20,6 +20,7 @@ import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import type { Building } from "shared/domain/world/buildings/Building.ts"
 import type { Galaxy } from "shared/domain/world/Galaxy.ts"
+import type { Ship } from "shared/domain/world/ships/Ship.ts"
 import type { GameCreationConfirmation } from "#api/games/GameCreationConfirmation.ts"
 import type { GameDetails } from "#api/games/GameDetails.ts"
 import { GetGameByIdError } from "#api/games/getGameById.error.ts"
@@ -35,6 +36,7 @@ import {
   starsTable,
   planetsTable,
   buildingsTable,
+  shipsTable,
 } from "#lib/db/schema.ts"
 import { CreateGameError } from "./createGame.error.ts"
 import { JoinGameError, JoinGameRollbackError } from "./joinGame.error.ts"
@@ -121,6 +123,7 @@ export type StartGameModel = {
   readonly startedAt: Date
   readonly turnEndsAt: Date
   readonly rngState: RngState<number>
+  readonly ships: readonly Ship[]
   readonly buildings: ReadonlyArray<Omit<Building, "id">>
   readonly galaxy: Galaxy
 }
@@ -253,6 +256,7 @@ export class GamesRepository extends PostgresRepository {
     for (let index = 0; index < planets.length; index += PLANET_INSERT_BATCH_SIZE) {
       await tx.insert(planetsTable).values(planets.slice(index, index + PLANET_INSERT_BATCH_SIZE))
     }
+    await tx.insert(shipsTable).values(startGameModel.ships.map((ship) => ({ ...ship, gameId: startGameModel.context.gameId })))
     await tx
       .insert(buildingsTable)
       .values(startGameModel.buildings.map((building) => ({ ...building, gameId: startGameModel.context.gameId })))

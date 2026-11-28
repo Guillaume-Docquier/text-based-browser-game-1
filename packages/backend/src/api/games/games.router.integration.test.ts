@@ -118,6 +118,41 @@ describe("games.router", () => {
       expect([soloView.player.creditBalance, aliceView.player.creditBalance, bobView.player.creditBalance]).toStrictEqual([100, 100, 100])
     })
 
+    it("should meet STRT-0004 When a match starts, each participant owns exactly one transport stationed at their home planet with no cargo and no order.", async () => {
+      // Arrange
+      await using db = await createIntegrationTestDb()
+      using server = new ApiServer(await createApiStub({ db }))
+      const creator = await server.createClient({ authenticated: true })
+      const configuration = createGameConfigurationStub({ nbSeats: MAX_NB_SEATS, mapGenerationSeed: 1234 })
+      const { createdGameId: solo } = await creator.client.games.create.mutate({ configuration })
+      const { createdGameId: full } = await creator.client.games.create.mutate({ configuration })
+      for (let index = 1; index < MAX_NB_SEATS; index++) {
+        const participant = await server.createClient({ authenticated: true })
+        await participant.client.games.join.mutate({ gameId: full })
+      }
+
+      // Act
+      await creator.client.games.startGame.mutate({ gameId: solo })
+      await creator.client.games.startGame.mutate({ gameId: full })
+
+      // Assert
+      for (const [gameId, players] of [
+        [solo, 1],
+        [full, MAX_NB_SEATS],
+      ] as const) {
+        const view = await creator.client.gameplay.getPlayerView.query({ gameId })
+        const homes = view.galaxy.systems.flatMap((system) => system.planets).filter((planet) => planet.ownerPlayerId !== null)
+        expect(view.ships).toHaveLength(players)
+        expect(new Set(view.ships.map((ship) => ship.id)).size).toBe(players)
+        expect(homes).toHaveLength(players)
+        for (const home of homes) {
+          expect(view.ships.filter((ship) => ship.ownerPlayerId === home.ownerPlayerId)).toStrictEqual([
+            expect.objectContaining({ type: "TRANSPORT", planetId: home.id, cargo: [], order: null }),
+          ])
+        }
+      }
+    })
+
     it("should meet STRT-0003 When a match starts, each home has one operating trade center on the first free surface hex alongside its command center.", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()

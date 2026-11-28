@@ -23,6 +23,7 @@ import { BuildingType, type BuildingId } from "shared/domain/world/buildings/Bui
 import type { ConstructionOrder, ConstructionOrderId } from "shared/domain/world/buildings/ConstructionOrder.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
+import { ShipType, type ShipId } from "shared/domain/world/ships/Ship.ts"
 import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
 import { gameIdColumn } from "#lib/db/games/GameId.ts"
 import { planetIdColumn } from "#lib/db/planets/PlanetId.ts"
@@ -37,6 +38,7 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
 
 export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
 export const turnStatusEnum = pgEnum("turn_status", pgEnumify(TurnStatus))
+export const shipTypeEnum = pgEnum("ship_type", pgEnumify(ShipType))
 export const buildingTypeEnum = pgEnum("building_type", pgEnumify(BuildingType))
 export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
 export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
@@ -206,6 +208,24 @@ export const buildingsTable = pgTable(
     uniqueIndex("buildings_one_command_center_per_planet")
       .on(table.gameId, table.planetId)
       .where(eq(table.type, BuildingType.COMMAND_CENTER).inlineParams()),
+  ],
+)
+
+export const shipsTable = pgTable(
+  "ships",
+  {
+    gameId: gameIdColumn("game_id").notNull(),
+    id: text("id").$type<ShipId>().notNull(),
+    type: shipTypeEnum("type").notNull(),
+    ownerPlayerId: playerIdColumn("owner_player_id").notNull(),
+    planetId: planetIdColumn("planet_id").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.gameId, table.id] }),
+    foreignKey({ columns: [table.gameId, table.ownerPlayerId], foreignColumns: [playersTable.gameId, playersTable.playerId] }).onDelete(
+      "cascade",
+    ),
+    foreignKey({ columns: [table.gameId, table.planetId], foreignColumns: [planetsTable.gameId, planetsTable.id] }).onDelete("cascade"),
   ],
 )
 
