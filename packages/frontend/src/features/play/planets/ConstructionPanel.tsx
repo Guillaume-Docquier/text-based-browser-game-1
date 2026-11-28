@@ -1,18 +1,14 @@
 import type { PlayerView } from "@api-types"
 import { useState, type ReactElement } from "react"
 import { BuildingType } from "shared/domain/world/buildings/Building.ts"
-import {
-  availableConstructionCredits,
-  type constructionProblem,
-  TRADE_CENTER_COST,
-  type ConstructionOrder,
-} from "shared/domain/world/buildings/ConstructionOrder.ts"
+import { type constructionProblem, TRADE_CENTER_COST, type ConstructionOrder } from "shared/domain/world/buildings/ConstructionOrder.ts"
 import { Button } from "@/components/button.tsx"
+import { formatCredits } from "@/lib/formatCredits.ts"
 
 export type ConstructionPlanning = {
   playerId: PlayerView["player"]["id"]
   turn: number
-  balance: number
+  available: string
   orders: PlayerView["constructionOrders"]
   open: boolean
   pending: boolean
@@ -33,13 +29,13 @@ export function ConstructionPanel({
   problem: ReturnType<typeof constructionProblem>
 }): ReactElement {
   const [choosing, setChoosing] = useState(false)
-  const available = availableConstructionCredits(plan.balance, plan.orders)
+  const available = plan.available
   const disabled = !plan.open || plan.pending
   return (
     <section aria-label="Command center construction" className="space-y-3 border-t border-border/60 px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-heading font-semibold">Command center construction</h3>
-        <span className="text-sm tabular-nums">{available} credits available</span>
+        <span className="text-sm tabular-nums">{formatCredits(available)} credits available</span>
       </div>
       {order === undefined ? (
         <>

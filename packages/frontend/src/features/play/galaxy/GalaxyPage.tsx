@@ -1,5 +1,5 @@
 import type { Planet } from "@api-types"
-import { useNavigate } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, LocateFixed } from "lucide-react"
 import { type AnimationEvent, type ReactElement, useState } from "react"
 import { SUN_ID } from "shared/domain/world/Sol.ts"
@@ -99,7 +99,17 @@ export function GalaxyPage({ starId }: { starId: StarId | undefined }): ReactEle
           </p>
         </div>
 
-        <div className="absolute top-4 right-4 flex gap-2">
+        <div className="absolute top-4 right-4 flex flex-wrap justify-end gap-2">
+          {selectedSystem !== undefined && (
+            <Link
+              to="/games/$gameId/play/ships"
+              params={{ gameId: gameDetails.id }}
+              search={{ bodyKind: "star", bodyId: selectedSystem.star.id }}
+              className="rounded-md border border-border bg-background/85 px-3 py-1.5 text-sm font-medium"
+            >
+              Move here
+            </Link>
+          )}
           {selectedSystem !== undefined && (
             <Button className="bg-background/85 backdrop-blur-sm" size="sm" variant="outline" onClick={showGalaxy}>
               <ArrowLeft />

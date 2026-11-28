@@ -26,8 +26,9 @@ export function createPlayGameContextStub({ galaxy = { systems: [] } }: { galaxy
     },
     playerView: {
       gameId,
-      player: { id: player.id, color: player.color, creditBalance: STARTING_CREDITS },
+      player: { id: player.id, color: player.color, creditBalance: STARTING_CREDITS, creditBalanceExact: String(STARTING_CREDITS) },
       opponents: {},
+      availableCredits: String(STARTING_CREDITS),
       ships: [],
       constructionOrders: [],
       buildings: [],

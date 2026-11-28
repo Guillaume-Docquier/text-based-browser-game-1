@@ -13,6 +13,9 @@ const transport: PlayerView["ships"][number] = {
   ...SHIP_TEMPLATES[ShipType.TRANSPORT],
   planetId: planet.id,
   ownerPlayerId: owner.id,
+  position: null,
+  starId: null,
+  trip: null,
   cargo: [],
   order: null,
 }

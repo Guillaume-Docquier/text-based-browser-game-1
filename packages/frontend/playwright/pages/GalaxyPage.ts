@@ -3,6 +3,7 @@ import type { Locator, Page } from "@playwright/test"
 import { GamePage } from "./GamePage.ts"
 import type { LocatorIndex } from "./LocatorIndex.ts"
 import { PlanetPage } from "./PlanetPage.ts"
+import { ShipsPage } from "./ShipsPage.ts"
 
 type StarLocator = Branded<"GalaxyStarLocator", Locator>
 type StarSystemStarLocator = Branded<"StarSystemStarLocator", Locator>
@@ -26,6 +27,11 @@ export class GalaxyPage extends GamePage {
 
   public readonly ownedPlanets: Locator
   public readonly unclaimedPlanets: Locator
+
+  public async moveHere(): Promise<ShipsPage> {
+    await this.page.getByRole("link", { name: "Move here", exact: true }).click()
+    return new ShipsPage(this.page)
+  }
 
   public constructor(page: Page) {
     super(page)

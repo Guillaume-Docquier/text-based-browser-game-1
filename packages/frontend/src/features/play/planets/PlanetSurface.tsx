@@ -130,7 +130,7 @@ export function PlanetSurface({
             playerId: planning.playerId,
             buildings,
             orders: planning.orders,
-            balance: planning.balance,
+            available: planning.available,
             site: selectedSite,
           })}
           order={order}

@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@guillaume-docquier/tools-ts": "catalog:",
+    "decimal.js": "^10.6.0",
     "transformation-matrix": "^3.1.0",
     "uuid": "catalog:",
     "zod": "catalog:"

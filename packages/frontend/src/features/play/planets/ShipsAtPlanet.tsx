@@ -1,8 +1,9 @@
 import type { GameDetails, Planet, PlayerView } from "@api-types"
+import { Link } from "@tanstack/react-router"
 import { Rocket } from "lucide-react"
 import { useState, type ReactElement } from "react"
 import { ShipType, type ShipId } from "shared/domain/world/ships/Ship.ts"
-import { Button } from "@/components/button.tsx"
+import { Button, buttonVariants } from "@/components/button.tsx"
 
 const TYPE_NAMES = { [ShipType.TRANSPORT]: "Transport" } satisfies Record<ShipType, string>
 
@@ -10,9 +11,11 @@ export function ShipsAtPlanet({
   planet,
   ships,
   players,
+  moveFor,
 }: {
   planet: Planet
   ships: PlayerView["ships"]
+  moveFor?: { gameId: GameDetails["id"]; playerId: PlayerView["player"]["id"] }
   players: GameDetails["players"]
 }): ReactElement | null {
   const [selectedId, setSelectedId] = useState<ShipId>()
@@ -62,6 +65,16 @@ export function ShipsAtPlanet({
               </div>
             ))}
           </dl>
+          {moveFor !== undefined && selected.ownerPlayerId === moveFor.playerId && (
+            <Link
+              to="/games/$gameId/play/ships"
+              params={{ gameId: moveFor.gameId }}
+              search={{ shipId: selected.id }}
+              className={buttonVariants({ size: "sm", variant: "outline", className: "mt-3" })}
+            >
+              Move
+            </Link>
+          )}
         </section>
       )}
     </section>

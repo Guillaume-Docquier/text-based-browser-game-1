@@ -125,7 +125,8 @@ describe("TurnProcessor", () => {
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>({
         ...initialPlayerView,
-        player: { ...initialPlayerView.player, creditBalance: 110 },
+        availableCredits: "110",
+        player: { ...initialPlayerView.player, creditBalance: 110, creditBalanceExact: "110" },
         turn: 2,
       })
       expect(await readTurnState(player.client, createdGameId)).toMatchObject({

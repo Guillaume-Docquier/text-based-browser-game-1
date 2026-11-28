@@ -1,3 +1,4 @@
+import { Assert } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { assert, integer, property, uuid } from "fast-check"
 import { describe, expect, it } from "vitest"
@@ -5,6 +6,8 @@ import { GameIdSchema } from "#shared/domain/games/GameId.ts"
 import { PlayerIdSchema } from "#shared/domain/players/PlayerId.ts"
 import { BuildingType } from "#shared/domain/world/buildings/Building.ts"
 import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
+import { ShipIdSchema } from "#shared/domain/world/ships/Ship.ts"
+import { quoteTravel, type TravelBody } from "#shared/domain/world/ships/travel.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 import { resolveTurn } from "#shared/turn-resolution/resolveTurn.ts"
 import type { TurnState } from "#shared/turn-resolution/TurnState.ts"
@@ -18,6 +21,7 @@ describe("resolveTurn", () => {
           gameId: typedParse(GameIdSchema, 1),
           turn,
           players: [{ id: typedParse(PlayerIdSchema, playerId) }],
+          shipMoves: [],
           constructionOrders: [],
           buildings: [],
           planets: [createPlanetStub({ id: planetId, ownerPlayerId: playerId })],
@@ -43,6 +47,7 @@ describe("resolveTurn", () => {
           turn: 1,
           players: [],
           planets: [],
+          shipMoves: [],
           constructionOrders: [],
           buildings: [],
         }
@@ -73,6 +78,7 @@ describe("resolveTurn", () => {
           turn: 3,
           players: [{ id: first }, { id: second }],
           planets: [other, unowned, home, colony],
+          shipMoves: [],
           constructionOrders: [],
           buildings: [
             { type: BuildingType.TRADE_CENTER, planetId: home.id },
@@ -91,8 +97,8 @@ describe("resolveTurn", () => {
         // Assert
         expect(result.creditChanges).toStrictEqual(
           new Map([
-            [first, 10 * (1 + extraCenters)],
-            [second, 10 * otherCenters],
+            [first, String(10 * (1 + extraCenters))],
+            [second, String(10 * otherCenters)],
           ]),
         )
         expect(replay).toStrictEqual(result)
@@ -129,6 +135,7 @@ describe("resolveTurn", () => {
               { type: BuildingType.TRADE_CENTER, planetId: home.id },
               { type: BuildingType.COMMAND_CENTER, planetId: colony.id },
             ],
+            shipMoves: [],
             constructionOrders: orders,
           }
           const before = structuredClone(state)
@@ -136,7 +143,7 @@ describe("resolveTurn", () => {
           const resolved = resolveTurn(state, createSeededRng(seed))
           const replay = resolveTurn(before, createSeededRng(seed))
           const next = resolveTurn(
-            { ...state, turn: 4, constructionOrders: [], buildings: [...state.buildings, ...resolved.buildingsToPlace] },
+            { ...state, turn: 4, shipMoves: [], constructionOrders: [], buildings: [...state.buildings, ...resolved.buildingsToPlace] },
             createSeededRng(seed),
           )
           // Assert
@@ -146,14 +153,14 @@ describe("resolveTurn", () => {
           ])
           expect(resolved.creditChanges).toStrictEqual(
             new Map([
-              [first, 10 - quote],
-              [second, -(quote + 1)],
+              [first, String(10 - quote)],
+              [second, String(-(quote + 1))],
             ]),
           )
           expect(next.creditChanges).toStrictEqual(
             new Map([
-              [first, 20],
-              [second, 10],
+              [first, "20"],
+              [second, "10"],
             ]),
           )
           expect(next.buildingsToPlace).toStrictEqual([])
@@ -161,6 +168,62 @@ describe("resolveTurn", () => {
           expect(state).toStrictEqual(before)
         },
       ),
+    )
+  })
+
+  it("TR-0006 When a turn resolves a submitted move, charge the full price once and travel the first segment during that turn. Each subsequent turn travels up to the departure speed on the same direct route and stops at the destination on the final segment.", () => {
+    assert(
+      property(integer({ min: 1, max: 60 }), integer({ min: 1, max: 12 }), integer(), (tenths, thrust, seed) => {
+        // Arrange
+        const playerId = typedParse(PlayerIdSchema, "9985190a-8097-4981-a5df-a83e06acbd53")
+        const shipId = ShipIdSchema.parse("T-01")
+        const origin: TravelBody = { kind: "planet", id: "home", name: "Home", coordinates: "01:01:01", x: 1, y: 2 }
+        const destination: TravelBody = {
+          kind: "star",
+          id: "sun",
+          name: "Sun",
+          coordinates: "08:06",
+          x: origin.x + tenths / 10,
+          y: origin.y + 0.25,
+        }
+        const route = quoteTravel(origin, destination, { thrust, emptyMass: 4 }, [])
+        const enRoute = Array.from({ length: route.turns - 1 }, (_, step) => ({
+          shipId,
+          station: null,
+          trip: { route, completedTurns: step + 1 },
+        }))
+        const expectedUpdates = [...enRoute, { shipId, station: { kind: "star", id: "sun" }, trip: null }]
+        const charges = [new Map([[playerId, String(-route.cost)]]), ...enRoute.map(() => new Map())]
+        let traveled = 0
+        for (let step = 0; step < route.turns; step++) {
+          const state: TurnState = {
+            gameId: typedParse(GameIdSchema, 1),
+            turn: step + 1,
+            players: [{ id: playerId }],
+            planets: [],
+            buildings: [],
+            constructionOrders: [],
+            shipMoves: [{ playerId, shipId, route, completedTurns: step }],
+          }
+          const before = structuredClone(state)
+          // Act
+          const result = resolveTurn(state, createSeededRng(seed))
+          const replay = resolveTurn(before, createSeededRng(seed))
+          // Assert
+          expect(replay).toStrictEqual(result)
+          expect(state).toStrictEqual(before)
+          const expectedDistance = Math.min(route.speed, route.distance - traveled)
+          expect(result.shipUpdates).toHaveLength(1)
+          const [updated] = result.shipUpdates
+          const expected = expectedUpdates[step]
+          Assert.isDefined(expected)
+          expect(updated).toMatchObject(expected)
+          expect(updated?.segmentDistance).toBeCloseTo(expectedDistance, 13)
+          traveled += expectedDistance
+          expect(result.creditChanges).toStrictEqual(charges[step])
+        }
+        expect(traveled).toBeCloseTo(route.distance, 13)
+      }),
     )
   })
 
@@ -175,6 +238,7 @@ describe("resolveTurn", () => {
           turn: 1,
           players: [{ id: player }],
           planets: [home],
+          shipMoves: [],
           constructionOrders: [],
           buildings: [{ type: BuildingType.TRADE_CENTER, planetId: home.id }],
         }
@@ -185,7 +249,7 @@ describe("resolveTurn", () => {
         const result = resolveTurn(state, rng)
 
         // Assert
-        expect(result.creditChanges.get(player)).toBe(10)
+        expect(result.creditChanges.get(player)).toBe("10")
         expect(rng.getState()).toStrictEqual(before)
       }),
     )

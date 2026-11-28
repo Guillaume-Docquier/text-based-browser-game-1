@@ -194,7 +194,8 @@ describe("gameplay.router", () => {
       // Assert
       expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
-        player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, creditBalance: 100 },
+        availableCredits: "100",
+        player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, creditBalance: 100, creditBalanceExact: "100" },
         opponents: {},
         ships: [expect.objectContaining({ type: "TRANSPORT", ownerPlayerId: getPlayerViewResult.player.id })],
         constructionOrders: [],
@@ -236,7 +237,12 @@ describe("gameplay.router", () => {
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(playerView.player).toStrictEqual({ id: creator.account.id, color: PlayerColor.TURQUOISE, creditBalance: 100 })
+      expect(playerView.player).toStrictEqual({
+        id: creator.account.id,
+        color: PlayerColor.TURQUOISE,
+        creditBalance: 100,
+        creditBalanceExact: "100",
+      })
       expect(playerView.opponents).toStrictEqual({
         [firstOpponent.account.id]: { id: firstOpponent.account.id, color: PlayerColor.PINK },
         [secondOpponent.account.id]: { id: secondOpponent.account.id, color: PlayerColor.YELLOW },

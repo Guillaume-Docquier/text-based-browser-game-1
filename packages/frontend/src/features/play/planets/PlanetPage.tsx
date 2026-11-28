@@ -40,14 +40,24 @@ export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
         <h1 id="planet-name" className="font-heading text-3xl font-semibold">
           {planet.name}
         </h1>
-        <Link
-          to="/games/$gameId/play/galaxy"
-          params={{ gameId: gameDetails.id }}
-          search={{ starId: system.star.id }}
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          <ArrowLeft /> Return to {systemName}
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/games/$gameId/play/ships"
+            params={{ gameId: gameDetails.id }}
+            search={{ bodyKind: "planet", bodyId: planet.id }}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Move here
+          </Link>
+          <Link
+            to="/games/$gameId/play/galaxy"
+            params={{ gameId: gameDetails.id }}
+            search={{ starId: system.star.id }}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            <ArrowLeft /> Return to {systemName}
+          </Link>
+        </div>
       </header>
       <div className="grid flex-1 content-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
         {canBuild ? (
@@ -57,7 +67,13 @@ export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
         )}
 
         <div className="flex flex-col gap-4">
-          <ShipsAtPlanet key={planet.id} planet={planet} ships={playerView.ships} players={gameDetails.players} />
+          <ShipsAtPlanet
+            key={planet.id}
+            planet={planet}
+            ships={playerView.ships}
+            players={gameDetails.players}
+            moveFor={{ gameId: gameDetails.id, playerId: playerView.player.id }}
+          />
           <PlanetFacts planet={planet} ownerName={ownerName} />
         </div>
       </div>
@@ -77,7 +93,7 @@ function ColonySurface({ planet, artwork }: { planet: Planet; artwork: string })
       planning={{
         playerId: playerView.player.id,
         turn: playerView.turn,
-        balance: playerView.player.creditBalance,
+        available: playerView.availableCredits,
         orders: playerView.constructionOrders,
         open: canTakeAction,
         pending: construction.isPending,

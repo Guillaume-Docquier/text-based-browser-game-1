@@ -7,6 +7,7 @@ import { TurnButton } from "@/features/play/components/TurnButton.tsx"
 import { TurnStatusBadge } from "@/features/play/components/TurnStatusBadge.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
+import { formatCredits } from "@/lib/formatCredits.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
 export function GameTopBar(): ReactElement {
@@ -31,7 +32,7 @@ export function GameTopBar(): ReactElement {
             Credits
           </dt>
           <dd aria-labelledby="game-credits" className="font-heading text-xl font-semibold tabular-nums">
-            {playerView.player.creditBalance.toLocaleString()}
+            {formatCredits(playerView.player.creditBalanceExact)}
           </dd>
         </dl>
       </div>

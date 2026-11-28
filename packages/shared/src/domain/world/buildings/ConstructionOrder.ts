@@ -1,5 +1,6 @@
 import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
+import { canAfford } from "#shared/domain/games/credits.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import type { Planet } from "#shared/domain/world/planets/Planet.ts"
 import { PlanetIdSchema } from "#shared/domain/world/planets/PlanetId.ts"
@@ -17,10 +18,6 @@ export const ConstructionOrderSchema = z.object({
 })
 export type ConstructionOrder = z.infer<typeof ConstructionOrderSchema>
 
-export function availableConstructionCredits(balance: number, orders: ReadonlyArray<Pick<ConstructionOrder, "cost">>): number {
-  return balance - orders.reduce((reserved, order) => reserved + order.cost, 0)
-}
-
 type ConstructionPlanet = Pick<Planet, "id" | "ownerPlayerId" | "area">
 type SiteBuilding = Pick<Building, "type" | "planetId" | "site">
 
@@ -36,14 +33,14 @@ export function constructionProblem({
   playerId,
   buildings,
   orders,
-  balance,
+  available,
   site,
 }: {
   planet: ConstructionPlanet | undefined
   playerId: PlayerId
   buildings: readonly SiteBuilding[]
   orders: readonly ConstructionOrder[]
-  balance: number
+  available: string
   site: number
 }): "NO_COMMAND_CENTER" | "CENTER_RESERVED" | "SITE_UNAVAILABLE" | "INSUFFICIENT_CREDITS" | undefined {
   if (planet === undefined || !hasOwnedCommandCenter(planet, playerId, buildings)) {
@@ -60,7 +57,7 @@ export function constructionProblem({
   ) {
     return "SITE_UNAVAILABLE"
   }
-  if (availableConstructionCredits(balance, orders) < TRADE_CENTER_COST) {
+  if (!canAfford(available, TRADE_CENTER_COST)) {
     return "INSUFFICIENT_CREDITS"
   }
   return undefined

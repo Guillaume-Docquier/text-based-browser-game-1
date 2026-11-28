@@ -36,7 +36,7 @@ function OwnerPlanning(): ReactElement {
       planning={{
         turn: 1,
         playerId: owner.id,
-        balance: 100,
+        available: "100",
         open: true,
         pending: false,
         error: undefined,

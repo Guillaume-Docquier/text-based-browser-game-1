@@ -1,5 +1,6 @@
 import { type Branded, Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { and, desc, eq } from "drizzle-orm"
+import { and, desc, eq, sql } from "drizzle-orm"
+import { availableCredits } from "shared/domain/games/credits.ts"
 import type { GameId } from "shared/domain/games/GameId.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
@@ -7,8 +8,10 @@ import type { Building } from "shared/domain/world/buildings/Building.ts"
 import type { ConstructionOrder } from "shared/domain/world/buildings/ConstructionOrder.ts"
 import type { Planet } from "shared/domain/world/planets/Planet.ts"
 import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
-import { SHIP_TEMPLATES } from "shared/domain/world/ships/Ship.ts"
+import { SHIP_TEMPLATES, type ShipId } from "shared/domain/world/ships/Ship.ts"
+import { tripPosition, type BodyRef, type TravelBody, type TravelRoute } from "shared/domain/world/ships/travel.ts"
 import type { Star } from "shared/domain/world/stars/Star.ts"
+import type { StarId } from "shared/domain/world/stars/StarId.ts"
 import { GetPlayerViewError, GetPlayerViewRollbackError } from "#api/gameplay/getPlayerView.error.ts"
 import type { PlayerView } from "#api/gameplay/PlayerView.ts"
 import { UpdateReadinessError, UpdateReadinessRollbackError } from "#api/gameplay/updateReadiness.error.ts"
@@ -20,6 +23,7 @@ import {
   constructionOrdersTable,
   planetsTable,
   playersTable,
+  moveOrdersTable,
   shipsTable,
   starsTable,
   turnsTable,
@@ -84,7 +88,7 @@ export class GameplayRepository extends PostgresRepository {
           const opponents = Object.fromEntries(players.filter(({ id }) => id !== playerId).map((opponent) => [opponent.id, opponent]))
 
           const [balance] = await tx
-            .select({ credits: playersTable.creditBalance })
+            .select({ credits: playersTable.creditBalance, exact: sql<string>`${playersTable.creditBalance}::text` })
             .from(playersTable)
             .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, playerId)))
           Assert.isDefined(balance)
@@ -104,16 +108,33 @@ export class GameplayRepository extends PostgresRepository {
             .where(eq(buildingsTable.gameId, gameId))
 
           const ships = await tx
-            .select({ id: shipsTable.id, type: shipsTable.type, ownerPlayerId: shipsTable.ownerPlayerId, planetId: shipsTable.planetId })
+            .select({
+              id: shipsTable.id,
+              type: shipsTable.type,
+              ownerPlayerId: shipsTable.ownerPlayerId,
+              planetId: shipsTable.planetId,
+              starId: shipsTable.starId,
+              trip: shipsTable.trip,
+            })
             .from(shipsTable)
             .where(eq(shipsTable.gameId, gameId))
             .orderBy(shipsTable.id)
           const constructionOrders = await this.getConstructionOrders({ gameId, turn: turn.turn, playerId }, tx)
+          const moves = await this.getMoveOrders({ gameId, turn: turn.turn, playerId }, tx)
+          const byShip = new Map(moves.map((move) => [move.shipId, { id: move.id, route: move.route }]))
           return {
-            ships: ships.map((ship): PlayerView["ships"][number] => ({ ...ship, ...SHIP_TEMPLATES[ship.type], cargo: [], order: null })),
+            availableCredits: availableCredits(balance.exact, [...constructionOrders, ...moves.map((move) => move.route)]),
+            ships: ships.map((ship): PlayerView["ships"][number] => ({
+              ...ship,
+              ...SHIP_TEMPLATES[ship.type],
+              trip: ship.ownerPlayerId === playerId ? ship.trip : null,
+              position: ship.trip === null ? null : tripPosition(ship.trip),
+              cargo: [],
+              order: byShip.get(ship.id) ?? null,
+            })),
             constructionOrders,
             buildings,
-            player: { ...player, creditBalance: balance.credits },
+            player: { ...player, creditBalance: balance.credits, creditBalanceExact: balance.exact },
             opponents,
             galaxy: toGalaxyModel({ stars, planets }),
             gameId,
@@ -230,7 +251,7 @@ export class GameplayRepository extends PostgresRepository {
     planet: Pick<Planet, "id" | "ownerPlayerId" | "area"> | undefined
     buildings: Array<Pick<Building, "type" | "site" | "planetId">>
     orders: ConstructionOrder[]
-    balance: number
+    available: string
   }> {
     const [planet] = await tx
       .select({ id: planetsTable.id, ownerPlayerId: planetsTable.ownerPlayerId, area: planetsTable.area })
@@ -240,14 +261,106 @@ export class GameplayRepository extends PostgresRepository {
       .select({ type: buildingsTable.type, site: buildingsTable.site, planetId: buildingsTable.planetId })
       .from(buildingsTable)
       .where(and(eq(buildingsTable.gameId, target.gameId), eq(buildingsTable.planetId, target.planetId)))
+    const { orders, available } = await this.getOrderBudget(target, tx)
+    return { planet, buildings, orders, available }
+  }
+
+  private async getOrderBudget(
+    target: { gameId: GameId; turn: number; playerId: PlayerId },
+    tx: Transaction,
+  ): Promise<{ orders: ConstructionOrder[]; moves: Array<typeof moveOrdersTable.$inferSelect>; available: string }> {
     const [player] = await tx
-      .select({ balance: playersTable.creditBalance })
+      .select({ balance: sql<string | null>`${playersTable.creditBalance}::text` })
       .from(playersTable)
       .where(and(eq(playersTable.gameId, target.gameId), eq(playersTable.playerId, target.playerId)))
     Assert.isDefined(player)
     Assert.isTrue(player.balance !== null)
     const orders = await this.getConstructionOrders(target, tx)
-    return { planet, buildings, balance: player.balance, orders }
+    const moves = await this.getMoveOrders(target, tx)
+    return { orders, moves, available: availableCredits(player.balance, [...orders, ...moves.map((move) => move.route)]) }
+  }
+
+  private async getMoveOrders(
+    target: { gameId: GameId; turn: number; playerId: PlayerId },
+    tx: Transaction,
+  ): Promise<Array<typeof moveOrdersTable.$inferSelect>> {
+    return await tx
+      .select()
+      .from(moveOrdersTable)
+      .where(
+        and(
+          eq(moveOrdersTable.gameId, target.gameId),
+          eq(moveOrdersTable.turn, target.turn),
+          eq(moveOrdersTable.playerId, target.playerId),
+        ),
+      )
+      .orderBy(moveOrdersTable.id)
+  }
+
+  public async getTravelBody(gameId: GameId, ref: BodyRef, tx: Transaction): Promise<TravelBody | undefined> {
+    if (ref.kind === "star") {
+      const [star] = await tx
+        .select({ id: starsTable.id, name: starsTable.name, coordinates: starsTable.coordinates, x: starsTable.x, y: starsTable.y })
+        .from(starsTable)
+        .where(and(eq(starsTable.gameId, gameId), eq(starsTable.id, branded<StarId>(ref.id))))
+      return star === undefined ? undefined : { ...star, kind: "star" }
+    }
+    const [planet] = await tx
+      .select({ id: planetsTable.id, name: planetsTable.name, coordinates: planetsTable.coordinates, x: planetsTable.x, y: planetsTable.y })
+      .from(planetsTable)
+      .where(and(eq(planetsTable.gameId, gameId), eq(planetsTable.id, branded<PlanetId>(ref.id))))
+    return planet === undefined ? undefined : { ...planet, kind: "planet" }
+  }
+
+  public async getMoveInputs(
+    context: OpenPlanningTurn,
+    playerId: PlayerId,
+    shipId: ShipId,
+    tx: Transaction,
+  ): Promise<{
+    ship: typeof shipsTable.$inferSelect | undefined
+    origin: TravelBody | undefined
+    availableCredits: string
+    reserved: boolean
+  }> {
+    const [ship] = await tx
+      .select()
+      .from(shipsTable)
+      .where(and(eq(shipsTable.gameId, context.gameId), eq(shipsTable.ownerPlayerId, playerId), eq(shipsTable.id, shipId)))
+    const { available, moves } = await this.getOrderBudget({ ...context, playerId }, tx)
+    let origin: TravelBody | undefined
+    if (ship !== undefined && ship.trip === null) {
+      if (ship.planetId !== null) {
+        origin = await this.getTravelBody(context.gameId, { kind: "planet", id: ship.planetId }, tx)
+      } else if (ship.starId !== null) {
+        origin = await this.getTravelBody(context.gameId, { kind: "star", id: ship.starId }, tx)
+      }
+    }
+    return { ship, origin, availableCredits: available, reserved: moves.some((move) => move.shipId === shipId) }
+  }
+
+  public async submitMove(
+    context: OpenPlanningTurn,
+    playerId: PlayerId,
+    shipId: ShipId,
+    route: TravelRoute,
+    tx: Transaction,
+  ): Promise<void> {
+    await tx.insert(moveOrdersTable).values({ ...context, playerId, shipId, route })
+  }
+  public async cancelMove(context: OpenPlanningTurn, playerId: PlayerId, orderId: string, tx: Transaction): Promise<boolean> {
+    const removed = await tx
+      .delete(moveOrdersTable)
+      .where(
+        and(
+          eq(moveOrdersTable.gameId, context.gameId),
+          eq(moveOrdersTable.turn, context.turn),
+          eq(moveOrdersTable.playerId, playerId),
+          eq(moveOrdersTable.id, orderId),
+        ),
+      )
+      .returning({ id: moveOrdersTable.id })
+    return removed.length === 1
   }
 
   public async submitConstruction(

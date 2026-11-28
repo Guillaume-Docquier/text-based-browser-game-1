@@ -66,7 +66,14 @@ export class StartGameUseCase {
       const ships = gameForStart.playerIds.toSorted().map((ownerPlayerId, index) => {
         const planetId = homes.get(ownerPlayerId)
         Assert.isDefined(planetId)
-        return { id: branded<ShipId>(`T-${String(index + 1).padStart(2, "0")}`), ownerPlayerId, planetId, type: ShipType.TRANSPORT }
+        return {
+          id: branded<ShipId>(`T-${String(index + 1).padStart(2, "0")}`),
+          ownerPlayerId,
+          planetId,
+          starId: null,
+          trip: null,
+          type: ShipType.TRANSPORT,
+        }
       })
       await this.gamesRepository.startGame(
         {

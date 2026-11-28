@@ -1,11 +1,23 @@
 import type { Locator, Page } from "@playwright/test"
 import type { GalaxyPage } from "./GalaxyPage.ts"
 import { GamePage } from "./GamePage.ts"
+import { ShipsPage } from "./ShipsPage.ts"
 
 export class PlanetPage extends GamePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId/play/planet/:planetId" })
   public readonly heading: Locator
   private readonly details: Locator
+
+  public async moveHere(): Promise<ShipsPage> {
+    await this.page.getByRole("link", { name: "Move here", exact: true }).click()
+    return new ShipsPage(this.page)
+  }
+
+  public async moveSelectedShip(): Promise<ShipsPage> {
+    await this.ships.getByRole("button", { name: "Transport T-01", exact: true }).click()
+    await this.ships.getByRole("link", { name: "Move", exact: true }).click()
+    return new ShipsPage(this.page)
+  }
 
   public constructor(page: Page) {
     super(page)
