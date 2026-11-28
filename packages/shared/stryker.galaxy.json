@@ -1,6 +1,9 @@
 {
   "plugins": ["@stryker-mutator/vitest-runner"],
   "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vitest.mutation.config.ts"
+  },
   "testFiles": ["src/galaxy-creation/createGalaxy.test.ts"],
   "mutate": [
     "src/galaxy-creation/**/*.ts",
