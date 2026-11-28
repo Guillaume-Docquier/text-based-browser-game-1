@@ -15,6 +15,7 @@ export default defineConfig({
       "@base-ui/react/separator",
       "@base-ui/react/slider",
       "@base-ui/react/use-render",
+      "@tanstack/react-router",
     ],
   },
 })

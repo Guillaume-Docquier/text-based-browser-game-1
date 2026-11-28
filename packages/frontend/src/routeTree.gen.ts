@@ -20,6 +20,7 @@ import { Route as GameGamesGameIdPlayIndexRouteImport } from './routes/_game.gam
 import { Route as GameGamesGameIdPlayGalaxyRouteImport } from './routes/_game.games.$gameId.play.galaxy'
 import { Route as GameGamesGameIdPlayPlanetsRouteImport } from './routes/_game.games.$gameId.play.planets'
 import { Route as GameGamesGameIdPlayPlayersRouteImport } from './routes/_game.games.$gameId.play.players'
+import { Route as GameGamesGameIdPlayPlanetPlanetIdRouteImport } from './routes/_game.games.$gameId.play.planet.$planetId'
 
 const GameRoute = GameRouteImport.update({
   id: '/_game',
@@ -88,6 +89,12 @@ const GameGamesGameIdPlayPlayersRoute =
     path: '/players',
     getParentRoute: () => GameGamesGameIdPlayRoute,
   } as any)
+const GameGamesGameIdPlayPlanetPlanetIdRoute =
+  GameGamesGameIdPlayPlanetPlanetIdRouteImport.update({
+    id: '/planet/$planetId',
+    path: '/planet/$planetId',
+    getParentRoute: () => GameGamesGameIdPlayRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof SiteIndexRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/games/$gameId/play/planets': typeof GameGamesGameIdPlayPlanetsRoute
   '/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
   '/games/$gameId/play/': typeof GameGamesGameIdPlayIndexRoute
+  '/games/$gameId/play/planet/$planetId': typeof GameGamesGameIdPlayPlanetPlanetIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof SiteIndexRoute
@@ -113,6 +121,7 @@ export interface FileRoutesByTo {
   '/games/$gameId/play/planets': typeof GameGamesGameIdPlayPlanetsRoute
   '/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
   '/games/$gameId/play': typeof GameGamesGameIdPlayIndexRoute
+  '/games/$gameId/play/planet/$planetId': typeof GameGamesGameIdPlayPlanetPlanetIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -129,6 +138,7 @@ export interface FileRoutesById {
   '/_game/games/$gameId/play/planets': typeof GameGamesGameIdPlayPlanetsRoute
   '/_game/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
   '/_game/games/$gameId/play/': typeof GameGamesGameIdPlayIndexRoute
+  '/_game/games/$gameId/play/planet/$planetId': typeof GameGamesGameIdPlayPlanetPlanetIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/games/$gameId/play/planets'
     | '/games/$gameId/play/players'
     | '/games/$gameId/play/'
+    | '/games/$gameId/play/planet/$planetId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/games/$gameId/play/planets'
     | '/games/$gameId/play/players'
     | '/games/$gameId/play'
+    | '/games/$gameId/play/planet/$planetId'
   id:
     | '__root__'
     | '/_game'
@@ -171,6 +183,7 @@ export interface FileRouteTypes {
     | '/_game/games/$gameId/play/planets'
     | '/_game/games/$gameId/play/players'
     | '/_game/games/$gameId/play/'
+    | '/_game/games/$gameId/play/planet/$planetId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -271,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GameGamesGameIdPlayPlayersRouteImport
       parentRoute: typeof GameGamesGameIdPlayRoute
     }
+    '/_game/games/$gameId/play/planet/$planetId': {
+      id: '/_game/games/$gameId/play/planet/$planetId'
+      path: '/planet/$planetId'
+      fullPath: '/games/$gameId/play/planet/$planetId'
+      preLoaderRoute: typeof GameGamesGameIdPlayPlanetPlanetIdRouteImport
+      parentRoute: typeof GameGamesGameIdPlayRoute
+    }
   }
 }
 
@@ -279,6 +299,7 @@ interface GameGamesGameIdPlayRouteChildren {
   GameGamesGameIdPlayPlanetsRoute: typeof GameGamesGameIdPlayPlanetsRoute
   GameGamesGameIdPlayPlayersRoute: typeof GameGamesGameIdPlayPlayersRoute
   GameGamesGameIdPlayIndexRoute: typeof GameGamesGameIdPlayIndexRoute
+  GameGamesGameIdPlayPlanetPlanetIdRoute: typeof GameGamesGameIdPlayPlanetPlanetIdRoute
 }
 
 const GameGamesGameIdPlayRouteChildren: GameGamesGameIdPlayRouteChildren = {
@@ -286,6 +307,8 @@ const GameGamesGameIdPlayRouteChildren: GameGamesGameIdPlayRouteChildren = {
   GameGamesGameIdPlayPlanetsRoute: GameGamesGameIdPlayPlanetsRoute,
   GameGamesGameIdPlayPlayersRoute: GameGamesGameIdPlayPlayersRoute,
   GameGamesGameIdPlayIndexRoute: GameGamesGameIdPlayIndexRoute,
+  GameGamesGameIdPlayPlanetPlanetIdRoute:
+    GameGamesGameIdPlayPlanetPlanetIdRoute,
 }
 
 const GameGamesGameIdPlayRouteWithChildren =

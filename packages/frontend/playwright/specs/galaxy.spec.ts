@@ -42,7 +42,7 @@ test("the galaxy view distinguishes systems with claimed planets and system view
   })
 })
 
-test("the galaxy view can be navigated and the star system view can inspect planets", async ({ alice }) => {
+test("PV-0004 When a player chooses to return to the system from a planet view, the containing star system opens.", async ({ alice }) => {
   const gameDetailsPage = await test.step("Create a game", async () => await CreateGamePage.createGame({ creator: alice }))
   const galaxyPage = await test.step("Start the game", async () => await gameDetailsPage.startGame())
 
@@ -52,20 +52,19 @@ test("the galaxy view can be navigated and the star system view can inspect plan
     await galaxyPage.openStarSystem(selectedStar)
     await expect(galaxyPage.starSystemMap).toBeVisible()
 
-    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 415673"))
-    await expect(galaxyPage.planetProfileHeading("planet 415673")).toBeVisible()
-    await expect(galaxyPage.planetDetailsPane).toContainText("Planet attributes")
-    await expect(galaxyPage.planetAttribute("Metal production per mine per turn")).toHaveText("0")
-    await expect(galaxyPage.planetAttribute("Remaining metal deposit")).toHaveText("0")
-    await expect(galaxyPage.planetDetailsPane).toContainText("Coordinates")
+    const firstPlanet = await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 415673"))
+    await expect(firstPlanet.heading).toHaveText("planet 415673")
+    await expect(firstPlanet.attribute("Metal production per mine per turn")).toHaveText("0")
+    await expect(firstPlanet.attribute("Remaining metal deposit")).toHaveText("0")
+    await firstPlanet.returnToSystem()
+    await expect(galaxyPage.systemHeading).toHaveText("star 35076")
 
-    await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 272683"))
-    await expect(galaxyPage.planetProfileHeading("planet 272683")).toBeVisible()
-    await expect(galaxyPage.planetAttribute("Metal production per mine per turn")).toHaveText("4")
-    await expect(galaxyPage.planetAttribute("Remaining metal deposit")).toHaveText("19")
-
-    await galaxyPage.clickOnTheMap()
-    await expect(galaxyPage.planetDetailsPane).not.toBeVisible()
+    const secondPlanet = await galaxyPage.openPlanetProfile(galaxyPage.planet("planet 272683"))
+    await expect(secondPlanet.heading).toHaveText("planet 272683")
+    await expect(secondPlanet.attribute("Metal production per mine per turn")).toHaveText("4")
+    await expect(secondPlanet.attribute("Remaining metal deposit")).toHaveText("19")
+    await secondPlanet.returnToSystem()
+    await expect(galaxyPage.systemHeading).toHaveText("star 35076")
   })
 
   await test.step("Return to the Galaxy and reopen the Star System", async () => {

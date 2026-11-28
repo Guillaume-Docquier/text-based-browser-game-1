@@ -240,9 +240,8 @@ function PlanetTableRow({ gameId, row }: { gameId: GameId; row: PlanetRow }): Re
       </td>
       <td className="whitespace-nowrap px-4 py-3">
         <Link
-          to="/games/$gameId/play/galaxy"
-          params={{ gameId }}
-          search={{ planetId: planet.id }}
+          to="/games/$gameId/play/planet/$planetId"
+          params={{ gameId, planetId: planet.id }}
           className="font-medium text-sky-400 underline decoration-sky-400/60 underline-offset-4 hover:text-sky-300"
         >
           {planet.coordinates}

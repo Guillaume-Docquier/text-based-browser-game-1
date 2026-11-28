@@ -2,6 +2,7 @@ import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
 import { GamePage } from "./GamePage.ts"
 import type { LocatorIndex } from "./LocatorIndex.ts"
+import { PlanetPage } from "./PlanetPage.ts"
 
 type StarLocator = Branded<"GalaxyStarLocator", Locator>
 type StarSystemStarLocator = Branded<"StarSystemStarLocator", Locator>
@@ -22,7 +23,6 @@ export class GalaxyPage extends GamePage {
   public readonly sharedStars: Locator
 
   public readonly starSystemMap: Locator
-  public readonly planetDetailsPane: Locator
 
   public readonly ownedPlanets: Locator
   public readonly unclaimedPlanets: Locator
@@ -43,8 +43,6 @@ export class GalaxyPage extends GamePage {
     this.systemHeading = page.getByRole("heading", { name: /^star \d+$/ })
     this.ownedPlanets = page.getByRole("button", { name: /^View .+ details, owned by / })
     this.unclaimedPlanets = page.getByRole("button", { name: /^View .+ details$/ })
-
-    this.planetDetailsPane = page.getByRole("complementary", { name: / details$/ })
   }
 
   public star(index: LocatorIndex): StarLocator {
@@ -79,24 +77,13 @@ export class GalaxyPage extends GamePage {
     return branded(index === "last" ? this.unclaimedPlanets.last() : this.unclaimedPlanets.nth(index))
   }
 
-  public async openPlanetProfile(planet: PlanetLocator): Promise<void> {
+  public async openPlanetProfile(planet: PlanetLocator): Promise<PlanetPage> {
     await planet.click()
-  }
-
-  public async clickOnTheMap(): Promise<void> {
-    await this.starSystemMap.click({ position: { x: 10, y: 10 } })
+    return new PlanetPage(this.page)
   }
 
   public async returnToGalaxy(): Promise<void> {
     await this.starSystemStar.click()
-  }
-
-  public planetAttribute(label: string): Locator {
-    return this.planetDetailsPane.getByText(label, { exact: true }).locator("..").getByRole("definition")
-  }
-
-  public planetProfileHeading(name: string): Locator {
-    return this.planetDetailsPane.getByRole("heading", { name, exact: true })
   }
 
   public planetOwnershipLabel(planet: PlanetLocator): Locator {

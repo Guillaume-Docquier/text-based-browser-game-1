@@ -1,35 +1,22 @@
-import type { Planet, StarSystem } from "@api-types"
+import type { Planet } from "@api-types"
+import { useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, LocateFixed } from "lucide-react"
-import { type AnimationEvent, type MouseEvent, type ReactElement, useState } from "react"
-import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
+import { type AnimationEvent, type ReactElement, useState } from "react"
 import { SUN_ID } from "shared/domain/world/Sol.ts"
 import type { StarId } from "shared/domain/world/stars/StarId.ts"
 import { Button } from "@/components/button.tsx"
 import { GalaxyMap } from "@/features/play/galaxy/GalaxyMap.tsx"
-import { PlanetDetailsPane } from "@/features/play/galaxy/star-system/PlanetDetailsPane.tsx"
 import { StarSystemMap } from "@/features/play/galaxy/star-system/StarSystemMap.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 
-type GalaxyView = { type: "galaxy" } | { type: "star-system"; starId: StarId; transition: "entering" | "exiting" }
-type PlanetDetailsView = { planetId: PlanetId; transition: "open" | "closing" }
-type PlanetTarget = { readonly system: StarSystem; readonly planet: Planet }
-
-export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | undefined }): ReactElement {
+export function GalaxyPage({ starId }: { starId: StarId | undefined }): ReactElement {
   const { gameDetails, playerView } = usePlayGameContext()
-  const initialPlanetTarget = findPlanetTarget(playerView.galaxy.systems, initialPlanetId)
-  const [view, setView] = useState<GalaxyView>(() =>
-    initialPlanetTarget === undefined
-      ? { type: "galaxy" }
-      : { type: "star-system", starId: initialPlanetTarget.system.star.id, transition: "entering" },
-  )
-  const [planetDetailsView, setPlanetDetailsView] = useState<PlanetDetailsView | undefined>(() =>
-    initialPlanetTarget === undefined ? undefined : { planetId: initialPlanetTarget.planet.id, transition: "open" },
-  )
+  const navigate = useNavigate()
+  const [exitingStarId, setExitingStarId] = useState<StarId>()
   const [galaxyResetSignal, setGalaxyResetSignal] = useState(0)
   const [starSystemResetSignal, setStarSystemResetSignal] = useState(0)
-  const selectedSystem = view.type === "star-system" ? playerView.galaxy.systems.find(({ star }) => star.id === view.starId) : undefined
-  const selectedPlanet = selectedSystem?.planets.find(({ id }) => id === planetDetailsView?.planetId)
-  const isExitingStarSystem = view.type === "star-system" && view.transition === "exiting"
+  const selectedSystem = playerView.galaxy.systems.find(({ star }) => star.id === starId)
+  const isExitingStarSystem = starId !== undefined && exitingStarId === starId
   const totalNbPlanets = playerView.galaxy.systems.flatMap((system) => system.planets).length
 
   function resetView(): void {
@@ -41,67 +28,37 @@ export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | un
     setStarSystemResetSignal((currentSignal) => currentSignal + 1)
   }
 
-  function showGalaxy(): void {
-    startHidingPlanetDetails()
-    setView((currentView) => {
-      if (currentView.type === "galaxy" || currentView.transition === "exiting") {
-        return currentView
-      }
+  function selectSystem(id: StarId | undefined): void {
+    void navigate({ to: "/games/$gameId/play/galaxy", params: { gameId: gameDetails.id }, search: id === undefined ? {} : { starId: id } })
+  }
 
-      return { ...currentView, transition: "exiting" }
-    })
+  function selectPlanet(planet: Planet): void {
+    void navigate({ to: "/games/$gameId/play/planet/$planetId", params: { gameId: gameDetails.id, planetId: planet.id } })
+  }
+
+  function showGalaxy(): void {
+    setExitingStarId(starId)
   }
 
   function finishShowingGalaxy(event: AnimationEvent<HTMLDivElement>): void {
-    if (event.currentTarget !== event.target || event.animationName !== "exit" || view.type !== "star-system") {
-      return
+    if (event.currentTarget === event.target && event.animationName === "exit" && isExitingStarSystem) {
+      setExitingStarId(undefined)
+      selectSystem(undefined)
     }
-
-    setPlanetDetailsView(undefined)
-    setView({ type: "galaxy" })
-  }
-
-  function showStarSystem(system: StarSystem): void {
-    setPlanetDetailsView(undefined)
-    setView({ type: "star-system", starId: system.star.id, transition: "entering" })
-  }
-
-  function showPlanetDetails(planet: Planet): void {
-    setPlanetDetailsView({ planetId: planet.id, transition: "open" })
-  }
-
-  function hidePlanetDetails(event: MouseEvent<HTMLDivElement>): void {
-    if (event.target instanceof Element && event.target.closest("[data-planet-details-pane]") !== null) {
-      return
-    }
-
-    startHidingPlanetDetails()
-  }
-
-  function startHidingPlanetDetails(): void {
-    setPlanetDetailsView((currentView) => {
-      if (currentView === undefined || currentView.transition === "closing") {
-        return currentView
-      }
-
-      return { ...currentView, transition: "closing" }
-    })
-  }
-
-  function finishHidingPlanetDetails(): void {
-    setPlanetDetailsView((currentView) => (currentView?.transition === "closing" ? undefined : currentView))
   }
 
   return (
     <section className="flex min-h-[34rem] min-w-0 flex-1 flex-col">
-      <div role="presentation" className="relative min-h-[34rem] flex-1 overflow-hidden bg-[#05080f]" onClick={hidePlanetDetails}>
+      <div role="presentation" className="relative min-h-[34rem] flex-1 overflow-hidden bg-[#05080f]">
         <div className="absolute inset-0">
           <div className="size-full" inert={selectedSystem !== undefined}>
             <GalaxyMap
               galaxy={playerView.galaxy}
               currentPlayerId={playerView.player.id}
               resetSignal={galaxyResetSignal}
-              onSelectSystem={showStarSystem}
+              onSelectSystem={(system) => {
+                selectSystem(system.star.id)
+              }}
             />
           </div>
           {selectedSystem !== undefined && (
@@ -121,7 +78,7 @@ export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | un
                   players={gameDetails.players}
                   resetSignal={starSystemResetSignal}
                   onSelectGalaxy={showGalaxy}
-                  onSelectPlanet={showPlanetDetails}
+                  onSelectPlanet={selectPlanet}
                 />
               </div>
             </div>
@@ -160,30 +117,7 @@ export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | un
             ? "Drag to pan · Scroll or pinch to zoom · Select a region to center or a star to inspect"
             : "Drag to pan · Scroll or pinch to zoom"}
         </div>
-
-        {selectedPlanet !== undefined && planetDetailsView !== undefined && (
-          <PlanetDetailsPane
-            planet={selectedPlanet}
-            isClosing={planetDetailsView.transition === "closing"}
-            onCloseAnimationEnd={finishHidingPlanetDetails}
-          />
-        )}
       </div>
     </section>
   )
-}
-
-function findPlanetTarget(systems: readonly StarSystem[], planetId: PlanetId | undefined): PlanetTarget | undefined {
-  if (planetId === undefined) {
-    return undefined
-  }
-
-  for (const system of systems) {
-    const planet = system.planets.find(({ id }) => id === planetId)
-    if (planet !== undefined) {
-      return { system, planet }
-    }
-  }
-
-  return undefined
 }
