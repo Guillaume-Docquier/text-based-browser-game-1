@@ -13,7 +13,7 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 - [x] [06/26 · Produce income with trade centers](issues/06-produce-income-with-trade-centers.md) — `af7cc5fd`. Reviewed and verified on that commit. Real readiness and deadline turns paid once per eligible center. Restart, retry, multiple owners and centers, tunability, PostgreSQL upgrade and 16/16 mutation kills passed. Paid construction checks the income boundary in 07.
 - [x] [07/26 · Construct buildings with a command center](issues/07-construct-buildings-with-a-command-center.md) — `da6072d5`. Both independent roles cleared that commit. Private preview, cancel and replan, settled and reserved balances, actual next-turn affordability, readiness races, observer privacy, persistence and exactly-once settlement passed. All 20 turn-resolution mutants were killed.
 - [x] [08/26 · Give each player a starting transport](issues/08-give-each-player-a-starting-transport.md) — `427fc80f`. Reviewed and verified on that commit. All 136 participants across match sizes 1–16 had one empty transport at home. Template changes affected old and new ships without rewriting saved rows; two-player selection and restart passed.
-- [ ] [09/26 · Move a ship between bodies](issues/09-move-a-ship-between-bodies.md)
+- [x] [09/26 · Move a ship between bodies](issues/09-move-a-ship-between-bodies.md) — `d4cd6f47`. Reviewer and verifier cleared all seven criteria. Both menus, solo and concurrent ships, fractional affordability, actual segment timing, cancellation, privacy, restart and exactly-once charging passed. Scout and real cargo checks recur in 12a and 17.
 - [ ] [10/26 · Apply fog of war at current positions](issues/10-apply-fog-of-war-at-current-positions.md)
 - [ ] [11/26 · Survey planets along a ship’s route](issues/11-survey-planets-along-a-ships-route.md)
 - [ ] [12/26 · Build ships at shipyards](issues/12-build-ships-at-shipyards.md)
@@ -35,4 +35,4 @@ Check each increment after verifying its acceptance criteria. Record decisions, 
 
 ## Active work
 
-09 is active. The implementer owns shared movement, both order entry points, in-transit persistence and UI. The reviewer owns the diff and mutation dispositions. The verifier owns routes, cost and timing, privacy, cancellation and arrival in the running game. Next, verify all seven local criteria at the final commit.
+10 is active. The implementer owns player-specific visibility, persisted observations and the affected views. The reviewer owns the diff and mutation dispositions. The verifier owns real coverage, loss, memory, refresh and two-player UI and API scenarios. Next, exercise the three local criteria and record any checks for later cargo increments.

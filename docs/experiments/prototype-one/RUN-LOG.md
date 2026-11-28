@@ -516,3 +516,91 @@ Verified `427fc80f8805c91137f2ca2c7c7d9623175433b7`. All four acceptance criteri
 ## 08 · Acceptance
 
 Accepted 427fc80f. All four local criteria passed on the reviewed commit. Only the ship type was saved among the template properties. The verifier confirmed stable IDs, location, separate game ownership, current template values and distinguishable co-located ships through restart.
+
+## 09 · Movement entry points and authority
+
+The implementation team proposed a shared Ships view for both Move and Move here. The view keeps each ship accessible in transit. Use the public coordinate to identify a body uniquely; a typed body identity in the request lets the server recompute the price and route from authoritative positions. An exact full address can resolve to only one body. Keep the ship’s persisted station or active journey consistent and settle the quoted departure speed and cost across reloads. Verify cross-type credit reservations under the existing turn lock.
+
+## 10 · Existing games and player changes
+
+Earlier versions have no per-player observation history. When adding vision to a populated match, seed observations from that participant’s current coverage only. Preserve previously recorded observations on later startups. Do not infer a historical observation merely because a planet exists or used to appear in a global list. The player view and client cache must stay scoped to the active participant and match, including after switching accounts or reopening a direct planet link. A ship seen in transit reveals its current observable state. Its owner can inspect the trip destination and progress; the other player receives the current sighting without a private plan or hidden route.
+
+## 11 · Assigned behavior
+
+- When an owned ship travels during resolution, survey every planet at shortest distance at most 1.5 LY from the actual segment the ship traveled that turn, including endpoints and the exact radius boundary.
+- When a surveyed planet is outside the player’s current vision at the end of that turn, save its final resolved ownership, biome, size, area, metal production, remaining deposit and buildings as that player’s latest observation.
+- When the ship’s departure load changes its travel distance, use the actual segment traveled with that load. Every ship type retains the same 1.5 LY survey radius and the final segment stops at the destination.
+- When a ship passes within range of ships, cargo or stockpiles and leaves them outside final current vision, the flyby stores no record of those ships, items or contents. The Sun retains its public visibility.
+
+Use the resolved segment endpoints in physical LY and project onto the closed segment. A stationary ship still has its current point coverage. When multiple owned ships survey the same planet in one turn, the same final planet state supplies the observation. Test a building completed on the surveyed planet during that turn so the observer sees the final building state even after finishing outside scan range.
+
+## 09 · Exact-budget fractional routes
+
+The verifier found that reserving 0.10 LY followed by 0.20 LY against 0.30 credits rejected the second affordable trip. Treat the authoritative decimal prices and balances consistently across both planning entry points, construction reservations and settlement. Add this rule: “When the sum of pending prices and a new price exactly equals available turn-start credits, accept the new order and leave zero available. When the sum exceeds those credits, reject it and preserve existing reservations.” The 0.10 + 0.20 case must settle to zero with no income. Keep sub-cent local travel chargeable and reject genuinely insufficient balances. Display rounding must not control affordability.
+
+## 09 · Monetary storage across turns
+
+The reviewer found the opposite boundary as well: binary subtraction can present 1 minus 0.10000000000000002 as 0.9, admitting a 0.9 order that exceeds the balance. Carry the authoritative decimal amounts through reservation, settlement and storage using PostgreSQL numeric. Preserve the existing display contract as appropriate, while server decisions and both previews compare exact available funds. Verify an exact remainder after restart, both orderings of a fully funded pair, and a genuinely underfunded pair. This precision applies to all payable orders, including later shipbuilding.
+
+## 09 · Foreign underway ships
+
+For a foreign ship already underway, its current resolved position can be shown under the existing world projection. Its owner alone needs its destination, itinerary and remaining travel to operate it. Apply this projection when the journey is first introduced in 09. Add the requirement: “When another player can see a foreign ship in transit, their player view exposes its current sighting and omits its destination, route and remaining travel. The owner can still inspect the full trip.” This keeps the transport’s current observable state useful without exposing the owner’s future course. In 10, current vision determines whether the sighting itself is returned.
+
+## 09 · Independent movement and accounting review
+
+Body addresses identify destinations. Both endpoint types already store their physical positions in LY. Portal input and route pricing therefore need no conversion from the displayed address or orbital AU. The new ship-location constraint requires exactly one of a planet station, star station or active trip. The old ship initialization SQL can still insert a starting planet, keeping earlier migrations compatible.
+
+The initial decimal correction still rounded available money and the worker’s accumulated change to binary floating point. With 1 credit and a reservation of 0.10000000000000002, it rounded the remaining 0.89999999999999998 up to 0.9 and admitted an unaffordable trip. With 1.1 credits and both charges, rounding the net change left 0.1 instead of 0.09999999999999998. These cases led to the ruling to preserve exact decimal balances from reservation through storage. A separate finding led to a new rule that limits foreign underway ships to a current sighting.
+
+## 12 · Assigned behavior
+
+- When a match starts, each home has one shipyard on a free permanent hex distinct from its command center and trade center. The command center can construct additional shipyards for 40 credits apiece.
+- When an owner selects a shipyard present on their planet at turn start, they can privately plan one transport for 25 credits. The preview identifies the specific yard, destination planet, ship type and full price.
+- When independent yards or command centers have pending orders, each actor reserves only its own action, and all their prices share the owner’s available turn-start credits.
+- When a player cancels a pending shipbuild before planning closes, release that yard and its full price immediately. Other yard and command-center orders remain submitted.
+- When a valid shipbuild resolves, charge its owner once and station one individually selectable empty ship of the ordered type at that yard’s planet. The ship first accepts an order on the next turn.
+- When a player inspects a built ship, the same shared type template supplies thrust, empty mass, capacity and current speed as for a starting ship of that type. A shipyard uses dedicated shipyard hex art.
+
+Keep order preview, cancellation and authoritative credit checks consistent with construction and movement. The first yard on a new home uses the first remaining site after its trade center. The full-home migration rule above preserves all previous constructions. A second yard becomes productive only after its own construction has resolved.
+
+## 10 · Existing requirement revisions
+
+- PVR-0001. When a player reads an observed planet, its visible metal production and remaining deposit come from the current or last observed state. The API omits the former metal, fertility, fuel, energy and maximum population fields.
+- PVR-0002. When an observed planet surface is read in a fresh session or after server restart, each current or last-observed building retains its saved identity, type, planet and occupied hex.
+- PLST-0002. When the player opens Planets, the default list contains planets whose current or last-observed owner is known to that player. Choosing All planets includes every public planet and shows only the metal production and remaining deposit available to that player.
+- PART-0001. When a planet outside Sol is currently or previously observed as gas, it uses dedicated gas-biome artwork. An unobserved ordinary planet uses neutral artwork.
+- Stockpile visibility. When stockpiles and items are present, both colony piles and their individual item histories are inspectable in current vision, both are hidden with no memory outside current vision, and the Sun’s stockpile remains public.
+
+The first four rows revise the existing IDs in place. Record the stockpile rule for its owning entry point as soon as stockpiles exist in 15, and exercise it with actual contents in 15–20. In 10 verify ships with the current empty cargo representation are omitted outside coverage. Keep movement to publicly known destinations available even if the destination planet has unknown attributes.
+
+## 09 · Implementation and mutation evidence
+
+Implemented d4cd6f47. Move and Move here quote the same direct route from the two bodies’ stored positions in LY. The player can use the Ships page before departure, during travel and after arrival. Its address retains the selected ship. The worker applies one segment per turn, debits the frozen full price once, and saves the arrival station or the trip in the same transaction that advances the turn. Foreign underway sightings expose current position without the itinerary. Construction and movement share the turn lock and the exact available balance. PostgreSQL stores settled credits as numeric.
+
+All ten assigned statements have named entry-point checks. Shared tests passed 60/60, backend integration 86/86, PostgreSQL concurrency 22/22, and frontend component tests 88/88. The frontend production build, three package typechecks and changed-file type-aware lint passed. The two tracked contention cases used competing movement and construction requests against 30.1 and 30.09999999999999998 credits. Both persisted the expected exact balance. The local Storybook [travel review](http://127.0.0.1:62392/?path=/review/) covers a quote and its first segment.
+
+The official turn-resolution mutation run killed 35/35, with no uncovered mutants or errors. The [report](../../../packages/shared/src/turn-resolution/.stryker/reports/09-movement.json) is kept in this worktree. A [supplemental run](../../../packages/shared/src/turn-resolution/.stryker/reports/09-domain.json) killed all 26 travel calculation mutants and 5 of 6 decimal helper mutants, with zero uncovered. The remaining static mutant substituted the default decimal precision at module initialization. Running that substitution in an isolated module against the unchanged CRED-0001 test failed on the exact-budget assertion. The live implementation passed that same case. Travel tests include a nineteenth segment where binary multiplication would otherwise leave the ship short of the destination.
+
+## 09 · Final diff review
+
+Reviewed d4cd6f47d621e90c022b79d2bd627be0addd4f18 against all seven local criteria and the ten exact requirement and test names. Both movement entry points use the same quote, destination identity and owner-only pending order. The ship list retains an underway ship across reloads. A foreign sighting contains the current position and omits the itinerary. Stored orders capture departure speed and distance. The worker applies a charge only on departure and commits the ship update, credits and next turn together.
+
+Independent runs passed all three movement and credit domain tests, six turn-resolution tests, three movement API tests, two PostgreSQL contention tests and eleven worker integration tests. The verifier also exercised the planning deadline during a real row wait, journey reload, old-schema credit migration and a failed settlement followed by worker retry. Exact credit comparisons preserve both a fully funded pair and a genuinely insufficient balance after restart.
+
+The official turn-resolution mutation report killed 35 of 35. The supplementary domain run killed all 26 travel mutants and five of six credit mutants, with no uncovered mutants. Independently applying the surviving static precision change in a fresh process failed the unchanged CRED-0001 precision assertion. No review findings remain.
+
+## 09 · Independent movement and player acceptance
+
+Verified `d4cd6f47d621e90c022b79d2bd627be0addd4f18`. All seven local acceptance criteria passed. Final authenticated Chromium runs passed 15/15 and 4/4, including the maintained movement, construction, credits and ships scenarios.
+
+1. Alice selected Transport T-01 at her home (45:78:15) and entered the Sun’s published 44:76 address. On the Sun’s map, Move here offered two co-located transports with distinct IDs. Both entry points identified the same ship, current station and destination. The real worker accepted planet-to-planet, planet-to-star, star-to-star and star-to-planet travel.
+2. Both previews showed 4 LY per turn, 3 turns and the full 11.778857564626689-credit price. Bob’s player data and planet inspector showed the resolved station and no pending order. Travel and construction shared one budget in both interfaces and both orders of PostgreSQL lock acquisition. A 0.30 balance funded 0.10 and 0.20 in either order and settled to zero without income. A 0.29999999 balance rejected the over-budget trip. After settlement and a server restart, 0.89999999999999998 still could not fund 0.9. The populated upgrade preserved old ship IDs, stations and balances, including 0.10000000000000002, in the new numeric credit column.
+3. At 64 thrust, raising total mass from 4 to 16 halved speed from 4 to 2. The worker took 2 and 4 turns respectively for 6.5 LY and charged 6.5 each time. Changing the template during another trip preserved its departure speed. The shared resolver clamped the final segment to the remaining distance.
+4. The agreed transport, scout and colony template inputs produced empty speeds of 4, 8 and 4. One unit-mass item reduced transport speed by 10.56% and scout speed by 55.28%. Four items gave the transport 2.828427 LY per turn. The scout, zero-slot colony and cargo checks used their agreed template inputs. Playable scout and loading checks remain assigned to 12a and 17.
+5. The worker arrived at the end of the departure turn for 1 LY at speed 1. At speed 2 it took two turns for 4 LY and three for 4.1 LY. The browser followed the three-turn trip to the Sun and, on the next planning turn, sent the ship to Earth. The one-turn local trip charged 0.00001581250741020957 credits.
+6. The owner reopened the same Ships URL on a restarted backend and inspected the interpolated x/y, destination and remaining travel at 390px width. Bob saw the same current x/y and short ID. His API and UI omitted the destination, route and remaining travel. The sighting cleared on arrival. Two ships held independent orders. A failed settlement rolled back the trip and charge, and a real worker retry charged once.
+7. Alice submitted and canceled from both entry points, including while ready with Bob still unready. The preview cleared, the ship stayed home and funds and action were available immediately. The server rejected cancellation after all-ready closure, after a waiting lock crossed the deadline and after departure. Replanning succeeded on the same turn.
+
+## 09 · Acceptance
+
+Accepted d4cd6f47 after the final reviewed and verified reports. An exact 0.30 budget funded 0.10 and 0.20 trips while genuine shortages remained rejected. The owner could find a ship en route after restart, and the observer saw only its current sighting. The 1, 4 and 4.1 LY examples arrived on turns 1, 2 and 3 under their specified speeds. All 35 resolver mutants were killed.
