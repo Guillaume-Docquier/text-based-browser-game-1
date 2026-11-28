@@ -1,0 +1,18 @@
+{
+  "plugins": ["@stryker-mutator/vitest-runner"],
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": ".stryker/vitest.stryker.config.ts"
+  },
+  "testFiles": ["createGalaxy.test.ts"],
+  "mutate": ["**/*.ts", "!**/*.test.ts", "!**/*.stub.ts", "!scripts/**"],
+  "tempDirName": ".stryker/sandboxes",
+  "concurrency": 4,
+  "reporters": ["clear-text", "html", "json"],
+  "htmlReporter": {
+    "fileName": ".stryker/reports/mutation.html"
+  },
+  "jsonReporter": {
+    "fileName": ".stryker/reports/mutation.json"
+  }
+}

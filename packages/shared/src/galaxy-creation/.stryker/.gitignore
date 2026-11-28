@@ -1,0 +1,4 @@
+*
+!.gitignore
+!stryker.config.json
+!vitest.stryker.config.ts

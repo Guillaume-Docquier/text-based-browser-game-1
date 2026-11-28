@@ -11,3 +11,7 @@ The entry point is deterministic and pure.
 3. The [home planet generator](home-planets/generateHomePlanets.ts) assigns home planets for each player.
 
 All passes use the same seeded random generator. The last step always returns the playable galaxy.
+
+## Behavioral requirements
+
+This module defines behavioral requirements for its entry point. Every change to the module should include a change in those requirements, with tests covering them.
