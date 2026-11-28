@@ -2,6 +2,9 @@ import { PlayerViewSchema } from "#api/gameplay/PlayerView.ts"
 import { TurnStateStreamSchema } from "#api/gameplay/TurnState.ts"
 import { UpdateReadinessErrorResponses } from "#api/gameplay/updateReadiness.error.ts"
 import { NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
+import { ConstructionCommandSchema } from "./construction.command.ts"
+import { ConstructionErrorResponses } from "./construction.error.ts"
+import type { ConstructionUseCase } from "./construction.useCase.ts"
 import { GetPlayerViewErrorResponses } from "./getPlayerView.error.ts"
 import { GetPlayerViewQuerySchema } from "./getPlayerView.query.ts"
 import type { GetPlayerViewUseCase } from "./getPlayerView.useCase.ts"
@@ -17,13 +20,22 @@ export function createGameplayRouter({
   getPlayerViewUseCase,
   getTurnStateUseCase,
   updateReadinessUseCase,
+  constructionUseCase,
 }: {
   trpc: Trpc
   getPlayerViewUseCase: GetPlayerViewUseCase
   getTurnStateUseCase: GetTurnStateUseCase
+  constructionUseCase: ConstructionUseCase
   updateReadinessUseCase: UpdateReadinessUseCase
 }) {
   return trpc.router({
+    construction: trpc.inGameProcedure
+      .input(ConstructionCommandSchema)
+      .output(NO_OUTPUT)
+      .mutation(
+        async ({ input, ctx: { playerId } }) =>
+          await toTrpcOutput(constructionUseCase.execute(input, { playerId }), ConstructionErrorResponses),
+      ),
     updateReadiness: trpc.inGameProcedure
       .input(UpdateReadinessCommandSchema)
       .output(NO_OUTPUT)

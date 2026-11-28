@@ -2,6 +2,7 @@ import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { PlayerColorSchema } from "shared/domain/players/PlayerColor.ts"
 import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
 import { BuildingSchema } from "shared/domain/world/buildings/Building.ts"
+import { ConstructionOrderSchema } from "shared/domain/world/buildings/ConstructionOrder.ts"
 import { GalaxySchema } from "shared/domain/world/Galaxy.ts"
 import { z } from "zod"
 
@@ -17,6 +18,7 @@ export const PlayerViewSchema = z.object({
   player: PlayerViewPlayerSchema.extend({ creditBalance: z.number().nonnegative() }),
   opponents: z.record(PlayerIdSchema, PlayerViewPlayerSchema),
   galaxy: GalaxySchema,
+  constructionOrders: z.array(ConstructionOrderSchema),
   buildings: z.array(BuildingSchema),
   turn: z.number(),
 })

@@ -25,6 +25,22 @@ export class PlanetPage extends GamePage {
     return this.site(name).locator("image")
   }
 
+  public get construction(): Locator {
+    return this.details.getByRole("region", { name: "Command center construction" })
+  }
+
+  public async chooseTradeCenter(): Promise<void> {
+    await this.construction.getByRole("combobox", { name: "Building to construct" }).selectOption("TRADE_CENTER")
+  }
+
+  public async submitConstruction(): Promise<void> {
+    await this.construction.getByRole("button", { name: "Submit construction" }).click()
+  }
+
+  public async cancelConstruction(): Promise<void> {
+    await this.construction.getByRole("button", { name: "Cancel construction" }).click()
+  }
+
   public get selectedSite(): Locator {
     return this.details.getByRole("status", { name: "Selected site" })
   }

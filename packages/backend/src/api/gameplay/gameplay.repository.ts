@@ -1,8 +1,12 @@
 import { type Branded, Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { and, desc, eq, gt } from "drizzle-orm"
+import { and, desc, eq } from "drizzle-orm"
 import type { GameId } from "shared/domain/games/GameId.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import type { Building } from "shared/domain/world/buildings/Building.ts"
+import type { ConstructionOrder } from "shared/domain/world/buildings/ConstructionOrder.ts"
+import type { Planet } from "shared/domain/world/planets/Planet.ts"
+import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import type { Star } from "shared/domain/world/stars/Star.ts"
 import { GetPlayerViewError, GetPlayerViewRollbackError } from "#api/gameplay/getPlayerView.error.ts"
 import type { PlayerView } from "#api/gameplay/PlayerView.ts"
@@ -10,9 +14,19 @@ import { UpdateReadinessError, UpdateReadinessRollbackError } from "#api/gamepla
 import type { Clock } from "#lib/Clock.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { buildingsTable, planetsTable, playersTable, starsTable, turnsTable, turnsProcessingTable } from "#lib/db/schema.ts"
+import {
+  buildingsTable,
+  constructionOrdersTable,
+  planetsTable,
+  playersTable,
+  starsTable,
+  turnsTable,
+  turnsProcessingTable,
+} from "#lib/db/schema.ts"
 import { GetTurnStateError } from "./getTurnState.error.ts"
 import type { TurnState } from "./TurnState.ts"
+
+export type OpenPlanningTurn = Branded<"OpenPlanningTurn", Readonly<{ gameId: GameId; turn: number }>>
 
 export type ReadinessForUpdate = Branded<
   "ReadinessForUpdate",
@@ -87,7 +101,9 @@ export class GameplayRepository extends PostgresRepository {
             .from(buildingsTable)
             .where(eq(buildingsTable.gameId, gameId))
 
+          const constructionOrders = await this.getConstructionOrders({ gameId, turn: turn.turn, playerId }, tx)
           return {
+            constructionOrders,
             buildings,
             player: { ...player, creditBalance: balance.credits },
             opponents,
@@ -154,26 +170,7 @@ export class GameplayRepository extends PostgresRepository {
     { gameId, turn, playerId }: { gameId: GameId; turn: number; playerId: PlayerId },
     tx: Transaction,
   ): Promise<ReadinessForUpdate> {
-    const gameTurns = await tx
-      .select({
-        gameId: turnsTable.gameId,
-        turn: turnsTable.turn,
-        endsAt: turnsTable.endsAt,
-      })
-      .from(turnsTable)
-      .where(
-        and(
-          eq(turnsTable.gameId, gameId),
-          eq(turnsTable.turn, turn),
-          eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS),
-          gt(turnsTable.endsAt, this.clock.now()),
-        ),
-      )
-      .for("no key update")
-    Assert.isTrue(gameTurns.length <= 1)
-
-    const gameTurn = gameTurns[0]
-    if (gameTurn === undefined) {
+    if ((await this.lockOpenTurn({ gameId, turn }, tx)) === undefined) {
       throw new UpdateReadinessRollbackError(UpdateReadinessError.TURN_NOT_OPEN)
     }
 
@@ -184,6 +181,92 @@ export class GameplayRepository extends PostgresRepository {
     Assert.isTrue(players.some((player) => player.id === playerId))
 
     return branded({ gameId, turn, playerId, players })
+  }
+
+  public async lockOpenTurn({ gameId, turn }: { gameId: GameId; turn: number }, tx: Transaction): Promise<OpenPlanningTurn | undefined> {
+    const [locked] = await tx
+      .select({ endsAt: turnsTable.endsAt })
+      .from(turnsTable)
+      .where(and(eq(turnsTable.gameId, gameId), eq(turnsTable.turn, turn), eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS)))
+      .for("no key update")
+    return locked !== undefined && this.clock.now() < locked.endsAt ? branded({ gameId, turn }) : undefined
+  }
+
+  private async getConstructionOrders(
+    { gameId, turn, playerId }: { gameId: GameId; turn: number; playerId: PlayerId },
+    tx: Transaction,
+  ): Promise<ConstructionOrder[]> {
+    return await tx
+      .select({
+        id: constructionOrdersTable.id,
+        planetId: constructionOrdersTable.planetId,
+        type: constructionOrdersTable.type,
+        site: constructionOrdersTable.site,
+        cost: constructionOrdersTable.cost,
+      })
+      .from(constructionOrdersTable)
+      .where(
+        and(
+          eq(constructionOrdersTable.gameId, gameId),
+          eq(constructionOrdersTable.turn, turn),
+          eq(constructionOrdersTable.playerId, playerId),
+        ),
+      )
+      .orderBy(constructionOrdersTable.id)
+  }
+
+  public async getConstructionInputs(
+    target: { gameId: GameId; turn: number; playerId: PlayerId; planetId: PlanetId },
+    tx: Transaction,
+  ): Promise<{
+    planet: Pick<Planet, "id" | "ownerPlayerId" | "area"> | undefined
+    buildings: Array<Pick<Building, "type" | "site" | "planetId">>
+    orders: ConstructionOrder[]
+    balance: number
+  }> {
+    const [planet] = await tx
+      .select({ id: planetsTable.id, ownerPlayerId: planetsTable.ownerPlayerId, area: planetsTable.area })
+      .from(planetsTable)
+      .where(and(eq(planetsTable.gameId, target.gameId), eq(planetsTable.id, target.planetId)))
+    const buildings = await tx
+      .select({ type: buildingsTable.type, site: buildingsTable.site, planetId: buildingsTable.planetId })
+      .from(buildingsTable)
+      .where(and(eq(buildingsTable.gameId, target.gameId), eq(buildingsTable.planetId, target.planetId)))
+    const [player] = await tx
+      .select({ balance: playersTable.creditBalance })
+      .from(playersTable)
+      .where(and(eq(playersTable.gameId, target.gameId), eq(playersTable.playerId, target.playerId)))
+    Assert.isDefined(player)
+    Assert.isTrue(player.balance !== null)
+    const orders = await this.getConstructionOrders(target, tx)
+    return { planet, buildings, balance: player.balance, orders }
+  }
+
+  public async submitConstruction(
+    context: OpenPlanningTurn,
+    order: Omit<typeof constructionOrdersTable.$inferInsert, "id" | "gameId" | "turn">,
+    tx: Transaction,
+  ): Promise<void> {
+    await tx.insert(constructionOrdersTable).values({ ...context, ...order })
+  }
+
+  public async cancelConstruction(
+    { gameId, turn }: OpenPlanningTurn,
+    { playerId, orderId }: { playerId: PlayerId; orderId: ConstructionOrder["id"] },
+    tx: Transaction,
+  ): Promise<boolean> {
+    const removed = await tx
+      .delete(constructionOrdersTable)
+      .where(
+        and(
+          eq(constructionOrdersTable.gameId, gameId),
+          eq(constructionOrdersTable.turn, turn),
+          eq(constructionOrdersTable.playerId, playerId),
+          eq(constructionOrdersTable.id, orderId),
+        ),
+      )
+      .returning({ id: constructionOrdersTable.id })
+    return removed.length === 1
   }
 
   public async updateReadiness({ context, isReady }: { context: ReadinessForUpdate; isReady: boolean }, tx: Transaction): Promise<void> {

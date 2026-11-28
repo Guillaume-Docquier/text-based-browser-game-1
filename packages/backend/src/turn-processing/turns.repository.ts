@@ -6,7 +6,15 @@ import type { TurnResolution } from "shared/turn-resolution/resolveTurn.ts"
 import type { TurnState } from "shared/turn-resolution/TurnState.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { buildingsTable, gamesTable, planetsTable, playersTable, turnsProcessingTable, turnsTable } from "#lib/db/schema.ts"
+import {
+  buildingsTable,
+  constructionOrdersTable,
+  gamesTable,
+  planetsTable,
+  playersTable,
+  turnsProcessingTable,
+  turnsTable,
+} from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
 export type TurnForProcessing = Branded<
@@ -138,8 +146,26 @@ export class TurnsRepository extends PostgresRepository {
       .where(eq(buildingsTable.gameId, startTurnProcessingModel.turn.gameId))
       .orderBy(asc(buildingsTable.id))
 
+    const constructionOrders = await tx
+      .select({
+        planetId: constructionOrdersTable.planetId,
+        playerId: constructionOrdersTable.playerId,
+        type: constructionOrdersTable.type,
+        site: constructionOrdersTable.site,
+        cost: constructionOrdersTable.cost,
+      })
+      .from(constructionOrdersTable)
+      .where(
+        and(
+          eq(constructionOrdersTable.gameId, startTurnProcessingModel.turn.gameId),
+          eq(constructionOrdersTable.turn, startTurnProcessingModel.turn.turn),
+        ),
+      )
+      .orderBy(asc(constructionOrdersTable.id))
+
     return {
       ...startTurnProcessingModel.turn,
+      constructionOrders,
       buildings,
       closedAt: turn.closedAt,
       turnInterval: Time.create(games[0].turnIntervalSeconds, UnitOfTime.SECONDS),
@@ -219,10 +245,20 @@ export class TurnsRepository extends PostgresRepository {
           .returning()
         Assert.isTrue(updatedProcessingRows.length === 1)
 
-        for (const [playerId, income] of processedTurnModel.creditIncome) {
+        if (processedTurnModel.buildingsToPlace.length > 0) {
+          await tx
+            .insert(buildingsTable)
+            .values(processedTurnModel.buildingsToPlace.map((building) => ({ ...building, gameId: processedTurnModel.gameId })))
+          await tx
+            .delete(constructionOrdersTable)
+            .where(
+              and(eq(constructionOrdersTable.gameId, processedTurnModel.gameId), eq(constructionOrdersTable.turn, processedTurnModel.turn)),
+            )
+        }
+        for (const [playerId, creditChange] of processedTurnModel.creditChanges) {
           await tx
             .update(playersTable)
-            .set({ creditBalance: sql`${playersTable.creditBalance} + ${income}` })
+            .set({ creditBalance: sql`${playersTable.creditBalance} + ${creditChange}` })
             .where(and(eq(playersTable.gameId, processedTurnModel.gameId), eq(playersTable.playerId, playerId)))
         }
 

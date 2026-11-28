@@ -2,11 +2,14 @@ import type { Planet, StarSystem } from "@api-types"
 import { Link } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
 import type { ReactElement } from "react"
+import { BuildingType } from "shared/domain/world/buildings/Building.ts"
+import { hasOwnedCommandCenter } from "shared/domain/world/buildings/ConstructionOrder.ts"
 import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import { SUN_ID } from "shared/domain/world/Sol.ts"
 import { buttonVariants } from "@/components/button.tsx"
 import { planetArtwork } from "@/features/play/galaxy/star-system/planetArtwork.ts"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
+import { useConstruction } from "@/lib/api/useConstruction.ts"
 import { PlanetSurface } from "./PlanetSurface.tsx"
 
 export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
@@ -28,6 +31,8 @@ export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
   const ownerName = planet.ownerPlayerId === null ? "Unclaimed" : (owner?.alias ?? `Player ${planet.ownerPlayerId}`)
   const systemName = system.star.id === SUN_ID ? "Sol" : system.star.name
 
+  const canBuild = hasOwnedCommandCenter(planet, playerView.player.id, playerView.buildings)
+  const artwork = planetArtwork(planet, system.star.id)
   return (
     <article aria-labelledby="planet-name" className="flex min-w-0 flex-1 flex-col gap-5 overflow-y-auto p-4 sm:p-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -44,10 +49,43 @@ export function PlanetPage({ planetId }: { planetId: PlanetId }): ReactElement {
         </Link>
       </header>
       <div className="grid flex-1 content-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
-        <PlanetSurface key={planet.id} planet={planet} artwork={planetArtwork(planet, system.star.id)} buildings={playerView.buildings} />
+        {canBuild ? (
+          <ColonySurface key={planet.id} planet={planet} artwork={artwork} />
+        ) : (
+          <PlanetSurface key={planet.id} planet={planet} artwork={artwork} buildings={playerView.buildings} />
+        )}
+
         <PlanetFacts planet={planet} ownerName={ownerName} />
       </div>
     </article>
+  )
+}
+
+function ColonySurface({ planet, artwork }: { planet: Planet; artwork: string }): ReactElement {
+  const { playerView, canTakeAction } = usePlayGameContext()
+  const construction = useConstruction(playerView.gameId)
+  const target = { gameId: playerView.gameId, turn: playerView.turn }
+  return (
+    <PlanetSurface
+      planet={planet}
+      artwork={artwork}
+      buildings={playerView.buildings}
+      planning={{
+        playerId: playerView.player.id,
+        turn: playerView.turn,
+        balance: playerView.player.creditBalance,
+        orders: playerView.constructionOrders,
+        open: canTakeAction,
+        pending: construction.isPending,
+        error: construction.error?.message,
+        submit: (site) => {
+          construction.mutate({ ...target, action: "submit", planetId: planet.id, type: BuildingType.TRADE_CENTER, site })
+        },
+        cancel: (orderId) => {
+          construction.mutate({ ...target, action: "cancel", orderId })
+        },
+      }}
+    />
   )
 }
 

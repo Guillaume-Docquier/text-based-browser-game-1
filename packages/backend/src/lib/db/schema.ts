@@ -20,6 +20,7 @@ import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { BuildingType, type BuildingId } from "shared/domain/world/buildings/Building.ts"
+import type { ConstructionOrder, ConstructionOrderId } from "shared/domain/world/buildings/ConstructionOrder.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
 import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
@@ -205,5 +206,28 @@ export const buildingsTable = pgTable(
     uniqueIndex("buildings_one_command_center_per_planet")
       .on(table.gameId, table.planetId)
       .where(eq(table.type, BuildingType.COMMAND_CENTER).inlineParams()),
+  ],
+)
+
+export const constructionOrdersTable = pgTable(
+  "construction_orders",
+  {
+    gameId: gameIdColumn("game_id").notNull(),
+    turn: integer("turn").notNull(),
+    id: uuid("id").$type<ConstructionOrderId>().defaultRandom().notNull(),
+    planetId: planetIdColumn("planet_id").notNull(),
+    playerId: playerIdColumn("player_id").notNull(),
+    type: buildingTypeEnum("type").$type<ConstructionOrder["type"]>().notNull(),
+    site: integer("site").notNull(),
+    cost: doublePrecision("cost").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.gameId, table.id] }),
+    unique("construction_orders_one_per_command_center").on(table.gameId, table.turn, table.planetId),
+    foreignKey({ columns: [table.gameId, table.turn], foreignColumns: [turnsTable.gameId, turnsTable.turn] }).onDelete("cascade"),
+    foreignKey({ columns: [table.gameId, table.planetId], foreignColumns: [planetsTable.gameId, planetsTable.id] }).onDelete("cascade"),
+    foreignKey({ columns: [table.gameId, table.playerId], foreignColumns: [playersTable.gameId, playersTable.playerId] }).onDelete(
+      "cascade",
+    ),
   ],
 )

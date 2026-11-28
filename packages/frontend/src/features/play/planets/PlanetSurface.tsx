@@ -1,9 +1,11 @@
 import type { Planet, PlayerView } from "@api-types"
 import { type ReactElement, useState } from "react"
 import { BuildingType, TRADE_CENTER_INCOME } from "shared/domain/world/buildings/Building.ts"
+import { constructionProblem } from "shared/domain/world/buildings/ConstructionOrder.ts"
 import { planetSurface } from "shared/domain/world/planets/planetSurface.ts"
 import commandCenterArt from "@/assets/buildings/command-center.png"
 import tradeCenterArt from "@/assets/buildings/trade-center.png"
+import { ConstructionPanel, type ConstructionPlanning } from "./ConstructionPanel.tsx"
 
 const BUILDING_APPEARANCE = {
   [BuildingType.COMMAND_CENTER]: { name: "Command center", art: commandCenterArt },
@@ -18,10 +20,12 @@ export function PlanetSurface({
   planet,
   artwork,
   buildings,
+  planning,
 }: {
   planet: Planet
   artwork: string
   buildings: PlayerView["buildings"]
+  planning?: ConstructionPlanning | undefined
 }): ReactElement {
   const [selectedSite, setSelectedSite] = useState(0)
   const occupied = new Map(
@@ -35,6 +39,7 @@ export function PlanetSurface({
   const halfWidth = Math.max(HEX_WIDTH * 1.5, ...sites.map(({ x }) => Math.abs(x) + HEX_WIDTH / 2 + 5))
   const halfHeight = Math.max(RADIUS * 2, ...sites.map(({ y }) => Math.abs(y) + RADIUS + 5))
   const selectedType = occupied.get(selectedSite)
+  const order = planning?.orders.find((candidate) => candidate.planetId === planet.id)
 
   return (
     <section aria-label="Planet surface" className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-[#080e18]">
@@ -50,7 +55,9 @@ export function PlanetSurface({
       >
         {sites.map(({ site, x, y }) => {
           const type = occupied.get(site)
-          const appearance = type === undefined ? undefined : BUILDING_APPEARANCE[type]
+          const planned = order?.site === site
+          const displayType = planned ? order.type : type
+          const appearance = displayType === undefined ? undefined : BUILDING_APPEARANCE[displayType]
           const isSelected = site === selectedSite
           return (
             <g
@@ -59,7 +66,7 @@ export function PlanetSurface({
               role="button"
               tabIndex={0}
               aria-pressed={isSelected}
-              aria-label={`${siteName(site)}, ${appearance?.name ?? "Empty"}`}
+              aria-label={`${siteName(site)}, ${planned ? "Planned trade center" : (appearance?.name ?? "Empty")}`}
               className="group/hex cursor-pointer outline-none"
               onClick={() => {
                 setSelectedSite(site)
@@ -76,6 +83,7 @@ export function PlanetSurface({
                 fill={appearance === undefined ? "#142333" : "#27384a"}
                 stroke={isSelected ? "#7dd3fc" : "#50647a"}
                 strokeWidth={isSelected ? 3 : 1.5}
+                strokeDasharray={planned ? "5 3" : undefined}
                 className="group-hover/hex:stroke-sky-200 group-focus-visible/hex:stroke-white group-focus-visible/hex:stroke-[4]"
               />
               {appearance === undefined ? (
@@ -85,6 +93,7 @@ export function PlanetSurface({
               ) : (
                 <image
                   href={appearance.art}
+                  opacity={planned ? 0.5 : 1}
                   x="-25"
                   y="-26"
                   width="50"
@@ -102,11 +111,31 @@ export function PlanetSurface({
         <span className="px-2 text-muted-foreground" aria-hidden="true">
           ·
         </span>
-        {selectedType === undefined ? "Empty" : BUILDING_APPEARANCE[selectedType].name}
+        {order?.site === selectedSite
+          ? "Planned trade center"
+          : selectedType === undefined
+            ? "Empty"
+            : BUILDING_APPEARANCE[selectedType].name}
         {selectedType === BuildingType.TRADE_CENTER && (
           <span className="ml-3 text-muted-foreground">{TRADE_CENTER_INCOME} credits per turn</span>
         )}
       </p>
+      {planning !== undefined && (
+        <ConstructionPanel
+          key={`${planning.turn}-${order?.id ?? "draft"}`}
+          plan={planning}
+          site={selectedSite}
+          problem={constructionProblem({
+            planet,
+            playerId: planning.playerId,
+            buildings,
+            orders: planning.orders,
+            balance: planning.balance,
+            site: selectedSite,
+          })}
+          order={order}
+        />
+      )}
     </section>
   )
 }

@@ -1,4 +1,4 @@
-import { Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { afterEach, describe, expect, vi, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
@@ -292,7 +292,7 @@ describe("TurnProcessor", () => {
       })
     })
 
-    it("should not do anything in case of failure", async () => {
+    it("should settle a pending build once when a failed turn is retried", async () => {
       // Arrange
       await using db = await createIntegrationTestDb()
       const clock = new ControlledClock()
@@ -305,6 +305,17 @@ describe("TurnProcessor", () => {
       })
       await player.client.games.startGame.mutate({ gameId: createdGameId })
 
+      const initial = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const home = initial.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.ownerPlayerId === initial.player.id)
+      Assert.isDefined(home)
+      await player.client.gameplay.construction.mutate({
+        gameId: createdGameId,
+        turn: 1,
+        action: "submit",
+        planetId: home.id,
+        type: "TRADE_CENTER",
+        site: 2,
+      })
       const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId: createdGameId })
       const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
       const turnToProcess = { gameId: createdGameId, turn: 1 }
@@ -326,10 +337,16 @@ describe("TurnProcessor", () => {
         turn: 1,
         player: { creditBalance: 100 },
       })
+      expect(playerViewAfterFailedSave.buildings).toStrictEqual(initial.buildings)
+      expect(playerViewAfterFailedSave.constructionOrders).toHaveLength(1)
       expect(retriedProcessingResult).toBe("processed")
+      expect(
+        playerViewAfterRetry.buildings.filter((building) => building.planetId === home.id).filter((building) => building.site === 2),
+      ).toHaveLength(1)
       expect(playerViewAfterRetry).toMatchObject({
         turn: 2,
-        player: { creditBalance: 110 },
+        constructionOrders: [],
+        player: { creditBalance: 80 },
       })
     })
   })

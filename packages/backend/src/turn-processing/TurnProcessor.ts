@@ -101,9 +101,10 @@ export class TurnProcessor {
     players,
     planets,
     buildings,
+    constructionOrders,
   }: TurnToProcessModel): ProcessedTurnModel {
     const rng = Rng.fromState(rngState, mulberry32Prng)
-    const resolution = resolveTurn({ gameId, turn, players, planets, buildings }, rng)
+    const resolution = resolveTurn({ gameId, turn, players, planets, buildings, constructionOrders }, rng)
 
     const processedAt = this.clock.now()
     return {

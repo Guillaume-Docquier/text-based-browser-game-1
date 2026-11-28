@@ -177,6 +177,7 @@ describe("gameplay.router", () => {
         gameId: createdGameId,
         player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, creditBalance: 100 },
         opponents: {},
+        constructionOrders: [],
         buildings: expect.arrayContaining([
           expect.objectContaining({ type: "COMMAND_CENTER", site: 0 }),
           expect.objectContaining({ type: "TRADE_CENTER", site: 1 }),

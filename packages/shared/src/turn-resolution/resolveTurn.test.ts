@@ -18,6 +18,7 @@ describe("resolveTurn", () => {
           gameId: typedParse(GameIdSchema, 1),
           turn,
           players: [{ id: typedParse(PlayerIdSchema, playerId) }],
+          constructionOrders: [],
           buildings: [],
           planets: [createPlanetStub({ id: planetId, ownerPlayerId: playerId })],
         }
@@ -28,7 +29,7 @@ describe("resolveTurn", () => {
 
         // Assert
         expect(state).toStrictEqual(before)
-        expect(result.creditIncome.size).toBe(0)
+        expect(result.creditChanges.size).toBe(0)
       }),
     )
   })
@@ -37,7 +38,14 @@ describe("resolveTurn", () => {
     assert(
       property(integer(), (seed) => {
         // Arrange
-        const state: TurnState = { gameId: typedParse(GameIdSchema, 1), turn: 1, players: [], planets: [], buildings: [] }
+        const state: TurnState = {
+          gameId: typedParse(GameIdSchema, 1),
+          turn: 1,
+          players: [],
+          planets: [],
+          constructionOrders: [],
+          buildings: [],
+        }
         const rng = createSeededRng(seed)
         const before = rng.getState()
 
@@ -65,6 +73,7 @@ describe("resolveTurn", () => {
           turn: 3,
           players: [{ id: first }, { id: second }],
           planets: [other, unowned, home, colony],
+          constructionOrders: [],
           buildings: [
             { type: BuildingType.TRADE_CENTER, planetId: home.id },
             { type: BuildingType.COMMAND_CENTER, planetId: home.id },
@@ -80,7 +89,7 @@ describe("resolveTurn", () => {
         const replay = resolveTurn({ ...snapshot, buildings: snapshot.buildings.toReversed() }, createSeededRng(seed))
 
         // Assert
-        expect(result.creditIncome).toStrictEqual(
+        expect(result.creditChanges).toStrictEqual(
           new Map([
             [first, 10 * (1 + extraCenters)],
             [second, 10 * otherCenters],
@@ -89,6 +98,69 @@ describe("resolveTurn", () => {
         expect(replay).toStrictEqual(result)
         expect(state).toStrictEqual(snapshot)
       }),
+    )
+  })
+
+  it("TR-0005 When the turn resolves, construct each still-submitted building once at its chosen hex and charge its owner once. It first provides its capability on the next turn.", () => {
+    assert(
+      property(
+        integer({ min: 1, max: 200 }),
+        integer({ min: 2, max: 9 }),
+        integer(),
+        uuid({ version: 4 }),
+        uuid({ version: 4 }),
+        (quote, site, seed, firstId, secondId) => {
+          // Arrange
+          const first = typedParse(PlayerIdSchema, firstId)
+          const second = typedParse(PlayerIdSchema, secondId)
+          const home = createPlanetStub({ id: "home", ownerPlayerId: first, area: site + 1 })
+          const colony = createPlanetStub({ id: "colony", ownerPlayerId: second, area: site + 2 })
+          const orders = [
+            { playerId: first, planetId: home.id, site, type: BuildingType.TRADE_CENTER, cost: quote },
+            { playerId: second, planetId: colony.id, site: site + 1, type: BuildingType.TRADE_CENTER, cost: quote + 1 },
+          ]
+          const state: TurnState = {
+            gameId: typedParse(GameIdSchema, 1),
+            turn: 3,
+            players: [{ id: first }, { id: second }],
+            planets: [home, colony],
+            buildings: [
+              { type: BuildingType.COMMAND_CENTER, planetId: home.id },
+              { type: BuildingType.TRADE_CENTER, planetId: home.id },
+              { type: BuildingType.COMMAND_CENTER, planetId: colony.id },
+            ],
+            constructionOrders: orders,
+          }
+          const before = structuredClone(state)
+          // Act
+          const resolved = resolveTurn(state, createSeededRng(seed))
+          const replay = resolveTurn(before, createSeededRng(seed))
+          const next = resolveTurn(
+            { ...state, turn: 4, constructionOrders: [], buildings: [...state.buildings, ...resolved.buildingsToPlace] },
+            createSeededRng(seed),
+          )
+          // Assert
+          expect(resolved.buildingsToPlace).toStrictEqual([
+            { planetId: home.id, site, type: "TRADE_CENTER" },
+            { planetId: colony.id, site: site + 1, type: "TRADE_CENTER" },
+          ])
+          expect(resolved.creditChanges).toStrictEqual(
+            new Map([
+              [first, 10 - quote],
+              [second, -(quote + 1)],
+            ]),
+          )
+          expect(next.creditChanges).toStrictEqual(
+            new Map([
+              [first, 20],
+              [second, 10],
+            ]),
+          )
+          expect(next.buildingsToPlace).toStrictEqual([])
+          expect(replay).toStrictEqual(resolved)
+          expect(state).toStrictEqual(before)
+        },
+      ),
     )
   })
 
@@ -103,6 +175,7 @@ describe("resolveTurn", () => {
           turn: 1,
           players: [{ id: player }],
           planets: [home],
+          constructionOrders: [],
           buildings: [{ type: BuildingType.TRADE_CENTER, planetId: home.id }],
         }
         const rng = createSeededRng(seed)
@@ -112,7 +185,7 @@ describe("resolveTurn", () => {
         const result = resolveTurn(state, rng)
 
         // Assert
-        expect(result.creditIncome.get(player)).toBe(10)
+        expect(result.creditChanges.get(player)).toBe(10)
         expect(rng.getState()).toStrictEqual(before)
       }),
     )
